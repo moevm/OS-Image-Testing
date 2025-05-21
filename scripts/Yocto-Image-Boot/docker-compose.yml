@@ -1,0 +1,14 @@
+services:
+  yocto-builder:
+    build: .
+    image: yocto
+    container_name: yocto-builder
+    environment:
+      - LANG=en_US.UTF-8
+    volumes:
+      - yocto-build:/home/user/poky/build
+    user: "1010"
+
+volumes:
+  yocto-build:
+    external: true 
