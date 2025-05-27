@@ -27,7 +27,7 @@
 Связанные с IPC:
 * Latency - время на выполнение одной операции IPC
 * Throughput
-* Call count - общее число выполненных опреаций IPC
+* Call count - общее число выполненных операций IPC
 * Error rate - процент неудачных или ошибочных операций IPC 
 * CPU utilization - загрузка процессора при работе IPC
 
@@ -78,6 +78,7 @@
      * `-s size` (размер запроса)
      * `-S size` (размер рабочего набора)
    * Может быть добавлена в образ Yocto через bitbake
+
 
 Связанные с сетью:
 1. iperf
@@ -147,7 +148,27 @@
 4. perf
    * perf stat - собирает общую статистику по системным вызовам и аппаратным событиям во время выполнения программы, сколько времени было в пользовательском пространстве, сколько в пространстве ядра
    * perf record + perf report - собирает профилирующие данные во время выполнения, позволяет анализировать, какие системные вызовы и функции занимают больше всего времени
-
+5. Yandex perforator
+   * Метрики: Latency, throughput, call count, user time, system time
+   * Может быть добавлен в образ Yocto через bitbake-рецепт
+   * Пример запуска 
+     
+     ```bash
+     perforator record --pid <PID> --duration 60s --output profile.pb
+     ```
+6. sysdig
+   * Метрики: latency, throughput, call count, user time, system time
+   * Sysdig перехватывает системные вызовы и события ядра через модуль ядра и позволяет детально анализировать задержки, количество вызовов, ошибки и время выполнения системных вызовов
+   * Через bitbake
+7. bpftrace
+   * Метрики: latency, throughput, call count 
+   * Инструмент для динамического профилирования и трассировки системных вызовов, функций ядра и пользовательских функций с помощью eBPF
+   * Можно добавить через bitbake
+   * Пример запуска 
+     
+     ```bash
+     sudo bpftrace -e 'tracepoint:syscalls:sys_enter_openat { @latency[comm] = hist(nsecs); } interval:s:10 { print(@latency); clear(@latency); }'
+     ```
 
 Связанные с IPC:
 1. LTP
@@ -173,7 +194,25 @@
 3. perf 
    * Можно с его помощью собирать статистику по выбранным событиям во время выполнения программы или теста
    * perf stat можно использовать для измерения переключений контекста, user и system time
-
+4. Yandex perforator
+   * Метрики: latency, troughput, call count, cpu utilization
+   * Через bitbake
+5. sysdig 
+   * Метрики: latency, call count, cpu utilization, error rate
+   * Позволяет отслеживать системные вызовы, связанные с IPC, измерять задержки, частоту, ошибки и нагрузку на CPU, связанную с IPC-механизмами
+   * Пример запуска 
+     
+     ```bash
+     sysdig evt.type=pipe or evt.type=shmget or evt.type=msgsnd
+     ```
+6. bpftrace
+   * Метрики: latency, call count, throughput, cpu utilization
+   * Через bitbake
+   * Пример запуска 
+     
+     ```bash
+     sudo bpftrace -e 'tracepoint:syscalls:sys_enter_pipe { @calls[comm] = count(); }'
+     ```
 
 Связанные с виртуальной памятью:
 1. stress-ng
@@ -200,10 +239,29 @@
      ```bash
      perf stat -e page-faults,minor-faults,major-faults,context-switches ./my_program
      ```
-
+4. Yandex perforator
+   * Метрики: Page Fault Rate, context switches
+   * Через bitbake
+5. sysdig
+   * page fault rate, context switches
+   * Позволяет отслеживать события page faults и переключения контекста, связанные с управлением виртуальной памятью
+   * Пример запуска 
+     
+     ```bash
+     sysdig -c cswitches
+     
+     sysdig evt.type=page_fault_user
+     ```
+6. bpftrace
+   * Метрики: page fault rate, context switches
+   * Через bitbake
+   * Пример запуска 
+     
+     ```bash
+     sudo bpftrace -e 'tracepoint:exceptions:page_fault_user { @pf[comm] = count(); } interval:s:10 { print(@pf); clear(@pf); }'
+     ```
 
 ## Определение времени работы программы в пространстве пользователя и в пространстве ядра
-
 
 1. time
    * Утилита измеряет время работы программы, разделяя его на пользовательское и системное время, а также показывает общее время выполнения
@@ -231,14 +289,11 @@
             8.739217000 seconds sys
      ```
 
-
 ## Сбор данных в течение длительного времени 
-
 
 Инструменты:
 * Prometheus - система мониторинга, которая собирает метрики из различных источников и хранит их в базе данных
 * Grafana - инструмент визуализации данных, который позволяет создавать графики и панели на основе данных из Prometheus
-* Ansible - инструмент для автоматизации конфигурации и запуска тестов
 * Утилиты для тестирования (ipref, fio и др)
 
 План работы:
@@ -246,6 +301,5 @@
 2. Установка, настройка Prometheus для сбора метрик с целевой системы
 3. Настройка экспортеров для утилит. Для iperf существует специальный экспортер для iperf3, который позволяет отправлять метрики в Prometheus. Для fio, hping, ioping не существуют готовые экспортеры, поэтому вам нужно будет написать скрипты, которые будут запускать эти утилиты, парсить результаты и отправлять их в Prometheus через Pushgateway. Также можно и для iperf. Pushgateway — это компонент экосистемы Prometheus, который позволяет отправлять метрики в Prometheus из скриптов или утилит, не поддерживающих протокол Prometheus по умолчанию
 4. Настройка Grafana, создайте панели для визуализации данных из Prometheus
-5. Автоматизация тестов с помощью Ansible или скриптов
 6. Настройка cron для периодического запуска тестов
 
