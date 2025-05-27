@@ -1,15 +1,15 @@
 #!/bin/bash
 
 if [ -z "$1" ]; then
- echo "Dir is required argument. Example: $0 /path/to/poky"
- exit 1
+    echo "Dir is required argument. Example: $0 /path/to/poky"
+    exit 1
 fi
 
 POKY_DIR="$1"
 
 if [ ! -d "$POKY_DIR" ]; then
- echo "Dir [$POKY_DIR] not found."
- exit 1
+    echo "Dir [$POKY_DIR] not found."
+    exit 1
 fi
 
 #так как build может содержать образы для нескольких машин
@@ -56,8 +56,8 @@ select_machine() {
 select_machine "$POKY_DIR" MACHINE
 
 if [ -z "$MACHINE" ]; then
- echo "Can't get MACHINE"
- exit 1
+    echo "Can't get MACHINE"
+    exit 1
 fi
 
 echo "Use $MACHINE"
