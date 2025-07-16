@@ -35,4 +35,5 @@ fi
 
 source "$POKY_DIR/oe-init-build-env" "$POKY_DIR/build"
 
-runqemu "$MACHINE"
+SSH_PORT=2222
+SLIRP_PORTS="${SSH_PORT}:22" runqemu "$MACHINE" slirp nographic
