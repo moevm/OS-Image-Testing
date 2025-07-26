@@ -34,18 +34,17 @@ run_image() {
         -v "$(pwd)/config.sh:/home/user/poky/build/config.sh" \
         -v "$(pwd)/tests.sh:/home/user/poky/build/tests.sh" \
         yocto-builder-image \
-        sh -c "cd /home/user/poky/build && ./config.sh"
-        # && ./tests.sh
+        sh -c "cd /home/user/poky/build && ./config.sh && ./tests.sh"
 
     # Для сборки раскомментировать
 
-    docker run -it --rm \
-        -v yocto-build:/home/user/poky/build \
-        -v yocto-downloads:/home/user/poky/downloads \
-        -v yocto-sstate:/home/user/poky/sstate-cache \
-        -v yocto-meta-custom:/home/user/poky/meta-custom \
-        yocto-builder-image \
-        sh -c "bitbake ${IMAGE}"
+    # docker run -it --rm \
+    #     -v yocto-build:/home/user/poky/build \
+    #     -v yocto-downloads:/home/user/poky/downloads \
+    #     -v yocto-sstate:/home/user/poky/sstate-cache \
+    #     -v yocto-meta-custom:/home/user/poky/meta-custom \
+    #     yocto-builder-image \
+    #     sh -c "bitbake ${IMAGE}"
 }
 
 run_qemu() {
