@@ -15,11 +15,13 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/* && \
     locale-gen en_US.UTF-8
 
-RUN useradd -rm -d /home/${USER} -s /bin/bash -g root -G sudo ${USER} -u 1010 && \
-    echo "${USER} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/${USER}
-
 RUN mkdir -p ${POKY_DIR} && \
     git clone --depth 1 -b kirkstone --recurse-submodules https://git.yoctoproject.org/poky ${POKY_DIR}
+
+RUN groupadd -g 510 yoctogroup && \
+    useradd -rm -d /home/${USER} -s /bin/bash -g yoctogroup -u 1010 -G sudo ${USER} && \
+    echo "${USER} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/${USER} && \
+    chown -R ${USER}:yoctogroup ${POKY_DIR}
 
 COPY entrypoint.sh ${POKY_DIR}/
 RUN chmod +x ${POKY_DIR}/entrypoint.sh
