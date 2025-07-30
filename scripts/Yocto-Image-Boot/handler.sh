@@ -10,18 +10,19 @@ init_volumes() {
     docker volume create yocto-build
     docker volume create yocto-downloads
     docker volume create yocto-sstate
-
     docker volume create yocto-meta-custom
 
-    docker run --rm -v yocto-build:/mnt alpine \
-        sh -c "mkdir -p /mnt/build && mkdir -p /mnt/conf && chown -R 1010:510 /mnt"
-    docker run --rm -v yocto-downloads:/mnt alpine \
-        sh -c "mkdir -p /mnt && chown -R 1010:510 /mnt"
-    docker run --rm -v yocto-sstate:/mnt alpine \
-        sh -c "mkdir -p /mnt && chown -R 1010:510 /mnt"
-
-    docker run --rm -v yocto-meta-custom:/mnt alpine \
-        sh -c "mkdir -p /mnt/conf && chown -R 1010:510 /mnt"
+    docker run --rm \
+        -v yocto-build:/tmp-build \
+        -v yocto-downloads:/tmp-downloads \
+        -v yocto-sstate:/tmp-sstate \
+        -v yocto-meta-custom:/tmp-meta-custom \
+        alpine \
+        sh -c "mkdir -p /tmp-build/build /tmp-build/conf &&
+            mkdir -p /tmp-downloads &&
+            mkdir -p /tmp-sstate &&
+            mkdir -p /tmp-meta-custom/conf &&
+            chown -R 1010:510 /tmp-build /tmp-downloads /tmp-sstate /tmp-meta-custom"
 }
 
 run_image() {
