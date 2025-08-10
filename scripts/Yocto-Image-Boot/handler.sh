@@ -5,6 +5,7 @@
 IMAGE="core-image-minimal"
 POKY_DIR="/home/user/poky"
 BUILD_DIR="${POKY_DIR}/build"
+LAYER_DIR="${POKY_DIR}/meta-custom"
 
 init_volumes() {
     docker volume create yocto-build
@@ -28,31 +29,37 @@ init_volumes() {
 run_image() {
     docker run -it --rm \
         --entrypoint "" \
-        -v yocto-build:/home/user/poky/build \
-        -v yocto-downloads:/home/user/poky/downloads \
-        -v yocto-sstate:/home/user/poky/sstate-cache \
-        -v yocto-meta-custom:/home/user/poky/meta-custom \
-        -v "$(pwd)/config.sh:/home/user/poky/build/config.sh" \
-        -v "$(pwd)/tests.sh:/home/user/poky/build/tests.sh" \
+        -v yocto-build:${BUILD_DIR} \
+        -v yocto-downloads:${POKY_DIR}/downloads \
+        -v yocto-sstate:${POKY_DIR}/sstate-cache \
+        -v yocto-meta-custom:${LAYER_DIR} \
+        -v "$(pwd)/local.conf:${BUILD_DIR}/conf/local.conf" \
+        -v "$(pwd)/layer.conf:${LAYER_DIR}/conf/layer.conf" \
+        -v "$(pwd)/stress-ng_1.0.0.bb:${LAYER_DIR}/recipes-stress/stress-ng_1.0.0.bb" \
         yocto-builder-image \
-        sh -c "cd /home/user/poky/build && ./config.sh && ./tests.sh"
+        bash -c "source ${POKY_DIR}/oe-init-build-env ${BUILD_DIR} && bitbake-layers add-layer ${LAYER_DIR}"
 
-    # Для сборки раскомментировать
-
-    # docker run -it --rm \
-    #     -v yocto-build:/home/user/poky/build \
-    #     -v yocto-downloads:/home/user/poky/downloads \
-    #     -v yocto-sstate:/home/user/poky/sstate-cache \
-    #     -v yocto-meta-custom:/home/user/poky/meta-custom \
-    #     yocto-builder-image \
-    #     sh -c "bitbake ${IMAGE}"
+    docker run -it --rm \
+        -v yocto-build:${BUILD_DIR} \
+        -v yocto-downloads:${POKY_DIR}/downloads \
+        -v yocto-sstate:${POKY_DIR}/sstate-cache \
+        -v yocto-meta-custom:${LAYER_DIR} \
+        -v "$(pwd)/local.conf:${BUILD_DIR}/conf/local.conf" \
+        -v "$(pwd)/layer.conf:${LAYER_DIR}/conf/layer.conf" \
+        -v "$(pwd)/stress-ng_1.0.0.bb:${LAYER_DIR}/recipes-stress/stress-ng_1.0.0.bb" \
+        yocto-builder-image \
+        sh -c "bitbake ${IMAGE}"
 }
 
 run_qemu() {
     docker run -it --rm \
-        -v yocto-build:/home/user/poky/build \
-        -v yocto-downloads:/home/user/poky/downloads \
-        -v yocto-sstate:/home/user/poky/sstate-cache \
+        -v yocto-build:${BUILD_DIR} \
+        -v yocto-downloads:${POKY_DIR}/downloads \
+        -v yocto-sstate:${POKY_DIR}/sstate-cache \
+        -v yocto-meta-custom:${LAYER_DIR} \
+        -v "$(pwd)/local.conf:${BUILD_DIR}/conf/local.conf" \
+        -v "$(pwd)/layer.conf:${LAYER_DIR}/conf/layer.conf" \
+        -v "$(pwd)/stress-ng_1.0.0.bb:${LAYER_DIR}/recipes-stress/stress-ng_1.0.0.bb" \
         yocto-builder-image \
         runqemu qemux86-64 ${IMAGE} slirp nographic
 }
@@ -69,7 +76,7 @@ fi
 
 if [ $1 = "run" ]; then
     run_image
-    # run_qemu
+    run_qemu
 fi
 
 # if [ $1 = "test" ]; then
