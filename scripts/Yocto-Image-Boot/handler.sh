@@ -2,6 +2,8 @@
 
 # ./handler build -> ./handler run
 
+OPTS=$(getopt -o br --long build,run -n 'handler.sh' -- "$@")
+
 IMAGE="core-image-minimal"
 POKY_DIR="/home/user/poky"
 BUILD_DIR="${POKY_DIR}/build"
@@ -28,27 +30,16 @@ init_volumes() {
 
 run_image() {
     docker run -it --rm \
-        --entrypoint "" \
         -v yocto-build:${BUILD_DIR} \
         -v yocto-downloads:${POKY_DIR}/downloads \
         -v yocto-sstate:${POKY_DIR}/sstate-cache \
         -v yocto-meta-custom:${LAYER_DIR} \
-        -v "$(pwd)/local.conf:${BUILD_DIR}/conf/local.conf" \
-        -v "$(pwd)/layer.conf:${LAYER_DIR}/conf/layer.conf" \
+        -v "$(pwd)/conf/local.conf:${BUILD_DIR}/conf/local.conf" \
+        -v "$(pwd)/conf/layer.conf:${LAYER_DIR}/conf/layer.conf" \
         -v "$(pwd)/stress-ng_1.0.0.bb:${LAYER_DIR}/recipes-stress/stress-ng_1.0.0.bb" \
+        -v "$(pwd)/tests:${LAYER_DIR}/recipes-stress/files" \
         yocto-builder-image \
-        bash -c "source ${POKY_DIR}/oe-init-build-env ${BUILD_DIR} && bitbake-layers add-layer ${LAYER_DIR}"
-
-    docker run -it --rm \
-        -v yocto-build:${BUILD_DIR} \
-        -v yocto-downloads:${POKY_DIR}/downloads \
-        -v yocto-sstate:${POKY_DIR}/sstate-cache \
-        -v yocto-meta-custom:${LAYER_DIR} \
-        -v "$(pwd)/local.conf:${BUILD_DIR}/conf/local.conf" \
-        -v "$(pwd)/layer.conf:${LAYER_DIR}/conf/layer.conf" \
-        -v "$(pwd)/stress-ng_1.0.0.bb:${LAYER_DIR}/recipes-stress/stress-ng_1.0.0.bb" \
-        yocto-builder-image \
-        sh -c "bitbake ${IMAGE}"
+        bash -c "bitbake-layers add-layer ${LAYER_DIR} && bitbake ${IMAGE}"
 }
 
 run_qemu() {
@@ -57,40 +48,32 @@ run_qemu() {
         -v yocto-downloads:${POKY_DIR}/downloads \
         -v yocto-sstate:${POKY_DIR}/sstate-cache \
         -v yocto-meta-custom:${LAYER_DIR} \
-        -v "$(pwd)/local.conf:${BUILD_DIR}/conf/local.conf" \
-        -v "$(pwd)/layer.conf:${LAYER_DIR}/conf/layer.conf" \
+        -v "$(pwd)/conf/local.conf:${BUILD_DIR}/conf/local.conf" \
+        -v "$(pwd)/conf/layer.conf:${LAYER_DIR}/conf/layer.conf" \
         -v "$(pwd)/stress-ng_1.0.0.bb:${LAYER_DIR}/recipes-stress/stress-ng_1.0.0.bb" \
+        -v "$(pwd)/tests:${LAYER_DIR}/recipes-stress/files" \
         yocto-builder-image \
         runqemu qemux86-64 ${IMAGE} slirp nographic
 }
 
-if [ $# -eq 0 ]; then
-    echo "Give argument for the script. build|run|test"
-    exit
-fi
-
-if [ $1 = "build" ]; then
-    init_volumes
-    docker build -t yocto-builder-image .
-fi
-
-if [ $1 = "run" ]; then
-    run_image
-    run_qemu
-fi
-
-# if [ $1 = "test" ]; then
-#     docker run -it --rm \
-#         -v yocto-build:/home/user/poky/build \
-#         -v yocto-downloads:/home/user/poky/downloads \
-#         -v yocto-sstate:/home/user/poky/sstate-cache \
-#         yocto-builder-image \
-#         bitbake-layers show-recipes stress-ng
-    
-#     docker run -it --rm \
-#         -v yocto-build:/home/user/poky/build \
-#         -v yocto-downloads:/home/user/poky/downloads \
-#         -v yocto-sstate:/home/user/poky/sstate-cache \
-#         yocto-builder-image \
-#         grep -r "inherit ptest" $(find . -name "*stress-ng*.bb")
-# fi
+while [ $# -ne 0 ]; do
+    case "$1" in
+        -b | --build)
+            init_volumes
+            docker build -t yocto-builder-image .
+            shift
+            ;;
+        -r | --run)
+            run_image
+            run_qemu
+            shift
+            ;;
+        --)
+            shift
+            ;;
+        *)
+            echo "Unknown argument!"
+            exit 1
+            ;;
+    esac
+done
