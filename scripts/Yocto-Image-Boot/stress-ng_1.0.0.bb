@@ -7,6 +7,14 @@ LIC_FILES_CHKSUM = "file://COPYING;md5=b234ee4d69f5fce4486a80fdaf4a4263"
 SRC_URI = "git://github.com/ColinIanKing/stress-ng.git;protocol=https;branch=master"
 SRCREV = "20e0f48cf0ca9cc96ed150c3dfa96f8e8a2f964b"
 
+SRC_URI += " \
+    file://run-ptest \
+    file://test-cpu.sh \
+    file://test-disk.sh \
+    file://test-memory.sh \
+    file://test-network.sh \
+"
+
 DEPENDS = "zlib libaio"
 RDEPENDS:${PN} = "glibc"
 
@@ -18,35 +26,9 @@ do_install() {
 
 do_install_ptest() {
     install -d ${D}${PTEST_PATH}/tests
-    
-    cat > ${D}${PTEST_PATH}/tests/test-cpu-load.sh << 'EOF_A'
-        #!/bin/sh
-        echo "Starting CPU stress test for 10 seconds..."
-        stress-ng --cpu 0 --timeout 10 --metrics --verify
-        if [ $? -eq 0 ]; then
-            echo "CPU test PASSED"
-            exit 0
-        else
-            echo "CPU test FAILED"
-            exit 1
-        fi
-EOF_A
-
-    chmod +x ${D}${PTEST_PATH}/tests/test-cpu-load.sh
-
-    cat > ${D}${PTEST_PATH}/run-ptest << 'EOF_B'
-        #!/bin/sh
-        cd $(dirname $0)
-        echo "=== Running stress-ng ptest ==="
-        PASS=0
-        FAIL=0
-        for test in tests/*.sh; do
-            echo "TEST: $(basename $test)"
-            ./$test && PASS=$((PASS+1)) || FAIL=$((FAIL+1))
-        done
-        echo "=== Summary: $PASS passed, $FAIL failed ==="
-        [ $FAIL -eq 0 ] || exit 1
-EOF_B
-
-    chmod +x ${D}${PTEST_PATH}/run-ptest
+    install -m 0755 ${WORKDIR}/run-ptest ${D}${PTEST_PATH}/
+    install -m 0755 ${WORKDIR}/test-cpu.sh ${D}${PTEST_PATH}/tests/
+    install -m 0755 ${WORKDIR}/test-disk.sh ${D}${PTEST_PATH}/tests/
+    install -m 0755 ${WORKDIR}/test-memory.sh ${D}${PTEST_PATH}/tests/
+    install -m 0755 ${WORKDIR}/test-network.sh ${D}${PTEST_PATH}/tests/
 }
