@@ -1,0 +1,23 @@
+#!/bin/sh
+
+ALL_PASS=1
+cd /usr/share/tests
+
+for testscript in ./test*.sh; do
+  echo "Running test: $testscript"
+  sh "$testscript"
+  STATUS=$?
+  if [ $STATUS -eq 0 ]; then
+    echo "PASS: $testscript"
+  else
+    echo "FAIL: $testscript"
+    ALL_PASS=0
+  fi
+done
+
+if [ $ALL_PASS -eq 1 ]; then
+  exit 0
+else
+  exit 1
+fi
+
