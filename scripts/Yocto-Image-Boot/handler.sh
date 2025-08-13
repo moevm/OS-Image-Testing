@@ -100,7 +100,7 @@ if [ $1 = "run" ]; then
 fi
 
 if [ $1 = "config" ]; then
-    copy_local_conf "$2"
+    copy_conf "$2"
 fi
 
 if [ $1 = "test" ]; then
