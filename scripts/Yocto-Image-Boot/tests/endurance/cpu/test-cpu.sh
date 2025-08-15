@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 echo "Starting CPU stress test for 10 seconds..."
 stress-ng --cpu 0 --timeout 10 --metrics --verify

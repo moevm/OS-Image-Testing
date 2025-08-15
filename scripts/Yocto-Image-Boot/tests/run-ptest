@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 cd $(dirname $0)
 echo "=== Running stress-ng ptest ==="
@@ -6,7 +6,7 @@ echo "=== Running stress-ng ptest ==="
 PASS=0
 FAIL=0
 
-for test in tests/*.sh; do
+for test in tests/*/*/*.sh; do
     echo "TEST: $(basename $test)"
     ./$test && PASS=$((PASS+1)) || FAIL=$((FAIL+1))
 done
