@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# ./handler build -> ./handler run
+# ./handler --build -> ./handler --run
 
 OPTS=$(getopt -o br --long build,run -n 'handler.sh' -- "$@")
 

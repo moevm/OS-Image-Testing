@@ -9,14 +9,15 @@ SRCREV = "20e0f48cf0ca9cc96ed150c3dfa96f8e8a2f964b"
 
 SRC_URI += " \
     file://run-ptest \
-    file://test-cpu.sh \
-    file://test-disk.sh \
-    file://test-memory.sh \
-    file://test-network.sh \
+    file://endurance/cpu/test-cpu.sh \
+    file://endurance/disks/test-disk.sh \
+    file://endurance/memory/test-memory.sh \
+    file://endurance/network/test-network.sh \
 "
 
-DEPENDS = "zlib libaio"
+DEPENDS = "zlib libaio bash"
 RDEPENDS:${PN} = "glibc"
+RDEPENDS:${PN}-ptest += "bash"
 
 inherit ptest
 
@@ -25,10 +26,17 @@ do_install() {
 }
 
 do_install_ptest() {
-    install -d ${D}${PTEST_PATH}/tests
-    install -m 0755 ${WORKDIR}/run-ptest ${D}${PTEST_PATH}/
-    install -m 0755 ${WORKDIR}/test-cpu.sh ${D}${PTEST_PATH}/tests/
-    install -m 0755 ${WORKDIR}/test-disk.sh ${D}${PTEST_PATH}/tests/
-    install -m 0755 ${WORKDIR}/test-memory.sh ${D}${PTEST_PATH}/tests/
-    install -m 0755 ${WORKDIR}/test-network.sh ${D}${PTEST_PATH}/tests/
+    install -m 0755 ${WORKDIR}/run-ptest ${D}${PTEST_PATH}
+
+    install -d ${D}${PTEST_PATH}/tests/endurance/cpu
+    install -m 0755 ${WORKDIR}/endurance/cpu/test-cpu.sh ${D}${PTEST_PATH}/tests/endurance/cpu
+
+    install -d ${D}${PTEST_PATH}/tests/endurance/disks
+    install -m 0755 ${WORKDIR}/endurance/disks/test-disk.sh ${D}${PTEST_PATH}/tests/endurance/disks
+    
+    install -d ${D}${PTEST_PATH}/tests/endurance/memory
+    install -m 0755 ${WORKDIR}/endurance/memory/test-memory.sh ${D}${PTEST_PATH}/tests/endurance/memory
+
+    install -d ${D}${PTEST_PATH}/tests/endurance/network    
+    install -m 0755 ${WORKDIR}/endurance/network/test-network.sh ${D}${PTEST_PATH}/tests/endurance/network
 }
