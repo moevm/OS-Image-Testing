@@ -10,7 +10,7 @@ RUN apt-get update && \
         sudo wget git locales chrpath cpio diffstat gawk \
         zstd liblz4-tool python3 python3-pip tar gcc make \
         bzip2 file g++ patch python3-pexpect python3-git \
-        python3-jinja2 python3-subunit \
+        python3-jinja2 python3-subunit screen \
         qemu qemu-system-x86 qemu-utils && \
     rm -rf /var/lib/apt/lists/* && \
     locale-gen en_US.UTF-8
