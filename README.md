@@ -12,4 +12,9 @@ Repository structure:
 |    |    |--- disks
 |    |    |--- memory
 |    |    |--- network
+|    |--- Performance       # Performance tests
+|    |    |--- cpu
+|    |    |--- disks
+|    |    |--- memory
+|    |    |--- network
 ```
