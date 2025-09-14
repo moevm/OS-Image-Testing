@@ -25,7 +25,7 @@ do_install() {
     install -Dm 0755 ${B}/stress-ng ${D}${bindir}/stress-ng
 }
 
-do_install_ptest() {
+do_install_ptest_base() {
     install -m 0755 ${WORKDIR}/run-ptest ${D}${PTEST_PATH}
 
     install -d ${D}${PTEST_PATH}/tests/endurance/cpu
