@@ -1,23 +1,16 @@
 #!/bin/sh
 
-ALL_PASS=1
 cd /usr/share/tests
 
+echo "=== Running tests ptest ==="
+
+PASS=0
+FAIL=0
+
 for testscript in ./test*.sh; do
-  echo "Running test: $testscript"
-  sh "$testscript"
-  STATUS=$?
-  if [ $STATUS -eq 0 ]; then
-    echo "PASS: $testscript"
-  else
-    echo "FAIL: $testscript"
-    ALL_PASS=0
-  fi
+  echo "TEST: $(basename $testscript)"
+  ./$testscript && PASS=$((PASS+1)) || FAIL=$((FAIL+1))
 done
 
-if [ $ALL_PASS -eq 1 ]; then
-  exit 0
-else
-  exit 1
-fi
-
+echo "=== Summary: $PASS passed, $FAIL failed ==="
+[ $FAIL -eq 0 ] || exit 1
