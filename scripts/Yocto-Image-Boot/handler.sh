@@ -3,10 +3,10 @@
 OPTS=$(getopt -o brt --long build,run,test -n 'handler.sh' -- "$@")
 
 IMAGE="core-image-minimal"
-USER="1010"
-GROUP="510"
+USER="user"
+GROUP="yoctogroup"
 
-POKY_DIR="/home/user/poky"
+POKY_DIR="/home/${USER}/poky"
 BUILD_DIR="${POKY_DIR}/build"
 LAYER_DIR="${POKY_DIR}/meta-custom"
 
@@ -59,7 +59,7 @@ run_qemu() {
         -v "${HOST_LAYERS_PATH}/meta-custom/recipes-stress/stress-ng/stress-ng_1.0.0.bb:${LAYER_DIR}/recipes-stress/stress-ng/stress-ng_1.0.0.bb" \
         -v "${HOST_LAYERS_PATH}/meta-custom/recipes-stress/stress-ng/files:${LAYER_DIR}/recipes-stress/stress-ng/files" \
         yocto-builder-image \
-        runqemu --config /home/user/poky/build/tmp/deploy/images/qemux86-64/core-image-minimal-qemux86-64.rootfs.qemuboot.conf slirp nographic
+        runqemu --config /home/${USER}/poky/build/tmp/deploy/images/qemux86-64/core-image-minimal-qemux86-64.rootfs.qemuboot.conf slirp nographic
 }
 
 while [ $# -ne 0 ]; do

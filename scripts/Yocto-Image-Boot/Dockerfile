@@ -3,7 +3,7 @@ FROM ubuntu:22.04
 ENV DEBIAN_FRONTEND=noninteractive \
     LANG=en_US.UTF-8 \
     USER=user \
-    POKY_DIR=/home/user/poky
+    POKY_DIR=/home/${USER}/poky
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
