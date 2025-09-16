@@ -1,8 +1,9 @@
 FROM ubuntu:22.04
 
+ARG USER="user"
+
 ENV DEBIAN_FRONTEND=noninteractive \
     LANG=en_US.UTF-8 \
-    USER=user \
     POKY_DIR=/home/${USER}/poky
 
 RUN apt-get update && \
