@@ -1,9 +1,9 @@
 USER                       := user
 GROUP                      := yoctogroup
+OS_IMAGE                   := core-image-minimal
 
 # Docker
 DOCKER_TAG                 := yocto-builder-image
-DOCKER_IMAGE               := core-image-minimal
 DOCKER_BUILD_VOLUME        := yocto-build
 DOCKER_DOWNLOADS_VOLUME    := yocto-downloads
 DOCKER_SSTATE_VOLUME       := yocto-sstate
@@ -51,7 +51,7 @@ docker-init-volumes:
 		--volume "${HOST_LAYERS_PATH}/meta-custom/recipes-stress/stress-ng/stress-ng_1.0.0.bb:${LAYER_DIR}/recipes-stress/stress-ng/stress-ng_1.0.0.bb" \
 		--volume "${HOST_LAYERS_PATH}/meta-custom/recipes-stress/stress-ng/files:${LAYER_DIR}/recipes-stress/stress-ng/files" \
 		${DOCKER_TAG} \
-		bash -c "bitbake-layers add-layer ${LAYER_DIR} && bitbake ${DOCKER_IMAGE}"
+		bash -c "bitbake-layers add-layer ${LAYER_DIR} && bitbake ${OS_IMAGE}"
 
 run-image: docker-init-volumes
 	docker run -it --rm \
