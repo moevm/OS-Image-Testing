@@ -76,4 +76,4 @@ help:
 	@echo "  help                   Displays information about all available targets."
 
 
-.PHONY: docker-build
+.PHONY: docker-build docker-init-volumes run-image

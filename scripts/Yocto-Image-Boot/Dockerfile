@@ -22,9 +22,9 @@ RUN mkdir -p ${POKY_DIR} && \
     git clone --depth 1 -b scarthgap --recurse-submodules https://git.yoctoproject.org/poky ${POKY_DIR}
 
 RUN groupadd -g 510 ${GROUP} && \
-    useradd -rm -d /home/${USER} -s /bin/bash -g {GROUP} -u 1010 -G sudo ${USER} && \
+    useradd -rm -d /home/${USER} -s /bin/bash -g ${GROUP} -u 1010 -G sudo ${USER} && \
     echo "${USER} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/${USER} && \
-    chown -R ${USER}:{GROUP} ${POKY_DIR}
+    chown -R ${USER}:${GROUP} ${POKY_DIR}
 
 COPY scripts/Yocto-Image-Boot/entrypoint.sh ${POKY_DIR}/
 RUN chmod +x ${POKY_DIR}/entrypoint.sh
