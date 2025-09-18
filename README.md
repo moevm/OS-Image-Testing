@@ -20,8 +20,6 @@ Repository structure:
 |    |    |--- network
 ```
 
-First of all you need to run `make docker-build` for building image and setup its volumes.
-
 ## Сборка Yocto образа через докер
 
 ### Базовая инициализация docker тома и последующая многоразовая сборка образа.
