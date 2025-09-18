@@ -9,7 +9,6 @@ DOCKER_DOWNLOADS_VOLUME    := yocto-downloads
 DOCKER_SSTATE_VOLUME       := yocto-sstate
 DOCKER_TESTS_VOLUME        := yocto-meta-custom
 
-
 # Paths
 POKY_DIR                   := /home/${USER}/poky
 BUILD_DIR                  := ${POKY_DIR}/build
@@ -22,6 +21,7 @@ docker-build:
 	docker build \
 		--tag ${DOCKER_TAG} \
 		--build-arg USER="${USER}" \
+		--build-arg GROUP="${GROUP}" \
 		--file scripts/Yocto-Image-Boot/Dockerfile .
 	docker volume create ${DOCKER_BUILD_VOLUME}
 	docker volume create ${DOCKER_DOWNLOADS_VOLUME}
@@ -65,7 +65,6 @@ docker-run-image: docker-init-volumes
 		--volume "${HOST_LAYERS_PATH}/meta-custom/recipes-stress/stress-ng/files:${LAYER_DIR}/recipes-stress/stress-ng/files" \
 		${DOCKER_TAG} \
 		runqemu --config /home/${USER}/poky/build/tmp/deploy/images/qemux86-64/core-image-minimal-qemux86-64.rootfs.qemuboot.conf slirp nographic
-
 
 help:
 	@echo "Usage:"
