@@ -1,6 +1,6 @@
 FROM ubuntu:22.04
 
-ARG USER="user"
+ARG USER
 
 ENV DEBIAN_FRONTEND=noninteractive \
     LANG=en_US.UTF-8 \
@@ -25,7 +25,7 @@ RUN groupadd -g 510 yoctogroup && \
     echo "${USER} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/${USER} && \
     chown -R ${USER}:yoctogroup ${POKY_DIR}
 
-COPY entrypoint.sh ${POKY_DIR}/
+COPY scripts/Yocto-Image-Boot/entrypoint.sh ${POKY_DIR}/
 RUN chmod +x ${POKY_DIR}/entrypoint.sh
 
 USER ${USER}
