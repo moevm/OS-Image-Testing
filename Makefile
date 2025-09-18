@@ -53,7 +53,7 @@ docker-init-volumes:
 		${DOCKER_TAG} \
 		bash -c "bitbake-layers add-layer ${LAYER_DIR} && bitbake ${DOCKER_IMAGE}"
 
-docker-run-image: docker-init-volumes
+run-image: docker-init-volumes
 	docker run -it --rm \
 		--volume ${DOCKER_BUILD_VOLUME}:${BUILD_DIR} \
 		--volume ${DOCKER_DOWNLOADS_VOLUME}:${POKY_DIR}/downloads \
