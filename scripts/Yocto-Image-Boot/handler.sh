@@ -33,7 +33,7 @@ run_qemu() {
         -v yocto-build:/home/user/poky/build \
         -v yocto-downloads:/home/user/poky/downloads \
         -v yocto-sstate:/home/user/poky/sstate-cache \
-        -v "$LAYERS_PATH/meta-mytests":/home/user/poky/meta-mytests:ro \
+        -v "$LAYERS_PATH/meta-image-tests":/home/user/poky/meta-image-tests:ro \
         yocto-builder-image \
         runqemu qemux86-64 ${IMAGE} slirp nographic
 }
@@ -72,13 +72,13 @@ build_tests() {
         -v yocto-build:/home/user/poky/build \
         -v yocto-downloads:/home/user/poky/downloads \
         -v yocto-sstate:/home/user/poky/sstate-cache \
-        -v "$LAYERS_PATH/meta-mytests":/home/user/poky/meta-mytests:ro \
+        -v "$LAYERS_PATH/meta-image-tests":/home/user/poky/meta-image-tests:ro \
         yocto-builder-image \
         /bin/bash -c "\
             source /home/user/poky/oe-init-build-env /home/user/poky/build && \
             echo 'checking layers...' && \
-            if ! bitbake-layers show-layers | grep -q meta-mytests; then \
-                bitbake-layers add-layer /home/user/poky/meta-mytests; \
+            if ! bitbake-layers show-layers | grep -q meta-image-tests; then \
+                bitbake-layers add-layer /home/user/poky/meta-image-tests; \
             fi && \
             echo 'building tests layer...' && \
             bitbake tests"
