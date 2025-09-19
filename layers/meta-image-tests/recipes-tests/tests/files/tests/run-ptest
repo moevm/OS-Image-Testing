@@ -1,13 +1,12 @@
 #!/bin/sh
 
-cd /usr/share/tests
-
+cd $(dirname $0)
 echo "=== Running tests ptest ==="
 
 PASS=0
 FAIL=0
 
-for testscript in ./test*.sh; do
+for testscript in ./tests/*/*/*.sh; do
   echo "TEST: $(basename $testscript)"
   ./$testscript && PASS=$((PASS+1)) || FAIL=$((FAIL+1))
 done
