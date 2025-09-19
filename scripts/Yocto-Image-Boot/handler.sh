@@ -1,109 +1,92 @@
 #!/bin/bash
 
-IMAGE="core-image-minimal"
+OPTS=$(getopt -o brt --long build,run,test -n 'handler.sh' -- "$@")
 
-DIR=$(dirname "$(realpath "$0")")
-LAYERS_PATH=$(realpath "$DIR/../../layers")
+IMAGE="core-image-minimal"
+USER="user"
+GROUP="yoctogroup"
+
+POKY_DIR="/home/${USER}/poky"
+BUILD_DIR="${POKY_DIR}/build"
+LAYER_DIR="${POKY_DIR}/meta-custom"
+
+# this variable is needed until the problem with renaming the meta-custom layer is resolved
+LAYER_DIR_IMAGE_TESTS="${POKY_DIR}/meta-image-tests"
+
+HOST_DIR=$(dirname "$(realpath "$0")")
+HOST_LAYERS_PATH=$(realpath "$HOST_DIR/../../layers")
+HOST_CONF_PATH=$(realpath "$HOST_DIR/../../conf")
 
 init_volumes() {
     docker volume create yocto-build
     docker volume create yocto-downloads
     docker volume create yocto-sstate
+    docker volume create yocto-meta-custom
 
-    docker run --rm -v yocto-build:/mnt alpine \
-        sh -c "mkdir -p /mnt/{build,conf} && chown -R 1010:0 /mnt"
-    docker run --rm -v yocto-downloads:/mnt alpine \
-        sh -c "mkdir -p /mnt && chown -R 1010:0 /mnt"
-    docker run --rm -v yocto-sstate:/mnt alpine \
-        sh -c "mkdir -p /mnt && chown -R 1010:0 /mnt"
+    docker run --rm --user root \
+        --entrypoint "" \
+        -v yocto-build:/tmp-build \
+        -v yocto-downloads:/tmp-downloads \
+        -v yocto-sstate:/tmp-sstate \
+        -v yocto-meta-custom:/tmp-meta-custom \
+        yocto-builder-image \
+        bash -c "mkdir -p /tmp-build/build /tmp-build/conf &&
+            mkdir -p /tmp-downloads &&
+            mkdir -p /tmp-sstate &&
+            mkdir -p /tmp-meta-custom/conf &&
+            chown -R ${USER}:${GROUP} /tmp-build /tmp-downloads /tmp-sstate /tmp-meta-custom"
 }
 
 run_image() {
     docker run -it --rm \
-        -v yocto-build:/home/user/poky/build \
-        -v yocto-downloads:/home/user/poky/downloads \
-        -v yocto-sstate:/home/user/poky/sstate-cache \
-        -v "$LAYERS_PATH/meta-mytests":/home/user/poky/meta-mytests:ro \
+        -v yocto-build:${BUILD_DIR} \
+        -v yocto-downloads:${POKY_DIR}/downloads \
+        -v yocto-sstate:${POKY_DIR}/sstate-cache \
+        -v yocto-meta-custom:${LAYER_DIR} \
+        -v "${HOST_CONF_PATH}/local.conf:${BUILD_DIR}/conf/local.conf" \
+        -v "${HOST_LAYERS_PATH}/meta-custom/conf/layer.conf:${LAYER_DIR}/conf/layer.conf" \
+        -v "${HOST_LAYERS_PATH}/meta-custom/recipes-stress/stress-ng/stress-ng_1.0.0.bb:${LAYER_DIR}/recipes-stress/stress-ng/stress-ng_1.0.0.bb" \
+        -v "${HOST_LAYERS_PATH}/meta-custom/recipes-stress/stress-ng/files:${LAYER_DIR}/recipes-stress/stress-ng/files" \
+        -v "${HOST_LAYERS_PATH}/meta-image-tests":${LAYER_DIR_IMAGE_TESTS} \
         yocto-builder-image \
-        bitbake ${IMAGE}
+        bash -c "bitbake-layers add-layer ${LAYER_DIR} && bitbake-layers add-layer ${LAYER_DIR_IMAGE_TESTS} && bitbake ${IMAGE}"
 }
+
 
 run_qemu() {
     docker run -it --rm \
-        -v yocto-build:/home/user/poky/build \
-        -v yocto-downloads:/home/user/poky/downloads \
-        -v yocto-sstate:/home/user/poky/sstate-cache \
-        -v "$LAYERS_PATH/meta-image-tests":/home/user/poky/meta-image-tests:ro \
+        -v yocto-build:${BUILD_DIR} \
+        -v yocto-downloads:${POKY_DIR}/downloads \
+        -v yocto-sstate:${POKY_DIR}/sstate-cache \
+        -v yocto-meta-custom:${LAYER_DIR} \
+        -v "${HOST_CONF_PATH}/local.conf:${BUILD_DIR}/conf/local.conf" \
+        -v "${HOST_LAYERS_PATH}/meta-custom/conf/layer.conf:${LAYER_DIR}/conf/layer.conf" \
+        -v "${HOST_LAYERS_PATH}/meta-custom/recipes-stress/stress-ng/stress-ng_1.0.0.bb:${LAYER_DIR}/recipes-stress/stress-ng/stress-ng_1.0.0.bb" \
+        -v "${HOST_LAYERS_PATH}/meta-custom/recipes-stress/stress-ng/files:${LAYER_DIR}/recipes-stress/stress-ng/files" \
+        -v "$HOST_LAYERS_PATH/meta-image-tests":${LAYER_DIR_IMAGE_TESTS} \
         yocto-builder-image \
-        runqemu qemux86-64 ${IMAGE} slirp nographic
+        runqemu --config /home/${USER}/poky/build/tmp/deploy/images/qemux86-64/core-image-minimal-qemux86-64.rootfs.qemuboot.conf slirp nographic
 }
 
-copy_conf() {
-    CONF_FILE_PATH="$1"
-    
-    if [ -z "$CONF_FILE_PATH" ]; then
-        echo "Usage: $0 config /path/to/local.conf"
-        exit 1
-    fi
-    
-    if [ ! -f "$CONF_FILE_PATH" ]; then
-        echo "Error: File '$CONF_FILE_PATH' does not exist."
-        exit 1
-    fi
-    
-    CONF_DIR=$(dirname "$CONF_FILE_PATH")
-    CONF_FILE=$(basename "$CONF_FILE_PATH")
-    
-    echo "Copying $CONF_FILE_PATH into yocto-build volume..."
-
-    docker run --rm \
-        -v yocto-build:/mnt \
-        -v "$CONF_DIR":/localconf:ro alpine \
-        sh -c "\
-            mkdir -p /mnt/conf && \
-            cp /localconf/$CONF_FILE /mnt/conf/$CONF_FILE && \
-            chown 1010:0 /mnt/conf/$CONF_FILE"
-
-    echo "local.conf copied successfully to yocto-build volume."
-}
-
-build_tests() {
-    docker run -it --rm \
-        -v yocto-build:/home/user/poky/build \
-        -v yocto-downloads:/home/user/poky/downloads \
-        -v yocto-sstate:/home/user/poky/sstate-cache \
-        -v "$LAYERS_PATH/meta-image-tests":/home/user/poky/meta-image-tests:ro \
-        yocto-builder-image \
-        /bin/bash -c "\
-            source /home/user/poky/oe-init-build-env /home/user/poky/build && \
-            echo 'checking layers...' && \
-            if ! bitbake-layers show-layers | grep -q meta-image-tests; then \
-                bitbake-layers add-layer /home/user/poky/meta-image-tests; \
-            fi && \
-            echo 'building tests layer...' && \
-            bitbake tests"
-}
-
-if [ $# -eq 0 ]; then
-    echo "Give argument for the script. build|run|test|config"
-    exit
-fi
-
-if [ $1 = "build" ]; then
-    init_volumes
-    docker build -t yocto-builder-image .
-fi
-
-if [ $1 = "run" ]; then
-    run_image
-    run_qemu
-fi
-
-if [ $1 = "config" ]; then
-    copy_conf "$2"
-fi
-
-if [ $1 = "test" ]; then
-    build_tests
-fi
+while [ $# -ne 0 ]; do
+    case "$1" in
+        -b | --build)
+            docker build -t yocto-builder-image .
+            init_volumes
+            shift
+            ;;
+        -r | --run)
+            run_image
+            run_qemu
+            shift
+            ;;
+        --)
+            shift
+            ;;
+        *)
+            echo "Unknown argument!"
+            exit 1
+            ;;
+    esac
+done
 
