@@ -17,7 +17,7 @@ HOST_LAYERS_PATH           := ${CURDIR}/layers
 HOST_CONF_PATH             := ${CURDIR}/conf
 
 
-docker-build:
+docker:
 	docker build \
 		--tag ${DOCKER_TAG} \
 		--build-arg USER="${USER}" \
@@ -70,10 +70,10 @@ help:
 	@echo "Usage:"
 	@echo "  make [targets] [arguments]"
 	@echo
-	@echo "  docker-build           Builds a docker image;"
+	@echo "  docker                 Builds a docker image;"
 	@echo "  docker-init-volumes    Initializes docker volumes;"
 	@echo "  run-image              Runs builded Yocto image from builded docker image;"
 	@echo "  help                   Displays information about all available targets."
 
 
-.PHONY: docker-build docker-init-volumes run-image
+.PHONY: docker docker-init-volumes run-image

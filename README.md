@@ -25,7 +25,7 @@ Repository structure:
 ### Базовая инициализация docker тома и последующая многоразовая сборка образа.
 
 ```
-make docker-build
+make docker
 make docker-init-volumes
 # Запуск QEMU в собранном docker образе
 make run-image
