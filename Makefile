@@ -1,7 +1,7 @@
 USER                       := user
 GROUP                      := yoctogroup
 OS_IMAGE                   := core-image-minimal
-TEST_LAYER 				   := meta-image-tests
+TEST_LAYER                 := meta-image-tests
 
 # Docker
 DOCKER_TAG                 := yocto-builder-image
