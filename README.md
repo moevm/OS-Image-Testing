@@ -4,12 +4,12 @@ Performance and Endurance Testing of OS images
 
 Repository structure:
 
-| Folder  |Description                               |
-|---------|------------------------------------------|
-| docker  | Essential Docker-related files           |
-| docs    | Markdown documentation of the repository |
-| src     | Source code and core development files   |
-| tests   | Image tests                              |
+| Folder            |Description                               |
+|-------------------|------------------------------------------|
+| [docker](docker)  | Essential Docker-related files           |
+| [docs](docs)      | Markdown documentation of the repository |
+| [src](src)        | Source code and core development files   |
+| [tests](tests)    | Image tests                              |
 
 ## Сборка Yocto образа через докер
 
