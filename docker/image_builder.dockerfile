@@ -26,7 +26,7 @@ RUN groupadd -g 510 ${GROUP} && \
     echo "${USER} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/${USER} && \
     chown -R ${USER}:${GROUP} ${POKY_DIR}
 
-COPY scripts/Yocto-Image-Boot/entrypoint.sh ${POKY_DIR}/
+COPY scripts/entrypoint.sh ${POKY_DIR}/
 RUN chmod +x ${POKY_DIR}/entrypoint.sh
 
 USER ${USER}

@@ -23,7 +23,7 @@ docker:
 		--tag ${DOCKER_TAG} \
 		--build-arg USER="${USER}" \
 		--build-arg GROUP="${GROUP}" \
-		--file scripts/Yocto-Image-Boot/Dockerfile .
+		--file docker/image_builder.dockerfile .
 	docker volume create ${DOCKER_BUILD_VOLUME}
 	docker volume create ${DOCKER_DOWNLOADS_VOLUME}
 	docker volume create ${DOCKER_SSTATE_VOLUME}
