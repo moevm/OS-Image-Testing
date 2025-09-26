@@ -51,6 +51,8 @@ docker-init-volumes:
 		--volume "${HOST_LAYERS_PATH}/${TEST_LAYER}/conf/layer.conf:${LAYER_DIR}/conf/layer.conf" \
 		--volume "${HOST_LAYERS_PATH}/${TEST_LAYER}/recipes-stress/stress-ng/stress-ng_1.0.0.bb:${LAYER_DIR}/recipes-stress/stress-ng/stress-ng_1.0.0.bb" \
 		--volume "${HOST_LAYERS_PATH}/${TEST_LAYER}/recipes-stress/stress-ng/files:${LAYER_DIR}/recipes-stress/stress-ng/files" \
+		--volume "${HOST_LAYERS_PATH}/${TEST_LAYER}/recipes-tests/tests/tests_1.0.bb:${LAYER_DIR}/recipes-tests/tests/tests_1.0.bb" \
+		--volume "${HOST_LAYERS_PATH}/${TEST_LAYER}/recipes-tests/tests/files:${LAYER_DIR}/recipes-tests/tests/files" \
 		${DOCKER_TAG} \
 		bash -c "bitbake-layers add-layer ${LAYER_DIR} && bitbake ${OS_IMAGE}"
 
@@ -64,6 +66,8 @@ run-image: docker-init-volumes
 		--volume "${HOST_LAYERS_PATH}/${TEST_LAYER}/conf/layer.conf:${LAYER_DIR}/conf/layer.conf" \
 		--volume "${HOST_LAYERS_PATH}/${TEST_LAYER}/recipes-stress/stress-ng/stress-ng_1.0.0.bb:${LAYER_DIR}/recipes-stress/stress-ng/stress-ng_1.0.0.bb" \
 		--volume "${HOST_LAYERS_PATH}/${TEST_LAYER}/recipes-stress/stress-ng/files:${LAYER_DIR}/recipes-stress/stress-ng/files" \
+		--volume "${HOST_LAYERS_PATH}/${TEST_LAYER}/recipes-tests/tests/tests_1.0.bb:${LAYER_DIR}/recipes-tests/tests/tests_1.0.bb" \
+		--volume "${HOST_LAYERS_PATH}/${TEST_LAYER}/recipes-tests/tests/files:${LAYER_DIR}/recipes-tests/tests/files" \
 		${DOCKER_TAG} \
 		runqemu --config /home/${USER}/poky/build/tmp/deploy/images/qemux86-64/core-image-minimal-qemux86-64.rootfs.qemuboot.conf slirp nographic
 
