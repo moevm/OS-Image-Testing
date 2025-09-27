@@ -1,9 +1,11 @@
 FROM ubuntu:22.04
 
+ARG USER
+ARG GROUP
+
 ENV DEBIAN_FRONTEND=noninteractive \
     LANG=en_US.UTF-8 \
-    USER=user \
-    POKY_DIR=/home/user/poky
+    POKY_DIR=/home/${USER}/poky
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -19,12 +21,12 @@ RUN apt-get update && \
 RUN mkdir -p ${POKY_DIR} && \
     git clone --depth 1 -b scarthgap --recurse-submodules https://git.yoctoproject.org/poky ${POKY_DIR}
 
-RUN groupadd -g 510 yoctogroup && \
-    useradd -rm -d /home/${USER} -s /bin/bash -g yoctogroup -u 1010 -G sudo ${USER} && \
+RUN groupadd -g 510 ${GROUP} && \
+    useradd -rm -d /home/${USER} -s /bin/bash -g ${GROUP} -u 1010 -G sudo ${USER} && \
     echo "${USER} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/${USER} && \
-    chown -R ${USER}:yoctogroup ${POKY_DIR}
+    chown -R ${USER}:${GROUP} ${POKY_DIR}
 
-COPY entrypoint.sh ${POKY_DIR}/
+COPY scripts/entrypoint.sh ${POKY_DIR}/
 RUN chmod +x ${POKY_DIR}/entrypoint.sh
 
 USER ${USER}
