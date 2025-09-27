@@ -30,13 +30,13 @@ git clone git://git.yoctoproject.org/poky
 Далее следует переключиться на ветку, соответсвующую выбранному релизу.
 
 ```bash
+cd poky
 git checkout -t origin/styhead -b my-styhead
 ```
 
 #### 3 - Инициализация среды сборки
 
 ```bash
-cd poky
 source oe-init-build-env
 ```
 
@@ -64,6 +64,20 @@ bitbake core-image-minimal
 ```
 
 **core-image-minimal** - минимальный образ, достаточный для загрузки устройства. Включает только самые необходимые компоненты для запуска системы.
+
+Если не предпринимать никаких дополнительных действий, то возникнет следующая ошибка при попытке запустить `bitbake`:
+
+```bash
+ERROR: User namespaces are not usable by BitBake, possibly due to AppArmor.
+See https://discourse.ubuntu.com/t/ubuntu-24-04-lts-noble-numbat-release-notes/39890#unprivileged-user-namespace-restrictions for more information.
+
+Summary: There was 1 ERROR message, returning a non-zero exit code.
+```
+
+Для обхода данной ошибки можно временно отключить ограничение, выполнив следующую команду из оболочки:
+```bash
+echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns
+```
 
 _Сборка может занять несколько часов._
 
