@@ -19,7 +19,9 @@ Repository structure:
 make docker
 make docker-init-volumes
 # Запуск QEMU в собранном docker образе
-make run-image
+make docker-run-image
+# Запуск тестирования QEMU через ptest-runner
+make docker-test-image
 ```
 
 Для добавления теста с использованием, например **stress-ng**, нужно зайти в папку tests, далее в папку endurance или performance, в зависимости от типа теста, затем добавить тест в папку тестируемой подсистемы, к которой относится тест и обновить соответствующий .bb файл.

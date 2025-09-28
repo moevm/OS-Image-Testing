@@ -55,7 +55,7 @@ docker-init-volumes:
 		${DOCKER_TAG} \
 		bash -c "bitbake-layers add-layer ${LAYER_DIR} && bitbake ${OS_IMAGE}"
 
-run-image: docker-init-volumes
+docker-run-image: docker-init-volumes
 	docker run -it --rm \
 		--volume ${DOCKER_BUILD_VOLUME}:${BUILD_DIR} \
 		--volume ${DOCKER_DOWNLOADS_VOLUME}:${POKY_DIR}/downloads \
@@ -69,7 +69,7 @@ run-image: docker-init-volumes
 		${DOCKER_TAG} \
 		runqemu qemux86-64 slirp nographic
 
-test-image: docker-init-volumes
+docker-test-image: docker-init-volumes
 	@echo "Starting QEMU test..."
 	@TEMP_DIR=$$(mktemp -d); \
 	chmod 777 "$$TEMP_DIR"; \
@@ -118,8 +118,8 @@ help:
 	@echo
 	@echo "  docker                 Builds a docker image;"
 	@echo "  docker-init-volumes    Initializes docker volumes;"
-	@echo "  run-image              Runs builded Yocto image from builded docker image;"
-	@echo "  test-image             Tests builded Yocto image from builded docker image;"
+	@echo "  docker-run-image       Runs builded Yocto image from builded docker image;"
+	@echo "  docker-test-image      Tests builded Yocto image from builded docker image;"
 	@echo "  help                   Displays information about all available targets."
 
 
