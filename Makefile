@@ -35,7 +35,7 @@ docker:
 		bash -c "mkdir -p /tmp-build/build /tmp-build/conf && \
 			mkdir -p /tmp-downloads && \
 			mkdir -p /tmp-sstate && \
-			chown -R ${USER}:${GROUP} /tmp-build /tmp-downloads /tmp-sstate "
+			chown -R ${USER}:${GROUP} /tmp-build /tmp-downloads /tmp-sstate"
 
 docker-init-volumes:
 	docker run -it --rm \
@@ -75,8 +75,8 @@ docker-test-image: docker-init-volumes
 			timeout 120 bash -c 'while ! grep -q \"login:\" /tmp/results/screen.log 2>/dev/null; do sleep 5; echo \"Waiting...\"; done'; \
 			if [ $$? -eq 0 ]; then \
 				> /tmp/results/screen.log; \
-				echo 'Running stress-ng tests...'; \
-				screen -S qemu -X stuff 'ptest-runner stress-ng\n'; \
+				echo 'Running image tests...'; \
+				screen -S qemu -X stuff 'ptest-runner image-test\n'; \
 				timeout 600 bash -c 'while ! grep -q \"STOP: ptest-runner\" /tmp/results/screen.log 2>/dev/null; do sleep 5; echo \"Tests running...\"; done'; \
 				echo 'Shutting down QEMU...'; \
 				screen -S qemu -X stuff 'poweroff\n'; \

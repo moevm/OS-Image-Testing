@@ -3,6 +3,9 @@
 echo "Starting NETWORK stress test for 10 seconds..."
 stress-ng --sock 2 --sock-ops 2 --timeout 10
 
+echo "nameserver 8.8.8.8" >> /etc/resolv.conf
+wget --timeout=10 http://142.250.185.206/
+
 if [ $? -eq 0 ]; then
     echo "NETWORK test PASSED"
     exit 0
