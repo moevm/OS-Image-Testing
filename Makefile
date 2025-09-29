@@ -66,12 +66,8 @@ docker-test-image: docker-init-volumes
 		--volume ${DOCKER_BUILD_VOLUME}:${BUILD_DIR} \
 		--volume ${DOCKER_DOWNLOADS_VOLUME}:${POKY_DIR}/downloads \
 		--volume ${DOCKER_SSTATE_VOLUME}:${POKY_DIR}/sstate-cache \
-		--volume ${DOCKER_TESTS_VOLUME}:${LAYER_DIR} \
 		--volume "${HOST_CONF_PATH}/local.conf:${BUILD_DIR}/conf/local.conf" \
-		--volume "${HOST_LAYERS_PATH}/${TEST_LAYER}/conf/layer.conf:${LAYER_DIR}/conf/layer.conf" \
-		--volume "${HOST_LAYERS_PATH}/${TEST_LAYER}/recipes-stress/stress-ng/stress-ng_1.0.0.bb:${LAYER_DIR}/recipes-stress/stress-ng/stress-ng_1.0.0.bb" \
-		--volume "${HOST_LAYERS_PATH}/${TEST_LAYER}/recipes-stress/stress-ng/files:${LAYER_DIR}/recipes-stress/stress-ng/files" \
-		--volume "${HOST_LAYERS_PATH}/${TEST_LAYER}/recipes-login/auto-login/auto-login_1.0.0.bb:${LAYER_DIR}/recipes-login/auto-login/auto-login_1.0.0.bb" \
+		--volume "${HOST_LAYERS_PATH}/${TEST_LAYER}:${LAYER_DIR}" \
 		--volume "$$TEMP_DIR:/tmp/results" \
 		${DOCKER_TAG} \
 		bash -c "\
@@ -111,4 +107,4 @@ help:
 	@echo "  help                   Displays information about all available targets."
 
 
-.PHONY: docker docker-init-volumes run-image test-image
+.PHONY: docker docker-init-volumes docker-run-image docker-test-image
