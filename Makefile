@@ -59,9 +59,9 @@ docker-run-image: docker-init-volumes
 
 docker-test-image: docker-init-volumes
 	@echo "Starting QEMU test..."
-	@TEMP_DIR=$$(mktemp -d); \
+	@TEMP_DIR=$(CURDIR)/results; \
+	mkdir -p $$TEMP_DIR; \
 	chmod 777 "$$TEMP_DIR"; \
-	LOG_FILE="$$TEMP_DIR/test.log"; \
 	CONTAINER_ID=$$(docker run -d --rm \
 		--volume ${DOCKER_BUILD_VOLUME}:${BUILD_DIR} \
 		--volume ${DOCKER_DOWNLOADS_VOLUME}:${POKY_DIR}/downloads \
@@ -70,13 +70,13 @@ docker-test-image: docker-init-volumes
 		--volume "${HOST_LAYERS_PATH}/${TEST_LAYER}:${LAYER_DIR}" \
 		--volume "$$TEMP_DIR:/tmp/results" \
 		${DOCKER_TAG} \
-		bash -c "\
+		bash -c " \
 			screen -L -Logfile /tmp/results/screen.log -h 10000 -dmS qemu runqemu qemux86-64 slirp nographic; \
 			timeout 120 bash -c 'while ! grep -q \"login:\" /tmp/results/screen.log 2>/dev/null; do sleep 5; echo \"Waiting...\"; done'; \
 			if [ $$? -eq 0 ]; then \
 				> /tmp/results/screen.log; \
-				echo 'Running stress-ng tests...'; \
-				screen -S qemu -X stuff 'ptest-runner stress-ng\n'; \
+				echo 'Running tests...'; \
+				screen -S qemu -X stuff 'ptest-runner stress-ng tests\n'; \
 				timeout 600 bash -c 'while ! grep -q \"STOP: ptest-runner\" /tmp/results/screen.log 2>/dev/null; do sleep 5; echo \"Tests running...\"; done'; \
 				echo 'Shutting down QEMU...'; \
 				screen -S qemu -X stuff 'poweroff\n'; \
