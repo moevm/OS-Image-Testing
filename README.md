@@ -8,6 +8,7 @@ Repository structure:
 |-------------------|------------------------------------------|
 | [docker](docker)  | Essential Docker-related files           |
 | [docs](docs)      | Markdown documentation of the repository |
+| [layers](layers)  | Layers content                           |
 | [src](src)        | Source code and core development files   |
 | [tests](tests)    | Image tests                              |
 
