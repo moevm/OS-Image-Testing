@@ -58,7 +58,7 @@ class SSHClient:
         logger.info("Connecting to the host '%s'.", self.hostname)
         self.ssh_session.connect(username=self.username, password=self.password)
 
-    def sftp_upload(self, localpath: Path, remotepath: Path) -> None:
+    def upload(self, localpath: Path, remotepath: Path) -> None:
         sftp = paramiko.SFTPClient.from_transport(self.ssh_session)
         if sftp is None:
             logger.error("Can't open channel for upload file via sftp.")
@@ -67,7 +67,7 @@ class SSHClient:
         sftp.put(localpath, str(remotepath))
         sftp.close()
 
-    def sftp_download(self, remotepath: Path, localpath: Path) -> None:
+    def download(self, remotepath: Path, localpath: Path) -> None:
         sftp = paramiko.SFTPClient.from_transport(self.ssh_session)
         if sftp is None:
             logger.error("Can't open channel for upload file via sftp.")
