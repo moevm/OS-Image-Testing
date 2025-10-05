@@ -50,9 +50,9 @@ class SSHClient:
         logger.info("Running command '%s' on host '%s'.", cmd, self.hostname)
         session.exec_command(cmd)
         retval = session.recv_exit_status()
-        logger.info(f"Exit status: {retval}.")
         if retval:
-            logger.error(f"Command '{cmd.strip()}' completed with errors.")
+            logger.error("Command '%s' completed with errors.", cmd.strip())
+        logger.info("Exit status: %d.", retval)
         session.close()
         return ExecResult(
             stdout=stdout.read().decode("utf-8"),
