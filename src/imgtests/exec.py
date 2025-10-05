@@ -45,16 +45,20 @@ class SSHClient:
         cmd: str,
     ) -> ExecResult:
         session = self.ssh_session.open_channel(kind="session")
-        std = session.makefile("rb", -1)
+        stdout = session.makefile("rb")
+        stderr = session.makefile_stderr("rb")
         logger.info("Running command '%s' on host '%s'.", cmd, self.hostname)
         session.exec_command(cmd)
-        stdout = std.read().decode("utf-8")
         retval = session.recv_exit_status()
         logger.info(f"Exit status: {retval}.")
         if retval:
             logger.error(f"Command '{cmd.strip()}' completed with errors.")
         session.close()
-        return ExecResult(stdout=stdout, returncode=retval)
+        return ExecResult(
+            stdout=stdout.read().decode("utf-8"),
+            stderr=stderr.read().decode("utf-8"),
+            returncode=retval,
+        )
 
     def close(self) -> None:
         self.ssh_session.close()
