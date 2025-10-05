@@ -9,16 +9,23 @@ import paramiko
 logger = logging.getLogger(__name__)
 
 
-def run_command(cmd: list[str]) -> subprocess.CompletedProcess[str]:
+class ExecResult(NamedTuple):
+    stdout: str = ""
+    stderr: str = ""
+    returncode: int = 0
+
+
+def run_command(cmd: list[str]) -> ExecResult:
     logger.info("Running command %s", " ".join(cmd))
-    return subprocess.run(
+    result = subprocess.run(
         cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf-8", check=False
     )
 
-
-class SSHResult(NamedTuple):
-    out: str
-    return_value: int
+    return ExecResult(
+        stdout=result.stdout,
+        stderr=result.stderr,
+        returncode=result.returncode,
+    )
 
 
 class SSHClient:
@@ -36,7 +43,7 @@ class SSHClient:
     def __call__(
         self,
         cmd: str,
-    ) -> SSHResult:
+    ) -> ExecResult:
         session = self.ssh_session.open_channel(kind="session")
         std = session.makefile("rb", -1)
         logger.info("Running command '%s' on host '%s'.", cmd, self.hostname)
@@ -47,7 +54,7 @@ class SSHClient:
         if retval:
             logger.error(f"Command '{cmd.strip()}' completed with errors.")
         session.close()
-        return SSHResult(stdout, retval)
+        return ExecResult(stdout=stdout, returncode=retval)
 
     def close(self) -> None:
         self.ssh_session.close()
@@ -58,20 +65,22 @@ class SSHClient:
         logger.info("Connecting to the host '%s'.", self.hostname)
         self.ssh_session.connect(username=self.username, password=self.password)
 
-    def upload(self, localpath: Path, remotepath: Path) -> None:
+    def upload(self, localpath: Path, remotepath: Path) -> ExecResult:
         sftp = paramiko.SFTPClient.from_transport(self.ssh_session)
         if sftp is None:
             logger.error("Can't open channel for upload file via sftp.")
-            return
+            return ExecResult(returncode=1)
         logger.info("Copy '%s' to the remote path '%s'.", localpath, remotepath)
         sftp.put(localpath, str(remotepath))
         sftp.close()
+        return ExecResult()
 
-    def download(self, remotepath: Path, localpath: Path) -> None:
+    def download(self, remotepath: Path, localpath: Path) -> ExecResult:
         sftp = paramiko.SFTPClient.from_transport(self.ssh_session)
         if sftp is None:
             logger.error("Can't open channel for upload file via sftp.")
-            return
+            return ExecResult(returncode=1)
         logger.info("Copy '%s' to the local path '%s'.", remotepath, localpath)
         sftp.get(str(remotepath), localpath)
         sftp.close()
+        return ExecResult()
