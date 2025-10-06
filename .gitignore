@@ -1,1 +1,9 @@
+.vscode
+
+# Python
+__pycache__
+uv.lock
+.venv
+
+# docker-test-image temp dir
 results/
