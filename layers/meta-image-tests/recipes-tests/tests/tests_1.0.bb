@@ -12,8 +12,8 @@ SRC_URI = "\
 
 inherit ptest
 
-RDEPENDS:${PN} += "bash perf"
-RDEPENDS:${PN}-ptest += "perf bash"
+RDEPENDS:${PN} += "bash perf stress-ng"
+RDEPENDS:${PN}-ptest += "perf bash stress-ng"
 
 
 FILES_${PN}-ptest += "${PTEST_PATH}"
