@@ -14,7 +14,8 @@ RUN apt-get update && \
         bzip2 file g++ patch python3-pexpect python3-git \
         python3-jinja2 python3-subunit screen \
         libtirpc-dev libtirpc3 pkg-config \
-        qemu qemu-system-x86 qemu-utils && \
+        qemu qemu-system-x86 qemu-utils \
+        openssh-server && \
     rm -rf /var/lib/apt/lists/* && \
     locale-gen en_US.UTF-8
 
