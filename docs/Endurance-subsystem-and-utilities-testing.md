@@ -143,9 +143,7 @@ sudo dmesg -T -l err | lnav
 
 ## fwts
 
-https://github.com/fwts/fwts
-
-Firmware Test Suite (FWTS) — набор тестов, который выполняет проверку исправности прошивки.
+[Firmware Test Suite](https://github.com/fwts/fwts) (FWTS) — набор тестов, который выполняет проверку исправности прошивки.
 
 Он предназначен для выявления ошибок BIOS, UEFI, ACPI и других систем, и объяснения причин неисправностей.
 
@@ -171,9 +169,7 @@ fwts
 
 ## syzkaller
 
-https://github.com/google/syzkaller
-
-syzkaller — автоматизированная система "фаззинга" для ядра Linux.
+[syzkaller](https://github.com/google/syzkaller) — автоматизированная система "фаззинга" для ядра Linux.
 
 Непрерывно обрабатывает большое количество случайных программ / входных данных, чтобы вызвать сбои или ошибки (для их выявления).
 
@@ -197,9 +193,7 @@ IMAGE_INSTALL:append = " syzkaller"
 ./usr/bin/linux_amd64/syz-manager -config my.cfg
 ```
 
-Пример конфигурации:
-
-https://github.com/google/syzkaller/blob/master/pkg/mgrconfig/testdata/qemu-example.cfg
+[Пример конфигурации](https://github.com/google/syzkaller/blob/master/pkg/mgrconfig/testdata/qemu-example.cfg).
 
 Для минимального теста без web-интерфейса можно создать подобный файл:
 
@@ -219,9 +213,7 @@ openat(0xffffffffffffff9c, &(0x7f0000001000)="./file", 0x42, 0x1ff)
 
 ## LTP
 
-https://github.com/linux-test-project/ltp
-
-**LTP** (Linux test project) - обширный набор тестов для тестирования ядра Linux и связанных с ним функций для проверки стабильности и надёжности.
+[LTP](https://github.com/linux-test-project/ltp) (Linux test project) - обширный набор тестов для тестирования ядра Linux и связанных с ним функций для проверки стабильности и надёжности.
 
 Установка:
 
@@ -236,10 +228,7 @@ make autotools
 
 Их можно использовать для проверки работоспособности практически любых компонентов системы.
 
-Подробное описание тестов в документации:
-
-https://linux-test-project.readthedocs.io/en/latest/users/test_catalog.html
-
+Подробное описание тестов в [документации](https://linux-test-project.readthedocs.io/en/latest/users/test_catalog.html).
 
 ### Интеграция в Yocto
 
