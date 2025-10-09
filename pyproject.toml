@@ -1,0 +1,49 @@
+[project]
+name = "imgtests"
+version = "0.0.1"
+description = "Library for the testing Linux based operating systems."
+readme = "README.md"
+requires-python = "~=3.13.7"
+classifiers = [
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.13",
+    "Operating System :: POSIX",
+    "Operating System :: Unix",
+]
+license = "MIT"
+license-files = ["LICENSE"]
+dependencies = [
+    "paramiko~=4.0.0",
+    "typing-extensions~=4.15.0",
+]
+
+[dependency-groups]
+lint = [
+    "ruff>=0.13.2",
+]
+
+[tool.ruff]
+line-length = 100
+lint.select = ["ALL"]
+lint.ignore = [
+    "ANN003",  # missing type annotations for `*kwargs`
+    "ANN201",
+    "ANN204",
+    "ANN401",  # dynamically typed expressions (typing.Any)
+    "D100",
+    "D101",
+    "D102",
+    "D103",
+    "D104",
+    "D105",
+    "D107",
+    "COM812",
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.mccabe]
+max-complexity = 12

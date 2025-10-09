@@ -15,7 +15,8 @@ BUILD_DIR                  := ${POKY_DIR}/build
 LAYER_DIR                  := ${POKY_DIR}/${TEST_LAYER}
 HOST_LAYERS_PATH           := ${CURDIR}/layers
 HOST_CONF_PATH             := ${CURDIR}/conf
-
+HOST_SCRIPTS_PATH          := ${CURDIR}/scripts
+HOST_TEMP_PATH             := ${CURDIR}/results
 
 docker:
 	docker build \
@@ -59,39 +60,25 @@ docker-run-image: docker-init-volumes
 
 docker-test-image: docker-init-volumes
 	@echo "Starting QEMU test..."
-	@TEMP_DIR=$$(mktemp -d); \
-	chmod 777 "$$TEMP_DIR"; \
-	LOG_FILE="$$TEMP_DIR/test.log"; \
+	@mkdir -p ${HOST_TEMP_PATH}; \
+	chmod 757 "${HOST_TEMP_PATH}"; \
 	CONTAINER_ID=$$(docker run -d --rm \
 		--volume ${DOCKER_BUILD_VOLUME}:${BUILD_DIR} \
 		--volume ${DOCKER_DOWNLOADS_VOLUME}:${POKY_DIR}/downloads \
 		--volume ${DOCKER_SSTATE_VOLUME}:${POKY_DIR}/sstate-cache \
 		--volume "${HOST_CONF_PATH}/local.conf:${BUILD_DIR}/conf/local.conf" \
 		--volume "${HOST_LAYERS_PATH}/${TEST_LAYER}:${LAYER_DIR}" \
-		--volume "$$TEMP_DIR:/tmp/results" \
+		--volume "${HOST_TEMP_PATH}:/tmp/results" \
+		--volume "${HOST_SCRIPTS_PATH}:/tmp/scripts" \
 		${DOCKER_TAG} \
-		bash -c "\
-			screen -L -Logfile /tmp/results/screen.log -h 10000 -dmS qemu runqemu qemux86-64 slirp nographic; \
-			timeout 120 bash -c 'while ! grep -q \"login:\" /tmp/results/screen.log 2>/dev/null; do sleep 5; echo \"Waiting...\"; done'; \
-			if [ $$? -eq 0 ]; then \
-				> /tmp/results/screen.log; \
-				echo 'Running image tests...'; \
-				screen -S qemu -X stuff 'ptest-runner image-test\n'; \
-				timeout 600 bash -c 'while ! grep -q \"STOP: ptest-runner\" /tmp/results/screen.log 2>/dev/null; do sleep 5; echo \"Tests running...\"; done'; \
-				echo 'Shutting down QEMU...'; \
-				screen -S qemu -X stuff 'poweroff\n'; \
-				sleep 10; \
-			else \
-				echo 'QEMU boot timeout'; \
-			fi; \
-			echo 'Container execution completed'"); \
+		bash /tmp/scripts/run-qemu-test.sh); \
 	{ \
 		echo "Waiting for container $$CONTAINER_ID..."; \
 		docker wait "$$CONTAINER_ID"; \
-		docker logs "$$CONTAINER_ID" > "$$TEMP_DIR/container.log" 2>&1; \
+		docker logs "$$CONTAINER_ID" > "${HOST_TEMP_PATH}/container.log" 2>&1; \
 		echo "=== SCREEN LOG ==="; \
-		cat "$$TEMP_DIR/screen.log" 2>/dev/null || echo "Screen log not found"; \
-		rm -rf "$$TEMP_DIR"; \
+		cat "${HOST_TEMP_PATH}/screen.log" 2>/dev/null || echo "Screen log not found"; \
+		rm -rf "${HOST_TEMP_PATH}"; \
 		echo "QEMU test completed. Press enter"; \
 	} &
 	@echo "QEMU test started in background"
