@@ -9,6 +9,7 @@ inherit ptest
 
 SRC_URI = " \
     file://run-ptest \
+    file://env.sh \
     file://endurance/cpu/test-cpu.sh \
     file://endurance/disks/test-disk.sh \
     file://endurance/memory/test-memory.sh \
@@ -22,6 +23,8 @@ ALLOW_EMPTY:${PN} = "1"
 do_install_ptest() {
     install -d ${D}${PTEST_PATH}
     install -m 0755 ${WORKDIR}/run-ptest ${D}${PTEST_PATH}/
+
+    install -m 0755 ${WORKDIR}/env.sh ${D}${PTEST_PATH}/
 
     install -d ${D}${PTEST_PATH}/tests/endurance/cpu
     install -m 0755 ${WORKDIR}/endurance/cpu/test-cpu.sh ${D}${PTEST_PATH}/tests/endurance/cpu/
