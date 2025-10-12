@@ -8,8 +8,20 @@ FAIL=0
 
 for testscript in ./tests/*/*/*.sh; do
   echo "TEST: $(basename $testscript)"
-  ./$testscript && PASS=$((PASS+1)) || FAIL=$((FAIL+1))
+  ./"$testscript"
+    if [ $? -eq 0 ]; then
+        echo "PASS: $(basename "$testscript")"
+        PASS=$((PASS+1))
+    else
+        echo "FAIL: $(basename "$testscript")"
+        FAIL=$((FAIL+1))
+    fi
 done
 
 echo "=== Summary: $PASS passed, $FAIL failed ==="
-[ $FAIL -eq 0 ] || exit 1
+
+if [ $FAIL -ne 0 ]; then
+    exit 1
+fi
+
+exit 0
