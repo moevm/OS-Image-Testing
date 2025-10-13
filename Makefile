@@ -18,6 +18,7 @@ HOST_CONF_PATH             := ${CURDIR}/conf
 HOST_SCRIPTS_PATH          := ${CURDIR}/scripts
 HOST_TEMP_PATH             := ${CURDIR}/results
 
+.PHONY: docker
 docker:
 	docker build \
 		--tag ${DOCKER_TAG} \
@@ -38,6 +39,7 @@ docker:
 			mkdir -p /tmp-sstate && \
 			chown -R ${USER}:${GROUP} /tmp-build /tmp-downloads /tmp-sstate"
 
+.PHONY: docker-init-volumes
 docker-init-volumes:
 	docker run -it --rm \
 		--volume ${DOCKER_BUILD_VOLUME}:${BUILD_DIR} \
@@ -48,6 +50,7 @@ docker-init-volumes:
 		${DOCKER_TAG} \
 		bash -c "bitbake-layers add-layer ${LAYER_DIR} && bitbake ${OS_IMAGE}"
 
+.PHONY: docker-run-image
 docker-run-image: docker-init-volumes
 	docker run -it --rm \
 		--volume ${DOCKER_BUILD_VOLUME}:${BUILD_DIR} \
@@ -58,6 +61,7 @@ docker-run-image: docker-init-volumes
 		${DOCKER_TAG} \
 		runqemu qemux86-64 slirp nographic
 
+.PHONY: docker-test-image
 docker-test-image: docker-init-volumes
 	@echo "Starting QEMU test..."
 	@mkdir -p ${HOST_TEMP_PATH}; \
@@ -83,6 +87,7 @@ docker-test-image: docker-init-volumes
 	} &
 	@echo "QEMU test started in background"
 
+.PHONY: help
 help:
 	@echo "Usage:"
 	@echo "  make [targets] [arguments]"
@@ -92,6 +97,3 @@ help:
 	@echo "  docker-run-image       Runs builded Yocto image from builded docker image;"
 	@echo "  docker-test-image      Tests builded Yocto image from builded docker image;"
 	@echo "  help                   Displays information about all available targets."
-
-
-.PHONY: docker docker-init-volumes docker-run-image docker-test-image
