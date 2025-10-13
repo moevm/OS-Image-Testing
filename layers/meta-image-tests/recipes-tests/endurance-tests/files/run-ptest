@@ -1,5 +1,6 @@
 #!/bin/bash
 
+<<<<<<< HEAD
 cd $(dirname $0)
 echo "=== Running stress-ng ptest ==="
 
@@ -13,3 +14,51 @@ done
 
 echo "=== Summary: $PASS passed, $FAIL failed ==="
 [ $FAIL -eq 0 ] || exit 1
+=======
+source env.sh
+
+cd $(dirname $0)
+echo "=== Running image ptest ==="
+
+PASS=0
+FAIL=0
+PIDS=()
+TEST_NAMES=()
+
+for test in tests/*/*/*.sh; do
+    test_name=$(basename "$test")
+    
+    echo "START: $test_name"
+    ./"$test" >> "${test}-output" 2>&1 &
+    pid=$!
+    PIDS+=($pid)
+    TEST_NAMES[$pid]=$test_name
+done
+
+for pid in "${PIDS[@]}"; do
+    wait $pid
+    result=$?
+    test_name="${TEST_NAMES[$pid]}"
+    
+    if [ $result -eq 0 ]; then
+        echo "PASS: $test_name"
+        PASS=$((PASS+1))
+    else
+        echo "FAIL: $test_name"
+        FAIL=$((FAIL+1))
+    fi
+done
+
+echo "=== Summary: $PASS passed, $FAIL failed ==="
+
+for test in tests/*/*/*.sh; do
+    output_file="${test}-output"
+    if [ -f "$output_file" ]; then
+        echo "=== Output for $(basename "$test") ==="
+        cat "$output_file"
+        rm "$output_file"
+    fi
+done
+
+[ $FAIL -eq 0 ] || exit 1
+>>>>>>> 1499d68 (feat: update meta-image-tests version to walnascar)
