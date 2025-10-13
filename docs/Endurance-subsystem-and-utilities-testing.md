@@ -167,6 +167,10 @@ fwts
 
 В результате будет сформирован файл `results.log` с подробными результатами тестирования.
 
+В файле также содержатся все полученные ошибки, их краткое описание и информация по тестам, записанная в таблицу.
+
+<img width="491" height="335" alt="image" src="https://github.com/user-attachments/assets/3d8e4988-d99a-42b9-b4fb-7992398012b5" />
+
 ## syzkaller
 
 [syzkaller](https://github.com/google/syzkaller) — автоматизированная система "фаззинга" для ядра Linux.
