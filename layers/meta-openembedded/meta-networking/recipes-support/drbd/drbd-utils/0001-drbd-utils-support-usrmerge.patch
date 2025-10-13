@@ -1,0 +1,29 @@
+From a019fbe36ab965e754b818fe1bdb0cea0e3ffb60 Mon Sep 17 00:00:00 2001
+From: Changqing Li <changqing.li@windriver.com>
+Date: Thu, 21 Apr 2022 17:22:35 +0800
+Subject: [PATCH] drbd-utils: support usrmerge
+
+Upstream-Status: Inappropriate [oe-specific]
+
+Signed-off-by: Changqing Li <changqing.li@windriver.com>
+Signed-off-by: Sakib Sajal <sakib.sajal@windriver.com>
+---
+ configure.ac | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/configure.ac b/configure.ac
+index 37148597..52015fb2 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -217,7 +217,7 @@ AC_ARG_WITH(tmpfilesdir,
+ AC_SUBST(tmpfilesdir)
+ 
+ # set default early
+-default_udevdir=/lib/udev
++default_udevdir=${prefix}/lib/udev
+ if test x"$with_udev" = x || \
+    test x"$with_udev" = xyes ; then
+ 	if test x"$PKG_CONFIG" != x; then
+-- 
+2.25.1
+

@@ -1,0 +1,17 @@
+Upstream-Status: Inappropriate [config]
+
+XXX: need to work out a better fix.
+
+Signed-off-by: Dexuan Cui <dexuan.cui@intel.com>
+
+--- a/net/net-lib.pl
++++ b/net/net-lib.pl
+@@ -38,7 +38,7 @@ elsif ($gconfig{'os_type'} eq 'debian-li
+ 	$net_mode = "netplan";
+ 	}
+ else {
+-	do "$gconfig{'os_type'}-lib.pl";
++	do "debian-linux-lib.pl";
+ 	$net_mode = $gconfig{'os_type'};
+ 	}
+ 

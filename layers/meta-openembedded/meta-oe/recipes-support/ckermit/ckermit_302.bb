@@ -1,0 +1,67 @@
+DESCRIPTION = "C-Kermit is a combined serial and network communication \
+software package offering a consistent, medium-independent, \
+cross-platform approach to connection establishment, terminal \
+sessions, file transfer, character-set translation, and automation \
+of communication tasks."
+HOMEPAGE = "www.kermitproject.org/ck90.html"
+SECTION = "console/network"
+LICENSE = "BSD-3-Clause"
+LIC_FILES_CHKSUM = "file://COPYING.TXT;md5=932ca542d6c6cb8a59a0bcd76ab67cc3"
+
+SRC_URI = "http://www.kermitproject.org/ftp/kermit/archives/cku${PV}.tar.gz;subdir=${BPN}-${PV} \
+           file://0001-Fix-function-prototype-errors.patch \
+           "
+SRC_URI[sha256sum] = "0d5f2cd12bdab9401b4c836854ebbf241675051875557783c332a6a40dac0711"
+
+UPSTREAM_CHECK_URI = "https://www.kermitproject.org/ck90.html"
+UPSTREAM_CHECK_REGEX = "cku(?P<pver>\d+)\.tar"
+
+export CC2 = "${CC}"
+export BINDIR = "${bindir}"
+export MANDIR = "${mandir}/man1"
+export INFODIR = "${infodir}"
+
+EXTRA_OEMAKE = "-e MAKEFLAGS="
+
+TARGET_CC_ARCH += "${LDFLAGS}"
+
+do_compile () {
+    # The original makefile doesn't differentiate between CC and CC_FOR_BUILD,
+    # so we build wart manually. Note that you need a ckwart.o with the proper
+    # timestamp to make this hack work:
+    ${BUILD_CC} -DMAINTYPE=int -c -o ckwart.o ckwart.c
+    ${BUILD_CC} -o wart ckwart.o
+    ./wart ckcpro.w ckcpro.c
+
+    # read ${S}/ckccfg.txt to understand this :-)
+    oe_runmake wermit CFLAGS="${CFLAGS} -DLINUX -DCK_POSIX_SIG \
+        -DNOTCPOPTS -DLINUXFSSTND -DNOCOTFMC -DPOSIX -DUSE_STRERROR \
+        -DNOSYSLOG -DHAVE_PTMX -DNO_DNS_SRV -DNOGFTIMER \
+        -DNOB_50 -DNOB_75 -DNOB_134 -DNOB_150 -DNOB_200 \
+        -DNOB_1800 -DNOB_3600 -DNOB_7200 -DNOB_76K -DNOB_230K \
+        -DNOB_460K -DNOB_921K \
+        -DNOCSETS -DNONET -DNOUNICODE -DNOHELP -DNODEBUG \
+        -DNOFRILLS -DNOFTP -DNODIAL -DNOPUSH -DNOIKSD -DNOHTTP -DNOFLOAT \
+        -DNOSERVER -DNOSEXP -DNORLOGIN -DNOOLDMODEMS -DNOSSH -DNOLISTEN \
+        -DNORESEND -DNOAUTODL -DNOSTREAMING -DNOHINTS -DNOCKXYZ -DNOLEARN \
+        -DNOMKDIR -DNOPERMS -DNOCKTIMERS -DNOCKREGEX -DNOREALPATH \
+        -DCK_SMALL -DNOLOGDIAL -DNORENAME -DNOWHATAMI \
+        -DNOARROWKEYS -DMAINTYPE=int \
+        -D_DEFAULT_SOURCE -ansi"
+}
+
+do_install () {
+    install -d ${D}${BINDIR} ${D}${MANDIR} ${D}${INFODIR}
+    oe_runmake 'DESTDIR=${D}' install
+    # Fix up dangling symlink
+    rm ${D}${BINDIR}/kermit-sshsub
+    (cd ${D}${BINDIR} && ln -s ${BINDIR}/kermit kermit-sshusb)
+}
+
+# This one is reproducible only on 32bit MACHINEs
+# http://errors.yoctoproject.org/Errors/Details/766966/
+# ckutio.c:12057:10: error: passing argument 1 of 'time' from incompatible pointer type [-Wincompatible-pointer-types]
+# ckutio.c:12058:20: error: passing argument 1 of 'localtime' from incompatible pointer type [-Wincompatible-pointer-types]
+# ckufio.c:5043:32: error: passing argument 1 of 'localtime' from incompatible pointer type [-Wincompatible-pointer-types]
+# ckufio.c:5263:32: error: passing argument 1 of 'localtime' from incompatible pointer type [-Wincompatible-pointer-types]
+CFLAGS += "-Wno-error=incompatible-pointer-types"

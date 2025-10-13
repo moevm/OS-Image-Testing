@@ -1,0 +1,50 @@
+From 9b88f816ffbe3dd35d0260974e246f6694983500 Mon Sep 17 00:00:00 2001
+From: Markus Volk <f_l_k@t-online.de>
+Date: Mon, 18 Mar 2024 05:50:21 +0100
+Subject: [PATCH] Add meson option to pass sysroot
+
+Signed-off-by: Markus Volk <f_l_k@t-online.de>
+
+Upstream-Status: Inappropriate [OE specific]
+---
+ meson_options.txt             | 1 +
+ panels/background/meson.build | 2 +-
+ panels/system/meson.build     | 2 +-
+ 3 files changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/meson_options.txt b/meson_options.txt
+index 9aeeed313..6097263a6 100644
+--- a/meson_options.txt
++++ b/meson_options.txt
+@@ -1,3 +1,4 @@
++option('oe_sysroot', type: 'string', value: '', description: 'Directory for OE-sysroot')
+ option('deprecated-declarations', type: 'feature', value: 'disabled', description: 'build with deprecated declaration warnings')
+ option('documentation', type: 'boolean', value: false, description: 'build documentation')
+ option('location-services', type: 'feature', value: 'enabled', description: 'build with location services')
+diff --git a/panels/background/meson.build b/panels/background/meson.build
+index 8f9cbecdf..17f17d395 100644
+--- a/panels/background/meson.build
++++ b/panels/background/meson.build
+@@ -23,7 +23,7 @@ common_sources += gnome.mkenums_simple(
+ )
+ 
+ gdesktop_enums_header = files(
+-  gsettings_desktop_dep.get_variable(pkgconfig: 'prefix') + '/include/gsettings-desktop-schemas/gdesktop-enums.h'
++  get_option('oe_sysroot') + gsettings_desktop_dep.get_variable(pkgconfig: 'prefix') + '/include/gsettings-desktop-schemas/gdesktop-enums.h',
+ )
+ 
+ common_sources += gnome.mkenums_simple(
+diff --git a/panels/system/meson.build b/panels/system/meson.build
+index bbe004837..92e809fbe 100644
+--- a/panels/system/meson.build
++++ b/panels/system/meson.build
+@@ -68,7 +68,7 @@ sources += gnome.compile_resources(
+ )
+ 
+ gdesktop_enums_header = files(
+-  gsettings_desktop_dep.get_variable(pkgconfig: 'prefix') + '/include/gsettings-desktop-schemas/gdesktop-enums.h'
++  get_option('oe_sysroot') + gsettings_desktop_dep.get_variable(pkgconfig: 'prefix') + '/include/gsettings-desktop-schemas/gdesktop-enums.h',
+ )
+ 
+ sources += gnome.mkenums_simple(
+ 

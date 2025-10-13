@@ -1,0 +1,109 @@
+This README file contains information on the contents of the
+meta-secure-core layer.
+
+Please see the corresponding sections below for details.
+
+
+Dependencies
+============
+
+This layer depends on:
+
+  URI: git://git.openembedded.org/bitbake
+  branch: master
+
+  URI: git://git.openembedded.org/openembedded-core
+  layers: meta
+  branch: master
+
+This layer also provides the support for the stable branches actively
+maintained by Yocto Project. Please check [this page](https://wiki.yoctoproject.org/wiki/Stable_branch_maintenance) for them.
+
+Patches
+=======
+
+Please submit any patches against the meta-secure-core layer to the
+maintainer:
+
+Maintainer: Yi Zhao <yi.zhao@windriver.com>
+
+
+Table of Contents
+=================
+
+  I. Adding the meta-secure-core layer to your build
+ II. Configure meta-secure-core
+III. Build meta-secure-core
+
+
+I. Adding the meta-secure-core layer to your build
+==================================================
+
+In order to use this layer, you need to make the build system aware of
+it.
+
+Assuming the meta-secure-core layer exists at the top-level of your
+yocto build tree, you can add it to the build system by adding the
+location of the meta-secure-core layer to bblayers.conf, along with any
+other layers needed. e.g.:
+
+  BBLAYERS ?= "\
+    /path/to/yocto/meta \
+    /path/to/yocto/meta-poky \
+    /path/to/yocto/meta-yocto-bsp \
+    /path/to/yocto/meta-secure-core/meta-secure-core-common \
+    /path/to/yocto/meta-secure-core/meta-signing-key \
+    /path/to/yocto/meta-secure-core/meta-tpm2 \
+    /path/to/yocto/meta-secure-core/meta-efi-secure-boot \
+    /path/to/yocto/meta-secure-core/meta-integrity \
+    /path/to/yocto/meta-secure-core/meta-encrypted-storage \
+    "
+
+or run bitbake-layers to add the meta-secure-core and its sub-layers:
+
+    $ bitbake-layers add-layer /path/to/yocto/meta-secure-core/meta-secure-core-common
+    $ bitbake-layers add-layer /path/to/yocto/meta-secure-core/meta-signing-key
+    $ bitbake-layers add-layer /path/to/yocto/meta-secure-core/meta-tpm2
+    $ bitbake-layers add-layer /path/to/yocto/meta-secure-core/meta-efi-secure-boot
+    $ bitbake-layers add-layer /path/to/yocto/meta-secure-core/meta-integrity
+    $ bitbake-layers add-layer /path/to/yocto/meta-secure-core/meta-encrypted-storage
+
+II. Configure meta-secure-core
+==============================
+
+The full features in meta-secure-core can be configured with these definitions
+in local.conf:
+
+INIT_MANAGER = "systemd"
+INITRAMFS_IMAGE = "secure-core-image-initramfs"
+DISTRO_FEATURES_NATIVE:append = " ima tpm2 efi-secure-boot luks"
+DISTRO_FEATURES:append = " ima tpm2 efi-secure-boot luks modsign"
+MACHINE_FEATURES_NATIVE:append = " efi"
+MACHINE_FEATURES:append = " efi"
+PACKAGE_CLASSES = "package_rpm"
+INHERIT += "sign_rpm_ext ima-evm-rootfs"
+SECURE_CORE_IMAGE_EXTRA_INSTALL ?= "\
+    packagegroup-efi-secure-boot \
+    packagegroup-tpm2 \
+    packagegroup-ima \
+    packagegroup-luks \
+"
+#DEBUG_FLAGS:forcevariable = ""
+IMAGE_INSTALL:append = " kernel-image-bzimage"
+
+# Uncomment the following lines to disable SELoader
+# and use gpg key to protect and verify files used by grub.
+#UEFI_SELOADER ?= "0"
+#GRUB_SIGN_VERIFY ?= "1"
+
+# Uncomment this line to modify the root parameter in boot command line if the default one
+# is not working for you. It is helpful when secure boot is enabled.
+#BOOT_CMD_ROOT = "/dev/sda3"
+
+III. Build meta-secure-core
+===========================
+
+The meta-secure-core provides an image called secure-core-image. Run the
+following command to build it.
+
+    $ bitbake secure-core-image

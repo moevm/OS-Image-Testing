@@ -1,0 +1,26 @@
+From 9507e98cd2b40e4c68bd813b6da03c9ce1002a65 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Jo=C3=A3o=20Henrique=20Ferreira=20de=20Freitas?=
+ <joaohf@gmail.com>
+Date: Sat, 17 Feb 2024 18:58:52 -0300
+Subject: [PATCH] Release unix without makeself.sh
+
+Upstream-Status: Inappropriate [oe specific]
+---
+ tools/release | 2 --
+ 1 file changed, 2 deletions(-)
+
+diff --git a/tools/release b/tools/release
+index 7719b633..63590b26 100755
+--- a/tools/release
++++ b/tools/release
+@@ -160,10 +160,8 @@ unix_release(BuildRoot, WingsVsn) ->
+     Installer = filename:join(Root, "install_wings"),
+     ok = file:write_file(Installer, Install),
+     ok = file:write_file_info(Installer, #file_info{mode=8#555}),
+-    MakeSelf = filename:join(UnixDir, "makeself.sh"),
+     convert_script(Root),
+     set_cwd(lib_dir(wings)),
+-    run(MakeSelf, ["--bzip2",Root,Name++".bzip2.run","Wings3D","./install_wings"]),
+     ok.
+ 
+ win_release(Root, WingsVsn) ->

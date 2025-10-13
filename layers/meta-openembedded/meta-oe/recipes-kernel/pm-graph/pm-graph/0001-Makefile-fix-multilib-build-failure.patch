@@ -1,0 +1,66 @@
+From 468850b5d39435025633df14dda3d48651d9ec29 Mon Sep 17 00:00:00 2001
+From: Naveen Saini <naveen.kumar.saini@intel.com>
+Date: Tue, 18 Jun 2019 17:10:15 +0800
+Subject: [PATCH] Makefile: fix multilib build failure
+
+Upstream-Status: Inappropriate [oe specific]
+
+Signed-off-by: Naveen Saini <naveen.kumar.saini@intel.com>
+
+Refresh to 5.13
+Signed-off-by: Yi Zhao <yi.zhao@windriver.com>
+---
+ Makefile | 16 ++++++++++------
+ 1 file changed, 10 insertions(+), 6 deletions(-)
+
+diff --git a/Makefile b/Makefile
+index 337c53e..58e3779 100644
+--- a/Makefile
++++ b/Makefile
+@@ -25,6 +25,7 @@ BINDIR ?=	/usr/bin
+ MANDIR ?=	/usr/share/man
+ SHRDIR ?=	/usr/share/pm-graph
+ LIBDIR ?=	/usr/lib
++BASELIB	?=
+ 
+ # Toolchain: what tools do we use, and what options do they need:
+ INSTALL = /usr/bin/install
+@@ -33,6 +34,9 @@ INSTALL_DATA  = ${INSTALL} -m 644
+ all:
+ 	@echo "Nothing to build"
+ 
++clean:
++	@echo "Nothing to clean"
++
+ install : uninstall
+ 	$(INSTALL) -d  $(DESTDIR)$(LIBDIR)/pm-graph
+ 	$(INSTALL) sleepgraph.py $(DESTDIR)$(LIBDIR)/pm-graph
+@@ -54,10 +58,10 @@ install : uninstall
+ 	$(INSTALL) -d  $(DESTDIR)$(SHRDIR)
+ 
+ 	$(INSTALL) -d  $(DESTDIR)$(BINDIR)
+-	ln -s ../lib/pm-graph/bootgraph.py $(DESTDIR)$(BINDIR)/bootgraph
+-	ln -s ../lib/pm-graph/sleepgraph.py $(DESTDIR)$(BINDIR)/sleepgraph
+-	ln -s ../lib/pm-graph/netfix.py $(DESTDIR)$(BINDIR)/netfix
+-	$(DESTDIR)$(BINDIR)/netfix defconfig > $(DESTDIR)$(SHRDIR)/netfix.cfg
++	ln -s ../$(BASELIB)/pm-graph/bootgraph.py $(DESTDIR)$(BINDIR)/bootgraph
++	ln -s ../$(BASELIB)/pm-graph/sleepgraph.py $(DESTDIR)$(BINDIR)/sleepgraph
++	ln -s ../$(BASELIB)/pm-graph/netfix.py $(DESTDIR)$(BINDIR)/netfix
++	#$(DESTDIR)$(BINDIR)/netfix defconfig > $(DESTDIR)$(SHRDIR)/netfix.cfg
+ 
+ 	$(INSTALL) -d  $(DESTDIR)$(MANDIR)/man8
+ 	$(INSTALL) bootgraph.8 $(DESTDIR)$(MANDIR)/man8
+@@ -90,8 +94,8 @@ hwcheck-install :
+ 	rm -f $(DESTDIR)$(LIBDIR)/pm-graph/hwcheck.py
+ 	$(INSTALL) tools/hwcheck.py $(DESTDIR)$(LIBDIR)/pm-graph
+ 	$(INSTALL) -d  $(DESTDIR)$(BINDIR)
+-	ln -s ../lib/pm-graph/hwcheck.py $(DESTDIR)$(BINDIR)/hwcheck
+-	$(DESTDIR)$(BINDIR)/hwcheck cronon
++	ln -s ../$(BASELIB)/pm-graph/hwcheck.py $(DESTDIR)$(BINDIR)/hwcheck
++	#$(DESTDIR)$(BINDIR)/hwcheck cronon
+ 
+ hwcheck-uninstall :
+ 	if [ -e $(DESTDIR)$(BINDIR)/hwcheck ] ; then \
+-- 
+2.25.1
+

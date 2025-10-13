@@ -1,0 +1,14 @@
+[Unit]
+Description=Router advertisement daemon for IPv6
+After=network.target
+ConditionPathExists=@SYSCONFDIR@/radvd.conf
+
+[Service]
+Type=forking
+EnvironmentFile=@SYSCONFDIR@/default/radvd
+ExecStart=@SBINDIR@/radvd $OPTIONS
+PIDFile=/run/radvd.pid
+ExecReload=/bin/kill -HUP $MAINPID
+
+[Install]
+WantedBy=multi-user.target
