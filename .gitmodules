@@ -1,0 +1,31 @@
+[submodule "layers/meta-clang"]
+	path = layers/meta-clang
+	url = https://github.com/kraj/meta-clang.git
+	branch = walnascar
+[submodule "layers/meta-dpdk"]
+	path = layers/meta-dpdk
+	url = https://github.com/MontaVista-OpenSourceTechnology/meta-dpdk.git
+[submodule "layers/meta-erlang"]
+	path = layers/meta-erlang
+	url = https://github.com/meta-erlang/meta-erlang.git
+	branch = walnascar
+[submodule "layers/meta-openembedded"]
+	path = layers/meta-openembedded
+	url = https://github.com/openembedded/meta-openembedded.git
+	branch = walnascar
+[submodule "layers/meta-qt5"]
+	path = layers/meta-qt5
+	url = https://github.com/meta-qt5/meta-qt5.git
+	branch = walnascar
+[submodule "layers/meta-secure-core"]
+	path = layers/meta-secure-core
+	url = https://github.com/Wind-River/meta-secure-core.git
+	branch = walnascar
+[submodule "layers/meta-security"]
+	path = layers/meta-security
+	url = https://git.yoctoproject.org/meta-security
+	branch = walnascar
+[submodule "layers/meta-virtualization"]
+	path = layers/meta-virtualization
+	url = https://git.yoctoproject.org/meta-virtualization
+	branch = walnascar
