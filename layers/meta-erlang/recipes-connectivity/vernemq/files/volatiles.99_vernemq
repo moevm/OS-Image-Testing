@@ -1,3 +1,0 @@
-# <type> <owner> <group> <mode> <path> <linksource>
-d vernemq vernemq 0755 /var/log/vernemq none
-
