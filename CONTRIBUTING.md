@@ -1,48 +1,27 @@
-# Использование pre-commit
+# Contributing
 
-## Установка библиотек
+First of all thank you for your desire to contribute in that project.
+
+## Development environment
+
+You'll need to install and setup pre-commit hooks for checking style of source code, formatting it and checking types.
+
+### Installing pre-commit on Ubuntu
+
+Installing a `pre-commit` in the distribution:
 ```
 sudo apt update
-sudo apt install -y pre-commit
+sudo apt install pre-commit
+```
+
+Installing a `pre-commit` script in the repository to automatically run check scripts when committing to a branch.
+```
 pre-commit install
 ```
 
-## Самостоятельная проверка коммита
+### Self-checking a commit
 
+Checks all the repository files:
 ```
 pre-commit run --all-files
 ```
-Проверит все файлы репозитория
-```
-pre-commit run --files file.py
-```
-Запустит все подходящие хуки для указанного файла
-```
-pre-commit run hook_name --files file.json
-```
-Запустит конретный хук для указанного файла
-
-## Что проверяется
-
-### Python
-
-- Формат и простые ошибки (Например: неиспользуемые переменые) 
-
-### Shell-скрипты
-
-- Ошибки в bash/sh скриптах 
-
-### YAML
-
-- Синтаксис YAML
-
-### JSON 
-- Синтаксис и формат JSON
-
-### Общие проверки 
-- Пробел в конце файла 
-- Лишние пробелы в конце строки 
-- Конфликты 
-- Коммит в main
-
-Если форматтер что-то изменил, появится сообщение "files were modified"
