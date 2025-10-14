@@ -1,9 +1,7 @@
 import logging
 import sys
 from pathlib import Path
-from typing import TextIO
-
-from typing_extensions import Self
+from typing import Self, TextIO
 
 
 class StreamFormatter(logging.Formatter):
