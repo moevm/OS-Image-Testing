@@ -15,7 +15,7 @@ RUN apt-get update && \
         python3-jinja2 python3-subunit screen \
         libtirpc-dev libtirpc3 pkg-config \
         qemu qemu-system-x86 qemu-utils \
-        openssh-server && \
+        openssh-client && \
     rm -rf /var/lib/apt/lists/* && \
     locale-gen en_US.UTF-8
 
@@ -27,11 +27,14 @@ RUN groupadd -g 510 ${GROUP} && \
     echo "${USER} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/${USER} && \
     chown -R ${USER}:${GROUP} ${POKY_DIR}
 
-COPY scripts/entrypoint.sh ${POKY_DIR}/
-RUN chmod +x ${POKY_DIR}/entrypoint.sh
+RUN ssh-keygen -t rsa -f /home/${USER}/.ssh/id_rsa -N ""
+RUN chown -R ${USER}:${GROUP} /home/${USER}/.ssh
+
+COPY scripts/entrypoint_yocto.sh ${POKY_DIR}/
+RUN chmod +x ${POKY_DIR}/entrypoint_yocto.sh
 
 USER ${USER}
 WORKDIR ${POKY_DIR}
 
-ENTRYPOINT ["/home/user/poky/entrypoint.sh"]
+ENTRYPOINT ["/home/user/poky/entrypoint_yocto.sh"]
 CMD ["/bin/bash"]
