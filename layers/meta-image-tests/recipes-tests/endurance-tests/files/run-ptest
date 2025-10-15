@@ -1,20 +1,5 @@
 #!/bin/bash
 
-<<<<<<< HEAD
-cd $(dirname $0)
-echo "=== Running stress-ng ptest ==="
-
-PASS=0
-FAIL=0
-
-for test in tests/*/*/*.sh; do
-    echo "TEST: $(basename $test)"
-    ./$test && PASS=$((PASS+1)) || FAIL=$((FAIL+1))
-done
-
-echo "=== Summary: $PASS passed, $FAIL failed ==="
-[ $FAIL -eq 0 ] || exit 1
-=======
 source env.sh
 
 cd $(dirname $0)
@@ -61,4 +46,3 @@ for test in tests/*/*/*.sh; do
 done
 
 [ $FAIL -eq 0 ] || exit 1
->>>>>>> 1499d68 (feat: update meta-image-tests version to walnascar)
