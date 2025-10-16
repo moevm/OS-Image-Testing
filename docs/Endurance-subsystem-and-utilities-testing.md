@@ -179,6 +179,8 @@ fwts
 
 В процессе работы находит ошибки ядра, утечки памяти, переполнение данных и так далее.
 
+Покрывает следующие подсистемы: `сеть`, `файловые системы`, `память`, а также используется для `драйверов`.
+
 ### Интеграция в Yocto
 
 Находится там же, где fwts, по пути `meta-openembedded/meta-oe/recipes-test/syzkaller`.
@@ -197,7 +199,9 @@ IMAGE_INSTALL:append = " syzkaller"
 ./usr/bin/linux_amd64/syz-manager -config my.cfg
 ```
 
-[Пример конфигурации](https://github.com/google/syzkaller/blob/master/pkg/mgrconfig/testdata/qemu-example.cfg).
+[Пример конфигурации](https://github.com/google/syzkaller/blob/master/pkg/mgrconfig/testdata/qemu-example.cfg)
+
+В конфигурации можно задать нагрузку: выделить больше ресурсов процессора, памяти или увеличить число процессов.
 
 Для минимального теста без web-интерфейса можно создать подобный файл:
 
