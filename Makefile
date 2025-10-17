@@ -37,7 +37,7 @@ docker:
 		bash -c "mkdir -p /tmp-build/build /tmp-build/conf && \
 			mkdir -p /tmp-downloads && \
 			mkdir -p /tmp-sstate && \
-			chown -R ${USER}:${GROUP} /tmp-build /tmp-downloads /tmp-sstate "
+			chown -R ${USER}:${GROUP} /tmp-build /tmp-downloads /tmp-sstate"
 
 .PHONY: docker-init-volumes
 docker-init-volumes:
