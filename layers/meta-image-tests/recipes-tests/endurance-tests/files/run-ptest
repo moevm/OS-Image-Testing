@@ -7,8 +7,6 @@ echo "=== Running image ptest ==="
 
 PASS=0
 FAIL=0
-PIDS=()
-TEST_NAMES=()
 
 for test in tests/*/*/*.sh; do
     test_name=$(basename "$test")
