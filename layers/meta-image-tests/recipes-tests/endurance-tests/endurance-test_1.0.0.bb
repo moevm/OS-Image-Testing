@@ -2,9 +2,6 @@ SUMMARY = "Stress tests using stress-ng and wget"
 LICENSE = "MIT"
 LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda2f7b4f302"
 
-RDEPENDS:${PN} = "wget stress-ng bash"
-RDEPENDS:${PN}-ptest = "bash ptest-runner"
-
 inherit ptest
 
 SRC_URI = " \
@@ -15,6 +12,9 @@ SRC_URI = " \
     file://endurance/memory/test-memory.sh \
     file://endurance/network/test-network.sh \
 "
+
+RDEPENDS:${PN} = "wget stress-ng bash"
+RDEPENDS:${PN}-ptest = "bash ptest-runner"
 
 S = "${WORKDIR}/sources"
 UNPACKDIR = "${S}"
