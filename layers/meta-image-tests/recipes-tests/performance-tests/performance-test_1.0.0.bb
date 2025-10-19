@@ -18,8 +18,8 @@ RDEPENDS:${PN}-ptest += "perf bash stress-ng"
 
 FILES_${PN}-ptest += "${PTEST_PATH}"
 
-S = "${WORKDIR}/sources"
-UNPACKDIR = "${S}"
+SRCDIR = "${WORKDIR}/sources"
+UNPACKDIR = "${SRCDIR}"
 
 do_compile() {
     :
@@ -32,17 +32,17 @@ do_install() {
 
 do_install_ptest() {
     install -d ${D}${PTEST_PATH}/tests/performance/disks
-    cp -r ${S}/tests/performance/disks/* ${D}${PTEST_PATH}/tests/performance/disks/
+    cp -r ${SRCDIR}/tests/performance/disks/* ${D}${PTEST_PATH}/tests/performance/disks/
     
     install -d ${D}${PTEST_PATH}/tests/performance/cpu
-    cp -r ${S}/tests/performance/cpu/* ${D}${PTEST_PATH}/tests/performance/cpu/
+    cp -r ${SRCDIR}/tests/performance/cpu/* ${D}${PTEST_PATH}/tests/performance/cpu/
     
     install -d ${D}${PTEST_PATH}/tests/performance/memory
-    cp -r ${S}/tests/performance/memory/* ${D}${PTEST_PATH}/tests/performance/memory/
+    cp -r ${SRCDIR}/tests/performance/memory/* ${D}${PTEST_PATH}/tests/performance/memory/
     
     install -d ${D}${PTEST_PATH}/tests/performance/network
-    cp -r ${S}/tests/performance/network/* ${D}${PTEST_PATH}/tests/performance/network/
+    cp -r ${SRCDIR}/tests/performance/network/* ${D}${PTEST_PATH}/tests/performance/network/
     
-    install -m 0755 ${S}/tests/run-ptest ${D}${PTEST_PATH}/run-ptest
+    install -m 0755 ${SRCDIR}/tests/run-ptest ${D}${PTEST_PATH}/run-ptest
 }
 

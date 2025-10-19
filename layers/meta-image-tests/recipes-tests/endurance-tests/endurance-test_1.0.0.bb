@@ -16,28 +16,28 @@ SRC_URI = " \
 RDEPENDS:${PN} = "wget stress-ng bash"
 RDEPENDS:${PN}-ptest = "bash ptest-runner"
 
-S = "${WORKDIR}/sources"
-UNPACKDIR = "${S}"
+SRCDIR = "${WORKDIR}/sources"
+UNPACKDIR = "${SRCDIR}"
 
 ALLOW_EMPTY:${PN} = "1"
 
 do_install_ptest() {
     install -d ${D}${PTEST_PATH}
-    install -m 0755 ${S}/run-ptest ${D}${PTEST_PATH}/
+    install -m 0755 ${SRCDIR}/run-ptest ${D}${PTEST_PATH}/
 
-    install -m 0755 ${S}/env.sh ${D}${PTEST_PATH}/
+    install -m 0755 ${SRCDIR}/env.sh ${D}${PTEST_PATH}/
 
     install -d ${D}${PTEST_PATH}/tests/endurance/cpu
-    install -m 0755 ${S}/endurance/cpu/test-cpu.sh ${D}${PTEST_PATH}/tests/endurance/cpu/
+    install -m 0755 ${SRCDIR}/endurance/cpu/test-cpu.sh ${D}${PTEST_PATH}/tests/endurance/cpu/
 
     install -d ${D}${PTEST_PATH}/tests/endurance/disks
-    install -m 0755 ${S}/endurance/disks/test-disk.sh ${D}${PTEST_PATH}/tests/endurance/disks/
+    install -m 0755 ${SRCDIR}/endurance/disks/test-disk.sh ${D}${PTEST_PATH}/tests/endurance/disks/
     
     install -d ${D}${PTEST_PATH}/tests/endurance/memory
-    install -m 0755 ${S}/endurance/memory/test-memory.sh ${D}${PTEST_PATH}/tests/endurance/memory/
+    install -m 0755 ${SRCDIR}/endurance/memory/test-memory.sh ${D}${PTEST_PATH}/tests/endurance/memory/
 
     install -d ${D}${PTEST_PATH}/tests/endurance/network    
-    install -m 0755 ${S}/endurance/network/test-network.sh ${D}${PTEST_PATH}/tests/endurance/network/
+    install -m 0755 ${SRCDIR}/endurance/network/test-network.sh ${D}${PTEST_PATH}/tests/endurance/network/
 }
 
 FILES:${PN}-ptest += "${PTEST_PATH}/*"
