@@ -55,7 +55,7 @@ docker-init-volumes:
 		--volume "${HOST_LAYERS_PATH}/meta-virtualization:${POKY_DIR}/meta-virtualization" \
 		--volume "${HOST_SCRIPTS_PATH}/add-layers.sh:${POKY_DIR}/add-layers.sh" \
 		${DOCKER_TAG} \
-		bash -c "./../add-layers.sh && bitbake ${OS_IMAGE}"
+		bash -c "cd .. && ./add-layers.sh && bitbake ${OS_IMAGE}"
 
 .PHONY: docker-run-image
 docker-run-image: docker-init-volumes
