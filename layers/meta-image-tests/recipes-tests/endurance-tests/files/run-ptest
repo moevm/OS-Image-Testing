@@ -1,15 +1,37 @@
 #!/bin/bash
 
+source env.sh
+
 cd $(dirname $0)
-echo "=== Running stress-ng ptest ==="
+echo "=== Running image ptest ==="
 
 PASS=0
 FAIL=0
 
 for test in tests/*/*/*.sh; do
-    echo "TEST: $(basename $test)"
-    ./$test && PASS=$((PASS+1)) || FAIL=$((FAIL+1))
+    test_name=$(basename "$test")
+    
+    echo "START: $test_name"
+    ./"$test" >> "${test}-output" 2>&1
+
+    if [ $? -eq 0 ]; then
+        echo "PASS: $test_name"
+        PASS=$((PASS+1))
+    else
+        echo "FAIL: $test_name"
+        FAIL=$((FAIL+1))
+    fi
+done
+
+for test in tests/*/*/*.sh; do
+    output_file="${test}-output"
+    if [ -f "$output_file" ]; then
+        echo -e "\n=== Output for $(basename "$test") ===\n"
+        cat "$output_file"
+        rm "$output_file"
+    fi
 done
 
 echo "=== Summary: $PASS passed, $FAIL failed ==="
+
 [ $FAIL -eq 0 ] || exit 1
