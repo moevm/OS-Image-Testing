@@ -1,10 +1,9 @@
-from pathlib import Path
-import subprocess
 import logging
+import subprocess
+from pathlib import Path
 from typing import NamedTuple
 
 import paramiko
-
 
 logger = logging.getLogger(__name__)
 
@@ -16,16 +15,25 @@ class ExecResult(NamedTuple):
 
 
 def run_command(cmd: list[str]) -> ExecResult:
-    logger.info("Running command %s", " ".join(cmd))
-    result = subprocess.run(
+    logger.info("Running command '%s'.", " ".join(cmd))
+    result = subprocess.run(  # noqa: UP022, S603
         cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf-8", check=False
     )
 
-    return ExecResult(
+    result = ExecResult(
         stdout=result.stdout,
         stderr=result.stderr,
         returncode=result.returncode,
     )
+    logger.info("Command '%s' completed with code %d.", " ".join(cmd), result.returncode)
+    return result
+
+
+def which(util: str) -> Path | None:
+    result = run_command(["which", util])
+    if result.returncode:
+        return None
+    return Path(result.stdout.strip())
 
 
 class SSHClient:
