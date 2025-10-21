@@ -10,7 +10,11 @@ OUT="$OUT_DIR/ltp-syscalls-$STAMP.out"
 
 RUNLTP=/opt/ltp/runltp
 
-"$RUNLTP" -p -q -l "$LOG" -o "$OUT" -f syscalls || true
-
-echo "LTP syscalls finished (see $LOG, $OUT)"
-
+echo "Starting LTP syscalls..."
+if "$RUNLTP" -p -q -l "$LOG" -o "$OUT" -f syscalls; then
+    echo "LTP syscalls PASSED"
+    exit 0
+else
+    echo "LTP syscalls FAILED"
+    exit 1
+fi
