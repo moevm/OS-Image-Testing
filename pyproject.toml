@@ -17,6 +17,7 @@ license-files = ["LICENSE"]
 dependencies = [
     "paramiko~=4.0.0",
     "typing-extensions~=4.15.0",
+    "python-json-logger~=4.0.0",
 ]
 
 [dependency-groups]
