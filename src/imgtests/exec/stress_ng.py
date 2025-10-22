@@ -1,4 +1,4 @@
-from imgtests.exec.atutil import BaseTestUtil
+from imgtests.exec.base_util import BaseTestUtil
 from imgtests.exec.exec import SSHClient
 
 
