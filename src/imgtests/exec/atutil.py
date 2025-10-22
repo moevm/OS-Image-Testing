@@ -1,24 +1,23 @@
-from abc import ABC, abstractmethod
-
-from imgtests.exec.exec import ExecResult, which
+from imgtests.exec.exec import ExecResult, SSHClient, run_command, which
 
 
-class AbstractUtil(ABC):
-    """Abstract base class for the test tools.
+class BaseTestUtil:
+    """Base class for the test tools.
 
     This class provides a common interface for the test tools and handles
     basic initialization logic.
 
     Attributes:
         name (str): Name of the utility.
+        ssh_client (SSHClient | None): Client to the remote.
         path (str | None): Path to the utility executable.
     """
 
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str, ssh_client: SSHClient | None = None) -> None:
         self.name = name
-        self.path = which(self.name)
+        self.ssh_client = ssh_client
+        self.path = which(self.name, ssh_client)
 
-    @abstractmethod
     def __call__(self, cmd: list[str] | None = None) -> ExecResult:
         """Executes the utility with the provided command.
 
@@ -28,7 +27,13 @@ class AbstractUtil(ABC):
         Returns:
             ExecResult: Result of the execution.
         """
-        ...
+        if cmd is None:
+            cmd = []
+        if self.path is None:
+            return ExecResult(stderr=f"Failed to locate '{self.name}'.", returncode=1)
+        if self.ssh_client is None:
+            return run_command([str(self.path), *cmd])
+        return self.ssh_client(" ".join([str(self.path), *cmd]))
 
     def install(self) -> ExecResult:
         """Installs the utility.

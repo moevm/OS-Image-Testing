@@ -1,17 +1,10 @@
-from imgtests.exec.atutil import AbstractUtil
-from imgtests.exec.exec import ExecResult, run_command
+from imgtests.exec.atutil import BaseTestUtil
+from imgtests.exec.exec import SSHClient
 
 
-class StressNg(AbstractUtil):
-    def __init__(self) -> None:
-        super().__init__("stress-ng")
-
-    def __call__(self, cmd: list[str] | None = None) -> ExecResult:
-        if cmd is None:
-            cmd = []
-        if self.path is None:
-            return ExecResult(stderr=f"Failed to locate '{self.name}'.", returncode=1)
-        return run_command([str(self.path), *cmd])
+class StressNg(BaseTestUtil):
+    def __init__(self, ssh_client: SSHClient | None = None) -> None:
+        super().__init__("stress-ng", ssh_client)
 
     def cpu_methods(self) -> tuple[str, ...] | None:
         result = self(["--cpu-method", "which"])

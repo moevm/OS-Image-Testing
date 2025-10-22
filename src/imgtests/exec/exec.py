@@ -29,13 +29,6 @@ def run_command(cmd: list[str]) -> ExecResult:
     return result
 
 
-def which(util: str) -> Path | None:
-    result = run_command(["which", util])
-    if result.returncode:
-        return None
-    return Path(result.stdout.strip())
-
-
 class SSHClient:
     def __init__(
         self, hostname: str, username: str = "root", password: str | None = None, port: int = 22
@@ -96,3 +89,16 @@ class SSHClient:
         sftp.get(str(remotepath), localpath)
         sftp.close()
         return ExecResult()
+
+
+def which(util: str, ssh_client: SSHClient | None = None) -> Path | None:
+    def handler_result(result: ExecResult) -> Path | None:
+        if result.returncode:
+            return None
+        return Path(result.stdout.strip())
+
+    if ssh_client is None:
+        result = run_command(["which", util])
+        return handler_result(result)
+    result = ssh_client(f"which {util}")
+    return handler_result(result)
