@@ -1,10 +1,10 @@
-from imgtests.exec.exec import ExecResult, run_command, which
+from imgtests.exec.atutil import AbstractUtil
+from imgtests.exec.exec import ExecResult, run_command
 
 
-class StressNg:
+class StressNg(AbstractUtil):
     def __init__(self) -> None:
-        self.name = "stress-ng"
-        self.path = which(self.name)
+        super().__init__("stress-ng")
 
     def __call__(self, cmd: list[str] | None = None) -> ExecResult:
         if cmd is None:
