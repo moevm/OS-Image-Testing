@@ -2,7 +2,7 @@
 
 mapfile -t LAYERS < <(find . -maxdepth 2 -type d -name "meta-*" | sort)
 
-# Слои без конфигурационных файлов
+# Layers without configuration files
 EXCLUDE_LAYERS=("meta-openembedded" "meta-secure-core")
 
 for layer in "${LAYERS[@]}"; do
