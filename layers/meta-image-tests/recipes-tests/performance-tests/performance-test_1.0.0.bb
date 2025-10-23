@@ -1,6 +1,8 @@
 SUMMARY = "Recipe with tests"
-LICENSE = "GPL-2.0-only"
-LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/GPL-2.0-only;md5=801f80980d171dd6425610833a22dbe6"
+LICENSE = "MIT"
+LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda2f7b4f302"
+
+inherit ptest
 
 SRC_URI = "\
     file://tests/ \ 
@@ -10,13 +12,14 @@ SRC_URI = "\
     file://tests/performance/network/ \
 "
 
-inherit ptest
-
 RDEPENDS:${PN} += "bash perf stress-ng"
 RDEPENDS:${PN}-ptest += "perf bash stress-ng"
 
 
 FILES_${PN}-ptest += "${PTEST_PATH}"
+
+SRCDIR = "${WORKDIR}/sources"
+UNPACKDIR = "${SRCDIR}"
 
 do_compile() {
     :
@@ -29,17 +32,17 @@ do_install() {
 
 do_install_ptest() {
     install -d ${D}${PTEST_PATH}/tests/performance/disks
-    cp -r ${WORKDIR}/tests/performance/disks/* ${D}${PTEST_PATH}/tests/performance/disks/
+    cp -r ${SRCDIR}/tests/performance/disks/* ${D}${PTEST_PATH}/tests/performance/disks/
     
     install -d ${D}${PTEST_PATH}/tests/performance/cpu
-    cp -r ${WORKDIR}/tests/performance/cpu/* ${D}${PTEST_PATH}/tests/performance/cpu/
+    cp -r ${SRCDIR}/tests/performance/cpu/* ${D}${PTEST_PATH}/tests/performance/cpu/
     
     install -d ${D}${PTEST_PATH}/tests/performance/memory
-    cp -r ${WORKDIR}/tests/performance/memory/* ${D}${PTEST_PATH}/tests/performance/memory/
+    cp -r ${SRCDIR}/tests/performance/memory/* ${D}${PTEST_PATH}/tests/performance/memory/
     
     install -d ${D}${PTEST_PATH}/tests/performance/network
-    cp -r ${WORKDIR}/tests/performance/network/* ${D}${PTEST_PATH}/tests/performance/network/
+    cp -r ${SRCDIR}/tests/performance/network/* ${D}${PTEST_PATH}/tests/performance/network/
     
-    install -m 0755 ${WORKDIR}/tests/run-ptest ${D}${PTEST_PATH}/run-ptest
+    install -m 0755 ${SRCDIR}/tests/run-ptest ${D}${PTEST_PATH}/run-ptest
 }
 

@@ -19,7 +19,7 @@ RUN apt-get update && \
     locale-gen en_US.UTF-8
 
 RUN mkdir -p ${POKY_DIR} && \
-    git clone --depth 1 -b scarthgap --recurse-submodules https://git.yoctoproject.org/poky ${POKY_DIR}
+    git clone --depth 1 -b walnascar --recurse-submodules https://git.yoctoproject.org/poky ${POKY_DIR}
 
 RUN groupadd -g 510 ${GROUP} && \
     useradd -rm -d /home/${USER} -s /bin/bash -g ${GROUP} -u 1010 -G sudo ${USER} && \

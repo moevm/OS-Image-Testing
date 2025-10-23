@@ -1,7 +1,6 @@
 USER                       := user
 GROUP                      := yoctogroup
 OS_IMAGE                   := core-image-minimal
-TEST_LAYER                 := meta-image-tests
 
 # Docker
 DOCKER_TAG                 := yocto-builder-image
@@ -12,7 +11,6 @@ DOCKER_SSTATE_VOLUME       := yocto-sstate
 # Paths
 POKY_DIR                   := /home/${USER}/poky
 BUILD_DIR                  := ${POKY_DIR}/build
-LAYER_DIR                  := ${POKY_DIR}/${TEST_LAYER}
 HOST_LAYERS_PATH           := ${CURDIR}/layers
 HOST_CONF_PATH             := ${CURDIR}/conf
 HOST_SCRIPTS_PATH          := ${CURDIR}/scripts
@@ -46,9 +44,18 @@ docker-init-volumes:
 		--volume ${DOCKER_DOWNLOADS_VOLUME}:${POKY_DIR}/downloads \
 		--volume ${DOCKER_SSTATE_VOLUME}:${POKY_DIR}/sstate-cache \
 		--volume "${HOST_CONF_PATH}/local.conf:${BUILD_DIR}/conf/local.conf" \
-		--volume "${HOST_LAYERS_PATH}/${TEST_LAYER}:${LAYER_DIR}" \
+		--volume "${HOST_LAYERS_PATH}/meta-image-tests:${POKY_DIR}/meta-image-tests" \
+		--volume "${HOST_LAYERS_PATH}/meta-clang:${POKY_DIR}/meta-clang" \
+		--volume "${HOST_LAYERS_PATH}/meta-dpdk:${POKY_DIR}/meta-dpdk" \
+		--volume "${HOST_LAYERS_PATH}/meta-erlang:${POKY_DIR}/meta-erlang" \
+		--volume "${HOST_LAYERS_PATH}/meta-openembedded:${POKY_DIR}/meta-openembedded" \
+		--volume "${HOST_LAYERS_PATH}/meta-qt5:${POKY_DIR}/meta-qt5" \
+		--volume "${HOST_LAYERS_PATH}/meta-secure-core:${POKY_DIR}/meta-secure-core" \
+		--volume "${HOST_LAYERS_PATH}/meta-security:${POKY_DIR}/meta-security" \
+		--volume "${HOST_LAYERS_PATH}/meta-virtualization:${POKY_DIR}/meta-virtualization" \
+		--volume "${HOST_SCRIPTS_PATH}/add-layers.sh:${POKY_DIR}/add-layers.sh" \
 		${DOCKER_TAG} \
-		bash -c "bitbake-layers add-layer ${LAYER_DIR} && bitbake ${OS_IMAGE}"
+		bash -c "cd .. && ./add-layers.sh && bitbake ${OS_IMAGE}"
 
 .PHONY: docker-run-image
 docker-run-image: docker-init-volumes
@@ -57,7 +64,15 @@ docker-run-image: docker-init-volumes
 		--volume ${DOCKER_DOWNLOADS_VOLUME}:${POKY_DIR}/downloads \
 		--volume ${DOCKER_SSTATE_VOLUME}:${POKY_DIR}/sstate-cache \
 		--volume "${HOST_CONF_PATH}/local.conf:${BUILD_DIR}/conf/local.conf" \
-		--volume "${HOST_LAYERS_PATH}/${TEST_LAYER}:${LAYER_DIR}" \
+		--volume "${HOST_LAYERS_PATH}/meta-image-tests:${POKY_DIR}/meta-image-tests" \
+		--volume "${HOST_LAYERS_PATH}/meta-clang:${POKY_DIR}/meta-clang" \
+		--volume "${HOST_LAYERS_PATH}/meta-dpdk:${POKY_DIR}/meta-dpdk" \
+		--volume "${HOST_LAYERS_PATH}/meta-erlang:${POKY_DIR}/meta-erlang" \
+		--volume "${HOST_LAYERS_PATH}/meta-openembedded:${POKY_DIR}/meta-openembedded" \
+		--volume "${HOST_LAYERS_PATH}/meta-qt5:${POKY_DIR}/meta-qt5" \
+		--volume "${HOST_LAYERS_PATH}/meta-secure-core:${POKY_DIR}/meta-secure-core" \
+		--volume "${HOST_LAYERS_PATH}/meta-security:${POKY_DIR}/meta-security" \
+		--volume "${HOST_LAYERS_PATH}/meta-virtualization:${POKY_DIR}/meta-virtualization" \
 		${DOCKER_TAG} \
 		runqemu qemux86-64 slirp nographic
 
@@ -71,7 +86,15 @@ docker-test-image: docker-init-volumes
 		--volume ${DOCKER_DOWNLOADS_VOLUME}:${POKY_DIR}/downloads \
 		--volume ${DOCKER_SSTATE_VOLUME}:${POKY_DIR}/sstate-cache \
 		--volume "${HOST_CONF_PATH}/local.conf:${BUILD_DIR}/conf/local.conf" \
-		--volume "${HOST_LAYERS_PATH}/${TEST_LAYER}:${LAYER_DIR}" \
+		--volume "${HOST_LAYERS_PATH}/meta-image-tests:${POKY_DIR}/meta-image-tests" \
+		--volume "${HOST_LAYERS_PATH}/meta-clang:${POKY_DIR}/meta-clang" \
+		--volume "${HOST_LAYERS_PATH}/meta-dpdk:${POKY_DIR}/meta-dpdk" \
+		--volume "${HOST_LAYERS_PATH}/meta-erlang:${POKY_DIR}/meta-erlang" \
+		--volume "${HOST_LAYERS_PATH}/meta-openembedded:${POKY_DIR}/meta-openembedded" \
+		--volume "${HOST_LAYERS_PATH}/meta-qt5:${POKY_DIR}/meta-qt5" \
+		--volume "${HOST_LAYERS_PATH}/meta-secure-core:${POKY_DIR}/meta-secure-core" \
+		--volume "${HOST_LAYERS_PATH}/meta-security:${POKY_DIR}/meta-security" \
+		--volume "${HOST_LAYERS_PATH}/meta-virtualization:${POKY_DIR}/meta-virtualization" \
 		--volume "${HOST_TEMP_PATH}:/tmp/results" \
 		--volume "${HOST_SCRIPTS_PATH}:/tmp/scripts" \
 		${DOCKER_TAG} \
