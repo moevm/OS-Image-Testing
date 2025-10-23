@@ -11,6 +11,7 @@ SRC_URI = " \
     file://endurance/disks/test-disk.sh \
     file://endurance/memory/test-memory.sh \
     file://endurance/network/test-network.sh \
+    file://endurance/syscalls/ltp-syscalls.sh \
 "
 
 RDEPENDS:${PN} = "wget stress-ng bash"
@@ -38,6 +39,9 @@ do_install_ptest() {
 
     install -d ${D}${PTEST_PATH}/tests/endurance/network    
     install -m 0755 ${SRCDIR}/endurance/network/test-network.sh ${D}${PTEST_PATH}/tests/endurance/network/
+    
+    install -d ${D}${PTEST_PATH}/tests/endurance/syscalls
+    install -m 0755 ${SRCDIR}/endurance/syscalls/ltp-syscalls.sh ${D}${PTEST_PATH}/tests/endurance/syscalls/
 }
 
 FILES:${PN}-ptest += "${PTEST_PATH}/*"
