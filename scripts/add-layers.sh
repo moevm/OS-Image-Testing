@@ -1,7 +1,8 @@
 #!/bin/bash
 
-LAYERS=($(find . -maxdepth 2 -type d -name "meta-*" | sort))
+mapfile -t LAYERS < <(find . -maxdepth 2 -type d -name "meta-*" | sort)
 
+# Слои без конфигурационных файлов
 EXCLUDE_LAYERS=("meta-openembedded" "meta-secure-core")
 
 for layer in "${LAYERS[@]}"; do
@@ -16,7 +17,7 @@ for layer in "${LAYERS[@]}"; do
             break
         fi
     done
-    
+
     if [ "$skip" = true ]; then
         continue
     fi
