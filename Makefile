@@ -16,6 +16,10 @@ HOST_CONF_PATH             := ${CURDIR}/conf
 HOST_SCRIPTS_PATH          := ${CURDIR}/scripts
 HOST_TEMP_PATH             := ${CURDIR}/results
 
+# Library
+PYTHONDONTWRITEBYTECODE    := 1
+PY_LIB_NAME                := $(shell grep -Po 'name\s*=\s*"\K(\w+)' pyproject.toml)
+
 .PHONY: docker
 docker:
 	docker build \
@@ -111,6 +115,11 @@ docker-test-image: docker-init-volumes
 	} &
 	@echo "QEMU test started in background"
 
+.PHONY: unit-test
+unit-test:
+	@echo "Running tests for the library '${PY_LIB_NAME}''..."
+	uvx pytest
+
 .PHONY: help
 help:
 	@echo "Usage:"
@@ -120,4 +129,7 @@ help:
 	@echo "  docker-init-volumes    Initializes docker volumes;"
 	@echo "  docker-run-image       Runs builded Yocto image from builded docker image;"
 	@echo "  docker-test-image      Tests builded Yocto image from builded docker image;"
+	@echo "  unit-test              Run unit tests for the Python library '${PY_LIB_NAME}';"
 	@echo "  help                   Displays information about all available targets."
+
+.EXPORT_ALL_VARIABLES:

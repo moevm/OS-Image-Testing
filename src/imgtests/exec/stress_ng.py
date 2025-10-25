@@ -1,6 +1,14 @@
+from typing import NamedTuple
+
 from imgtests.exec.base_util import BaseTestUtil
 from imgtests.exec.exec import ExecResult, SSHClient
 from imgtests.exec.utils import create_opt
+
+
+class StressNGVerifications(NamedTuple):
+    always_enabled: tuple[str, ...]
+    enabled_by_option: tuple[str, ...]
+    not_implemented: tuple[str, ...]
 
 
 class StressNg(BaseTestUtil):
@@ -19,12 +27,25 @@ class StressNg(BaseTestUtil):
             return None
         return tuple(cpu_methods.strip().split())
 
-    def verifiable(self) -> tuple[str, ...] | None:
+    def verifiable(self) -> StressNGVerifications | None:
+        """Returns stressors that always enable verification or by option or not implements."""
         result = self(["--verifiable"])
         if result.returncode:
             return None
-        err_msg = "Command is not implemented."
-        raise NotImplementedError(err_msg)
+        always_enabled: tuple[str, ...] = ()
+        enabled_by_option: tuple[str, ...] = ()
+        not_implemented: tuple[str, ...] = ()
+        for block in result.stdout.split("\n\n"):
+            lines = block.strip().split("\n")
+            header = lines[0].strip()
+            items = " ".join(lines[1:]).strip().split()
+            if header.startswith("Verification always enabled"):
+                always_enabled = tuple(items)
+            elif header.startswith("Verification enabled by --verify option"):
+                enabled_by_option = tuple(items)
+            elif header.startswith("Verification not implemented"):
+                not_implemented = tuple(items)
+        return StressNGVerifications(always_enabled, enabled_by_option, not_implemented)
 
     def run(  # noqa: PLR0913
         self,
@@ -34,6 +55,7 @@ class StressNg(BaseTestUtil):
         vm_bytes: str | None = None,
         iomix: int | None = None,
         iomix_bytes: str | None = None,
+        verify: bool = False,
     ) -> ExecResult:
         """Runs the stress-ng util stressors.
 
@@ -48,6 +70,7 @@ class StressNg(BaseTestUtil):
             iomix (int | None): Count of the I/O stressors. When set to 0 got count of logical
               processors.
             iomix_bytes (str | None): Utilized memory as value or percent of all available memory.
+            verify (bool): Verify results if can.
 
         Raises:
             ValueError: When invalid parameters provided.
@@ -76,5 +99,6 @@ class StressNg(BaseTestUtil):
                 *create_opt("vm-bytes", vm_bytes),
                 *create_opt("iomix", iomix),
                 *create_opt("iomix-bytes", iomix_bytes),
+                *create_opt("verify", verify),
             ]
         )
