@@ -19,6 +19,13 @@ class StressNg(BaseTestUtil):
             return None
         return tuple(cpu_methods.strip().split())
 
+    def verifiable(self) -> tuple[str, ...] | None:
+        result = self(["--verifiable"])
+        if result.returncode:
+            return None
+        err_msg = "Command is not implemented."
+        raise NotImplementedError(err_msg)
+
     def run(  # noqa: PLR0913
         self,
         timeout_sec: int = 0,
