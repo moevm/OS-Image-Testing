@@ -39,6 +39,7 @@ docker:
 
 .PHONY: docker-init-volumes
 docker-init-volumes:
+	git submodule update --init --recursive
 	docker run -it --rm \
 		--volume ${DOCKER_BUILD_VOLUME}:${BUILD_DIR} \
 		--volume ${DOCKER_DOWNLOADS_VOLUME}:${POKY_DIR}/downloads \
