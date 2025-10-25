@@ -49,7 +49,9 @@ lint.ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/unit/*" = ["S101"]
+"tests/unit/*" = [
+    "S101"      # We use asserts in the unit tests
+]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
