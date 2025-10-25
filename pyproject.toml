@@ -23,6 +23,8 @@ dependencies = [
 [dependency-groups]
 lint = [
     "ruff~=0.14.2",
+]
+tests = [
     "pytest~=8.4.2",
 ]
 

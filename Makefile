@@ -118,7 +118,7 @@ docker-test-image: docker-init-volumes
 .PHONY: unit-test
 unit-test:
 	@echo "Running tests for the library '${PY_LIB_NAME}''..."
-	uvx pytest
+	@uvx pytest
 
 .PHONY: help
 help:
