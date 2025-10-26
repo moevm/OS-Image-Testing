@@ -1,0 +1,33 @@
+name: Check source code
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+
+  pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+
+  workflow_dispatch:
+
+jobs:
+  check-code:
+    runs-on: ubuntu-24.04
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Check source code with pre-commit hooks
+      run: |
+        pip install .
+        pip install pre-commit==4.3.0
+        pre-commit run --all-files
