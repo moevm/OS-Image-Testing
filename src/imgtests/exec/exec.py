@@ -9,6 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 class ExecResult(NamedTuple):
+    cmd: str | tuple[str, ...]
     stdout: str = ""
     stderr: str = ""
     returncode: int = 0
@@ -21,6 +22,7 @@ def run_command(cmd: list[str]) -> ExecResult:
     )
 
     result = ExecResult(
+        cmd=tuple(cmd),
         stdout=result.stdout,
         stderr=result.stderr,
         returncode=result.returncode,
@@ -56,6 +58,7 @@ class SSHClient:
         logger.info("Exit status: %d.", retval)
         session.close()
         return ExecResult(
+            cmd=cmd,
             stdout=stdout.read().decode("utf-8"),
             stderr=stderr.read().decode("utf-8"),
             returncode=retval,
@@ -73,22 +76,24 @@ class SSHClient:
     def upload(self, localpath: Path, remotepath: Path) -> ExecResult:
         sftp = paramiko.SFTPClient.from_transport(self.ssh_session)
         if sftp is None:
-            logger.error("Can't open channel for upload file via sftp.")
-            return ExecResult(returncode=1)
+            err_msg = "Can't open channel for upload file via sftp."
+            logger.error(err_msg)
+            return ExecResult(cmd="", stderr=err_msg, returncode=1)
         logger.info("Copy '%s' to the remote path '%s'.", localpath, remotepath)
         sftp.put(localpath, str(remotepath))
         sftp.close()
-        return ExecResult()
+        return ExecResult(cmd=f"scp {localpath} {self.username}@{self.hostname}:{remotepath}")
 
     def download(self, remotepath: Path, localpath: Path) -> ExecResult:
         sftp = paramiko.SFTPClient.from_transport(self.ssh_session)
         if sftp is None:
-            logger.error("Can't open channel for upload file via sftp.")
-            return ExecResult(returncode=1)
+            err_msg = "Can't open channel for upload file via sftp."
+            logger.error(err_msg)
+            return ExecResult(cmd="", stderr=err_msg, returncode=1)
         logger.info("Copy '%s' to the local path '%s'.", remotepath, localpath)
         sftp.get(str(remotepath), localpath)
         sftp.close()
-        return ExecResult()
+        return ExecResult(cmd=f"scp {self.username}@{self.hostname}:{remotepath} {localpath}")
 
 
 def which(util: str, ssh_client: SSHClient | None = None) -> Path | None:

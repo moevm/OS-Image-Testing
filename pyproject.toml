@@ -22,7 +22,10 @@ dependencies = [
 
 [dependency-groups]
 lint = [
-    "ruff>=0.13.2",
+    "ruff~=0.14.2",
+]
+tests = [
+    "pytest~=8.4.2",
 ]
 
 [tool.ruff]
@@ -41,6 +44,13 @@ lint.ignore = [
     "D105",
     "D107",
     "COM812",
+    "FBT001",
+    "FBT002",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/unit/*" = [
+    "S101"      # We use asserts in the unit tests
 ]
 
 [tool.ruff.lint.pydocstyle]
@@ -48,3 +58,12 @@ convention = "google"
 
 [tool.ruff.lint.mccabe]
 max-complexity = 12
+
+[tool.pytest.ini_options]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+testpaths = ["tests"]
+pythonpath = [
+    "src",
+]
