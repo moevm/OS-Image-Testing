@@ -60,6 +60,7 @@ convention = "google"
 max-complexity = 12
 
 [tool.pytest.ini_options]
+addopts = "-v"
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]

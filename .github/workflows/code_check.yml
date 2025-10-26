@@ -21,13 +21,11 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - name: Set up Python 3.13
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.13'
-
     - name: Check source code with pre-commit hooks
       run: |
-        pip install .
-        pip install pre-commit==4.3.0
-        pre-commit run --all-files
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        uv sync
+        uvx pre-commit run --all-files
+    - name: Run unit tests
+      run: |
+        uvx pytest
