@@ -33,6 +33,7 @@ if [ ! -d "$DEPLOY_DIR/$MACHINE" ]; then
     exit 1
 fi
 
+# shellcheck disable=SC1091
 source "$POKY_DIR/oe-init-build-env" "$POKY_DIR/build"
 
 runqemu "$MACHINE"

@@ -5,8 +5,8 @@ LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda
 inherit ptest
 
 SRC_URI = "\
-    file://tests/ \ 
-    file://tests/performance/cpu/ \ 
+    file://tests/ \
+    file://tests/performance/cpu/ \
     file://tests/performance/disks/ \
     file://tests/performance/memory/ \
     file://tests/performance/network/ \
@@ -33,16 +33,15 @@ do_install() {
 do_install_ptest() {
     install -d ${D}${PTEST_PATH}/tests/performance/disks
     cp -r ${SRCDIR}/tests/performance/disks/* ${D}${PTEST_PATH}/tests/performance/disks/
-    
+
     install -d ${D}${PTEST_PATH}/tests/performance/cpu
     cp -r ${SRCDIR}/tests/performance/cpu/* ${D}${PTEST_PATH}/tests/performance/cpu/
-    
+
     install -d ${D}${PTEST_PATH}/tests/performance/memory
     cp -r ${SRCDIR}/tests/performance/memory/* ${D}${PTEST_PATH}/tests/performance/memory/
-    
+
     install -d ${D}${PTEST_PATH}/tests/performance/network
     cp -r ${SRCDIR}/tests/performance/network/* ${D}${PTEST_PATH}/tests/performance/network/
-    
+
     install -m 0755 ${SRCDIR}/tests/run-ptest ${D}${PTEST_PATH}/run-ptest
 }
-

@@ -144,7 +144,7 @@ phoronix-test-suite compare-results-two-way <name>
 Берёт ровно два прогона из набора <name> и показывает попарное сравнение
 
 ## Сравнение на OpenBenchmarking.org
-Публикация и открытие результатов 
+Публикация и открытие результатов
 ```
 phoronix-test-suite upload-result <name>
 ```
@@ -216,7 +216,7 @@ PostgreSQL pgbench (pgbench) — скорость транзакций и лат
 
 PyBench (pybench) — суммарное время выполнения набора микротестов Python
 
-## Примеры 
+## Примеры
 
 <p align="center">
   <img src="https://github.com/user-attachments/assets/1f005c65-06d0-49d2-b4f7-1389692a307d" width="300" alt="example"><br>

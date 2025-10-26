@@ -1,21 +1,22 @@
 #!/bin/sh
 
-cd $(dirname $0)
+cd "$(dirname "$0")" || exit 1
 echo "=== Running tests ptest ==="
 
 PASS=0
 FAIL=0
 
 for testscript in ./tests/*/*/*.sh; do
-  echo "TEST: $(basename $testscript)"
+  echo "TEST: $(basename "$testscript")"
   ./"$testscript"
-    if [ $? -eq 0 ]; then
-        echo "PASS: $(basename "$testscript")"
-        PASS=$((PASS+1))
-    else
-        echo "FAIL: $(basename "$testscript")"
-        FAIL=$((FAIL+1))
-    fi
+  code=$?
+  if [ $code -eq 0 ]; then
+      echo "PASS: $(basename "$testscript")"
+      PASS=$((PASS+1))
+  else
+      echo "FAIL: $(basename "$testscript")"
+      FAIL=$((FAIL+1))
+  fi
 done
 
 echo "=== Summary: $PASS passed, $FAIL failed ==="
