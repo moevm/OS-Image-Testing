@@ -33,13 +33,13 @@ do_install_ptest() {
 
     install -d ${D}${PTEST_PATH}/tests/endurance/disks
     install -m 0755 ${SRCDIR}/endurance/disks/test-disk.sh ${D}${PTEST_PATH}/tests/endurance/disks/
-    
+
     install -d ${D}${PTEST_PATH}/tests/endurance/memory
     install -m 0755 ${SRCDIR}/endurance/memory/test-memory.sh ${D}${PTEST_PATH}/tests/endurance/memory/
 
-    install -d ${D}${PTEST_PATH}/tests/endurance/network    
+    install -d ${D}${PTEST_PATH}/tests/endurance/network
     install -m 0755 ${SRCDIR}/endurance/network/test-network.sh ${D}${PTEST_PATH}/tests/endurance/network/
-    
+
     install -d ${D}${PTEST_PATH}/tests/endurance/syscalls
     install -m 0755 ${SRCDIR}/endurance/syscalls/ltp-syscalls.sh ${D}${PTEST_PATH}/tests/endurance/syscalls/
 }

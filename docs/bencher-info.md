@@ -28,10 +28,10 @@
 * Базовые тесты и пороги - расширенная аналитика, например, регрессии с продвинутыми тестами, недоступна
 * Базовая GitHub интеграция для запуска тестов и аутентификации
 
-## Хранение данных:  
+## Хранение данных:
 1. SQLite Database
 * [схема бд](https://bencher.dev/ru/docs/reference/schema/)
-2. Litestream для репликации и резервного копирования в Object Storage 
+2. Litestream для репликации и резервного копирования в Object Storage
 
 ## Как развернуть локально
 
@@ -42,12 +42,12 @@ curl --proto '=https' --tlsv1.2 -sSfL https://bencher.dev/download/install-cli.s
 source $HOME/.cargo/env
 ```
 
-2. Запуск 
+2. Запуск
 ```
 bencher up --api-volume /host/path:/var/lib/bencher/data
 ```
 
-Опция `--api-volume <HOST_PATH:CONTAINER_PATH>` (аналогично `--console-volume <HOST_PATH:CONTAINER_PATH>`) обеспечивает монтирование. Таким образом можно хранить БД и другие данные. 
+Опция `--api-volume <HOST_PATH:CONTAINER_PATH>` (аналогично `--console-volume <HOST_PATH:CONTAINER_PATH>`) обеспечивает монтирование. Таким образом можно хранить БД и другие данные.
 
 3. По `http://localhost:3000` необходимо зарегистрироваться. Регистрация локальная. Там же можно будет создавать графики и тд.
 
@@ -64,7 +64,7 @@ source $HOME/.cargo/env
 
 ## Пробные запуски
 
-В случае с локальным сервером, необходимо указать `--host <URL>` с адресом локального сервера Bencher (`http://localhost:61016`). По умолчанию это значение `https://api.bencher.dev` или равно значению, прописанному в конфигурации. 
+В случае с локальным сервером, необходимо указать `--host <URL>` с адресом локального сервера Bencher (`http://localhost:61016`). По умолчанию это значение `https://api.bencher.dev` или равно значению, прописанному в конфигурации.
 
 1. Генерация синтетических данных bencher
 
@@ -72,7 +72,7 @@ source $HOME/.cargo/env
 bencher run --project project_name --token your_token bencher mock
 ```
 
-2. Для данных в json файле 
+2. Для данных в json файле
 * JSON должен быть оформлен в соответсвии с [BMF](https://bencher.dev/docs/reference/bencher-metric-format/)
 
 ```
@@ -82,7 +82,7 @@ bencher run --file results.json --adapter json --project project_name --token yo
 3. Для собственных скриптов. Необходимо подобрать адаптер для результата скрипта.
 
 ```
-./my_script.sh | bencher run --adapter json --project project_name --token your_token 
+./my_script.sh | bencher run --adapter json --project project_name --token your_token
 ```
 
 ## Графики
