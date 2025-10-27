@@ -17,6 +17,7 @@
 | **Grafana**      | Визуализация данных из Prometheus или других источников.                                                                             |
 | **netdata**      | Веб страничка для мониторинга всех аспектов системы в реальном времени с возможностью сохранения в базы данных.                      |
 | **htop**         | Интерактивный диспетчер процессов в реальном времени, без сохранения истории.                                                        |
+| **fio-plot**     | Визуализация результатов работы fio в виде графиков и диаграмм.                                                                      |
 
 #### Создание нагрузки на различные части системы
 
@@ -252,9 +253,7 @@ LTP нет в стандартных слоях, но его можно доба
 
 ### Создание нагрузки
 
-Для создания нагрузки и проверки работоспособности можно использовать утилиту **stress-ng**.
-
-https://github.com/ColinIanKing/stress-ng
+Для создания нагрузки и проверки работоспособности можно использовать утилиту [stress-ng](https://github.com/ColinIanKing/stress-ng).
 
 Пример работы:
 
@@ -276,7 +275,7 @@ strace -c -f -o trace.log ./test
 
 ## IPC
 
-К механизмам IPC относятся:
+К механизмам IPC относят:
 
 - Сигналы
 - Каналы
@@ -369,9 +368,7 @@ vmstat 1
 
 ### Тестирование сети
 
-**iperf3** - утилита для тестирования сети и её пропускной способности.
-
-https://github.com/esnet/iperf
+[iperf3](https://github.com/esnet/iperf) - утилита для тестирования сети и её пропускной способности.
 
 Пример работы:
 
@@ -413,16 +410,102 @@ iperf3 -c 127.0.0.1 -p 8080 -t 30 -i 5
 
 ### Создание нагрузки на файловые системы и диски
 
-**fio** - flexible I/O tester - утилита для тестирования производительности файловых систем и дисков. Де-факто стандарт для тестирования блочного доступа.
+[fio](https://github.com/axboe/fio) - flexible I/O tester - утилита для тестирования производительности файловых систем и дисков. Де-факто стандарт для тестирования блочного доступа.
 
 Она позволяет создавать различную нагрузку и измерять основные метрики.
-
-https://github.com/axboe/fio
 
 Пример работы:
 
 ```bash
 fio --name=seq_write --size=2G --rw=write --bs=1M --numjobs=1 --direct=1 --ioengine=libaio --runtime=10s --time_based
+```
+
+### Визуализация результатов (fio-plot)
+
+[fio-plot](https://github.com/louwrentius/fio-plot) - утилита, генерирующая графики и диаграммы на основе данных и статистики fio. Работает с форматами json и csv.
+
+#### Установка
+
+На Ubuntu 18.04+ LTS установить зависимости:
+
+```bash
+apt install zlib1g-dev libjpeg-dev python3-pip
+```
+
+Установка fio-plot через pip3 на всех ОС:
+
+```bash
+pip3 install fio-plot 
+```
+
+Если `pip3` не работает:
+
+```bash
+sudo apt install pipx
+
+pipx ensurepath
+
+pipx install fio-plot
+```
+
+Для обновления PATH - перезапустить терминал.
+
+#### Пример работы
+
+Сначала сгенерируем 3 json файла:
+
+```bash
+fio --name=test1 --ioengine=libaio --direct=1 --size=1G --runtime=30 --filename=/tmp/testfile --rw=randread --bs=4k --iodepth=1 --numjobs=1 --output=results1.json --output-format=json
+  
+fio --name=test2 --ioengine=libaio --direct=1 --size=1G --runtime=30 --filename=/tmp/testfile --rw=randread --bs=4k --iodepth=8 --numjobs=1 --output=results2.json --output-format=json
+
+fio --name=test3 --ioengine=libaio --direct=1 --size=1G --runtime=30 --filename=/tmp/testfile --rw=randread --bs=4k --iodepth=16 --numjobs=1 --output=results3.json --output-format=json
+```
+
+Для минимального варианта запуска fio-plot необходимо указать следующие аргументы:
+* -i - директория с файлами
+* -T - заголовок графика
+* (-L | -l | -N | -H | -g | -C) - вид графика (линейный, логарифмический, нормализованный, гистограмма, сгруппированный, временной)
+* -r - вид операции
+
+Важно отметить, что fio-plot группирует файлы сначала по --iodepth, затем по --numjobs, поэтому эти параметры должны быть указаны и различны у запусков fio, чтобы не было ошибки.
+
+IOPS (Input/Output Operations Per Second) - количество операций в секунду.
+
+Latency - время выполнения одной операции.
+
+**Линейный график**
+
+![Линейный график](https://github.com/user-attachments/assets/5b527be6-f5a0-44c1-87e5-6bd05eb86560)
+
+```bash
+fio-plot -i . -T "Linear" -L -t iops -r randread
+```
+
+**Логарифмический график**
+
+![Логарифмический график](https://github.com/user-attachments/assets/0f346908-e337-41a8-abb2-b377be3f65e2)
+
+```bash
+fio-plot -i . -T "Logarithmic" -l -r randread
+```
+
+**Нормализованный график**
+
+![Нормализованный график](https://github.com/user-attachments/assets/593175e4-eb10-427f-ac23-046459ca77e1)
+
+Для запуска нормализованного графика iodepth будет совпадать, но numjobs должен отличаться.
+
+```bash
+fio-plot -i . -T "Normalized" -N -r randread
+```
+
+**Гистограмма**
+
+![Гистограмма](https://github.com/user-attachments/assets/a20ae52c-04dd-4330-b648-808854cb16b0)
+
+```bash
+fio-plot -i . -T "Histogram" -H -r randread
 ```
 
 ## Мониторинг утечек
@@ -435,7 +518,7 @@ fio --name=seq_write --size=2G --rw=write --bs=1M --numjobs=1 --direct=1 --ioeng
 
 ### Утилиты для поиска утечек
 
-**valgrind** - популярная утилита для обнаружения утечек и ошибок на уровне пользовательского пространства.
+[valgrind](https://github.com/KDE/heaptrack) - популярная утилита для обнаружения утечек и ошибок на уровне пользовательского пространства.
 
 Пример работы:
 
@@ -446,8 +529,6 @@ valgrind --leak-check=full --show-leak-kinds=all ./test
 **heaptrack** - утилита для нахождения утечек в коде.
 
 Предоставляет крайне подробный отчёт об утечках с указанием проблемных мест (есть GUI).
-
-https://github.com/KDE/heaptrack
 
 Пример работы:
 
