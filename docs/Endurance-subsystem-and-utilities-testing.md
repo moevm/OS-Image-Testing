@@ -518,7 +518,7 @@ fio-plot -i . -T "Histogram" -H -r randread
 
 ### Утилиты для поиска утечек
 
-[valgrind](https://github.com/KDE/heaptrack) - популярная утилита для обнаружения утечек и ошибок на уровне пользовательского пространства.
+[valgrind](https://valgrind.org) - популярная утилита для обнаружения утечек и ошибок на уровне пользовательского пространства.
 
 Пример работы:
 
@@ -526,7 +526,7 @@ fio-plot -i . -T "Histogram" -H -r randread
 valgrind --leak-check=full --show-leak-kinds=all ./test
 ```
 
-**heaptrack** - утилита для нахождения утечек в коде.
+[heaptrack](https://github.com/KDE/heaptrack) - утилита для нахождения утечек в коде.
 
 Предоставляет крайне подробный отчёт об утечках с указанием проблемных мест (есть GUI).
 
