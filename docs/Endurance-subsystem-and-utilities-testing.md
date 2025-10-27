@@ -422,33 +422,9 @@ fio --name=seq_write --size=2G --rw=write --bs=1M --numjobs=1 --direct=1 --ioeng
 
 ### Визуализация результатов (fio-plot)
 
-[fio-plot](https://github.com/louwrentius/fio-plot) - утилита, генерирующая графики и диаграммы на основе данных и статистики fio. Работает с форматами json и csv.
+[fio-plot](https://github.com/louwrentius/fio-plot) - утилита, генерирующая графики и диаграммы на основе данных и статистики fio. Работает с форматами json и csv, поддерживается всеми основными ОС.
 
-#### Установка
-
-На Ubuntu 18.04+ LTS установить зависимости:
-
-```bash
-apt install zlib1g-dev libjpeg-dev python3-pip
-```
-
-Установка fio-plot через pip3 на всех ОС:
-
-```bash
-pip3 install fio-plot 
-```
-
-Если `pip3` не работает:
-
-```bash
-sudo apt install pipx
-
-pipx ensurepath
-
-pipx install fio-plot
-```
-
-Для обновления PATH - перезапустить терминал.
+Информация по установке есть в репозитории по ссылке выше.
 
 #### Пример работы
 
