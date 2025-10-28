@@ -1,0 +1,31 @@
+name: Check source code
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+
+  pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+
+  workflow_dispatch:
+
+jobs:
+  check-code:
+    runs-on: ubuntu-24.04
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Check source code with pre-commit hooks
+      run: |
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        uv sync
+        uvx pre-commit run --all-files
+    - name: Run unit tests
+      run: |
+        uvx pytest

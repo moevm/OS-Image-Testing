@@ -1,8 +1,9 @@
 #!/bin/bash
 
+# shellcheck disable=SC1091
 source env.sh
 
-cd $(dirname $0)
+cd "$(dirname "$0")" || exit 1
 echo "=== Running image ptest ==="
 
 PASS=0
@@ -10,11 +11,12 @@ FAIL=0
 
 for test in tests/*/*/*.sh; do
     test_name=$(basename "$test")
-    
+
     echo "START: $test_name"
     ./"$test" >> "${test}-output" 2>&1
 
-    if [ $? -eq 0 ]; then
+    code=$?
+    if [ $code -eq 0 ]; then
         echo "PASS: $test_name"
         PASS=$((PASS+1))
     else

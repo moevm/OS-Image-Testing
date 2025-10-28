@@ -22,13 +22,7 @@ git clone https://github.com/moevm/OS-Image-Testing.git
 cd OS-Image-Testing
 ```
 
-### 2. Connect open source layers
-
-```bash
-git submodule update --init --recursive
-```
-
-### 3. Base initialization docker volumes and subsequent building image
+### 2. Base initialization docker volumes and subsequent building image
 
 ```
 # Building docker image and initialization volumes
