@@ -1,5 +1,5 @@
 #!/bin/bash
 
-service ssh start
+python3 /home/user/get-remote-results.py
 
 exec "$@"

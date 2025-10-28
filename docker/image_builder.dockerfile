@@ -2,6 +2,7 @@ FROM ubuntu:22.04
 
 ARG USER
 ARG GROUP
+ARG PASSWORD
 
 ENV DEBIAN_FRONTEND=noninteractive \
     LANG=en_US.UTF-8 \
@@ -15,7 +16,7 @@ RUN apt-get update && \
         python3-jinja2 python3-subunit screen \
         libtirpc-dev libtirpc3 pkg-config \
         qemu qemu-system-x86 qemu-utils \
-        openssh-client && \
+        openssh-server && \
     rm -rf /var/lib/apt/lists/* && \
     locale-gen en_US.UTF-8
 
@@ -25,10 +26,8 @@ RUN mkdir -p ${POKY_DIR} && \
 RUN groupadd -g 510 ${GROUP} && \
     useradd -rm -d /home/${USER} -s /bin/bash -g ${GROUP} -u 1010 -G sudo ${USER} && \
     echo "${USER} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/${USER} && \
-    chown -R ${USER}:${GROUP} ${POKY_DIR}
-
-RUN ssh-keygen -t rsa -f /home/${USER}/.ssh/id_rsa -N ""
-RUN chown -R ${USER}:${GROUP} /home/${USER}/.ssh
+    chown -R ${USER}:${GROUP} ${POKY_DIR} && \
+    echo '${USER}:${PASSWORD}' | chpasswd
 
 COPY scripts/entrypoint_yocto.sh ${POKY_DIR}/
 RUN chmod +x ${POKY_DIR}/entrypoint_yocto.sh

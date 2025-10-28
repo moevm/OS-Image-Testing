@@ -5,11 +5,7 @@ ARG GROUP
 
 RUN apt update && \
     apt install -y \
-    python3-paramiko \
-    python3-alembic \
-    python3-scp \
-    python3-flask-sqlalchemy \
-    openssh-server \
+    openssh-client \
     sudo
 
 RUN mkdir -p /home/${USER}/results
@@ -22,12 +18,11 @@ RUN groupadd -g 510 ${GROUP} && \
 
 RUN mkdir /home/${USER}/.ssh
 
-COPY scripts/entrypoint_analyzer.sh /home/${USER}/scripts/
-RUN chmod +x /home/${USER}/scripts/entrypoint_analyzer.sh
+COPY src/ /home/${USER}/python
+COPY pyproject.toml /home/${USER}/python
+WORKDIR /home/${USER}/python
+RUN python3 -m pip install .
 
-COPY ../scripts/wait_for_results.sh /home/${USER}/scripts/
-RUN chmod +x /home/${USER}/scripts/wait_for_results.sh
+COPY scripts/get-remote-results.py /home/user/
 
 ENTRYPOINT ["/home/user/scripts/entrypoint_analyzer.sh"]
-
-CMD ["/home/user/scripts/wait_for_results.sh"]
