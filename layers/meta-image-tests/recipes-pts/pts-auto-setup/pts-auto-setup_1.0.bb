@@ -9,7 +9,9 @@ inherit update-rc.d
 INITSCRIPT_NAME = "pts-autoinstall"
 INITSCRIPT_PARAMS = "defaults 99"
 
-RDEPENDS:${PN} = "phoronix-test-suite"
+RDEPENDS:${PN} = "\
+    phoronix-test-suite \
+"
 
 do_install() {
     install -d ${D}${sysconfdir}/init.d

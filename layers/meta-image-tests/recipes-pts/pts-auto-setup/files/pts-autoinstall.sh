@@ -8,10 +8,11 @@
 # Short-Description: Auto-install PTS tests and configure DNS
 ### END INIT INFO
 
-TESTS="system/openssl"
+TESTS="pts/network-loopback"
 
 case "$1" in
   start)
+  
     if [ ! -s /etc/resolv.conf ] || ! grep -q "nameserver" /etc/resolv.conf; then
         echo "Configuring DNS..."
         echo "nameserver 8.8.8.8" > /etc/resolv.conf
