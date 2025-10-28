@@ -1,0 +1,41 @@
+services:
+  yocto:
+    build:
+      context: .
+      dockerfile: docker/image_builder.dockerfile
+      args:
+        USER: ${USER}
+        GROUP: ${GROUP}
+    image: ${DOCKER_TAG}
+    volumes:
+      - yocto-build:/home/user/poky/build
+      - yocto-downloads:/home/user/poky/downloads
+      - yocto-sstate:/home/user/poky/sstate-cache
+      - ./conf/local.conf:/home/user/poky/build/conf/local.conf
+      - ./layers/meta-image-tests:/home/user/poky/meta-image-tests
+    networks:
+      yocto-network:
+        ipv4_address: ${YOCTO_ADDRESS}
+
+  python:
+    build:
+      context: .
+      dockerfile: docker/python.dockerfile
+    networks:
+      yocto-network:
+        ipv4_address: ${PYTHON_ADDRESS}
+    depends_on:
+      - yocto
+
+volumes:
+  yocto-build:
+  yocto-downloads:
+  yocto-sstate:
+
+networks:
+  yocto-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: ${SUBNET}
+          gateway: ${GATEWAY}

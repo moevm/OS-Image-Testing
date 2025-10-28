@@ -1,4 +1,5 @@
 USER                       := user
+PASSWORD                   := password
 GROUP                      := yoctogroup
 OS_IMAGE                   := core-image-minimal
 
@@ -7,9 +8,8 @@ DOCKER_TAG                 := yocto-builder-image
 DOCKER_BUILD_VOLUME        := yocto-build
 DOCKER_DOWNLOADS_VOLUME    := yocto-downloads
 DOCKER_SSTATE_VOLUME       := yocto-sstate
-DOCKER_SSH_VOLUME 				 := yocto-ssh
-DOCKER_NETWORK 						 := yocto-network
-PYTHON_TAG 								 := python-image
+DOCKER_NETWORK             := yocto-network
+PYTHON_TAG                 := python-image
 
 # Paths
 POKY_DIR                   := /home/${USER}/poky
@@ -21,6 +21,14 @@ HOST_TEMP_PATH             := ${CURDIR}/results
 
 # Python
 PACKAGE_MGR                := uv
+
+# IP addresses
+YOCTO_ADDRESS              := 10.5.0.10
+PYTHON_ADDRESS             := 10.5.0.11
+SUBNET                     := 10.5.0.0/24
+GATEWAY                    := 10.5.0.1
+
+# Library
 PYTHONDONTWRITEBYTECODE    := 1
 PY_LIB_NAME                := $(shell grep -Po 'name\s*=\s*"\K(\w+)' pyproject.toml)
 
@@ -30,6 +38,7 @@ docker:
 		--tag ${DOCKER_TAG} \
 		--build-arg USER="${USER}" \
 		--build-arg GROUP="${GROUP}" \
+		--build-arg PASSWORD="${PASSWORD}" \
 		--file docker/image_builder.dockerfile .
 	docker build \
 		--tag ${PYTHON_TAG} \
@@ -39,34 +48,23 @@ docker:
 	docker volume create ${DOCKER_BUILD_VOLUME}
 	docker volume create ${DOCKER_DOWNLOADS_VOLUME}
 	docker volume create ${DOCKER_SSTATE_VOLUME}
-	docker volume create ${DOCKER_SSH_VOLUME}
-	docker network create --driver bridge --subnet=192.168.1.0/24 ${DOCKER_NETWORK}
 	docker run --rm --user root \
 		--entrypoint "" \
 		--volume ${DOCKER_BUILD_VOLUME}:/tmp-build \
 		--volume ${DOCKER_DOWNLOADS_VOLUME}:/tmp-downloads \
-		--volume ${DOCKER_SSTATE_VOLUME}:/tmp-sstate \
-		--volume ${DOCKER_SSH_VOLUME}:/tmp-ssh \
+		--volume ${DOCKER_SSTATE_VOLUME}:/tmp-sstate
 		${DOCKER_TAG} \
 		bash -c "mkdir -p /tmp-build/build /tmp-build/conf && \
 			mkdir -p /tmp-downloads && \
 			mkdir -p /tmp-sstate && \
-			chown -R ${USER}:${GROUP} /tmp-build /tmp-downloads /tmp-sstate /tmp-ssh && \
-			cp id_rsa.pub /tmp-ssh/authorized_keys"
+			chown -R ${USER}:${GROUP} /tmp-build /tmp-downloads /tmp-sstate"
 
 .PHONY: copy-results-via-ssh
 copy-results-via-ssh:
-	docker run --rm -d \
-		--volume ${DOCKER_SSH_VOLUME}:/home/${USER}/.ssh/ \
-		--network ${DOCKER_NETWORK} \
-		--ip 192.168.1.10 \
-		${PYTHON_TAG}
-	docker run --rm -d \
-		--network ${DOCKER_NETWORK} \
-		${DOCKER_TAG} \
-		bash -c \
-		"ssh-keyscan 192.168.1.11 >> /home/${USER}/.ssh/known_hosts && \
-		scp ${RESULTS_DIR}/results ${USER}@192.168.1.10:${RESULTS_DIR}"
+	DOCKER_TAG="${DOCKER_TAG}" USER="${USER}" GROUP="${GROUP}" \
+	YOCTO_ADDRESS="${YOCTO_ADDRESS}" PYTHON_ADDRESS="${PYTHON_ADDRESS}" \
+	SUBNET="${SUBNET}" GATEWAY="${GATEWAY}" \
+	docker-compose up -d
 
 .PHONY: docker-init-volumes
 docker-init-volumes:
