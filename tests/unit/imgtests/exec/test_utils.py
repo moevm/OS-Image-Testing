@@ -3,7 +3,7 @@ from typing import Any
 
 import pytest
 
-from imgtests.exec.utils import create_opt
+from imgtests.exec.utils import add_flag, create_opt
 
 
 class TEnum(Enum):
@@ -27,3 +27,8 @@ class TEnum(Enum):
 def test_create_opt(key: str, value: Any | None, expected: list[str]) -> None:
     result = create_opt(key, value)
     assert result == expected
+
+
+def test_add_flag() -> None:
+    result = add_flag("flag")
+    assert result == ["--flag"]
