@@ -10,3 +10,7 @@ def create_opt(key: str, value: Any | None) -> list[str]:
     if isinstance(value, Enum):
         return [f"--{key}", str(value.value)]
     return [f"--{key}", str(value)]
+
+
+def add_flag(key: str) -> list[str]:
+    return create_opt(key=key, value=True)
