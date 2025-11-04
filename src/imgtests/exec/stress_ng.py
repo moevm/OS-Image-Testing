@@ -105,7 +105,7 @@ class StressNg(BaseTestUtil):
 
         return self(
             [
-                *create_opt("timeout", str(timeout_sec)),
+                *create_opt("timeout", timeout_sec),
                 *create_opt("cpu", cpu),
                 *create_opt("cpu-method", cpu_method),
                 *create_opt("vm", vm),
