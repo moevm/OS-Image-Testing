@@ -33,8 +33,12 @@ for layer in "${LAYERS[@]}"; do
 
     if [ -d "$layer_path" ]; then
         echo "Adding layer: $layer"
+        sudo chown -R user:yoctogroup "$layer_path"
         bitbake-layers add-layer --quiet "$layer_path"
     else
         echo "Warning: Layer $layer not found!"
     fi
 done
+
+sudo chown -R user:yoctogroup meta-openembedded
+sudo chown -R user:yoctogroup meta-secure-core
