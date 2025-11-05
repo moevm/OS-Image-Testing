@@ -17,7 +17,7 @@ services:
       yocto-network:
         ipv4_address: ${YOCTO_ADDRESS}
 
-  python:
+  python-analyzer:
     build:
       context: .
       dockerfile: docker/python.dockerfile
@@ -26,11 +26,6 @@ services:
         ipv4_address: ${PYTHON_ADDRESS}
     depends_on:
       - yocto
-
-volumes:
-  yocto-build:
-  yocto-downloads:
-  yocto-sstate:
 
 networks:
   yocto-network:
