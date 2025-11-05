@@ -44,6 +44,7 @@ docker:
 		--tag ${PYTHON_TAG} \
 		--build-arg USER="${USER}" \
 		--build-arg GROUP="${GROUP}" \
+		--build-arg PASSWORD="${PASSWORD}" \
 		--file docker/python.dockerfile .
 	docker volume create ${DOCKER_BUILD_VOLUME}
 	docker volume create ${DOCKER_DOWNLOADS_VOLUME}
