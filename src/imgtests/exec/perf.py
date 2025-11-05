@@ -1,5 +1,6 @@
 from imgtests.exec.base_util import BaseTestUtil
 from imgtests.exec.exec import ExecResult, SSHClient
+from imgtests.exec.utils import extract_version
 
 
 class Perf(BaseTestUtil):
@@ -11,3 +12,9 @@ class Perf(BaseTestUtil):
 
     def bench(self, cmd: list[str]) -> ExecResult:
         return self(["bench", *cmd])
+
+    def version(self) -> str | None:
+        result = self(["--version"])
+        if result.returncode:
+            return None
+        return extract_version(result.stdout.strip())

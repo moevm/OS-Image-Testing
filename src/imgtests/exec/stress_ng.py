@@ -2,7 +2,7 @@ from typing import NamedTuple
 
 from imgtests.exec.base_util import BaseTestUtil
 from imgtests.exec.exec import ExecResult, SSHClient
-from imgtests.exec.utils import add_flag, create_opt
+from imgtests.exec.utils import add_flag, create_opt, extract_version
 
 
 class StressNGVerifications(NamedTuple):
@@ -48,6 +48,12 @@ class StressNg(BaseTestUtil):
             elif header.startswith("Verification not implemented"):
                 not_implemented = tuple(items)
         return StressNGVerifications(always_enabled, enabled_by_option, not_implemented)
+
+    def version(self) -> str | None:
+        result = self(["--version"])
+        if result.returncode:
+            return None
+        return extract_version(result.stdout.strip())
 
     def run(  # noqa: PLR0913
         self,
@@ -99,7 +105,7 @@ class StressNg(BaseTestUtil):
 
         return self(
             [
-                *create_opt("timeout", str(timeout_sec)),
+                *create_opt("timeout", timeout_sec),
                 *create_opt("cpu", cpu),
                 *create_opt("cpu-method", cpu_method),
                 *create_opt("vm", vm),
