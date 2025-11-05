@@ -49,6 +49,7 @@ docker-init-volumes:
 		--volume ${DOCKER_DOWNLOADS_VOLUME}:${POKY_DIR}/downloads \
 		--volume ${DOCKER_SSTATE_VOLUME}:${POKY_DIR}/sstate-cache \
 		--volume "${HOST_CONF_PATH}/local.conf:${BUILD_DIR}/conf/local.conf" \
+		--volume "${HOST_CONF_PATH}/packages.conf:${BUILD_DIR}/conf/packages.conf" \
 		--volume "${HOST_LAYERS_PATH}/meta-image-tests:${POKY_DIR}/meta-image-tests" \
 		--volume "${HOST_LAYERS_PATH}/meta-clang:${POKY_DIR}/meta-clang" \
 		--volume "${HOST_LAYERS_PATH}/meta-dpdk:${POKY_DIR}/meta-dpdk" \
@@ -69,6 +70,7 @@ docker-run-image: docker-init-volumes
 		--volume ${DOCKER_DOWNLOADS_VOLUME}:${POKY_DIR}/downloads \
 		--volume ${DOCKER_SSTATE_VOLUME}:${POKY_DIR}/sstate-cache \
 		--volume "${HOST_CONF_PATH}/local.conf:${BUILD_DIR}/conf/local.conf" \
+		--volume "${HOST_CONF_PATH}/packages.conf:${BUILD_DIR}/conf/packages.conf" \
 		--volume "${HOST_LAYERS_PATH}/meta-image-tests:${POKY_DIR}/meta-image-tests" \
 		--volume "${HOST_LAYERS_PATH}/meta-clang:${POKY_DIR}/meta-clang" \
 		--volume "${HOST_LAYERS_PATH}/meta-dpdk:${POKY_DIR}/meta-dpdk" \
@@ -91,6 +93,7 @@ docker-test-image: docker-init-volumes
 		--volume ${DOCKER_DOWNLOADS_VOLUME}:${POKY_DIR}/downloads \
 		--volume ${DOCKER_SSTATE_VOLUME}:${POKY_DIR}/sstate-cache \
 		--volume "${HOST_CONF_PATH}/local.conf:${BUILD_DIR}/conf/local.conf" \
+		--volume "${HOST_CONF_PATH}/packages.conf:${BUILD_DIR}/conf/packages.conf" \
 		--volume "${HOST_LAYERS_PATH}/meta-image-tests:${POKY_DIR}/meta-image-tests" \
 		--volume "${HOST_LAYERS_PATH}/meta-clang:${POKY_DIR}/meta-clang" \
 		--volume "${HOST_LAYERS_PATH}/meta-dpdk:${POKY_DIR}/meta-dpdk" \
