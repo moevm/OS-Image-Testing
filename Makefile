@@ -2,14 +2,20 @@ USER                       := user
 GROUP                      := yoctogroup
 OS_IMAGE                   := core-image-minimal
 
+# OpenSUSE
+DEF_SUSE_VER_INSTALL	   := 15.5					# 15.5, 15.6 or both to install
+DEF_SUSE_VER_RUN		   := 15.5					# 15.5 or 15.6, cannot run both at the same time
+
 # Docker
 DOCKER_TAG                 := yocto-builder-image
 DOCKER_BUILD_VOLUME        := yocto-build
 DOCKER_DOWNLOADS_VOLUME    := yocto-downloads
 DOCKER_SSTATE_VOLUME       := yocto-sstate
+DOCKER_OPENSUSE_VOLUME	   := open-suse-files
 
 # Paths
 POKY_DIR                   := /home/${USER}/poky
+SUSE_DIR				   := /home/${USER}/suse
 BUILD_DIR                  := ${POKY_DIR}/build
 HOST_LAYERS_PATH           := ${CURDIR}/layers
 HOST_CONF_PATH             := ${CURDIR}/conf
@@ -114,6 +120,30 @@ docker-test-image: docker-init-volumes
 		echo "QEMU test completed. Press enter"; \
 	} &
 	@echo "QEMU test started in background"
+
+.PHONY: docker-build-suse-container
+docker-build-suse-container:
+	docker build \
+		--tag ${DOCKER_TAG} \
+		--build-arg USER="${USER}" \
+		--file docker/open-suse.dockerfile .
+	docker volume create ${DOCKER_OPENSUSE_VOLUME}
+
+.PHONY: docker-init-suse
+docker-init-suse:
+	docker run -it --rm \
+		--volume ${DOCKER_OPENSUSE_VOLUME}:${SUSE_DIR} \
+		--volume "${HOST_SCRIPTS_PATH}/download-opensuse-images.sh:${SUSE_DIR}/download-opensuse-images.sh" \
+		${DOCKER_TAG} \
+		bash -c "./download-opensuse-images.sh ${DEF_SUSE_VER_INSTALL}"
+
+.PHONY: docker-run-suse
+docker-run-suse:
+	docker run -it --rm \
+		--volume ${DOCKER_OPENSUSE_VOLUME}:${SUSE_DIR} \
+		--volume "${HOST_SCRIPTS_PATH}/run-open-suse.sh:${SUSE_DIR}/run-open-suse.sh" \
+		${DOCKER_TAG} \
+		bash -c "./run-open-suse.sh ${DEF_SUSE_VER_RUN}"
 
 .PHONY: unit-test
 unit-test:
