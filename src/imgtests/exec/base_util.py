@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 
 from imgtests.exec.exec import ExecResult, SSHClient, run_command, which
+from imgtests.exec.utils import extract_version
 
 
 class BaseTestUtil(ABC):
@@ -60,3 +61,11 @@ class BaseTestUtil(ABC):
             str | None: Version of the util or None if can't get.
         """
         ...
+
+
+class GenericUtil(BaseTestUtil):
+    def version(self) -> str | None:
+        result = self(["--version"])
+        if result.returncode:
+            return None
+        return extract_version(result.stdout.strip())

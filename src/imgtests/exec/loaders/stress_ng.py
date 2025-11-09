@@ -1,8 +1,8 @@
 from typing import NamedTuple
 
-from imgtests.exec.base_util import BaseTestUtil
+from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult, SSHClient
-from imgtests.exec.utils import add_flag, create_opt, extract_version
+from imgtests.exec.utils import add_flag, create_opt
 
 
 class StressNGVerifications(NamedTuple):
@@ -11,7 +11,7 @@ class StressNGVerifications(NamedTuple):
     not_implemented: tuple[str, ...]
 
 
-class StressNg(BaseTestUtil):
+class StressNg(GenericUtil):
     def __init__(self, ssh_client: SSHClient | None = None) -> None:
         super().__init__("stress-ng", ssh_client)
 
@@ -48,12 +48,6 @@ class StressNg(BaseTestUtil):
             elif header.startswith("Verification not implemented"):
                 not_implemented = tuple(items)
         return StressNGVerifications(always_enabled, enabled_by_option, not_implemented)
-
-    def version(self) -> str | None:
-        result = self(["--version"])
-        if result.returncode:
-            return None
-        return extract_version(result.stdout.strip())
 
     def run(  # noqa: PLR0913
         self,
