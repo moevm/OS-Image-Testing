@@ -6,15 +6,15 @@ SUSE_15_6_IMG_URL="https://download.opensuse.org/distribution/leap/15.6/applianc
 SUSE_15_5_IMG="open-suse-15-5.qcow2"
 SUSE_15_6_IMG="open-suse-15-6.qcow2"
 
-if [ $1 = 15.5 ]; then
+if [ "$1" = 15.5 ]; then
     if [ ! -e $SUSE_15_5_IMG ]; then
         wget $SUSE_15_5_IMG_URL -O $SUSE_15_5_IMG --no-check-certificate
     fi
-elif [ $1 = 15.6 && ! -e $SUSE_15_6_IMG]; then
+elif [ "$1" = 15.6 && ! -e $SUSE_15_6_IMG ]; then
     if [ ! -e $SUSE_15_6_IMG ]; then
         wget $SUSE_15_6_IMG_URL -O $SUSE_15_6_IMG --no-check-certificate
     fi
-elif [ $1 = "both" ]; then 
+elif [ "$1" = "both" ]; then 
 {
     if [ ! -e $SUSE_15_5_IMG ]; then
         wget $SUSE_15_5_IMG_URL -O $SUSE_15_5_IMG --no-check-certificate

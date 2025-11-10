@@ -2,9 +2,9 @@
 
 SUSE_IMAGE=""
 
-if [ $1 = 15.5 ]; then
+if [ "$1" = 15.5 ]; then
     SUSE_IMAGE="open-suse-15-5.qcow2"
-elif [ $1 = 15.6 ]; then
+elif [ "$1" = 15.6 ]; then
     SUSE_IMAGE="open-suse-15-6.qcow2"
 else
 {
