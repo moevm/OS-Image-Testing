@@ -3,7 +3,7 @@ from typing import Any
 
 import pytest
 
-from imgtests.exec.utils import create_opt
+from imgtests.exec.utils import add_flag, create_opt, extract_version
 
 
 class TEnum(Enum):
@@ -27,3 +27,22 @@ class TEnum(Enum):
 def test_create_opt(key: str, value: Any | None, expected: list[str]) -> None:
     result = create_opt(key, value)
     assert result == expected
+
+
+def test_add_flag() -> None:
+    result = add_flag("flag")
+    assert result == ["--flag"]
+
+
+@pytest.mark.parametrize(
+    ("out", "version"),
+    [
+        ("kirk, 2.3", "2.3"),
+        ("stress-ng, version 0.17.06 (gcc 13.2.0, x86_64 Linux 6.14.0-29-generic) 💻🔥", "0.17.06"),
+        ("fio-3.36", "3.36"),
+        ("perf version 6.12.47", "6.12.47"),
+    ],
+)
+def test_extract_version(out: str, version: str) -> None:
+    result = extract_version(out)
+    assert result == version
