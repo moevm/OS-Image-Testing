@@ -168,15 +168,14 @@ help:
 	@echo "  make [targets] [arguments]"
 	@echo
 	@echo "  docker                 Builds a docker image;"
+	@echo "  docker-suse            Builds a docker image for openSUSE images environment;"
 	@echo "  docker-init-volumes    Initializes docker volumes;"
+	@echo "  docker-init-suse       Downloads openSUSE images;"
 	@echo "  docker-run-image       Runs builded Yocto image from builded docker image;"
+	@echo "  docker-run-suse        Runs image via QEMU;"
 	@echo "  docker-test-image      Tests builded Yocto image from builded docker image;"
 	@echo "  pre-commit-check       Check source code with pre-commit hooks;"
 	@echo "  unit-test              Run unit tests for the Python library '${PY_LIB_NAME}';"
-	@echo
-	@echo "  docker-suse            Builds a docker image for openSUSE images environment;"
-	@echo "  docker-init-suse       Downloads openSUSE images;"
-	@echo "  docker-run-image       Runs image via QEMU;"
 	@echo
 	@echo "  help                   Displays information about all available targets."
 
