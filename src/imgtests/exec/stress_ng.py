@@ -1,3 +1,4 @@
+import re
 from typing import NamedTuple
 
 from imgtests.exec.base_util import BaseTestUtil
@@ -124,3 +125,39 @@ class StressNg(BaseTestUtil):
         except IndexError:
             return None
         return tuple(methods.strip().split())
+
+    def parse_metrics(self, raw_metrics: str) -> list:
+        lines = raw_metrics.strip().split("\n")
+        metrics = []
+
+        p = (
+            r"^(\S+)\s+"  # stressor name
+            r"([\d.-]+)\s+"  # bogo ops
+            r"([\d.-]+)\s+"  # real time
+            r"([\d.-]+)\s+"  # usr time
+            r"([\d.-]+)\s+"  # sys time
+            r"([\d.-]+)\s+"  # bogo ops/s (real time)
+            r"([\d.-]+)\s+"  # bogo ops/s (usr+sys time)
+            r"([\d.-]+)$"  # CPU used per instance
+        )
+
+        for line in lines:
+            clean_line = re.sub(r"stress-ng: info:\s+\[\d+\]\s*", "", line).strip()
+
+            m = re.match(p, clean_line)
+            if m:
+                try:
+                    data = {
+                        "stressor": m.group(1),
+                        "bogo ops": int(m.group(2)),
+                        "real time (secs)": float(m.group(3)),
+                        "usr time (secs)": float(m.group(4)),
+                        "sys time (secs)": float(m.group(5)),
+                        "bogo ops/s (real time)": float(m.group(6)),
+                        "bogo ops/s (usr+sys time)": float(m.group(7)),
+                        "CPU used per instance (%)": float(m.group(8)),
+                    }
+                    metrics.append(data)
+                except ValueError:
+                    continue
+        return metrics
