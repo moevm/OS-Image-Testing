@@ -1,3 +1,17 @@
+FROM scratch AS copy-stage
+
+ARG USER
+ARG POKY_DIR=/home/${USER}/poky
+
+COPY layers/meta-clang ${POKY_DIR}/meta-clang/
+COPY layers/meta-dpdk ${POKY_DIR}/meta-dpdk/
+COPY layers/meta-erlang ${POKY_DIR}/meta-erlang/
+COPY layers/meta-qt5 ${POKY_DIR}/meta-qt5/
+COPY layers/meta-openembedded ${POKY_DIR}/meta-openembedded/
+COPY layers/meta-secure-core ${POKY_DIR}/meta-secure-core/
+COPY layers/meta-security ${POKY_DIR}/meta-security/
+COPY layers/meta-virtualization ${POKY_DIR}/meta-virtualization/
+
 FROM ubuntu:22.04
 
 ARG USER
@@ -20,6 +34,8 @@ RUN apt-get update && \
 
 RUN mkdir -p ${POKY_DIR} && \
     git clone --depth 1 -b walnascar --recurse-submodules https://git.yoctoproject.org/poky ${POKY_DIR}
+
+COPY --from=copy-stage / /
 
 RUN groupadd -g 510 ${GROUP} && \
     useradd -rm -d /home/${USER} -s /bin/bash -g ${GROUP} -u 1010 -G sudo ${USER} && \
