@@ -24,8 +24,7 @@ jobs:
     - name: Check source code with pre-commit hooks
       run: |
         curl -LsSf https://astral.sh/uv/install.sh | sh
-        uv sync
-        uvx pre-commit run --all-files
+        make pre-commit-check
     - name: Run unit tests
       run: |
-        uvx pytest
+        make unit-test
