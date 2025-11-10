@@ -3,6 +3,7 @@ GROUP                      := yoctogroup
 OS_IMAGE                   := core-image-minimal
 
 # OpenSUSE
+DOCKER_SUSE_TAG 		   := open-suse-image-env
 DEF_SUSE_VER_INSTALL	   := 15.5					# 15.5, 15.6 or both to install
 DEF_SUSE_VER_RUN		   := 15.5					# 15.5 or 15.6, cannot run both at the same time
 
@@ -121,10 +122,10 @@ docker-test-image: docker-init-volumes
 	} &
 	@echo "QEMU test started in background"
 
-.PHONY: docker-build-suse-container
-docker-build-suse-container:
+.PHONY: docker-suse
+docker-suse:
 	docker build \
-		--tag ${DOCKER_TAG} \
+		--tag ${DOCKER_SUSE_TAG} \
 		--build-arg USER="${USER}" \
 		--file docker/open-suse.dockerfile .
 	docker volume create ${DOCKER_OPENSUSE_VOLUME}
@@ -134,7 +135,7 @@ docker-init-suse:
 	docker run -it --rm \
 		--volume ${DOCKER_OPENSUSE_VOLUME}:${SUSE_DIR} \
 		--volume "${HOST_SCRIPTS_PATH}/download-opensuse-images.sh:${SUSE_DIR}/download-opensuse-images.sh" \
-		${DOCKER_TAG} \
+		${DOCKER_SUSE_TAG} \
 		bash -c "./download-opensuse-images.sh ${DEF_SUSE_VER_INSTALL}"
 
 .PHONY: docker-run-suse
@@ -142,7 +143,7 @@ docker-run-suse:
 	docker run -it --rm \
 		--volume ${DOCKER_OPENSUSE_VOLUME}:${SUSE_DIR} \
 		--volume "${HOST_SCRIPTS_PATH}/run-open-suse.sh:${SUSE_DIR}/run-open-suse.sh" \
-		${DOCKER_TAG} \
+		${DOCKER_SUSE_TAG} \
 		bash -c "./run-open-suse.sh ${DEF_SUSE_VER_RUN}"
 
 .PHONY: unit-test
@@ -160,6 +161,11 @@ help:
 	@echo "  docker-run-image       Runs builded Yocto image from builded docker image;"
 	@echo "  docker-test-image      Tests builded Yocto image from builded docker image;"
 	@echo "  unit-test              Run unit tests for the Python library '${PY_LIB_NAME}';"
+	@echo
+	@echo "  docker-suse            Builds a docker image for openSUSE images environment;"
+	@echo "  docker-init-suse       Downloads openSUSE images;"
+	@echo "  docker-run-image       Runs image via QEMU;"
+	@echo
 	@echo "  help                   Displays information about all available targets."
 
 .EXPORT_ALL_VARIABLES:
