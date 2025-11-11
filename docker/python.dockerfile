@@ -29,4 +29,4 @@ RUN python3 -m pip install .
 
 COPY scripts/get-remote-results.py /home/user/
 
-ENTRYPOINT ["/home/user/scripts/entrypoint_analyzer.sh"]
+ENTRYPOINT ["python3", "/home/user/get-remote-results.py"]
