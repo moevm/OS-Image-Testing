@@ -1,7 +1,7 @@
 # VictoriaMetrics
 [VictoriaMetrics](https://victoriametrics.com/) — это быстрая и масштабируемая система мониторинга и база данных временных рядов. Её используют как хранилище метрик и основу для наблюдений. Её можно применять как долгосрочное хранилище для [Prometheus](https://prometheus.io/docs/) и подключать в [Grafana](https://grafana.com/docs/) для визуализации
 
-## Какие типы данных можно хранить 
+## Какие типы данных можно хранить
 
 ### Что именно хранится
 
@@ -20,7 +20,7 @@
 Идентификация ряда: `имя_метрики{label1="value1", label2="value2", ...}`
 
 Пример:
-`requests_total{path="/", code="200"}` и `requests_total{path="/", code="403"}` — это два разных временных ряда, потому что отличается метка `code` 
+`requests_total{path="/", code="200"}` и `requests_total{path="/", code="403"}` — это два разных временных ряда, потому что отличается метка `code`
 
 ### Типы метрик
 
@@ -38,7 +38,7 @@ VictoriaMetrics принимает те же типы, что и Prometheus
 
 ## Запросы
 
-VictoriaMetrics использует [MetricsQL](https://docs.victoriametrics.com/victoriametrics/metricsql/) — язык запросов, совместимый с [PromQL](https://prometheus.io/docs/prometheus/latest/querying/basics/) (можно брать готовые выражения из Prometheus). 
+VictoriaMetrics использует [MetricsQL](https://docs.victoriametrics.com/victoriametrics/metricsql/) — язык запросов, совместимый с [PromQL](https://prometheus.io/docs/prometheus/latest/querying/basics/) (можно брать готовые выражения из Prometheus).
 
 ### Где можно выполнять запросы
 
@@ -74,14 +74,14 @@ VictoriaMetrics использует [MetricsQL](https://docs.victoriametrics.co
   Например: `sum by (<ключи>) (<выражение>)` - сумма по группам рядов
 - rollup функции по интервалу
 
-  Например: 
+  Например:
   `median_over_time(<метрика>[<окно>])` - расчет медианы
 
   `quantile_over_time(<доля от 0 до 1>, <метрика>[<окно>])` - расчет квартили/квантили
 - Скорости/производные
 
   Например: `rate(<счётчик>[<окно>])` - средняя скорость роста счётчика
-  
+
   `irate(<счётчик>[<окно>])` — мгновенная скорость, берёт только две последние точки окна
 - Перцентили по множеству источников
 
@@ -114,6 +114,6 @@ VictoriaMetrics использует [MetricsQL](https://docs.victoriametrics.co
 - `max_query_len` - максимальная длина URL-адреса запроса (по умолчанию: 16 Кб)
 
 - `max_series_per_user` / `max_series_per_project` - лимит на количество уникальных временных рядов, которые можно записать в базу
-### Сравнение данных 
+### Сравнение данных
 
 Cпециальных «плагинов сравнения» в VictoriaMetrics нет. Сравнение делается на уровне запросов.

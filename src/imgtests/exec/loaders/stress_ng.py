@@ -1,6 +1,6 @@
 from typing import NamedTuple
 
-from imgtests.exec.base_util import BaseTestUtil
+from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult, SSHClient
 from imgtests.exec.utils import add_flag, create_opt
 
@@ -11,7 +11,7 @@ class StressNGVerifications(NamedTuple):
     not_implemented: tuple[str, ...]
 
 
-class StressNg(BaseTestUtil):
+class StressNg(GenericUtil):
     def __init__(self, ssh_client: SSHClient | None = None) -> None:
         super().__init__("stress-ng", ssh_client)
 
@@ -99,7 +99,7 @@ class StressNg(BaseTestUtil):
 
         return self(
             [
-                *create_opt("timeout", str(timeout_sec)),
+                *create_opt("timeout", timeout_sec),
                 *create_opt("cpu", cpu),
                 *create_opt("cpu-method", cpu_method),
                 *create_opt("vm", vm),
