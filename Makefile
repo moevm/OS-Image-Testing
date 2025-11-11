@@ -53,7 +53,7 @@ docker:
 		--entrypoint "" \
 		--volume ${DOCKER_BUILD_VOLUME}:/tmp-build \
 		--volume ${DOCKER_DOWNLOADS_VOLUME}:/tmp-downloads \
-		--volume ${DOCKER_SSTATE_VOLUME}:/tmp-sstate
+		--volume ${DOCKER_SSTATE_VOLUME}:/tmp-sstate \
 		${DOCKER_TAG} \
 		bash -c "mkdir -p /tmp-build/build /tmp-build/conf && \
 			mkdir -p /tmp-downloads && \
@@ -62,10 +62,10 @@ docker:
 
 .PHONY: copy-results-via-ssh
 copy-results-via-ssh:
-	DOCKER_TAG="${DOCKER_TAG}" USER="${USER}" GROUP="${GROUP}" \
+	DOCKER_TAG="${DOCKER_TAG}" USER="${USER}" GROUP="${GROUP}" PASSWORD="${PASSWORD}" \
 	YOCTO_ADDRESS="${YOCTO_ADDRESS}" PYTHON_ADDRESS="${PYTHON_ADDRESS}" \
 	SUBNET="${SUBNET}" GATEWAY="${GATEWAY}" \
-	docker-compose up -d
+	docker-compose up -d --build
 
 .PHONY: docker-init-volumes
 docker-init-volumes:
