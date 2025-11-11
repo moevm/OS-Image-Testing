@@ -27,7 +27,7 @@ RUN groupadd -g 510 ${GROUP} && \
     useradd -rm -d /home/${USER} -s /bin/bash -g ${GROUP} -u 1010 -G sudo ${USER} && \
     echo "${USER} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/${USER} && \
     chown -R ${USER}:${GROUP} ${POKY_DIR} && \
-    echo '${USER}:${PASSWORD}' | chpasswd
+    echo "${USER}:${PASSWORD}" | chpasswd
 
 COPY scripts/entrypoint_yocto.sh ${POKY_DIR}/
 RUN chmod +x ${POKY_DIR}/entrypoint_yocto.sh
