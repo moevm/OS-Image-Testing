@@ -6,6 +6,7 @@ services:
       args:
         USER: ${USER}
         GROUP: ${GROUP}
+        PASSWORD: ${PASSWORD}
     image: ${DOCKER_TAG}
     volumes:
       - yocto-build:/home/user/poky/build
@@ -21,11 +22,19 @@ services:
     build:
       context: .
       dockerfile: docker/python.dockerfile
+      args:
+        USER: ${USER}
+        GROUP: ${GROUP}
     networks:
       yocto-network:
         ipv4_address: ${PYTHON_ADDRESS}
     depends_on:
       - yocto
+
+volumes:
+  yocto-build:
+  yocto-downloads:
+  yocto-sstate:
 
 networks:
   yocto-network:
