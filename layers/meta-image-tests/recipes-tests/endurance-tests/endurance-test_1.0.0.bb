@@ -9,6 +9,7 @@ SRC_URI = " \
     file://env.sh \
     file://endurance/cpu/test-cpu.sh \
     file://endurance/disks/test-disk.sh \
+    file://endurance/firmware/fwts.sh \
     file://endurance/memory/test-memory.sh \
     file://endurance/network/test-network.sh \
     file://endurance/syscalls/ltp-syscalls.sh \
@@ -33,6 +34,9 @@ do_install_ptest() {
 
     install -d ${D}${PTEST_PATH}/tests/endurance/disks
     install -m 0755 ${SRCDIR}/endurance/disks/test-disk.sh ${D}${PTEST_PATH}/tests/endurance/disks/
+
+    install -d ${D}${PTEST_PATH}/tests/endurance/firmware
+    install -m 0755 ${SRCDIR}/endurance/firmware/fwts.sh ${D}${PTEST_PATH}/tests/endurance/firmware/
 
     install -d ${D}${PTEST_PATH}/tests/endurance/memory
     install -m 0755 ${SRCDIR}/endurance/memory/test-memory.sh ${D}${PTEST_PATH}/tests/endurance/memory/
