@@ -1,32 +1,36 @@
 #!/bin/bash
 
-SUSE_15_5_IMG_URL="https://download.opensuse.org/distribution/leap/15.5/appliances/openSUSE-Leap-15.5-Minimal-VM.x86_64-15.5.0-kvm-and-xen-Build13.309.qcow2"
-SUSE_15_6_IMG_URL="https://download.opensuse.org/distribution/leap/15.6/appliances/openSUSE-Leap-15.6-Minimal-VM.x86_64-15.6.0-kvm-and-xen-Build17.45.qcow2"
+SUSE_DIST_URL="https://download.opensuse.org/distribution/leap/"$1"/appliances/"
 
-SUSE_15_5_IMG="open-suse-15-5.qcow2"
-SUSE_15_6_IMG="open-suse-15-6.qcow2"
+SUSE_15_5_IMG_FN="openSUSE-Leap-15.5-Minimal-VM.x86_64-15.5.0-kvm-and-xen-Build13.309.qcow2"
+SUSE_15_6_IMG_FN="openSUSE-Leap-15.6-Minimal-VM.x86_64-15.6.0-kvm-and-xen-Build17.45.qcow2"
+
+download () {
+    # original file
+    if [ ! -e "$2" ]; then
+        wget "${SUSE_DIST_URL}""$1" -O "$2" --no-check-certificate
+    fi
+
+    # check sum
+    if [ ! -e "$2".sha256 ]; then
+        wget "${SUSE_DIST_URL}""$1".sha256 -O "$2".sha256 --no-check-certificate
+        sed -i s/"$1"/"$2"/g "$2".sha256
+    fi
+
+    echo "Check sum status: "
+    sha256sum -c "$2".sha256
+
+    if [ "$?" != 0 ]; then
+        rm "$2" "$2".sha256
+        exit 2
+    fi
+}
 
 if [ "$1" = 15.5 ]; then
-    if [ ! -e $SUSE_15_5_IMG ]; then
-        wget $SUSE_15_5_IMG_URL -O $SUSE_15_5_IMG --no-check-certificate
-    fi
+    download ${SUSE_15_5_IMG_FN} "open-suse-"$1".qcow2" 
 elif [ "$1" = 15.6 ]; then
-    if [ ! -e $SUSE_15_6_IMG ]; then
-        wget $SUSE_15_6_IMG_URL -O $SUSE_15_6_IMG --no-check-certificate
-    fi
-elif [ "$1" = "both" ]; then
-{
-    if [ ! -e $SUSE_15_5_IMG ]; then
-        wget $SUSE_15_5_IMG_URL -O $SUSE_15_5_IMG --no-check-certificate
-    fi
-
-    if [ ! -e $SUSE_15_6_IMG ]; then
-        wget $SUSE_15_6_IMG_URL -O $SUSE_15_6_IMG --no-check-certificate
-    fi
-}
+    download ${SUSE_15_6_IMG_FN} "open-suse-"$1".qcow2" 
 else
-{
     echo "Leap version is incorrect! Should be 15.5, 15.6 or both"
     exit 1
-}
 fi
