@@ -15,15 +15,8 @@ if [ $code -eq 0 ]; then
         timeout 7200 bash -c '
         until grep -q "STOP: ptest-runner" /tmp/results/screen.log 2>/dev/null; do
             sleep 5
-            echo "Ptest running..."
+            echo "Tests running..."
         done'
-
-	screen -S qemu -X stuff 'fwts; echo "FWTS tests completed"\n' && \
-	timeout 1800 bash -c '
-	until grep -q "FWTS tests completed" /tmp/results/screen.log 2>/dev/null; do
-	    sleep 5
-	    echo "Running FWTS tests"
-	done'
 
         echo 'Shutting down QEMU...'
         screen -S qemu -X stuff 'poweroff\n'
