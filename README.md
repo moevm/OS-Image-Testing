@@ -45,12 +45,12 @@ To add a new utility, you need to update the local.conf and write the appropriat
 ## OpenSUSE testing
 ```
 # Building docker image for suse
-make docker-build-suse-container
+make docker-suse
 
 # Starting download necessary
-make docker-init-suse
+make docker-init-suse [SUSE_VER=[15.5|15.6]]
 
 # Running openSUSE in docker via QEMU
-make docker-run-suse
+make docker-run-suse [SUSE_VER=[15.5|15.6]]
 
 ```
