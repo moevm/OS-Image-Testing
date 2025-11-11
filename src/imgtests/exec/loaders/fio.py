@@ -1,9 +1,9 @@
-from imgtests.exec.base_util import BaseTestUtil
+from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult, SSHClient
-from imgtests.exec.utils import create_opt, extract_version
+from imgtests.exec.utils import create_opt
 
 
-class Fio(BaseTestUtil):
+class Fio(GenericUtil):
     def __init__(self, ssh_client: SSHClient | None = None) -> None:
         super().__init__("fio", ssh_client)
 
@@ -47,9 +47,3 @@ class Fio(BaseTestUtil):
                 *create_opt("ioengine", ioengine),
             ]
         )
-
-    def version(self) -> str | None:
-        result = self(["--version"])
-        if result.returncode:
-            return None
-        return extract_version(result.stdout.strip())
