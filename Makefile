@@ -143,7 +143,7 @@ docker-run-suse:
 	docker run -it --rm \
 		--volume ${DOCKER_OPENSUSE_VOLUME}:${SUSE_DIR} \
 		${DOCKER_SUSE_TAG} \
-		bash -c "qemu-system-x86_64 ${SUSE_VER} -m 4G -nographic"
+		bash -c "qemu-system-x86_64 open-suse-${SUSE_VER}.qcow2 -m 4G -nographic"
 
 .PHONY: ${PACKAGE_MGR}
 ${PACKAGE_MGR}:
