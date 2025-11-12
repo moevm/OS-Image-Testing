@@ -25,7 +25,7 @@ cd OS-Image-Testing
 ### 2. Base initialization docker volumes and subsequent building image
 
 ```
-# Building docker image and initialization volumes
+# Building docker image and initialization volumes for building and running OS into them
 make docker
 
 # Starting the OS image build
@@ -43,14 +43,14 @@ To add a test using, for example, **stress-ng**, go to the layers/meta-image/tes
 To add a new utility, you need to update the local.conf and write the appropriate recipe, then add the paths to the recipe and dependent files for all called containers in the `Makefile`.
 
 ## OpenSUSE testing
+
 ```
-# Building docker image for suse
+# Building docker image for building and running openSUSE into them
 make docker-suse
 
-# Starting download necessary
+# Starting downloads necessary openSUSE images
 make docker-init-suse [SUSE_VER=[15.5|15.6]]
 
-# Running openSUSE in docker via QEMU
+# Running openSUSE in the docker container via QEMU
 make docker-run-suse [SUSE_VER=[15.5|15.6]]
-
 ```
