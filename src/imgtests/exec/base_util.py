@@ -1,7 +1,10 @@
+from abc import ABC, abstractmethod
+
 from imgtests.exec.exec import ExecResult, SSHClient, run_command, which
+from imgtests.exec.utils import extract_version
 
 
-class BaseTestUtil:
+class BaseTestUtil(ABC):
     """Base class for the test tools.
 
     This class provides a common interface for the test tools and handles
@@ -30,7 +33,9 @@ class BaseTestUtil:
         if cmd is None:
             cmd = []
         if self.path is None:
-            return ExecResult(stderr=f"Failed to locate '{self.name}'.", returncode=1)
+            return ExecResult(
+                cmd=f"which {self.name}", stderr=f"Failed to locate '{self.name}'.", returncode=1
+            )
         if self.ssh_client is None:
             return run_command([str(self.path), *cmd])
         return self.ssh_client(" ".join([str(self.path), *cmd]))
@@ -47,3 +52,20 @@ class BaseTestUtil:
         """
         not_implemented_message = f"The '{self.name}' install logic is not implemented."
         raise NotImplementedError(not_implemented_message)
+
+    @abstractmethod
+    def version(self) -> str | None:
+        """Returns the utility version.
+
+        Returns:
+            str | None: Version of the util or None if can't get.
+        """
+        ...
+
+
+class GenericUtil(BaseTestUtil):
+    def version(self) -> str | None:
+        result = self(["--version"])
+        if result.returncode:
+            return None
+        return extract_version(result.stdout.strip())

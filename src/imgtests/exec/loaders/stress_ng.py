@@ -1,8 +1,8 @@
 from typing import NamedTuple
 
-from imgtests.exec.base_util import BaseTestUtil
+from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult, SSHClient
-from imgtests.exec.utils import create_opt
+from imgtests.exec.utils import add_flag, create_opt
 
 
 class StressNGVerifications(NamedTuple):
@@ -11,21 +11,23 @@ class StressNGVerifications(NamedTuple):
     not_implemented: tuple[str, ...]
 
 
-class StressNg(BaseTestUtil):
+class StressNg(GenericUtil):
     def __init__(self, ssh_client: SSHClient | None = None) -> None:
         super().__init__("stress-ng", ssh_client)
 
     def cpu_methods(self) -> tuple[str, ...] | None:
-        result = self(["--cpu-method", "which"])
+        result = self(["--cpu-method", "_which_"])
         # stress-ng exits with code 1 for this call
         if result.returncode != 1:
             return None
-        try:
-            # stress-ng logs into stderr for this call
-            cpu_methods = result.stderr.split(":", maxsplit=1)[1]
-        except IndexError:
+        return self.__parse_methods(result.stderr)
+
+    def vm_methods(self) -> tuple[str, ...] | None:
+        result = self(["--vm-method", "_which_"])
+        # stress-ng exits with code 1 for this call
+        if result.returncode != 1:
             return None
-        return tuple(cpu_methods.strip().split())
+        return self.__parse_methods(result.stderr)
 
     def verifiable(self) -> StressNGVerifications | None:
         """Returns stressors that always enable verification or by option or not implements."""
@@ -51,11 +53,13 @@ class StressNg(BaseTestUtil):
         self,
         timeout_sec: int = 0,
         cpu: int | None = None,
+        cpu_method: str = "all",
         vm: int | None = None,
+        vm_method: str = "all",
         vm_bytes: str | None = None,
         iomix: int | None = None,
         iomix_bytes: str | None = None,
-        verify: bool = False,
+        verify: bool = True,
     ) -> ExecResult:
         """Runs the stress-ng util stressors.
 
@@ -64,8 +68,10 @@ class StressNg(BaseTestUtil):
               stress test.
             cpu (int | None): Count of the CPU stressors. When set to 0 got count of logical
               processors.
+            cpu_method (str): Stress CPU method.
             vm (int | None): Count of the virtual memory stressors. When set to 0 got count
               of logical processors.
+            vm_method (str): Stress virtual memory method.
             vm_bytes (str | None): Utilized memory as value or percent of all available memory.
             iomix (int | None): Count of the I/O stressors. When set to 0 got count of logical
               processors.
@@ -93,12 +99,22 @@ class StressNg(BaseTestUtil):
 
         return self(
             [
-                *create_opt("timeout", str(timeout_sec)),
+                *create_opt("timeout", timeout_sec),
                 *create_opt("cpu", cpu),
+                *create_opt("cpu-method", cpu_method),
                 *create_opt("vm", vm),
+                *create_opt("vm-method", vm_method),
                 *create_opt("vm-bytes", vm_bytes),
                 *create_opt("iomix", iomix),
                 *create_opt("iomix-bytes", iomix_bytes),
                 *create_opt("verify", verify),
+                *add_flag("metrics"),
             ]
         )
+
+    def __parse_methods(self, raw_methods: str) -> tuple[str, ...] | None:
+        try:
+            methods = raw_methods.split(":", maxsplit=1)[1]
+        except IndexError:
+            return None
+        return tuple(methods.strip().split())
