@@ -1,21 +1,19 @@
 USER                       := user
 GROUP                      := yoctogroup
 OS_IMAGE                   := core-image-minimal
-
-# OpenSUSE
-DOCKER_SUSE_TAG 		   := open-suse-image-env
-SUSE_VER 				   ?= 15.6
+SUSE_VER                   ?= 15.6
 
 # Docker
 DOCKER_TAG                 := yocto-builder-image
+DOCKER_SUSE_TAG            := open-suse-image-env
 DOCKER_BUILD_VOLUME        := yocto-build
 DOCKER_DOWNLOADS_VOLUME    := yocto-downloads
 DOCKER_SSTATE_VOLUME       := yocto-sstate
-DOCKER_OPENSUSE_VOLUME	   := open-suse-files
+DOCKER_OPENSUSE_VOLUME     := open-suse-files
 
 # Paths
 POKY_DIR                   := /home/${USER}/poky
-SUSE_DIR				   := /home/${USER}/suse
+SUSE_DIR                   := /home/${USER}/suse
 BUILD_DIR                  := ${POKY_DIR}/build
 HOST_LAYERS_PATH           := ${CURDIR}/layers
 HOST_CONF_PATH             := ${CURDIR}/conf
@@ -165,16 +163,17 @@ help:
 	@echo "Usage:"
 	@echo "  make [targets] [arguments]"
 	@echo
-	@echo "  docker                 			Builds a docker image;"
-	@echo "  docker-suse            			Builds a docker image for openSUSE images environment;"
-	@echo "  docker-init-volumes    			Initializes docker volumes;"
-	@echo "  docker-init-suse SUSE_VER=15.6 	Downloads openSUSE image, SUSE_VER=[15.5|15.6];"
-	@echo "  docker-run-image       			Runs builded Yocto image from builded docker image;"
-	@echo "  docker-run-suse SUSE_VER=15.6      Runs suse image via QEMU, SUSE_VER=[15.5|15.6];"
-	@echo "  docker-test-image      			Tests builded Yocto image from builded docker image;"
-	@echo "  pre-commit-check       			Check source code with pre-commit hooks;"
-	@echo "  unit-test              			Run unit tests for the Python library '${PY_LIB_NAME}';"
-	@echo
-	@echo "  help                   			Displays information about all available targets."
+	@echo "  docker                             Builds a docker image;"
+	@echo "  docker-suse                        Builds a docker image for openSUSE images environment;"
+	@echo "  docker-init-volumes                Initializes docker volumes;"
+	@echo "  docker-init-suse                   Downloads openSUSE image (Default: ${SUSE_VER});"
+	@echo "      SUSE_VER=[15.5|15.6]"
+	@echo "  docker-run-image                   Runs builded Yocto image from builded docker image;"
+	@echo "  docker-run-suse                    Runs openSUSE image via QEMU (Default: ${SUSE_VER});"
+	@echo "      SUSE_VER=[15.5|15.6]"
+	@echo "  docker-test-image                  Tests builded Yocto image from builded docker image;"
+	@echo "  pre-commit-check                   Check source code with pre-commit hooks;"
+	@echo "  unit-test                          Run unit tests for the Python library '${PY_LIB_NAME}';"
+	@echo "  help                               Displays information about all available targets."
 
 .EXPORT_ALL_VARIABLES:

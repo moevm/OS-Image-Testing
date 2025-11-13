@@ -14,13 +14,15 @@ Repository structure:
 
 ## Building Yocto testing image via Docker
 
-### 1. Clone the repository
+### 1. Clone the repository and getting help
 
 ```bash
 git clone https://github.com/moevm/OS-Image-Testing.git
 
 cd OS-Image-Testing
 ```
+
+For getting information about available commands run `make help`.
 
 ### 2. Base initialization docker volumes and subsequent building image
 
