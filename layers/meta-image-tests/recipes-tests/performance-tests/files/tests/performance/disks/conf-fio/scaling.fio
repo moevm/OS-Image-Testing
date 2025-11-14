@@ -4,31 +4,30 @@ direct=1
 size=17MB
 
 [seq_write_1M]
-stonewall
 rw=write
 bs=1M
 
 [seq_write_256k]
-stonewall
+wait_for_previous
 rw=write
 bs=256k
 
 [seq_write_64k]
-stonewall
+wait_for_previous
 rw=write
 bs=64k
 
 [rand_write_64k]
-stonewall
+wait_for_previous
 rw=randwrite
 bs=64k
 
 [rand_write_16k]
-stonewall
+wait_for_previous
 rw=randwrite
 bs=16k
 
 [rand_write_4k]
-stonewall
+wait_for_previous
 rw=randwrite
 bs=4k
