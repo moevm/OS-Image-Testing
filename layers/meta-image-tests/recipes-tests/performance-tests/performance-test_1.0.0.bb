@@ -12,9 +12,15 @@ SRC_URI = "\
     file://tests/performance/network/ \
 "
 
-RDEPENDS:${PN} += "bash perf stress-ng"
-RDEPENDS:${PN}-ptest += "perf bash stress-ng"
+RDEPENDS:${PN} += "bash"
+RDEPENDS:${PN} += "perf"
+RDEPENDS:${PN} += "stress-ng"
+RDEPENDS:${PN} += "fio"
 
+RDEPENDS:${PN}-ptest += "bash"
+RDEPENDS:${PN}-ptest += "perf"
+RDEPENDS:${PN}-ptest += "stress-ng"
+RDEPENDS:${PN}-ptest += "fio"
 
 FILES_${PN}-ptest += "${PTEST_PATH}"
 
