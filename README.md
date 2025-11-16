@@ -38,6 +38,8 @@ make docker-run-image
 make docker-test-image
 ```
 
+Note: To create an image with all packages specified in conf/packages.conf, you will need at least 200 GB free space.
+
 To add a test using, for example, **stress-ng**, go to the layers/meta-image/tests/recipes-tests folder, then to endurance-tests or performance-tests, depending on the type of test, then add the test to the folder of the chosen subsystem and update the corresponding .bb file.
 
 To add a new utility, you need to update the local.conf and write the appropriate recipe, then add the paths to the recipe and dependent files for all called containers in the `Makefile`.
