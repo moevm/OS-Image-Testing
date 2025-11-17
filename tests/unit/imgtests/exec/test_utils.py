@@ -3,7 +3,7 @@ from typing import Any
 
 import pytest
 
-from imgtests.exec.utils import add_flag, create_opt, extract_version
+from imgtests.exec.utils import add_flag, create_opt, extract_version, kwargs_to_cmd_args
 
 
 class TEnum(Enum):
@@ -46,3 +46,22 @@ def test_add_flag() -> None:
 def test_extract_version(out: str, version: str) -> None:
     result = extract_version(out)
     assert result == version
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "command"),
+    [
+        (
+            {"name": "test", "numjobs": 2, "size": "4096B", "output-format": "json"},
+            ["--name", "test", "--numjobs", "2", "--size", "4096B", "--output-format", "json"],
+        ),
+        (
+            {"cpu": 2, "cpu-method": "crc16", "timeout": 10, "metrics": True},
+            ["--cpu", "2", "--cpu-method", "crc16", "--timeout", "10", "--metrics"],
+        ),
+        ({}, []),
+    ],
+)
+def test_kwargs_to_cmd_args(kwargs: dict[str, Any], command: list[str]) -> None:
+    result = kwargs_to_cmd_args(**kwargs)
+    assert result == command
