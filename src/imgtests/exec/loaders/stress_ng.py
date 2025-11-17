@@ -99,19 +99,21 @@ class StressNg(GenericUtil):
             err_msg = f"Invalid iomix count '{iomix}'. Expected more or equal 0."
             raise ValueError(err_msg)
 
-        command = [
-            *create_opt("timeout", timeout_sec),
-            *create_opt("cpu", cpu),
-            *create_opt("cpu-method", cpu_method),
-            *create_opt("vm", vm),
-            *create_opt("vm-method", vm_method),
-            *create_opt("vm-bytes", vm_bytes),
-            *create_opt("iomix", iomix),
-            *create_opt("iomix-bytes", iomix_bytes),
-            *create_opt("verify", verify),
-            *add_flag("metrics"),
-        ]
-        return self(command, **kwargs)
+        return self(
+            [
+                *create_opt("timeout", timeout_sec),
+                *create_opt("cpu", cpu),
+                *create_opt("cpu-method", cpu_method),
+                *create_opt("vm", vm),
+                *create_opt("vm-method", vm_method),
+                *create_opt("vm-bytes", vm_bytes),
+                *create_opt("iomix", iomix),
+                *create_opt("iomix-bytes", iomix_bytes),
+                *create_opt("verify", verify),
+                *add_flag("metrics"),
+            ],
+            **kwargs,
+        )
 
     def __parse_methods(self, raw_methods: str) -> tuple[str, ...] | None:
         try:

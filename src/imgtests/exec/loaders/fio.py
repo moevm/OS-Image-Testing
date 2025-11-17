@@ -58,14 +58,16 @@ class Fio(GenericUtil):
             err_msg = f"Invalid numjobs '{numjobs}'. Expected more then 0."
             raise ValueError(err_msg)
 
-        command = [
-            *create_opt("name", name),
-            *create_opt("loops", loops),
-            *create_opt("numjobs", numjobs),
-            *create_opt("filename", filename),
-            *create_opt("size", size),
-            *create_opt("readwrite", readwrite),
-            *create_opt("output-format", "json"),
-            *create_opt("ioengine", ioengine),
-        ]
-        return self(command, **kwargs)
+        return self(
+            [
+                *create_opt("name", name),
+                *create_opt("loops", loops),
+                *create_opt("numjobs", numjobs),
+                *create_opt("filename", filename),
+                *create_opt("size", size),
+                *create_opt("readwrite", readwrite),
+                *create_opt("output-format", "json"),
+                *create_opt("ioengine", ioengine),
+            ],
+            **kwargs,
+        )
