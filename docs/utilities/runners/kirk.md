@@ -1,6 +1,6 @@
 # Kirk
 
-[Kirk](https://github.com/linux-test-project/kirk) — официальный исполнитель тестов Linux Test Project (LTP)
+[Kirk](https://github.com/linux-test-project/kirk) — официальный исполнитель тестов Linux Test Project (LTP).
 
 ## Что умеет Kirk над LTP
 
@@ -11,7 +11,6 @@
 - Прокидывать переменные окружения в сьюты
 
 - Имеет CLI с единым синтаксисом запуска
-
 
 ## Требования
 
