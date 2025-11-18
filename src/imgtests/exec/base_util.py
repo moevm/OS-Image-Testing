@@ -1,7 +1,11 @@
+from abc import ABC, abstractmethod
+from typing import Any
+
 from imgtests.exec.exec import ExecResult, SSHClient, run_command, which
+from imgtests.exec.utils import extract_version, kwargs_to_cmd_args
 
 
-class BaseTestUtil:
+class BaseTestUtil(ABC):
     """Base class for the test tools.
 
     This class provides a common interface for the test tools and handles
@@ -18,11 +22,15 @@ class BaseTestUtil:
         self.ssh_client = ssh_client
         self.path = which(self.name, ssh_client)
 
-    def __call__(self, cmd: list[str] | None = None) -> ExecResult:
+    def __call__(self, cmd: list[str] | None = None, **kwargs: dict[str, Any]) -> ExecResult:
         """Executes the utility with the provided command.
 
         Args:
             cmd (list[str] | None): Command arguments to pass to the utility.
+            **kwargs (dict[str, Any]): Command arguments in the free form with values.
+
+        Raises:
+            ValueError: When parameters repeated.
 
         Returns:
             ExecResult: Result of the execution.
@@ -30,10 +38,17 @@ class BaseTestUtil:
         if cmd is None:
             cmd = []
         if self.path is None:
-            return ExecResult(stderr=f"Failed to locate '{self.name}'.", returncode=1)
+            return ExecResult(
+                cmd=f"which {self.name}", stderr=f"Failed to locate '{self.name}'.", returncode=1
+            )
+        for k in kwargs:
+            if k in cmd:
+                err_msg = f"Argument '{k}' is already set."
+                raise ValueError(err_msg)
+        final_cmd = [str(self.path), *cmd, *kwargs_to_cmd_args(**kwargs)]
         if self.ssh_client is None:
-            return run_command([str(self.path), *cmd])
-        return self.ssh_client(" ".join([str(self.path), *cmd]))
+            return run_command(final_cmd)
+        return self.ssh_client(" ".join(final_cmd))
 
     def install(self) -> ExecResult:
         """Installs the utility.
@@ -47,3 +62,20 @@ class BaseTestUtil:
         """
         not_implemented_message = f"The '{self.name}' install logic is not implemented."
         raise NotImplementedError(not_implemented_message)
+
+    @abstractmethod
+    def version(self) -> str | None:
+        """Returns the utility version.
+
+        Returns:
+            str | None: Version of the util or None if can't get.
+        """
+        ...
+
+
+class GenericUtil(BaseTestUtil):
+    def version(self) -> str | None:
+        result = self(["--version"])
+        if result.returncode:
+            return None
+        return extract_version(result.stdout.strip())
