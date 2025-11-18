@@ -59,8 +59,8 @@ docker:
 			mkdir -p /tmp-sstate && \
 			chown -R ${USER}:${GROUP} /tmp-build /tmp-downloads /tmp-sstate"
 
-.PHONY: python-analyzer
-python-analyzer:
+.PHONY: docker-analyzer
+docker-analyzer:
 	docker build \
 		--tag ${DOCKER_PYTHON_TAG} \
 		--build-arg USER="${USER}" \
@@ -69,13 +69,6 @@ python-analyzer:
 		--build-arg SSH_USER="${SSH_USER}" \
 		--build-arg SSH_PASSWORD="" \
 		--file docker/python.dockerfile .
-
-.PHONY: copy-results-via-ssh
-copy-results-via-ssh:
-	DOCKER_TAG="${DOCKER_TAG}" USER="${USER}" GROUP="${GROUP}" PASSWORD="${PASSWORD}" \
-	YOCTO_ADDRESS="${YOCTO_ADDRESS}" PYTHON_ADDRESS="${PYTHON_ADDRESS}" \
-	SUBNET="${SUBNET}" GATEWAY="${GATEWAY}" \
-	docker-compose up -d --build
 
 .PHONY: docker-init-volumes
 docker-init-volumes:
@@ -152,6 +145,13 @@ docker-run-suse:
 		--volume ${DOCKER_OPENSUSE_VOLUME}:${SUSE_DIR} \
 		${DOCKER_SUSE_TAG} \
 		bash -c "qemu-system-x86_64 open-suse-${SUSE_VER}.qcow2 -m 4G -nographic"
+
+.PHONY: docker-compose-up
+docker-compose-up:
+	DOCKER_TAG="${DOCKER_TAG}" USER="${USER}" GROUP="${GROUP}" PASSWORD="${PASSWORD}" \
+	YOCTO_ADDRESS="${YOCTO_ADDRESS}" PYTHON_ADDRESS="${PYTHON_ADDRESS}" \
+	SUBNET="${SUBNET}" GATEWAY="${GATEWAY}" \
+	docker compose up --detach --build
 
 .PHONY: ${PACKAGE_MGR}
 ${PACKAGE_MGR}:
