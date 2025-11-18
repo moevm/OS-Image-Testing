@@ -102,13 +102,13 @@ bencher run --file results.json --adapter json --project project_name --token yo
 Примеры графиков на псевдоданных:
 
 1. 2 метрики, 1 стенд, 1 ветка, 1 набор тестов
-![график 1](../../imgs/latency_and_throughput_for_1_testbed_1_test_1_branch.png)
+![график 1](https://github.com/user-attachments/assets/ab6ca3e0-8744-4536-a489-2e3a13a1690c)
 
 2. 1 метрика, 1 стенд, 2 ветки, 1 набор тестов
-![график 2](../../imgs/latency_for_1_test_all_branches_1_testbed.png)
+![график 2](https://github.com/user-attachments/assets/d7ac39f5-1c57-4205-abe9-30146c7b14d2)
 
 3. 1 метрика, 1 стенд, 1 ветка, 2 набора тестов
-![график 3](../../imgs/latency_for_different_tests.png)
+![график 3](https://github.com/user-attachments/assets/0abfa757-93e2-4e05-87cb-8050a223701f)
 
 4. 1 метрика, 2 стенда, 2 ветки, 1 набор тестов
-![график 3](../../imgs/latency_for_different_tests.png)
+![график 3](https://github.com/user-attachments/assets/4b3f38ba-1f21-4317-aed4-1efd4af90dd0)
