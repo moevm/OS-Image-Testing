@@ -2,8 +2,8 @@
 
 SUSE_DIST_URL="https://download.opensuse.org/distribution/leap/""$1""/appliances/"
 
-SUSE_15_5_IMG_FN="openSUSE-Leap-15.5-Minimal-VM.x86_64-15.5.0-kvm-and-xen-Build13.309.qcow2"
-SUSE_15_6_IMG_FN="openSUSE-Leap-15.6-Minimal-VM.x86_64-15.6.0-kvm-and-xen-Build17.45.qcow2"
+SUSE_15_5_IMG_FN="openSUSE-Leap-15.5-Minimal-VM.x86_64-15.5.0-Cloud-Build13.309.qcow2"
+SUSE_15_6_IMG_FN="openSUSE-Leap-15.6-Minimal-VM.x86_64-15.6.0-Cloud-Build19.1.qcow2"
 
 download () {
     # original file
