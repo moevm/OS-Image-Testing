@@ -40,12 +40,6 @@ docker:
 		--build-arg GROUP="${GROUP}" \
 		--build-arg PASSWORD="${PASSWORD}" \
 		--file docker/image_builder.dockerfile .
-	docker build \
-		--tag ${PYTHON_TAG} \
-		--build-arg USER="${USER}" \
-		--build-arg GROUP="${GROUP}" \
-		--build-arg PASSWORD="${PASSWORD}" \
-		--file docker/python.dockerfile .
 	docker volume create ${DOCKER_BUILD_VOLUME}
 	docker volume create ${DOCKER_DOWNLOADS_VOLUME}
 	docker volume create ${DOCKER_SSTATE_VOLUME}
@@ -59,6 +53,15 @@ docker:
 			mkdir -p /tmp-downloads && \
 			mkdir -p /tmp-sstate && \
 			chown -R ${USER}:${GROUP} /tmp-build /tmp-downloads /tmp-sstate"
+
+.PHONY: python-analyzer
+python-analyzer:
+	docker build \
+		--tag ${PYTHON_TAG} \
+		--build-arg USER="${USER}" \
+		--build-arg GROUP="${GROUP}" \
+		--build-arg PASSWORD="${PASSWORD}" \
+		--file docker/python.dockerfile .
 
 .PHONY: copy-results-via-ssh
 copy-results-via-ssh:
