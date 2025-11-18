@@ -21,6 +21,7 @@ HOST_TEMP_PATH             := ${CURDIR}/results
 
 # Python
 PACKAGE_MGR                := uv
+SSH_USER				   := root
 
 # IP addresses
 YOCTO_ADDRESS              := 10.5.0.10
@@ -61,6 +62,8 @@ python-analyzer:
 		--build-arg USER="${USER}" \
 		--build-arg GROUP="${GROUP}" \
 		--build-arg PASSWORD="${PASSWORD}" \
+		--build-arg SSH_USER="${SSH_USER}" \
+		--build-arg SSH_PASSWORD="" \
 		--file docker/python.dockerfile .
 
 .PHONY: copy-results-via-ssh
