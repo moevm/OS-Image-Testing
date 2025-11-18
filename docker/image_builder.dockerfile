@@ -32,7 +32,6 @@ RUN groupadd -g 510 ${GROUP} && \
     echo "${USER}:${PASSWORD}" | chpasswd
 
 COPY scripts/entrypoint_yocto.sh ${POKY_DIR}/
-RUN chmod +x ${POKY_DIR}/entrypoint_yocto.sh
 
 USER ${USER}
 WORKDIR ${POKY_DIR}
