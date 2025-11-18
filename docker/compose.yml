@@ -1,0 +1,54 @@
+services:
+  yocto:
+    build:
+      dockerfile: docker/image_builder.dockerfile
+      args:
+        USER: ${USER}
+        GROUP: ${GROUP}
+        PASSWORD: ${PASSWORD}
+        DOCKER_BUILD_VOLUME: ${DOCKER_BUILD_VOLUME}
+        DOCKER_DOWNLOADS_VOLUME: ${DOCKER_DOWNLOADS_VOLUME}
+        DOCKER_SSTATE_VOLUME: ${DOCKER_SSTATE_VOLUME}
+        BUILD_DIR: ${BUILD_DIR}
+        POKY_DIR: ${POKY_DIR}
+        HOST_CONF_PATH: ${HOST_CONF_PATH}
+        HOST_LAYERS_PATH: ${HOST_LAYERS_PATH}
+    image: ${DOCKER_TAG}
+    volumes:
+      - ${DOCKER_BUILD_VOLUME}:${BUILD_DIR}
+      - ${DOCKER_DOWNLOADS_VOLUME}:${POKY_DIR}/downloads
+      - ${DOCKER_SSTATE_VOLUME}:${POKY_DIR}/sstate-cache
+      - ${HOST_CONF_PATH}/local.conf:${BUILD_DIR}/conf/local.conf
+      - ${HOST_CONF_PATH}/packages.conf:${BUILD_DIR}/conf/packages.conf
+      - ${HOST_LAYERS_PATH}/meta-image-tests:${POKY_DIR}/meta-image-tests
+    environment:
+      SSH_USER: root
+      SSH_PASS: strong
+    networks:
+      yocto-network:
+        ipv4_address: ${YOCTO_ADDRESS}
+
+  python-analyzer:
+    build:
+      dockerfile: docker/python.dockerfile
+      args:
+        USER: ${USER}
+        GROUP: ${GROUP}
+    networks:
+      yocto-network:
+        ipv4_address: ${PYTHON_ADDRESS}
+    depends_on:
+      - yocto
+
+volumes:
+  yocto-build:
+  yocto-downloads:
+  yocto-sstate:
+
+networks:
+  yocto-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: ${SUBNET}
+          gateway: ${GATEWAY}

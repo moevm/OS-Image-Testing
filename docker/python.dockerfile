@@ -1,13 +1,9 @@
 FROM python:3.13.7-slim-trixie
 
 ARG USER
-ARG SSH_USER
 ARG GROUP
 ARG PASSWORD
 ARG SSH_PASSWORD
-
-ENV SSH_USER=${SSH_USER}
-ENV SSH_PASSWORD=${SSH_PASSWORD}
 
 RUN apt update && \
     apt install -y \
@@ -28,7 +24,8 @@ COPY src/ /home/${USER}/python
 COPY pyproject.toml /home/${USER}/python
 WORKDIR /home/${USER}/python
 RUN python3 -m pip install .
+RUN rm -rf /home/${USER}/*
 
-COPY scripts/get-remote-results.py /home/user/
+COPY scripts/get-remote-results.py /home/${USER}/
 
 ENTRYPOINT ["python3", "/home/user/get-remote-results.py"]

@@ -7,11 +7,11 @@ SUSE_VER                   ?= 15.6
 # Docker
 DOCKER_TAG                 := yocto-builder-image
 DOCKER_SUSE_TAG            := open-suse-image-env
+DOCKER_PYTHON_TAG          := python-image
 DOCKER_BUILD_VOLUME        := yocto-build
 DOCKER_DOWNLOADS_VOLUME    := yocto-downloads
 DOCKER_SSTATE_VOLUME       := yocto-sstate
 DOCKER_NETWORK             := yocto-network
-DOCKER_PYTHON_TAG          := python-image
 DOCKER_OPENSUSE_VOLUME     := open-suse-files
 
 # Paths
@@ -25,7 +25,6 @@ HOST_TEMP_PATH             := ${CURDIR}/results
 
 # Python
 PACKAGE_MGR                := uv
-SSH_USER				   := root
 
 # IP addresses
 YOCTO_ADDRESS              := 10.5.0.10
@@ -66,8 +65,6 @@ docker-analyzer:
 		--build-arg USER="${USER}" \
 		--build-arg GROUP="${GROUP}" \
 		--build-arg PASSWORD="${PASSWORD}" \
-		--build-arg SSH_USER="${SSH_USER}" \
-		--build-arg SSH_PASSWORD="" \
 		--file docker/python.dockerfile .
 
 .PHONY: docker-init-volumes
@@ -148,10 +145,7 @@ docker-run-suse:
 
 .PHONY: docker-compose-up
 docker-compose-up:
-	DOCKER_TAG="${DOCKER_TAG}" USER="${USER}" GROUP="${GROUP}" PASSWORD="${PASSWORD}" \
-	YOCTO_ADDRESS="${YOCTO_ADDRESS}" PYTHON_ADDRESS="${PYTHON_ADDRESS}" \
-	SUBNET="${SUBNET}" GATEWAY="${GATEWAY}" \
-	docker compose up --detach --build
+	docker compose --file docker/compose.yml --project-directory ./ up --detach --build
 
 .PHONY: ${PACKAGE_MGR}
 ${PACKAGE_MGR}:
