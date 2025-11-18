@@ -1,15 +1,19 @@
 USER                       := user
 GROUP                      := yoctogroup
 OS_IMAGE                   := core-image-minimal
+SUSE_VER                   ?= 15.6
 
 # Docker
 DOCKER_TAG                 := yocto-builder-image
+DOCKER_SUSE_TAG            := open-suse-image-env
 DOCKER_BUILD_VOLUME        := yocto-build
 DOCKER_DOWNLOADS_VOLUME    := yocto-downloads
 DOCKER_SSTATE_VOLUME       := yocto-sstate
+DOCKER_OPENSUSE_VOLUME     := open-suse-files
 
 # Paths
 POKY_DIR                   := /home/${USER}/poky
+SUSE_DIR                   := /home/${USER}/suse
 BUILD_DIR                  := ${POKY_DIR}/build
 HOST_LAYERS_PATH           := ${CURDIR}/layers
 HOST_CONF_PATH             := ${CURDIR}/conf
@@ -95,6 +99,29 @@ docker-test-image: docker-init-volumes
 	} &
 	@echo "QEMU test started in background"
 
+.PHONY: docker-suse
+docker-suse:
+	docker build \
+		--tag ${DOCKER_SUSE_TAG} \
+		--build-arg USER="${USER}" \
+		--file docker/open-suse.dockerfile .
+	docker volume create ${DOCKER_OPENSUSE_VOLUME}
+
+.PHONY: docker-init-suse
+docker-init-suse:
+	docker run -it --rm \
+		--volume ${DOCKER_OPENSUSE_VOLUME}:${SUSE_DIR} \
+		--volume "${HOST_SCRIPTS_PATH}/download-opensuse-images.sh:${SUSE_DIR}/download-opensuse-images.sh" \
+		${DOCKER_SUSE_TAG} \
+		bash -c "./download-opensuse-images.sh ${SUSE_VER}"
+
+.PHONY: docker-run-suse
+docker-run-suse:
+	docker run -it --rm \
+		--volume ${DOCKER_OPENSUSE_VOLUME}:${SUSE_DIR} \
+		${DOCKER_SUSE_TAG} \
+		bash -c "qemu-system-x86_64 open-suse-${SUSE_VER}.qcow2 -m 4G -nographic"
+
 .PHONY: ${PACKAGE_MGR}
 ${PACKAGE_MGR}:
 	@which ${PACKAGE_MGR} || \
@@ -115,12 +142,17 @@ help:
 	@echo "Usage:"
 	@echo "  make [targets] [arguments]"
 	@echo
-	@echo "  docker                 Builds a docker image;"
-	@echo "  docker-init-volumes    Initializes docker volumes;"
-	@echo "  docker-run-image       Runs builded Yocto image from builded docker image;"
-	@echo "  docker-test-image      Tests builded Yocto image from builded docker image;"
-	@echo "  pre-commit-check       Check source code with pre-commit hooks;"
-	@echo "  unit-test              Run unit tests for the Python library '${PY_LIB_NAME}';"
-	@echo "  help                   Displays information about all available targets."
+	@echo "  docker                             Builds a docker image;"
+	@echo "  docker-suse                        Builds a docker image for openSUSE images environment;"
+	@echo "  docker-init-volumes                Initializes docker volumes;"
+	@echo "  docker-init-suse                   Downloads openSUSE image (Default: ${SUSE_VER});"
+	@echo "      SUSE_VER=[15.5|15.6]"
+	@echo "  docker-run-image                   Runs builded Yocto image from builded docker image;"
+	@echo "  docker-run-suse                    Runs openSUSE image via QEMU (Default: ${SUSE_VER});"
+	@echo "      SUSE_VER=[15.5|15.6]"
+	@echo "  docker-test-image                  Tests builded Yocto image from builded docker image;"
+	@echo "  pre-commit-check                   Check source code with pre-commit hooks;"
+	@echo "  unit-test                          Run unit tests for the Python library '${PY_LIB_NAME}';"
+	@echo "  help                               Displays information about all available targets."
 
 .EXPORT_ALL_VARIABLES:
