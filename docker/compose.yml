@@ -37,6 +37,9 @@ services:
     networks:
       yocto-network:
         ipv4_address: ${PYTHON_ADDRESS}
+    environment:
+      SSH_USER: root
+      SSH_PASS: strong
     depends_on:
       - yocto
 

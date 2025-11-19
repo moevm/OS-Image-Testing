@@ -23,7 +23,3 @@ COPY pyproject.toml /home/${USER}/python
 WORKDIR /home/${USER}/python
 RUN python3 -m pip install .
 RUN rm -rf /home/${USER}/*
-
-COPY scripts/get-remote-results.py /home/${USER}/
-
-ENTRYPOINT ["python3", "/home/user/get-remote-results.py"]
