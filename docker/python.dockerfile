@@ -2,8 +2,6 @@ FROM python:3.13.7-slim-trixie
 
 ARG USER
 ARG GROUP
-ARG PASSWORD
-ARG SSH_PASSWORD
 
 RUN apt update && \
     apt install -y \
