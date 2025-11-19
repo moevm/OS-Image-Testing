@@ -34,14 +34,15 @@ services:
       args:
         USER: ${USER}
         GROUP: ${GROUP}
-    networks:
-      yocto-network:
-        ipv4_address: ${PYTHON_ADDRESS}
+    image: ${DOCKER_PYTHON_TAG}
+    volumes:
+      - ./tests/image:/home/${USER}/tests
     environment:
       SSH_USER: root
       SSH_PASS: strong
-    depends_on:
-      - yocto
+    networks:
+      yocto-network:
+        ipv4_address: ${PYTHON_ADDRESS}
 
 volumes:
   yocto-build:

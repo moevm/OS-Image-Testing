@@ -8,18 +8,18 @@ RUN apt update && \
     openssh-client \
     sudo
 
-RUN mkdir -p /home/${USER}/results
-RUN mkdir /home/${USER}/scripts
 RUN groupadd -g 510 ${GROUP} && \
     useradd -rm -d /home/${USER} -s /bin/bash -g ${GROUP} -u 1010 -G sudo ${USER} && \
-    echo "${USER} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/${USER} && \
-    chown -R ${USER}:${GROUP} /home/${USER}/results && \
-    chown -R ${USER}:${GROUP} /home/${USER}/scripts
+    echo "${USER} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/${USER}
+
+USER ${USER}
+WORKDIR /home/${USER}
 
 RUN mkdir /home/${USER}/.ssh
 
-COPY src/ /home/${USER}/python
-COPY pyproject.toml /home/${USER}/python
-WORKDIR /home/${USER}/python
-RUN python3 -m pip install .
-RUN rm -rf /home/${USER}/*
+COPY --chown=${USER}:${GROUP} src/ /home/${USER}/python
+COPY --chown=${USER}:${GROUP} pyproject.toml /home/${USER}/python
+RUN cd /home/${USER}/python && python3 -m pip install .
+RUN rm -rf /home/${USER}/python
+
+VOLUME [ "/home/${USER}/tests" ]
