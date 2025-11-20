@@ -12,6 +12,17 @@ class StressNGVerifications(NamedTuple):
     not_implemented: tuple[str, ...]
 
 
+class StressNGMetrics(NamedTuple):
+    stressor: str
+    bogo_ops: int
+    real_time_secs: float
+    usr_time_secs: float
+    sys_time_secs: float
+    bogo_ops_s_real_time: float
+    bogo_ops_s_usr_sys_time: float
+    cpu_used_per_instance: float
+
+
 class StressNg(GenericUtil):
     def __init__(self, ssh_client: SSHClient | None = None) -> None:
         super().__init__("stress-ng", ssh_client)
@@ -61,7 +72,7 @@ class StressNg(GenericUtil):
         iomix: int | None = None,
         iomix_bytes: str | None = None,
         verify: bool = True,
-    ) -> ExecResult:
+    ) -> tuple[ExecResult, list[StressNGMetrics]]:
         """Runs the stress-ng util stressors.
 
         Args:
@@ -98,7 +109,7 @@ class StressNg(GenericUtil):
             err_msg = f"Invalid iomix count '{iomix}'. Expected more or equal 0."
             raise ValueError(err_msg)
 
-        return self(
+        result = self(
             [
                 *create_opt("timeout", timeout_sec),
                 *create_opt("cpu", cpu),
@@ -112,19 +123,12 @@ class StressNg(GenericUtil):
                 *add_flag("metrics"),
             ]
         )
+        return result, self._parse_metrics(result.stderr.strip())
 
-    def __parse_methods(self, raw_methods: str) -> tuple[str, ...] | None:
-        try:
-            methods = raw_methods.split(":", maxsplit=1)[1]
-        except IndexError:
-            return None
-        return tuple(methods.strip().split())
-
-    def parse_metrics(self, raw_metrics: str) -> list:
-        lines = raw_metrics.strip().split("\n")
+    def _parse_metrics(self, raw_metrics: str) -> list[StressNGMetrics]:
         metrics = []
 
-        p = (
+        p = re.compile(
             r"^(\S+)\s+"  # stressor name
             r"([\d.-]+)\s+"  # bogo ops
             r"([\d.-]+)\s+"  # real time
@@ -135,23 +139,31 @@ class StressNg(GenericUtil):
             r"([\d.-]+)$"  # CPU used per instance
         )
 
-        for line in lines:
+        for line in raw_metrics.strip().split("\n"):
             clean_line = re.sub(r"stress-ng: info:\s+\[\d+\]\s*", "", line).strip()
 
-            m = re.match(p, clean_line)
-            if m:
-                try:
-                    data = {
-                        "stressor": m.group(1),
-                        "bogo ops": int(m.group(2)),
-                        "real time (secs)": float(m.group(3)),
-                        "usr time (secs)": float(m.group(4)),
-                        "sys time (secs)": float(m.group(5)),
-                        "bogo ops/s (real time)": float(m.group(6)),
-                        "bogo ops/s (usr+sys time)": float(m.group(7)),
-                        "CPU used per instance (%)": float(m.group(8)),
-                    }
-                    metrics.append(data)
-                except ValueError:
-                    continue
+            m = p.match(clean_line)
+            if m is None:
+                continue
+            try:
+                data = StressNGMetrics(
+                    m.group(1),
+                    int(m.group(2)),
+                    float(m.group(3)),
+                    float(m.group(4)),
+                    float(m.group(5)),
+                    float(m.group(6)),
+                    float(m.group(7)),
+                    float(m.group(8)),
+                )
+            except ValueError:
+                continue
+            metrics.append(data)
         return metrics
+
+    def __parse_methods(self, raw_methods: str) -> tuple[str, ...] | None:
+        try:
+            methods = raw_methods.split(":", maxsplit=1)[1]
+        except IndexError:
+            return None
+        return tuple(methods.strip().split())
