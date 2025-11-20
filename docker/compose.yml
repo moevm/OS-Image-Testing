@@ -18,6 +18,10 @@ services:
       - ${HOST_CONF_PATH}/packages.conf:${BUILD_DIR}/conf/packages.conf
       - ${HOST_LAYERS_PATH}/meta-image-tests:${POKY_DIR}/meta-image-tests
     environment:
+      BUILD_DIR: ${BUILD_DIR}
+      POKY_DIR: ${POKY_DIR}
+      USER: ${USER}
+      GROUP: ${GROUP}
       SSH_USER: root
       SSH_PASS: strong
     networks:

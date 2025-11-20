@@ -49,16 +49,6 @@ docker:
 	docker volume create ${DOCKER_BUILD_VOLUME}
 	docker volume create ${DOCKER_DOWNLOADS_VOLUME}
 	docker volume create ${DOCKER_SSTATE_VOLUME}
-	docker run --rm --user root \
-		--entrypoint "" \
-		--volume ${DOCKER_BUILD_VOLUME}:/tmp-build \
-		--volume ${DOCKER_DOWNLOADS_VOLUME}:/tmp-downloads \
-		--volume ${DOCKER_SSTATE_VOLUME}:/tmp-sstate \
-		${DOCKER_TAG} \
-		bash -c "mkdir -p /tmp-build/build /tmp-build/conf && \
-			mkdir -p /tmp-downloads && \
-			mkdir -p /tmp-sstate && \
-			chown -R ${USER}:${GROUP} /tmp-build /tmp-downloads /tmp-sstate"
 
 .PHONY: docker-analyzer
 docker-analyzer:
@@ -72,6 +62,10 @@ docker-analyzer:
 .PHONY: docker-init-volumes
 docker-init-volumes: init-submodule
 	docker run -it --rm \
+		--env BUILD_DIR=${BUILD_DIR} \
+		--env POKY_DIR=${POKY_DIR} \
+		--env USER=${USER} \
+		--env GROUP=${GROUP} \
 		--volume ${DOCKER_BUILD_VOLUME}:${BUILD_DIR} \
 		--volume ${DOCKER_DOWNLOADS_VOLUME}:${POKY_DIR}/downloads \
 		--volume ${DOCKER_SSTATE_VOLUME}:${POKY_DIR}/sstate-cache \
