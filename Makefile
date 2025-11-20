@@ -79,6 +79,10 @@ docker-init-volumes: init-submodule
 .PHONY: docker-run-image
 docker-run-image: docker-init-volumes
 	docker run -it --rm \
+		--env BUILD_DIR=${BUILD_DIR} \
+		--env POKY_DIR=${POKY_DIR} \
+		--env USER=${USER} \
+		--env GROUP=${GROUP} \
 		--volume ${DOCKER_BUILD_VOLUME}:${BUILD_DIR} \
 		--volume ${DOCKER_DOWNLOADS_VOLUME}:${POKY_DIR}/downloads \
 		--volume ${DOCKER_SSTATE_VOLUME}:${POKY_DIR}/sstate-cache \
@@ -94,6 +98,10 @@ docker-test-image: docker-init-volumes
 	@mkdir -p ${HOST_TEMP_PATH}; \
 	chmod 757 "${HOST_TEMP_PATH}"; \
 	CONTAINER_ID=$$(docker run -d --rm \
+		--env BUILD_DIR=${BUILD_DIR} \
+		--env POKY_DIR=${POKY_DIR} \
+		--env USER=${USER} \
+		--env GROUP=${GROUP} \
 		--volume ${DOCKER_BUILD_VOLUME}:${BUILD_DIR} \
 		--volume ${DOCKER_DOWNLOADS_VOLUME}:${POKY_DIR}/downloads \
 		--volume ${DOCKER_SSTATE_VOLUME}:${POKY_DIR}/sstate-cache \
