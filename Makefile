@@ -9,9 +9,9 @@ DOCKER_PREFIX              := imgtests
 DOCKER_TAG                 := ${DOCKER_PREFIX}-yocto-builder
 DOCKER_SUSE_TAG            := ${DOCKER_PREFIX}-open-suse-env
 DOCKER_PYTHON_TAG          := ${DOCKER_PREFIX}-analyzer
-DOCKER_BUILD_VOLUME        := yocto-build
-DOCKER_DOWNLOADS_VOLUME    := yocto-downloads
-DOCKER_SSTATE_VOLUME       := yocto-sstate
+DOCKER_BUILD_VOLUME        := ${DOCKER_PREFIX}-yocto-build
+DOCKER_DOWNLOADS_VOLUME    := ${DOCKER_PREFIX}-yocto-downloads
+DOCKER_SSTATE_VOLUME       := ${DOCKER_PREFIX}-yocto-sstate
 DOCKER_NETWORK             := yocto-network
 DOCKER_OPENSUSE_VOLUME     := open-suse-files
 
@@ -44,6 +44,7 @@ docker:
 		--build-arg USER="${USER}" \
 		--build-arg GROUP="${GROUP}" \
 		--build-arg PASSWORD="${PASSWORD}" \
+		--build-arg POKY_DIR="${POKY_DIR}" \
 		--file docker/image_builder.dockerfile .
 	docker volume create ${DOCKER_BUILD_VOLUME}
 	docker volume create ${DOCKER_DOWNLOADS_VOLUME}
@@ -69,8 +70,7 @@ docker-analyzer:
 		--file docker/python.dockerfile .
 
 .PHONY: docker-init-volumes
-docker-init-volumes:
-	git submodule update --init --recursive
+docker-init-volumes: init-submodule
 	docker run -it --rm \
 		--volume ${DOCKER_BUILD_VOLUME}:${BUILD_DIR} \
 		--volume ${DOCKER_DOWNLOADS_VOLUME}:${POKY_DIR}/downloads \
@@ -145,8 +145,12 @@ docker-run-suse:
 		bash -c "qemu-system-x86_64 open-suse-${SUSE_VER}.qcow2 -m 4G -nographic"
 
 .PHONY: docker-compose-up
-docker-compose-up:
+docker-compose-up: init-submodule
 	docker compose --file docker/compose.yml --project-directory ./ up --detach --build
+
+.PHONY: init-submodule
+init-submodule:
+	git submodule update --init --recursive
 
 .PHONY: ${PACKAGE_MGR}
 ${PACKAGE_MGR}:
@@ -177,6 +181,7 @@ help:
 	@echo "  docker-run-suse                    Runs openSUSE image via QEMU (Default: ${SUSE_VER});"
 	@echo "      SUSE_VER=[15.5|15.6]"
 	@echo "  docker-test-image                  Tests builded Yocto image from builded docker image;"
+	@echo "  init-submodule                     Recursive initialization git submodules;"
 	@echo "  pre-commit-check                   Check source code with pre-commit hooks;"
 	@echo "  unit-test                          Run unit tests for the Python library '${PY_LIB_NAME}';"
 	@echo "  help                               Displays information about all available targets."

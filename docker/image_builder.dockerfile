@@ -3,10 +3,10 @@ FROM ubuntu:22.04
 ARG USER
 ARG GROUP
 ARG PASSWORD
+ARG POKY_DIR
 
 ENV DEBIAN_FRONTEND=noninteractive \
-    LANG=en_US.UTF-8 \
-    POKY_DIR=/home/${USER}/poky
+    LANG=en_US.UTF-8
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \

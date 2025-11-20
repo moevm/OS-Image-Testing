@@ -6,13 +6,8 @@ services:
         USER: ${USER}
         GROUP: ${GROUP}
         PASSWORD: ${PASSWORD}
-        DOCKER_BUILD_VOLUME: ${DOCKER_BUILD_VOLUME}
-        DOCKER_DOWNLOADS_VOLUME: ${DOCKER_DOWNLOADS_VOLUME}
-        DOCKER_SSTATE_VOLUME: ${DOCKER_SSTATE_VOLUME}
-        BUILD_DIR: ${BUILD_DIR}
         POKY_DIR: ${POKY_DIR}
-        HOST_CONF_PATH: ${HOST_CONF_PATH}
-        HOST_LAYERS_PATH: ${HOST_LAYERS_PATH}
+    user: ${USER}:${GROUP}
     image: ${DOCKER_TAG}
     command: sleep infinity
     volumes:
@@ -47,9 +42,9 @@ services:
         ipv4_address: ${PYTHON_ADDRESS}
 
 volumes:
-  yocto-build:
-  yocto-downloads:
-  yocto-sstate:
+  imgtests-yocto-build:
+  imgtests-yocto-downloads:
+  imgtests-yocto-sstate:
 
 networks:
   yocto-network:
