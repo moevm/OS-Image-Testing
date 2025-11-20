@@ -34,6 +34,8 @@ Munin состоит из двух компонентов - `Munin Master` и `M
 
 - Добавление и настройка плагинов через `/usr/share/munin/plugins`
 
+Пример графика:
+
 ![Демонстрация функционала](https://github.com/user-attachments/assets/e67118df-efc8-429c-949b-7b2e966f1cb7)
 
 ## Недостатки
