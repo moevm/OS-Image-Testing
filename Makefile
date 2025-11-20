@@ -5,9 +5,10 @@ OS_IMAGE                   := core-image-minimal
 SUSE_VER                   ?= 15.6
 
 # Docker
-DOCKER_TAG                 := yocto-builder-image
-DOCKER_SUSE_TAG            := open-suse-image-env
-DOCKER_PYTHON_TAG          := python-image
+DOCKER_PREFIX              := imgtests
+DOCKER_TAG                 := ${DOCKER_PREFIX}-yocto-builder
+DOCKER_SUSE_TAG            := ${DOCKER_PREFIX}-open-suse-env
+DOCKER_PYTHON_TAG          := ${DOCKER_PREFIX}-analyzer
 DOCKER_BUILD_VOLUME        := yocto-build
 DOCKER_DOWNLOADS_VOLUME    := yocto-downloads
 DOCKER_SSTATE_VOLUME       := yocto-sstate

@@ -1,5 +1,5 @@
 services:
-  yocto:
+  imgtests-yocto:
     build:
       dockerfile: docker/image_builder.dockerfile
       args:
@@ -14,6 +14,7 @@ services:
         HOST_CONF_PATH: ${HOST_CONF_PATH}
         HOST_LAYERS_PATH: ${HOST_LAYERS_PATH}
     image: ${DOCKER_TAG}
+    command: sleep infinity
     volumes:
       - ${DOCKER_BUILD_VOLUME}:${BUILD_DIR}
       - ${DOCKER_DOWNLOADS_VOLUME}:${POKY_DIR}/downloads
@@ -28,13 +29,14 @@ services:
       yocto-network:
         ipv4_address: ${YOCTO_ADDRESS}
 
-  python-analyzer:
+  imgtests-analyzer:
     build:
       dockerfile: docker/python.dockerfile
       args:
         USER: ${USER}
         GROUP: ${GROUP}
     image: ${DOCKER_PYTHON_TAG}
+    command: sleep infinity
     volumes:
       - ./tests/image:/home/${USER}/tests
     environment:

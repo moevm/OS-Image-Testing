@@ -34,4 +34,3 @@ COPY --chown=${USER}:${GROUP} layers ${POKY_DIR}
 COPY --chown=${USER}:${GROUP} scripts/entrypoint.sh ${POKY_DIR}/
 
 ENTRYPOINT ["/home/user/poky/entrypoint.sh"]
-CMD ["/bin/bash"]
