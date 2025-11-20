@@ -1,9 +1,12 @@
+import logging
 import re
 from typing import NamedTuple
 
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult, SSHClient
 from imgtests.exec.utils import add_flag, create_opt
+
+logger = logging.getLogger(__name__)
 
 
 class StressNGVerifications(NamedTuple):
@@ -156,7 +159,10 @@ class StressNg(GenericUtil):
                     float(m.group(7)),
                     float(m.group(8)),
                 )
-            except ValueError:
+            except ValueError as e:
+                logger.warning(
+                    "Failed to parse stress-ng metrics line: '%s'. Error: %s", clean_line, str(e)
+                )
                 continue
             metrics.append(data)
         return metrics
