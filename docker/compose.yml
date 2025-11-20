@@ -9,7 +9,7 @@ services:
         POKY_DIR: ${POKY_DIR}
     user: ${USER}:${GROUP}
     image: ${DOCKER_TAG}
-    command: sleep infinity
+    command: ${POKY_DIR}/cmd_yocto.sh
     volumes:
       - ${DOCKER_BUILD_VOLUME}:${BUILD_DIR}
       - ${DOCKER_DOWNLOADS_VOLUME}:${POKY_DIR}/downloads
@@ -17,9 +17,11 @@ services:
       - ${HOST_CONF_PATH}/local.conf:${BUILD_DIR}/conf/local.conf
       - ${HOST_CONF_PATH}/packages.conf:${BUILD_DIR}/conf/packages.conf
       - ${HOST_LAYERS_PATH}/meta-image-tests:${POKY_DIR}/meta-image-tests
+      - ${HOST_SCRIPTS_PATH}/add-layers.sh:${POKY_DIR}/add-layers.sh
     environment:
       BUILD_DIR: ${BUILD_DIR}
       POKY_DIR: ${POKY_DIR}
+      OS_IMAGE: ${OS_IMAGE}
       USER: ${USER}
       GROUP: ${GROUP}
       SSH_USER: root

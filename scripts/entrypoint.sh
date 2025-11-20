@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 sudo mkdir --parents "${BUILD_DIR}"/build "${BUILD_DIR}"/conf
 sudo mkdir --parents "${POKY_DIR}"/downloads
 sudo mkdir --parents "${POKY_DIR}"/sstate-cache
