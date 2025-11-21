@@ -97,7 +97,7 @@ class StressNg(GenericUtil):
             ValueError: When invalid parameters provided.
 
         Returns:
-            ExecResult: Result of the stress test work.
+            tuple[ExecResult, list[StressNGMetrics]]: Result of stress test work and parsed metrics.
         """
         if timeout_sec < 0:
             err_msg = f"Invalid timeout '{timeout_sec}'. Expected more or equal 0."
@@ -129,17 +129,25 @@ class StressNg(GenericUtil):
         return result, self._parse_metrics(result.stderr.strip())
 
     def _parse_metrics(self, raw_metrics: str) -> list[StressNGMetrics]:
+        """Parse stress-ng metrics output.
+
+        Args:
+            raw_metrics (str): Raw stress-ng output metrics.
+
+        Returns:
+            list[StressNGMetrics]: List of parsed metrics objects.
+        """
         metrics = []
 
         p = re.compile(
             r"^(\S+)\s+"  # stressor name
-            r"([\d.-]+)\s+"  # bogo ops
-            r"([\d.-]+)\s+"  # real time
-            r"([\d.-]+)\s+"  # usr time
-            r"([\d.-]+)\s+"  # sys time
-            r"([\d.-]+)\s+"  # bogo ops/s (real time)
-            r"([\d.-]+)\s+"  # bogo ops/s (usr+sys time)
-            r"([\d.-]+)$"  # CPU used per instance
+            r"(\d+)\s+"  # bogo ops
+            r"([\d.]+)\s+"  # real time
+            r"([\d.]+)\s+"  # usr time
+            r"([\d.]+)\s+"  # sys time
+            r"([\d.]+)\s+"  # bogo ops/s (real time)
+            r"([\d.]+)\s+"  # bogo ops/s (usr+sys time)
+            r"([\d.]+)$"  # CPU used per instance
         )
 
         for line in raw_metrics.strip().split("\n"):
