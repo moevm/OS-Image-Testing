@@ -24,8 +24,6 @@ services:
       OS_IMAGE: ${OS_IMAGE}
       USER: ${USER}
       GROUP: ${GROUP}
-      SSH_USER: root
-      SSH_PASS: strong
     networks:
       yocto-network:
         ipv4_address: ${YOCTO_ADDRESS}
@@ -37,12 +35,13 @@ services:
         USER: ${USER}
         GROUP: ${GROUP}
     image: ${DOCKER_PYTHON_TAG}
-    command: sleep infinity
+    command: python3 /home/${USER}/tests/runner.py
     volumes:
       - ./tests/image:/home/${USER}/tests
     environment:
-      SSH_USER: root
-      SSH_PASS: strong
+      SSH_USER: ${USER}
+      SSH_PASS: ${PASSWORD}
+      SSH_ADDR: ${YOCTO_ADDRESS}
     networks:
       yocto-network:
         ipv4_address: ${PYTHON_ADDRESS}
