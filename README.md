@@ -14,7 +14,7 @@ Repository structure:
 
 ## Building Yocto testing image via Docker
 
-### 1. Clone the repository
+### 1. Clone the repository and getting help
 
 ```bash
 git clone https://github.com/moevm/OS-Image-Testing.git
@@ -22,10 +22,12 @@ git clone https://github.com/moevm/OS-Image-Testing.git
 cd OS-Image-Testing
 ```
 
+For getting information about available commands run `make help`.
+
 ### 2. Base initialization docker volumes and subsequent building image
 
 ```
-# Building docker image and initialization volumes
+# Building docker image and initialization volumes for building and running OS into them
 make docker
 
 # Starting the OS image build
@@ -38,6 +40,21 @@ make docker-run-image
 make docker-test-image
 ```
 
+Note: To create an image with all packages specified in conf/packages.conf, you will need at least 200 GB of free space. If your memory is running low, consider removing unnecessary packages.
+
 To add a test using, for example, **stress-ng**, go to the layers/meta-image/tests/recipes-tests folder, then to endurance-tests or performance-tests, depending on the type of test, then add the test to the folder of the chosen subsystem and update the corresponding .bb file.
 
 To add a new utility, you need to update the local.conf and write the appropriate recipe, then add the paths to the recipe and dependent files for all called containers in the `Makefile`.
+
+## OpenSUSE testing
+
+```
+# Building docker image for building and running openSUSE into them
+make docker-suse
+
+# Starting downloads necessary openSUSE images
+make docker-init-suse [SUSE_VER=[15.5|15.6]]
+
+# Running openSUSE in the docker container via QEMU
+make docker-run-suse [SUSE_VER=[15.5|15.6]]
+```

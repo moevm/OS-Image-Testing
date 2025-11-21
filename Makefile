@@ -1,15 +1,19 @@
 USER                       := user
 GROUP                      := yoctogroup
 OS_IMAGE                   := core-image-minimal
+SUSE_VER                   ?= 15.6
 
 # Docker
 DOCKER_TAG                 := yocto-builder-image
+DOCKER_SUSE_TAG            := open-suse-image-env
 DOCKER_BUILD_VOLUME        := yocto-build
 DOCKER_DOWNLOADS_VOLUME    := yocto-downloads
 DOCKER_SSTATE_VOLUME       := yocto-sstate
+DOCKER_OPENSUSE_VOLUME     := open-suse-files
 
 # Paths
 POKY_DIR                   := /home/${USER}/poky
+SUSE_DIR                   := /home/${USER}/suse
 BUILD_DIR                  := ${POKY_DIR}/build
 HOST_LAYERS_PATH           := ${CURDIR}/layers
 HOST_CONF_PATH             := ${CURDIR}/conf
@@ -50,15 +54,8 @@ docker-init-volumes:
 		--volume ${DOCKER_DOWNLOADS_VOLUME}:${POKY_DIR}/downloads \
 		--volume ${DOCKER_SSTATE_VOLUME}:${POKY_DIR}/sstate-cache \
 		--volume "${HOST_CONF_PATH}/local.conf:${BUILD_DIR}/conf/local.conf" \
+		--volume "${HOST_CONF_PATH}/packages.conf:${BUILD_DIR}/conf/packages.conf" \
 		--volume "${HOST_LAYERS_PATH}/meta-image-tests:${POKY_DIR}/meta-image-tests" \
-		--volume "${HOST_LAYERS_PATH}/meta-clang:${POKY_DIR}/meta-clang" \
-		--volume "${HOST_LAYERS_PATH}/meta-dpdk:${POKY_DIR}/meta-dpdk" \
-		--volume "${HOST_LAYERS_PATH}/meta-erlang:${POKY_DIR}/meta-erlang" \
-		--volume "${HOST_LAYERS_PATH}/meta-openembedded:${POKY_DIR}/meta-openembedded" \
-		--volume "${HOST_LAYERS_PATH}/meta-qt5:${POKY_DIR}/meta-qt5" \
-		--volume "${HOST_LAYERS_PATH}/meta-secure-core:${POKY_DIR}/meta-secure-core" \
-		--volume "${HOST_LAYERS_PATH}/meta-security:${POKY_DIR}/meta-security" \
-		--volume "${HOST_LAYERS_PATH}/meta-virtualization:${POKY_DIR}/meta-virtualization" \
 		--volume "${HOST_SCRIPTS_PATH}/add-layers.sh:${POKY_DIR}/add-layers.sh" \
 		${DOCKER_TAG} \
 		bash -c "cd .. && ./add-layers.sh && bitbake ${OS_IMAGE}"
@@ -70,15 +67,8 @@ docker-run-image: docker-init-volumes
 		--volume ${DOCKER_DOWNLOADS_VOLUME}:${POKY_DIR}/downloads \
 		--volume ${DOCKER_SSTATE_VOLUME}:${POKY_DIR}/sstate-cache \
 		--volume "${HOST_CONF_PATH}/local.conf:${BUILD_DIR}/conf/local.conf" \
+		--volume "${HOST_CONF_PATH}/packages.conf:${BUILD_DIR}/conf/packages.conf" \
 		--volume "${HOST_LAYERS_PATH}/meta-image-tests:${POKY_DIR}/meta-image-tests" \
-		--volume "${HOST_LAYERS_PATH}/meta-clang:${POKY_DIR}/meta-clang" \
-		--volume "${HOST_LAYERS_PATH}/meta-dpdk:${POKY_DIR}/meta-dpdk" \
-		--volume "${HOST_LAYERS_PATH}/meta-erlang:${POKY_DIR}/meta-erlang" \
-		--volume "${HOST_LAYERS_PATH}/meta-openembedded:${POKY_DIR}/meta-openembedded" \
-		--volume "${HOST_LAYERS_PATH}/meta-qt5:${POKY_DIR}/meta-qt5" \
-		--volume "${HOST_LAYERS_PATH}/meta-secure-core:${POKY_DIR}/meta-secure-core" \
-		--volume "${HOST_LAYERS_PATH}/meta-security:${POKY_DIR}/meta-security" \
-		--volume "${HOST_LAYERS_PATH}/meta-virtualization:${POKY_DIR}/meta-virtualization" \
 		${DOCKER_TAG} \
 		runqemu qemux86-64 slirp nographic
 
@@ -92,15 +82,8 @@ docker-test-image: docker-init-volumes
 		--volume ${DOCKER_DOWNLOADS_VOLUME}:${POKY_DIR}/downloads \
 		--volume ${DOCKER_SSTATE_VOLUME}:${POKY_DIR}/sstate-cache \
 		--volume "${HOST_CONF_PATH}/local.conf:${BUILD_DIR}/conf/local.conf" \
+		--volume "${HOST_CONF_PATH}/packages.conf:${BUILD_DIR}/conf/packages.conf" \
 		--volume "${HOST_LAYERS_PATH}/meta-image-tests:${POKY_DIR}/meta-image-tests" \
-		--volume "${HOST_LAYERS_PATH}/meta-clang:${POKY_DIR}/meta-clang" \
-		--volume "${HOST_LAYERS_PATH}/meta-dpdk:${POKY_DIR}/meta-dpdk" \
-		--volume "${HOST_LAYERS_PATH}/meta-erlang:${POKY_DIR}/meta-erlang" \
-		--volume "${HOST_LAYERS_PATH}/meta-openembedded:${POKY_DIR}/meta-openembedded" \
-		--volume "${HOST_LAYERS_PATH}/meta-qt5:${POKY_DIR}/meta-qt5" \
-		--volume "${HOST_LAYERS_PATH}/meta-secure-core:${POKY_DIR}/meta-secure-core" \
-		--volume "${HOST_LAYERS_PATH}/meta-security:${POKY_DIR}/meta-security" \
-		--volume "${HOST_LAYERS_PATH}/meta-virtualization:${POKY_DIR}/meta-virtualization" \
 		--volume "${HOST_TEMP_PATH}:/tmp/results" \
 		--volume "${HOST_SCRIPTS_PATH}:/tmp/scripts" \
 		${DOCKER_TAG} \
@@ -115,6 +98,29 @@ docker-test-image: docker-init-volumes
 		echo "QEMU test completed. Press enter"; \
 	} &
 	@echo "QEMU test started in background"
+
+.PHONY: docker-suse
+docker-suse:
+	docker build \
+		--tag ${DOCKER_SUSE_TAG} \
+		--build-arg USER="${USER}" \
+		--file docker/open-suse.dockerfile .
+	docker volume create ${DOCKER_OPENSUSE_VOLUME}
+
+.PHONY: docker-init-suse
+docker-init-suse:
+	docker run -it --rm \
+		--volume ${DOCKER_OPENSUSE_VOLUME}:${SUSE_DIR} \
+		--volume "${HOST_SCRIPTS_PATH}/download-opensuse-images.sh:${SUSE_DIR}/download-opensuse-images.sh" \
+		${DOCKER_SUSE_TAG} \
+		bash -c "./download-opensuse-images.sh ${SUSE_VER}"
+
+.PHONY: docker-run-suse
+docker-run-suse:
+	docker run -it --rm \
+		--volume ${DOCKER_OPENSUSE_VOLUME}:${SUSE_DIR} \
+		${DOCKER_SUSE_TAG} \
+		bash -c "qemu-system-x86_64 open-suse-${SUSE_VER}.qcow2 -m 4G -nographic"
 
 .PHONY: ${PACKAGE_MGR}
 ${PACKAGE_MGR}:
@@ -136,12 +142,17 @@ help:
 	@echo "Usage:"
 	@echo "  make [targets] [arguments]"
 	@echo
-	@echo "  docker                 Builds a docker image;"
-	@echo "  docker-init-volumes    Initializes docker volumes;"
-	@echo "  docker-run-image       Runs builded Yocto image from builded docker image;"
-	@echo "  docker-test-image      Tests builded Yocto image from builded docker image;"
-	@echo "  pre-commit-check       Check source code with pre-commit hooks;"
-	@echo "  unit-test              Run unit tests for the Python library '${PY_LIB_NAME}';"
-	@echo "  help                   Displays information about all available targets."
+	@echo "  docker                             Builds a docker image;"
+	@echo "  docker-suse                        Builds a docker image for openSUSE images environment;"
+	@echo "  docker-init-volumes                Initializes docker volumes;"
+	@echo "  docker-init-suse                   Downloads openSUSE image (Default: ${SUSE_VER});"
+	@echo "      SUSE_VER=[15.5|15.6]"
+	@echo "  docker-run-image                   Runs builded Yocto image from builded docker image;"
+	@echo "  docker-run-suse                    Runs openSUSE image via QEMU (Default: ${SUSE_VER});"
+	@echo "      SUSE_VER=[15.5|15.6]"
+	@echo "  docker-test-image                  Tests builded Yocto image from builded docker image;"
+	@echo "  pre-commit-check                   Check source code with pre-commit hooks;"
+	@echo "  unit-test                          Run unit tests for the Python library '${PY_LIB_NAME}';"
+	@echo "  help                               Displays information about all available targets."
 
 .EXPORT_ALL_VARIABLES:

@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import NamedTuple
+from typing import Any, NamedTuple
 
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult, SSHClient
@@ -75,6 +75,7 @@ class StressNg(GenericUtil):
         iomix: int | None = None,
         iomix_bytes: str | None = None,
         verify: bool = True,
+        **kwargs: dict[str, Any],
     ) -> tuple[ExecResult, list[StressNGMetrics]]:
         """Runs the stress-ng util stressors.
 
@@ -92,9 +93,10 @@ class StressNg(GenericUtil):
               processors.
             iomix_bytes (str | None): Utilized memory as value or percent of all available memory.
             verify (bool): Verify results if can.
+            **kwargs (dict[str, Any]): Command arguments in the free form with values.
 
         Raises:
-            ValueError: When invalid parameters provided.
+            ValueError: When invalid parameters provided or repeated.
 
         Returns:
             tuple[ExecResult, list[StressNGMetrics]]: Result of stress test work and parsed metrics.
@@ -124,7 +126,8 @@ class StressNg(GenericUtil):
                 *create_opt("iomix-bytes", iomix_bytes),
                 *create_opt("verify", verify),
                 *add_flag("metrics"),
-            ]
+            ],
+            **kwargs,
         )
         return result, self._parse_metrics(result.stderr.strip())
 
