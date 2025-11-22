@@ -1,14 +1,29 @@
+import logging
+import re
 from typing import Any, NamedTuple
 
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult, SSHClient
 from imgtests.exec.utils import add_flag, create_opt
 
+logger = logging.getLogger(__name__)
+
 
 class StressNGVerifications(NamedTuple):
     always_enabled: tuple[str, ...]
     enabled_by_option: tuple[str, ...]
     not_implemented: tuple[str, ...]
+
+
+class StressNGMetrics(NamedTuple):
+    stressor: str
+    bogo_ops: int
+    real_time_secs: float
+    usr_time_secs: float
+    sys_time_secs: float
+    bogo_ops_s_real_time: float
+    bogo_ops_s_usr_sys_time: float
+    cpu_used_per_instance: float
 
 
 class StressNg(GenericUtil):
@@ -61,7 +76,7 @@ class StressNg(GenericUtil):
         iomix_bytes: str | None = None,
         verify: bool = True,
         **kwargs: dict[str, Any],
-    ) -> ExecResult:
+    ) -> tuple[ExecResult, list[StressNGMetrics]]:
         """Runs the stress-ng util stressors.
 
         Args:
@@ -84,7 +99,7 @@ class StressNg(GenericUtil):
             ValueError: When invalid parameters provided or repeated.
 
         Returns:
-            ExecResult: Result of the stress test work.
+            tuple[ExecResult, list[StressNGMetrics]]: Result of stress test work and parsed metrics.
         """
         if timeout_sec < 0:
             err_msg = f"Invalid timeout '{timeout_sec}'. Expected more or equal 0."
@@ -99,7 +114,7 @@ class StressNg(GenericUtil):
             err_msg = f"Invalid iomix count '{iomix}'. Expected more or equal 0."
             raise ValueError(err_msg)
 
-        return self(
+        result = self(
             [
                 *create_opt("timeout", timeout_sec),
                 *create_opt("cpu", cpu),
@@ -114,6 +129,54 @@ class StressNg(GenericUtil):
             ],
             **kwargs,
         )
+        return result, self._parse_metrics(result.stderr.strip())
+
+    def _parse_metrics(self, raw_metrics: str) -> list[StressNGMetrics]:
+        """Parse stress-ng metrics output.
+
+        Args:
+            raw_metrics (str): Raw stress-ng output metrics.
+
+        Returns:
+            list[StressNGMetrics]: List of parsed metrics objects.
+        """
+        metrics: list[StressNGMetrics] = []
+
+        p = re.compile(
+            r"^(\S+)\s+"  # stressor name
+            r"(\d+)\s+"  # bogo ops
+            r"([\d.]+)\s+"  # real time
+            r"([\d.]+)\s+"  # usr time
+            r"([\d.]+)\s+"  # sys time
+            r"([\d.]+)\s+"  # bogo ops/s (real time)
+            r"([\d.]+)\s+"  # bogo ops/s (usr+sys time)
+            r"([\d.]+)$"  # CPU used per instance
+        )
+
+        for line in raw_metrics.strip().split("\n"):
+            clean_line = re.sub(r"stress-ng: info:\s+\[\d+\]\s*", "", line).strip()
+
+            m = p.match(clean_line)
+            if m is None:
+                continue
+            try:
+                data = StressNGMetrics(
+                    m.group(1),
+                    int(m.group(2)),
+                    float(m.group(3)),
+                    float(m.group(4)),
+                    float(m.group(5)),
+                    float(m.group(6)),
+                    float(m.group(7)),
+                    float(m.group(8)),
+                )
+            except ValueError as e:
+                logger.warning(
+                    "Failed to parse stress-ng metrics line: '%s'. Error: %s", clean_line, str(e)
+                )
+                continue
+            metrics.append(data)
+        return metrics
 
     def __parse_methods(self, raw_methods: str) -> tuple[str, ...] | None:
         try:
