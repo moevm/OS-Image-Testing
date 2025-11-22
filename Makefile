@@ -135,7 +135,7 @@ pre-commit-check: ${PACKAGE_MGR}
 .PHONY: unit-test
 unit-test: ${PACKAGE_MGR}
 	@echo "Running tests for the library '${PY_LIB_NAME}''..."
-	@uvx pytest
+	@uv run --with pytest pytest
 
 .PHONY: help
 help:

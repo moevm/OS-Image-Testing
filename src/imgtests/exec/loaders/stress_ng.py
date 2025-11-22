@@ -140,7 +140,7 @@ class StressNg(GenericUtil):
         Returns:
             list[StressNGMetrics]: List of parsed metrics objects.
         """
-        metrics = []
+        metrics: list[StressNGMetrics] = []
 
         p = re.compile(
             r"^(\S+)\s+"  # stressor name
