@@ -178,6 +178,7 @@ help:
 	@echo
 	@echo "  docker                             Builds a docker image;"
 	@echo "  docker-suse                        Builds a docker image for openSUSE images environment;"
+	@echo "  docker-analyzer                    Builds a docker image for analyze tests results;"
 	@echo "  docker-init-volumes                Initializes docker volumes;"
 	@echo "  docker-init-suse                   Downloads openSUSE image (Default: ${SUSE_VER});"
 	@echo "      SUSE_VER=[15.5|15.6]"
@@ -185,6 +186,7 @@ help:
 	@echo "  docker-run-suse                    Runs openSUSE image via QEMU (Default: ${SUSE_VER});"
 	@echo "      SUSE_VER=[15.5|15.6]"
 	@echo "  docker-test-image                  Tests builded Yocto image from builded docker image;"
+	@echo "  docker-compose-up                  Run tests stand with analysis container and target containers;"
 	@echo "  init-submodule                     Recursive initialization git submodules;"
 	@echo "  pre-commit-check                   Check source code with pre-commit hooks;"
 	@echo "  unit-test                          Run unit tests for the Python library '${PY_LIB_NAME}';"

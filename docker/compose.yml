@@ -25,7 +25,7 @@ services:
       USER: ${USER}
       GROUP: ${GROUP}
     ports:
-      - ${SSH_QEMU_PORT}
+      - ${SSH_QEMU_PORT}:${SSH_QEMU_PORT}
     networks:
       yocto-network:
         ipv4_address: ${YOCTO_ADDRESS}
