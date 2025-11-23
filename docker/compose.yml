@@ -1,0 +1,64 @@
+services:
+  imgtests-yocto:
+    build:
+      dockerfile: docker/image_builder.dockerfile
+      args:
+        USER: ${USER}
+        GROUP: ${GROUP}
+        PASSWORD: ${PASSWORD}
+        POKY_DIR: ${POKY_DIR}
+    user: ${USER}:${GROUP}
+    image: ${DOCKER_TAG}
+    command: ${POKY_DIR}/cmd_yocto.sh
+    volumes:
+      - ${DOCKER_BUILD_VOLUME}:${BUILD_DIR}
+      - ${DOCKER_DOWNLOADS_VOLUME}:${POKY_DIR}/downloads
+      - ${DOCKER_SSTATE_VOLUME}:${POKY_DIR}/sstate-cache
+      - ${HOST_CONF_PATH}/local.conf:${BUILD_DIR}/conf/local.conf
+      - ${HOST_CONF_PATH}/packages.conf:${BUILD_DIR}/conf/packages.conf
+      - ${HOST_LAYERS_PATH}/meta-image-tests:${POKY_DIR}/meta-image-tests
+      - ${HOST_SCRIPTS_PATH}/add-layers.sh:${POKY_DIR}/add-layers.sh
+    environment:
+      BUILD_DIR: ${BUILD_DIR}
+      POKY_DIR: ${POKY_DIR}
+      OS_IMAGE: ${OS_IMAGE}
+      USER: ${USER}
+      GROUP: ${GROUP}
+    ports:
+      - ${SSH_QEMU_PORT}:${SSH_QEMU_PORT}
+    networks:
+      yocto-network:
+        ipv4_address: ${YOCTO_ADDRESS}
+
+  imgtests-analyzer:
+    build:
+      dockerfile: docker/python.dockerfile
+      args:
+        USER: ${USER}
+        GROUP: ${GROUP}
+    image: ${DOCKER_PYTHON_TAG}
+    command: python3 /home/${USER}/image/runner.py
+    volumes:
+      - ./tests/image:/home/${USER}/image
+    environment:
+      PYTHONPATH: /home/${USER}/
+      SSH_USER: ${SSH_QEMU_USER}
+      SSH_PASS: ""
+      SSH_ADDR: ${YOCTO_ADDRESS}
+      SSH_PORT: ${SSH_QEMU_PORT}
+    networks:
+      yocto-network:
+        ipv4_address: ${PYTHON_ADDRESS}
+
+volumes:
+  imgtests-yocto-build:
+  imgtests-yocto-downloads:
+  imgtests-yocto-sstate:
+
+networks:
+  yocto-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: ${SUBNET}
+          gateway: ${GATEWAY}
