@@ -37,11 +37,11 @@ services:
         USER: ${USER}
         GROUP: ${GROUP}
     image: ${DOCKER_PYTHON_TAG}
-    command: python3 /home/${USER}/tests/image/runner.py
+    command: python3 /home/${USER}/image/runner.py
     volumes:
-      - ./tests/image:/home/${USER}/tests/image
+      - ./tests/image:/home/${USER}/image
     environment:
-      PYTHONPATH: /home/${USER}/tests
+      PYTHONPATH: /home/${USER}/
       SSH_USER: ${SSH_QEMU_USER}
       SSH_PASS: ""
       SSH_ADDR: ${YOCTO_ADDRESS}

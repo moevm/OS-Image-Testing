@@ -37,5 +37,5 @@ def wait_remote() -> SSHClient | None:
 if __name__ == "__main__":
     client = wait_remote()
     stress_ng = StressNg(client)
-    result, metrics = stress_ng.run(timeout_sec=20, cpu=1)
-    logger.info(result, metrics)
+    _, metrics = stress_ng.run(timeout_sec=20, cpu=1)
+    logger.info(metrics)
