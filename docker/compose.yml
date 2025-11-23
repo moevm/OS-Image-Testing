@@ -24,6 +24,8 @@ services:
       OS_IMAGE: ${OS_IMAGE}
       USER: ${USER}
       GROUP: ${GROUP}
+    ports:
+      - ${SSH_QEMU_PORT}
     networks:
       yocto-network:
         ipv4_address: ${YOCTO_ADDRESS}
@@ -35,13 +37,15 @@ services:
         USER: ${USER}
         GROUP: ${GROUP}
     image: ${DOCKER_PYTHON_TAG}
-    command: python3 /home/${USER}/tests/runner.py
+    command: python3 /home/${USER}/tests/image/runner.py
     volumes:
-      - ./tests/image:/home/${USER}/tests
+      - ./tests/image:/home/${USER}/tests/image
     environment:
-      SSH_USER: ${USER}
-      SSH_PASS: ${PASSWORD}
+      PYTHONPATH: /home/${USER}/tests
+      SSH_USER: ${SSH_QEMU_USER}
+      SSH_PASS: ""
       SSH_ADDR: ${YOCTO_ADDRESS}
+      SSH_PORT: ${SSH_QEMU_PORT}
     networks:
       yocto-network:
         ipv4_address: ${PYTHON_ADDRESS}

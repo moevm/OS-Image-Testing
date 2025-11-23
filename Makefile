@@ -32,6 +32,8 @@ YOCTO_ADDRESS              := 10.5.0.10
 PYTHON_ADDRESS             := 10.5.0.11
 SUBNET                     := 10.5.0.0/24
 GATEWAY                    := 10.5.0.1
+SSH_QEMU_USER              ?= root
+SSH_QEMU_PORT              ?= 2222
 
 # Library
 PYTHONDONTWRITEBYTECODE    := 1
