@@ -26,7 +26,7 @@ def wait_remote() -> SSHClient | None:
     step_sec = 60
     while wait_sec > 0:
         try:
-            return SSHClient(SSH_ADDR, SSH_USER, SSH_PASSWORD, 2222)
+            return SSHClient(SSH_ADDR, SSH_USER, SSH_PASSWORD, SSH_PORT)
         except paramiko.ssh_exception.SSHException:
             logger.info("Waiting remote node to build and run image.")
         sleep(step_sec)
