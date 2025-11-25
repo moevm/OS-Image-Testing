@@ -1,20 +1,21 @@
-touch user-data
-touch meta-data
-
-echo "#cloud-config
-password: ""$2""
+cat << EOF > user-data
+#cloud-config
+password: $2
 chpasswd:
   expire: false
 users:
 - default
-- name: ""$1""
+- name: $1
   ssh_redirect_user: true
-  plain_text_passwd: ""$2""
+  plain_text_passwd: $2
   sudo: ['ALL=(ALL) NOPASSWD:ALL']
   groups: users, sudo, admin
   shell: /bin/bash
-  lock_passwd: false" > user-data
+  lock_passwd: false
+EOF
 
-echo "instance-id: 510/susevm" > meta-data
+cat << EOF > meta-data
+instance-id: 420/susevm
+EOF
 
 cloud-localds cloud-init.iso user-data meta-data
