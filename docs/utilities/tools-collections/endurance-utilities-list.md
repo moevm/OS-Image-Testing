@@ -53,7 +53,7 @@
 
 https://github.com/ColinIanKing/stress-ng
 
-Стресс-тест и мониторинг дисков.
+Стресс-тест и мониторинг дисков:
 
 ```
 stress-ng --hdd 2 --timeout 1m & iostat -x 1
@@ -65,7 +65,7 @@ stress-ng --hdd 2 --timeout 1m & iostat -x 1
 
 https://github.com/htop-dev/htop
 
-Проверка на работоспособность процессов во время тестирования.
+Проверка на работоспособность процессов во время тестирования:
 
 ```
 htop
@@ -79,7 +79,7 @@ https://github.com/sysstat/sysstat
 
 Анализ операций чтения и записи диска с помощью входящей утилиты **iostat** во время тестирования дисковых подсистем.
 
-Детальная статистика по дискам каждые 5 секунд, 10 раз.
+Детальная статистика по дискам каждые 5 секунд, 10 раз:
 
 ```
 iostat -dxm 5 10
@@ -93,7 +93,7 @@ https://grafana.com
 
 Сбор данных о компонентах системы во время длительного тестирования с отслеживанием результатов тестов.
 
-Мониторинг сетевых сетевого интерфейса.
+Мониторинг сетевого интерфейса:
 
 ```
 *promql* rate(node_network_receive_errs_total{device="eth0"}[5m])
@@ -103,7 +103,7 @@ https://grafana.com
 
 https://github.com/netdata/netdata
 
-Мониторинг всех компонентов системы в реальном времени во время выполнения тестов.
+Мониторинг всех компонентов системы в реальном времени во время выполнения тестов:
 
 ```
 sudo systemctl start netdata
@@ -119,9 +119,7 @@ https://man.archlinux.org/man/journalctl.1.en
 
 https://docs.lnav.org/en/v0.12.4
 
-Поиск segfault в логах после выполнения тестов.
-
-Просмотр логов за последний час.
+Поиск segfault в логах после выполнения тестов, просмотр за последний час:
 
 ```
 journalctl --since "1 hour ago" | lnav
@@ -133,7 +131,7 @@ journalctl --since "1 hour ago" | lnav
 
 https://man7.org/linux/man-pages/man1/dmesg.1.html
 
-Поиск ошибок ядра.
+Поиск ошибок ядра:
 
 ```
 sudo dmesg -T -l err | lnav
