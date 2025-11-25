@@ -1,4 +1,5 @@
 USER                       := user
+S_USER                     := suser
 GROUP                      := yoctogroup
 OS_IMAGE                   := core-image-minimal
 SUSE_VER                   ?= 15.6
@@ -133,15 +134,16 @@ docker-init-suse:
 	docker run -it --rm \
 		--volume ${DOCKER_OPENSUSE_VOLUME}:${SUSE_DIR} \
 		--volume "${HOST_SCRIPTS_PATH}/download-opensuse-images.sh:${SUSE_DIR}/download-opensuse-images.sh" \
+		--volume "${HOST_SCRIPTS_PATH}/open-suse-cloud-setup.sh:${SUSE_DIR}/open-suse-cloud-setup.sh" \
 		${DOCKER_SUSE_TAG} \
-		bash -c "./download-opensuse-images.sh ${SUSE_VER}"
+		bash -c "./download-opensuse-images.sh ${SUSE_VER} && ./open-suse-cloud-setup.sh ${S_USER}"
 
 .PHONY: docker-run-suse
 docker-run-suse:
 	docker run -it --rm \
 		--volume ${DOCKER_OPENSUSE_VOLUME}:${SUSE_DIR} \
 		${DOCKER_SUSE_TAG} \
-		bash -c "qemu-system-x86_64 open-suse-${SUSE_VER}.qcow2 -m 4G -nographic"
+		bash -c "qemu-system-x86_64 -m 4G -nographic -drive file=open-suse-${SUSE_VER}.qcow2,index=0,media=disk -cdrom cloud-init.iso"
 
 .PHONY: ${PACKAGE_MGR}
 ${PACKAGE_MGR}:
