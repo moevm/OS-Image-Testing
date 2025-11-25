@@ -1,21 +1,11 @@
 USER                       := user
-<<<<<<< HEAD
 S_USER                     := suser
-=======
 PASSWORD                   := password
->>>>>>> main
 GROUP                      := yoctogroup
 OS_IMAGE                   := core-image-minimal
 SUSE_VER                   ?= 15.6
 
 # Docker
-<<<<<<< HEAD
-DOCKER_TAG                 := yocto-builder-image
-DOCKER_SUSE_TAG            := open-suse-image-env
-DOCKER_BUILD_VOLUME        := yocto-build
-DOCKER_DOWNLOADS_VOLUME    := yocto-downloads
-DOCKER_SSTATE_VOLUME       := yocto-sstate
-=======
 DOCKER_PREFIX              := imgtests
 DOCKER_TAG                 := ${DOCKER_PREFIX}-yocto-builder
 DOCKER_SUSE_TAG            := ${DOCKER_PREFIX}-open-suse-env
@@ -24,7 +14,6 @@ DOCKER_BUILD_VOLUME        := ${DOCKER_PREFIX}-yocto-build
 DOCKER_DOWNLOADS_VOLUME    := ${DOCKER_PREFIX}-yocto-downloads
 DOCKER_SSTATE_VOLUME       := ${DOCKER_PREFIX}-yocto-sstate
 DOCKER_NETWORK             := yocto-network
->>>>>>> main
 DOCKER_OPENSUSE_VOLUME     := open-suse-files
 
 # Paths
@@ -152,7 +141,7 @@ docker-init-suse:
 		--volume "${HOST_SCRIPTS_PATH}/download-opensuse-images.sh:${SUSE_DIR}/download-opensuse-images.sh" \
 		--volume "${HOST_SCRIPTS_PATH}/open-suse-cloud-setup.sh:${SUSE_DIR}/open-suse-cloud-setup.sh" \
 		${DOCKER_SUSE_TAG} \
-		bash -c "./download-opensuse-images.sh ${SUSE_VER} && ./open-suse-cloud-setup.sh ${S_USER}"
+		bash -c "./download-opensuse-images.sh ${SUSE_VER} && ./open-suse-cloud-setup.sh ${S_USER} ${PASSWORD}"
 
 .PHONY: docker-run-suse
 docker-run-suse:

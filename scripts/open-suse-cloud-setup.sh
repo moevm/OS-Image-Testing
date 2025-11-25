@@ -2,14 +2,14 @@ touch user-data
 touch meta-data
 
 echo "#cloud-config
-password: \"1234\"
+password: ""$2""
 chpasswd:
   expire: false
 users:
 - default
 - name: ""$1""
   ssh_redirect_user: true
-  plain_text_passwd: \"1234\"
+  plain_text_passwd: ""$2""
   sudo: ['ALL=(ALL) NOPASSWD:ALL']
   groups: users, sudo, admin
   shell: /bin/bash
