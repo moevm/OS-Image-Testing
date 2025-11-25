@@ -1,6 +1,12 @@
+from typing import Any, Literal
+
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult, SSHClient
 from imgtests.exec.utils import create_opt
+
+IOPattern = Literal[
+    "read", "write", "trim", "randread", "randwrite", "randtrim", "readwrite", "randrw", "trimwrite"
+]
 
 
 class Fio(GenericUtil):
@@ -19,19 +25,31 @@ class Fio(GenericUtil):
             lines = lines[1:]
         return tuple(line.strip() for line in lines)
 
-    def run(
+    def run(  # noqa: PLR0913
         self,
-        numjobs: int | None,
-        ioengine: str | None,
+        name: str | None = None,
+        loops: int | None = None,
+        numjobs: int | None = None,
+        filename: str | None = None,
+        size: str | None = None,
+        readwrite: IOPattern | None = None,
+        ioengine: str | None = None,
+        **kwargs: dict[str, Any],
     ) -> ExecResult:
         """Runs the fio util with provided options.
 
         Args:
+            name (str | None): Name of the job.
+            loops (int | None): Number of iterations of this job.
             numjobs (int | None): Number of fio jobs.
+            filename (str | None): Output filename or block device.
+            size (str | None): The total size of file I/O for each thread of this job.
+            readwrite (IOPattern | None): Type of I/O pattern.
             ioengine (int | None): How the job issues I/O.
+            **kwargs (dict[str, Any]): Command arguments in the free form with values.
 
         Raises:
-            ValueError: When invalid parameters provided.
+            ValueError: When invalid parameters provided or repeated.
 
         Returns:
             ExecResult: Result of the fio work.
@@ -42,8 +60,14 @@ class Fio(GenericUtil):
 
         return self(
             [
+                *create_opt("name", name),
+                *create_opt("loops", loops),
                 *create_opt("numjobs", numjobs),
+                *create_opt("filename", filename),
+                *create_opt("size", size),
+                *create_opt("readwrite", readwrite),
                 *create_opt("output-format", "json"),
                 *create_opt("ioengine", ioengine),
-            ]
+            ],
+            **kwargs,
         )
