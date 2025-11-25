@@ -13,7 +13,7 @@ DEFAULT_LTP_RESULTS_DIR = Path("/var/lib/imgtests/ltp-results")
 class Kirk(GenericUtil):
     def __init__(self, ssh_client: SSHClient | None = None) -> None:
         super().__init__("kirk", ssh_client)
-        
+
     def run(
         self,
         scenario: str,
@@ -38,15 +38,8 @@ class Kirk(GenericUtil):
         mkdir_cmd = f"mkdir -p {shlex.quote(results_dir_str)}"
         mkdir_res = self.ssh_client(mkdir_cmd)
         if mkdir_res.returncode != 0:
-            error_msg = (
-                "Failed to create LTP results directory on remote host: "
-                f"{results_dir_str}"
-            )
-            log_msg = (
-                f"{error_msg}\n"
-                f"STDOUT:\n{mkdir_res.stdout}\n"
-                f"STDERR:\n{mkdir_res.stderr}"
-            )
+            error_msg = f"Failed to create LTP results directory on remote host: {results_dir_str}"
+            log_msg = f"{error_msg}\nSTDOUT:\n{mkdir_res.stdout}\nSTDERR:\n{mkdir_res.stderr}"
             logger.error(log_msg)
 
             return ExecResult(

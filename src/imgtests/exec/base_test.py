@@ -3,9 +3,9 @@ from __future__ import annotations
 import json
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
-JsonType = Dict[str, Any]
+JsonType = dict[str, Any]
 
 
 class BaseTestResults(ABC):
@@ -27,4 +27,3 @@ class BaseTestResults(ABC):
         path.parent.mkdir(parents=True, exist_ok=True)
         with path.open("w", encoding="utf-8") as f:
             json.dump(self.to_dict(), f, ensure_ascii=False, indent=2)
-
