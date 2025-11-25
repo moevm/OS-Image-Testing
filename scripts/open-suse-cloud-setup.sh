@@ -1,3 +1,5 @@
+#!/bin/bash
+
 cat << EOF > user-data
 #cloud-config
 password: $2
