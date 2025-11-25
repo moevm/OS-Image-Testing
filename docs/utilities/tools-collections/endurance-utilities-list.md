@@ -59,7 +59,7 @@ https://github.com/ColinIanKing/stress-ng
 stress-ng --hdd 2 --timeout 1m & iostat -x 1
 ```
 
-![iostat](https://github.com/user-attachments/assets/239b75cc-ff31-4679-9e9f-dda7b2c2561d)
+![iostat](../../images/iostat-output-table.jpg)
 
 ### 2. htop
 
@@ -71,7 +71,7 @@ https://github.com/htop-dev/htop
 htop
 ```
 
-![htop](https://github.com/user-attachments/assets/15818741-f2db-4ec3-9973-b83265b4f7b9)
+![htop](../../images/htop-test-output.jpg)
 
 ### 3. sysstat
 
@@ -111,7 +111,7 @@ sudo systemctl start netdata
 
 Доступен по http://localhost:19999
 
-![netdata](https://github.com/user-attachments/assets/ddfa30ae-7ba3-40f4-b907-55596c25bbc8)
+![netdata](../../images/netdata-interface.jpg)
 
 ### 6. journalctl + lnav
 
@@ -125,7 +125,7 @@ https://docs.lnav.org/en/v0.12.4
 journalctl --since "1 hour ago" | lnav
 ```
 
-![journalctl](https://github.com/user-attachments/assets/88a7e172-d24a-4edc-99fc-ad7a5287f6f0)
+![journalctl + lnav](../../images/lnav-logs-example.jpg)
 
 ### 7. dmesg + lnav
 

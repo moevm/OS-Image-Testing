@@ -30,7 +30,7 @@ Latency - время выполнения одной операции.
 
 **Линейный график**
 
-![Линейный график](https://github.com/user-attachments/assets/5b527be6-f5a0-44c1-87e5-6bd05eb86560)
+![Линейный график](../../images/fio-plot-linear-graph.png)
 
 ```bash
 fio-plot -i . -T "Linear" -L -t iops -r randread
@@ -38,7 +38,7 @@ fio-plot -i . -T "Linear" -L -t iops -r randread
 
 **Логарифмический график**
 
-![Логарифмический график](https://github.com/user-attachments/assets/0f346908-e337-41a8-abb2-b377be3f65e2)
+![Логарифмический график](../../images/fio-plot-logarithmic-graph.png)
 
 ```bash
 fio-plot -i . -T "Logarithmic" -l -r randread
@@ -46,7 +46,7 @@ fio-plot -i . -T "Logarithmic" -l -r randread
 
 **Нормализованный график**
 
-![Нормализованный график](https://github.com/user-attachments/assets/593175e4-eb10-427f-ac23-046459ca77e1)
+![Нормализованный график](../../images/fio-plot-normalized-graph.png)
 
 Для запуска нормализованного графика iodepth будет совпадать, но numjobs должен отличаться.
 
@@ -56,7 +56,7 @@ fio-plot -i . -T "Normalized" -N -r randread
 
 **Гистограмма**
 
-![Гистограмма](https://github.com/user-attachments/assets/a20ae52c-04dd-4330-b648-808854cb16b0)
+![Гистограмма](../../images/fio-plot-histogram-graph.png)
 
 ```bash
 fio-plot -i . -T "Histogram" -H -r randread

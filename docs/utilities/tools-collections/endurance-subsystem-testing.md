@@ -30,7 +30,7 @@ fwts
 
 В файле также содержатся все полученные ошибки, их краткое описание и информация по тестам, записанная в таблицу.
 
-<img width="491" height="335" alt="image" src="https://github.com/user-attachments/assets/3d8e4988-d99a-42b9-b4fb-7992398012b5" />
+![Пример вывода таблицы fwts](../../images/fwts-output-table.png)
 
 ### syzkaller
 
@@ -288,7 +288,7 @@ fio --name=seq_write --size=2G --rw=write --bs=1M --numjobs=1 --direct=1 --ioeng
 fio-plot -i . -T "Histogram" -H -r randread
 ```
 
-![Гистограмма](https://github.com/user-attachments/assets/a20ae52c-04dd-4330-b648-808854cb16b0)
+![Гистограмма](../../images/fio-plot-histogram-graph.png)
 
 ### pgbench
 
