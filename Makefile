@@ -150,6 +150,14 @@ docker-run-suse:
 		${DOCKER_SUSE_TAG} \
 		bash -c "qemu-system-x86_64 -m 4G -nographic -drive file=open-suse-${SUSE_VER}.qcow2,index=0,media=disk -cdrom cloud-init.iso"
 
+.PHONY: docker-compose-up
+docker-compose-up: init-submodule
+	docker compose --file docker/compose.yml --project-directory ./ up --detach --build
+
+.PHONY: init-submodule
+init-submodule:
+	git submodule update --init --recursive
+
 .PHONY: ${PACKAGE_MGR}
 ${PACKAGE_MGR}:
 	@which ${PACKAGE_MGR} || \
