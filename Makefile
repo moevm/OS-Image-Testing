@@ -1,4 +1,5 @@
 USER                       := user
+S_USER                     := suser
 PASSWORD                   := password
 GROUP                      := yoctogroup
 OS_IMAGE                   := core-image-minimal
@@ -12,8 +13,8 @@ DOCKER_PYTHON_TAG          := ${DOCKER_PREFIX}-analyzer
 DOCKER_BUILD_VOLUME        := ${DOCKER_PREFIX}-yocto-build
 DOCKER_DOWNLOADS_VOLUME    := ${DOCKER_PREFIX}-yocto-downloads
 DOCKER_SSTATE_VOLUME       := ${DOCKER_PREFIX}-yocto-sstate
+DOCKER_OPENSUSE_VOLUME     := ${DOCKER_PREFIX}-open-suse-files
 DOCKER_NETWORK             := yocto-network
-DOCKER_OPENSUSE_VOLUME     := open-suse-files
 
 # Paths
 POKY_DIR                   := /home/${USER}/poky
@@ -137,16 +138,16 @@ docker-suse:
 docker-init-suse:
 	docker run -it --rm \
 		--volume ${DOCKER_OPENSUSE_VOLUME}:${SUSE_DIR} \
-		--volume "${HOST_SCRIPTS_PATH}/download-opensuse-images.sh:${SUSE_DIR}/download-opensuse-images.sh" \
+		--volume "${HOST_SCRIPTS_PATH}/opensuse:${SUSE_DIR}/scripts" \
 		${DOCKER_SUSE_TAG} \
-		bash -c "./download-opensuse-images.sh ${SUSE_VER}"
+		bash -c "./scripts/download-images.sh ${SUSE_VER} && ./scripts/cloud-setup.sh ${S_USER} ${PASSWORD}"
 
 .PHONY: docker-run-suse
 docker-run-suse:
 	docker run -it --rm \
 		--volume ${DOCKER_OPENSUSE_VOLUME}:${SUSE_DIR} \
 		${DOCKER_SUSE_TAG} \
-		bash -c "qemu-system-x86_64 open-suse-${SUSE_VER}.qcow2 -m 4G -nographic"
+		bash -c "qemu-system-x86_64 -m 4G -nographic -drive file=open-suse-${SUSE_VER}.qcow2,index=0,media=disk -cdrom cloud-init.iso"
 
 .PHONY: docker-compose-up
 docker-compose-up: init-submodule

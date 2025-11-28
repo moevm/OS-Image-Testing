@@ -10,6 +10,8 @@ RUN apt-get update && \
     qemu-system \
     qemu-utils \
     qemu-user-static \
+    cloud-init \
+    cloud-image-utils \
     wget
 
 WORKDIR ${SUSE_DIR}
