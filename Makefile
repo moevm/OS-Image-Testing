@@ -41,7 +41,7 @@ PYTHONDONTWRITEBYTECODE    := 1
 PY_LIB_NAME                := $(shell grep -Po 'name\s*=\s*"\K(\w+)' pyproject.toml)
 
 .PHONY: docker
-docker:
+docker: init-submodule
 	docker build \
 		--tag ${DOCKER_TAG} \
 		--build-arg USER="${USER}" \
@@ -63,7 +63,7 @@ docker-analyzer:
 		--file docker/python.dockerfile .
 
 .PHONY: docker-init-volumes
-docker-init-volumes: init-submodule
+docker-init-volumes:
 	docker run -it --rm \
 		--env BUILD_DIR=${BUILD_DIR} \
 		--env POKY_DIR=${POKY_DIR} \
