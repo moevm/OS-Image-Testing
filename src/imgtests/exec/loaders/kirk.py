@@ -7,54 +7,74 @@ from imgtests.exec.exec import ExecResult, SSHClient
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_LTP_RESULTS_DIR = Path("/var/lib/imgtests/ltp-results")
+DEFAULT_LTP_RESULTS_DIR = Path("/var/tmp/ltp-results")
 
 
 class Kirk(GenericUtil):
-    def __init__(self, ssh_client: SSHClient | None = None) -> None:
+    def __init__(self, ssh_client: SSHClient) -> None:
         super().__init__("kirk", ssh_client)
 
     def run(
         self,
-        scenario: str,
+        scenarios: list[str],
         results_dir: str | Path = DEFAULT_LTP_RESULTS_DIR,
-    ) -> Path | ExecResult:
+    ) -> tuple[ExecResult, Path | None]:
         """Run an LTP scenario via kirk on a remote host and store results as JSON."""
-        if self.ssh_client is None:
-            msg = (
-                "SSH client is not configured; running LTP via kirk "
-                f"for scenario {scenario!r} is not possible."
-            )
-            return ExecResult(
-                cmd="run-ltp",
-                stdout="",
-                stderr=msg,
-                returncode=1,
-            )
+        results_dir_path = Path(results_dir)
 
-        results_dir = Path(results_dir)
-        results_dir_str = str(results_dir)
-
-        mkdir_cmd = f"mkdir -p {shlex.quote(results_dir_str)}"
+        remote_results_dir = results_dir_path
+        mkdir_cmd = f"mkdir -p {shlex.quote(str(remote_results_dir))}"
         mkdir_res = self.ssh_client(mkdir_cmd)
         if mkdir_res.returncode != 0:
-            error_msg = f"Failed to create LTP results directory on remote host: {results_dir_str}"
+            error_msg = (
+                f"Failed to create LTP results directory on remote host: {remote_results_dir}"
+            )
             log_msg = f"{error_msg}\nSTDOUT:\n{mkdir_res.stdout}\nSTDERR:\n{mkdir_res.stderr}"
             logger.error(log_msg)
-
-            return ExecResult(
-                cmd=mkdir_cmd,
-                stdout=mkdir_res.stdout,
-                stderr=log_msg,
-                returncode=mkdir_res.returncode,
+            return (
+                ExecResult(
+                    cmd=mkdir_cmd,
+                    stdout=mkdir_res.stdout,
+                    stderr=log_msg,
+                    returncode=mkdir_res.returncode,
+                ),
+                None,
             )
 
-        json_path = results_dir / f"{scenario}.json"
+        if len(scenarios) == 1:
+            report_name = f"{scenarios[0]}.json"
+        else:
+            suites_str = "_".join(scenarios)
+            report_name = f"{suites_str}.json"
 
-        cmd = ["--run-suite", scenario, "--json-report", str(json_path)]
+        remote_json_path = remote_results_dir / report_name
+        cmd = ["--run-suite", *scenarios, "--json-report", str(remote_json_path)]
         res = self(cmd)
 
         if res.returncode != 0:
-            return res
+            return res, None
 
-        return json_path
+        try:
+            results_dir_path.mkdir(parents=True, exist_ok=True)
+        except OSError:
+            logger.exception(
+                "Failed to create local directory for LTP results: %s",
+                results_dir_path,
+            )
+            return res, None
+
+        local_json_path = results_dir_path / remote_json_path.name
+
+        download_res = self.ssh_client.download(
+            remotepath=remote_json_path,
+            localpath=local_json_path,
+        )
+
+        if download_res.returncode != 0:
+            logger.error(
+                "Failed to download LTP results from remote host. STDERR: %s",
+                download_res.stderr,
+            )
+            return res, None
+
+        return res, local_json_path
