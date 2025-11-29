@@ -49,9 +49,6 @@ docker: init-submodule
 		--build-arg PASSWORD="${PASSWORD}" \
 		--build-arg POKY_DIR="${POKY_DIR}" \
 		--file docker/image_builder.dockerfile .
-	docker volume create ${DOCKER_BUILD_VOLUME}
-	docker volume create ${DOCKER_DOWNLOADS_VOLUME}
-	docker volume create ${DOCKER_SSTATE_VOLUME}
 
 .PHONY: docker-analyzer
 docker-analyzer:
@@ -63,7 +60,7 @@ docker-analyzer:
 		--file docker/python.dockerfile .
 
 .PHONY: docker-init-volumes
-docker-init-volumes:
+docker-init-volumes: ensure-volumes
 	docker run -it --rm \
 		--env BUILD_DIR=${BUILD_DIR} \
 		--env POKY_DIR=${POKY_DIR} \
@@ -150,8 +147,20 @@ docker-run-suse:
 		bash -c "qemu-system-x86_64 -m 4G -nographic -drive file=open-suse-${SUSE_VER}.qcow2,index=0,media=disk -cdrom cloud-init.iso"
 
 .PHONY: docker-compose-up
-docker-compose-up: init-submodule
+docker-compose-up: init-submodule ensure-volumes
 	docker compose --file docker/compose.yml --project-directory ./ up --detach --build
+
+.PHONY: ensure-volumes
+ensure-volumes: docker
+	@for volume in ${DOCKER_BUILD_VOLUME} ${DOCKER_DOWNLOADS_VOLUME} ${DOCKER_SSTATE_VOLUME}; do \
+		if ! docker volume inspect $$volume > /dev/null 2>&1; then \
+			docker volume create $$volume; \
+			docker run --rm --user root\
+				--entrypoint "" \
+				--volume $$volume:/data \
+				${DOCKER_TAG} bash -c "chown -R ${USER}:${GROUP} /data"; \
+		fi \
+	done
 
 .PHONY: init-submodule
 init-submodule:
@@ -188,6 +197,7 @@ help:
 	@echo "      SUSE_VER=[15.5|15.6]"
 	@echo "  docker-test-image                  Tests builded Yocto image from builded docker image;"
 	@echo "  docker-compose-up                  Run tests stand with analysis container and target containers;"
+	@echo "  ensure-volumes                     Creates volumes if missing and changes ownership;"
 	@echo "  init-submodule                     Recursive initialization git submodules;"
 	@echo "  pre-commit-check                   Check source code with pre-commit hooks;"
 	@echo "  unit-test                          Run unit tests for the Python library '${PY_LIB_NAME}';"
