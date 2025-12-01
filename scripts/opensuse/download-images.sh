@@ -1,9 +1,9 @@
 #!/bin/bash
 
-SUSE_DIST_URL="https://download.opensuse.org/distribution/leap/""$1""/appliances/"
+SUSE_DIST_URL="https://download.opensuse.org/repositories/Cloud:/Images:/Leap_""$1""/images/"
 
-SUSE_15_5_IMG_FN="openSUSE-Leap-15.5-Minimal-VM.x86_64-15.5.0-Cloud-Build13.309.qcow2"
-SUSE_15_6_IMG_FN="openSUSE-Leap-15.6-Minimal-VM.x86_64-15.6.0-Cloud-Build19.1.qcow2"
+SUSE_15_5_IMG_FN="openSUSE-Leap-15.5.x86_64-1.0.1-NoCloud-Build6.180.qcow2"
+SUSE_15_6_IMG_FN="openSUSE-Leap-15.6.x86_64-1.0.2-NoCloud-Build1.78.qcow2"
 
 download () {
     # original file
@@ -15,13 +15,13 @@ download () {
     if [ ! -e "$2".sha256 ]; then
         wget "${SUSE_DIST_URL}""$1".sha256 -O "$2".sha256 --no-check-certificate
         sed -i s/"$1"/"$2"/g "$2".sha256
-    fi
 
-    echo "Check sum status: "
+        echo "Check sum status: "
 
-    if ! sha256sum -c "$2".sha256; then
-        rm "$2" "$2".sha256
-        exit 2
+        if ! sha256sum -c "$2".sha256; then
+            rm "$2" "$2".sha256
+            exit 2
+        fi
     fi
 }
 

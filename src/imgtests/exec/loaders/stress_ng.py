@@ -24,6 +24,7 @@ class StressNGMetrics(NamedTuple):
     bogo_ops_s_real_time: float
     bogo_ops_s_usr_sys_time: float
     cpu_used_per_instance: float
+    rss_max_kb: int | None = None
 
 
 class StressNg(GenericUtil):
@@ -129,6 +130,8 @@ class StressNg(GenericUtil):
             ],
             **kwargs,
         )
+        if "stress-ng:" in result.stdout:
+            return result, self._parse_metrics(result.stdout.strip())
         return result, self._parse_metrics(result.stderr.strip())
 
     def _parse_metrics(self, raw_metrics: str) -> list[StressNGMetrics]:
@@ -150,11 +153,12 @@ class StressNg(GenericUtil):
             r"([\d.]+)\s+"  # sys time
             r"([\d.]+)\s+"  # bogo ops/s (real time)
             r"([\d.]+)\s+"  # bogo ops/s (usr+sys time)
-            r"([\d.]+)$"  # CPU used per instance
+            r"([\d.]+)"  # CPU used per instance
+            r"(?:\s+([\d]+))?$"  # RSS Max
         )
 
         for line in raw_metrics.strip().split("\n"):
-            clean_line = re.sub(r"stress-ng: info:\s+\[\d+\]\s*", "", line).strip()
+            clean_line = re.sub(r"stress-ng: (?:info|metrc):\s+\[\d+\]\s*", "", line).strip()
 
             m = p.match(clean_line)
             if m is None:
@@ -169,6 +173,7 @@ class StressNg(GenericUtil):
                     float(m.group(6)),
                     float(m.group(7)),
                     float(m.group(8)),
+                    int(m.group(9)) if m.group(9) else None,
                 )
             except ValueError as e:
                 logger.warning(
