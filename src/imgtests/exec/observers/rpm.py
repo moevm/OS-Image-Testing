@@ -5,5 +5,5 @@ class RPM(GenericUtil):
     def __init__(self, ssh_client: SSHClient | None = None) -> None:
         super().__init__("rpm", ssh_client)
 
-    def get_pkglist(self) -> list[str]:
-        return self(["-qa"]).stdout.strip().split('\n')
+    def get_pkglist(self) -> tuple[str, ...]:
+        return tuple(self(["-qa"]).stdout.strip().split('\n'))

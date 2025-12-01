@@ -21,8 +21,8 @@ class SystemInfo(NamedTuple):
     uname_info: UnameInfo
     os: str
     os_ver: str
-    kernel_config: list[str]
-    package_list: list[str]
+    kernel_config: tuple[str, ...]
+    package_list: tuple[str, ...]
     tools_versions: ToolsVersions
 
 
@@ -37,7 +37,7 @@ def get_system_info(ssh_client: SSHClient | None = None) -> SystemInfo:
         os_ver=grep(["-Po", r"^VERSION=\s*\"\K.+", "/etc/os-release"])
         .stdout.strip()
         .replace('"', ""),
-        kernel_config=zcat.get_kernel_config(),
+        kernel_config=zcat.get_compressed_files_contents(["/proc/config.gz"]),
         package_list=rpm.get_pkglist(),
         tools_versions=ToolsVersions(
             Fio(ssh_client).version() or "",
