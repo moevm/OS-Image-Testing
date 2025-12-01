@@ -1,15 +1,24 @@
 USER                       := user
+S_USER                     := suser
+PASSWORD                   := password
 GROUP                      := yoctogroup
 OS_IMAGE                   := core-image-minimal
+SUSE_VER                   ?= 15.6
 
 # Docker
-DOCKER_TAG                 := yocto-builder-image
-DOCKER_BUILD_VOLUME        := yocto-build
-DOCKER_DOWNLOADS_VOLUME    := yocto-downloads
-DOCKER_SSTATE_VOLUME       := yocto-sstate
+DOCKER_PREFIX              := imgtests
+DOCKER_TAG                 := ${DOCKER_PREFIX}-yocto-builder
+DOCKER_SUSE_TAG            := ${DOCKER_PREFIX}-open-suse-env
+DOCKER_PYTHON_TAG          := ${DOCKER_PREFIX}-analyzer
+DOCKER_BUILD_VOLUME        := ${DOCKER_PREFIX}-yocto-build
+DOCKER_DOWNLOADS_VOLUME    := ${DOCKER_PREFIX}-yocto-downloads
+DOCKER_SSTATE_VOLUME       := ${DOCKER_PREFIX}-yocto-sstate
+DOCKER_OPENSUSE_VOLUME     := ${DOCKER_PREFIX}-open-suse-files
+DOCKER_NETWORK             := yocto-network
 
 # Paths
 POKY_DIR                   := /home/${USER}/poky
+SUSE_DIR                   := /home/${USER}/suse
 BUILD_DIR                  := ${POKY_DIR}/build
 HOST_LAYERS_PATH           := ${CURDIR}/layers
 HOST_CONF_PATH             := ${CURDIR}/conf
@@ -18,34 +27,45 @@ HOST_TEMP_PATH             := ${CURDIR}/results
 
 # Python
 PACKAGE_MGR                := uv
+
+# IP addresses
+YOCTO_ADDRESS              := 10.5.0.10
+PYTHON_ADDRESS             := 10.5.0.11
+SUBNET                     := 10.5.0.0/24
+GATEWAY                    := 10.5.0.1
+SSH_QEMU_USER              ?= root
+SSH_QEMU_PORT              ?= 2222
+
+# Library
 PYTHONDONTWRITEBYTECODE    := 1
 PY_LIB_NAME                := $(shell grep -Po 'name\s*=\s*"\K(\w+)' pyproject.toml)
 
 .PHONY: docker
-docker:
+docker: init-submodule
 	docker build \
 		--tag ${DOCKER_TAG} \
 		--build-arg USER="${USER}" \
 		--build-arg GROUP="${GROUP}" \
+		--build-arg PASSWORD="${PASSWORD}" \
+		--build-arg POKY_DIR="${POKY_DIR}" \
 		--file docker/image_builder.dockerfile .
-	docker volume create ${DOCKER_BUILD_VOLUME}
-	docker volume create ${DOCKER_DOWNLOADS_VOLUME}
-	docker volume create ${DOCKER_SSTATE_VOLUME}
-	docker run --rm --user root \
-		--entrypoint "" \
-		--volume ${DOCKER_BUILD_VOLUME}:/tmp-build \
-		--volume ${DOCKER_DOWNLOADS_VOLUME}:/tmp-downloads \
-		--volume ${DOCKER_SSTATE_VOLUME}:/tmp-sstate \
-		${DOCKER_TAG} \
-		bash -c "mkdir -p /tmp-build/build /tmp-build/conf && \
-			mkdir -p /tmp-downloads && \
-			mkdir -p /tmp-sstate && \
-			chown -R ${USER}:${GROUP} /tmp-build /tmp-downloads /tmp-sstate"
+
+.PHONY: docker-analyzer
+docker-analyzer:
+	docker build \
+		--tag ${DOCKER_PYTHON_TAG} \
+		--build-arg USER="${USER}" \
+		--build-arg GROUP="${GROUP}" \
+		--build-arg PASSWORD="${PASSWORD}" \
+		--file docker/python.dockerfile .
 
 .PHONY: docker-init-volumes
-docker-init-volumes:
-	git submodule update --init --recursive
+docker-init-volumes: ensure-volumes
 	docker run -it --rm \
+		--env BUILD_DIR=${BUILD_DIR} \
+		--env POKY_DIR=${POKY_DIR} \
+		--env USER=${USER} \
+		--env GROUP=${GROUP} \
 		--volume ${DOCKER_BUILD_VOLUME}:${BUILD_DIR} \
 		--volume ${DOCKER_DOWNLOADS_VOLUME}:${POKY_DIR}/downloads \
 		--volume ${DOCKER_SSTATE_VOLUME}:${POKY_DIR}/sstate-cache \
@@ -59,6 +79,10 @@ docker-init-volumes:
 .PHONY: docker-run-image
 docker-run-image: docker-init-volumes
 	docker run -it --rm \
+		--env BUILD_DIR=${BUILD_DIR} \
+		--env POKY_DIR=${POKY_DIR} \
+		--env USER=${USER} \
+		--env GROUP=${GROUP} \
 		--volume ${DOCKER_BUILD_VOLUME}:${BUILD_DIR} \
 		--volume ${DOCKER_DOWNLOADS_VOLUME}:${POKY_DIR}/downloads \
 		--volume ${DOCKER_SSTATE_VOLUME}:${POKY_DIR}/sstate-cache \
@@ -74,6 +98,10 @@ docker-test-image: docker-init-volumes
 	@mkdir -p ${HOST_TEMP_PATH}; \
 	chmod 757 "${HOST_TEMP_PATH}"; \
 	CONTAINER_ID=$$(docker run -d --rm \
+		--env BUILD_DIR=${BUILD_DIR} \
+		--env POKY_DIR=${POKY_DIR} \
+		--env USER=${USER} \
+		--env GROUP=${GROUP} \
 		--volume ${DOCKER_BUILD_VOLUME}:${BUILD_DIR} \
 		--volume ${DOCKER_DOWNLOADS_VOLUME}:${POKY_DIR}/downloads \
 		--volume ${DOCKER_SSTATE_VOLUME}:${POKY_DIR}/sstate-cache \
@@ -95,6 +123,49 @@ docker-test-image: docker-init-volumes
 	} &
 	@echo "QEMU test started in background"
 
+.PHONY: docker-suse
+docker-suse:
+	docker build \
+		--tag ${DOCKER_SUSE_TAG} \
+		--build-arg USER="${USER}" \
+		--file docker/open-suse.dockerfile .
+	docker volume create ${DOCKER_OPENSUSE_VOLUME}
+
+.PHONY: docker-init-suse
+docker-init-suse:
+	docker run -it --rm \
+		--volume ${DOCKER_OPENSUSE_VOLUME}:${SUSE_DIR} \
+		--volume "${HOST_SCRIPTS_PATH}/opensuse:${SUSE_DIR}/scripts" \
+		${DOCKER_SUSE_TAG} \
+		bash -c "./scripts/download-images.sh ${SUSE_VER} && ./scripts/cloud-setup.sh ${S_USER} ${PASSWORD}"
+
+.PHONY: docker-run-suse
+docker-run-suse:
+	docker run -it --rm \
+		--volume ${DOCKER_OPENSUSE_VOLUME}:${SUSE_DIR} \
+		${DOCKER_SUSE_TAG} \
+		bash -c "qemu-system-x86_64 -m 4G -nographic -drive file=open-suse-${SUSE_VER}.qcow2,index=0,media=disk -cdrom cloud-init.iso"
+
+.PHONY: docker-compose-up
+docker-compose-up: ensure-volumes
+	docker compose --file docker/compose.yml --project-directory ./ up --detach --build
+
+.PHONY: ensure-volumes
+ensure-volumes: docker
+	@for volume in ${DOCKER_BUILD_VOLUME} ${DOCKER_DOWNLOADS_VOLUME} ${DOCKER_SSTATE_VOLUME}; do \
+		if ! docker volume inspect $$volume > /dev/null 2>&1; then \
+			docker volume create $$volume; \
+			docker run --rm --user root \
+				--entrypoint "" \
+				--volume $$volume:/data \
+				${DOCKER_TAG} bash -c "chown -R ${USER}:${GROUP} /data"; \
+		fi \
+	done
+
+.PHONY: init-submodule
+init-submodule:
+	git submodule update --init --recursive
+
 .PHONY: ${PACKAGE_MGR}
 ${PACKAGE_MGR}:
 	@which ${PACKAGE_MGR} || \
@@ -108,19 +179,28 @@ pre-commit-check: ${PACKAGE_MGR}
 .PHONY: unit-test
 unit-test: ${PACKAGE_MGR}
 	@echo "Running tests for the library '${PY_LIB_NAME}''..."
-	@uvx pytest
+	@uv run --with pytest pytest
 
 .PHONY: help
 help:
 	@echo "Usage:"
 	@echo "  make [targets] [arguments]"
 	@echo
-	@echo "  docker                 Builds a docker image;"
-	@echo "  docker-init-volumes    Initializes docker volumes;"
-	@echo "  docker-run-image       Runs builded Yocto image from builded docker image;"
-	@echo "  docker-test-image      Tests builded Yocto image from builded docker image;"
-	@echo "  pre-commit-check       Check source code with pre-commit hooks;"
-	@echo "  unit-test              Run unit tests for the Python library '${PY_LIB_NAME}';"
-	@echo "  help                   Displays information about all available targets."
+	@echo "  docker                             Builds a docker image;"
+	@echo "  docker-suse                        Builds a docker image for openSUSE images environment;"
+	@echo "  docker-analyzer                    Builds a docker image for analyze tests results;"
+	@echo "  docker-init-volumes                Initializes docker volumes;"
+	@echo "  docker-init-suse                   Downloads openSUSE image (Default: ${SUSE_VER});"
+	@echo "      SUSE_VER=[15.5|15.6]"
+	@echo "  docker-run-image                   Runs builded Yocto image from builded docker image;"
+	@echo "  docker-run-suse                    Runs openSUSE image via QEMU (Default: ${SUSE_VER});"
+	@echo "      SUSE_VER=[15.5|15.6]"
+	@echo "  docker-test-image                  Tests builded Yocto image from builded docker image;"
+	@echo "  docker-compose-up                  Run tests stand with analysis container and target containers;"
+	@echo "  ensure-volumes                     Creates volumes if missing and changes ownership;"
+	@echo "  init-submodule                     Recursive initialization git submodules;"
+	@echo "  pre-commit-check                   Check source code with pre-commit hooks;"
+	@echo "  unit-test                          Run unit tests for the Python library '${PY_LIB_NAME}';"
+	@echo "  help                               Displays information about all available targets."
 
 .EXPORT_ALL_VARIABLES:
