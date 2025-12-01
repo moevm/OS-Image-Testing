@@ -1,6 +1,6 @@
 # OS-Image-Testing
 
-Performance and Endurance Testing of OS images
+Performance and Endurance Testing of OS images.
 
 Repository structure:
 
@@ -16,7 +16,7 @@ Repository structure:
 
 ## Building and testing Yocto image via Docker Сompose
 
-### 1. Clone the repository and getting help
+### 1. Clone the repository
 
 ```bash
 git clone https://github.com/moevm/OS-Image-Testing.git
