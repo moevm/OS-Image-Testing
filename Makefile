@@ -197,6 +197,8 @@ help:
 	@echo "      SUSE_VER=[15.5|15.6]"
 	@echo "  docker-test-image                  Tests builded Yocto image from builded docker image;"
 	@echo "  docker-compose-up                  Run tests stand with analysis container and target containers;"
+	@echo -n "  ${PACKAGE_MGR}"
+	@echo     "                                 Updates the project's Python environment with the '${PACKAGE_MGR}';"
 	@echo "  ensure-volumes                     Creates volumes if missing and changes ownership;"
 	@echo "  init-submodule                     Recursive initialization git submodules;"
 	@echo "  pre-commit-check                   Check source code with pre-commit hooks;"
