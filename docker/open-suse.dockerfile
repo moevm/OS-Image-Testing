@@ -12,6 +12,8 @@ RUN apt-get update && \
     qemu-user-static \
     cloud-init \
     cloud-image-utils \
+    openssh-server \
+    screen \
     wget
 
 WORKDIR ${SUSE_DIR}

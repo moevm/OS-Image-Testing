@@ -147,8 +147,23 @@ docker-init-suse:
 docker-run-suse:
 	docker run -it --rm \
 		--volume ${DOCKER_OPENSUSE_VOLUME}:${SUSE_DIR} \
-		${DOCKER_SUSE_TAG} \
-		bash -c "qemu-system-x86_64 -m 4G -nographic -drive file=open-suse-${SUSE_VER}.qcow2,index=0,media=disk -cdrom cloud-init.iso"
+		${DOCKER_SUSE_TAG}
+		bash -c "service ssh start && \
+				 qemu-system-x86_64 -m 4G -nographic -drive file=open-suse-${SUSE_VER}.qcow2,index=0,media=disk \
+				     		        -cdrom cloud-init.iso -net user,hostfwd=tcp::1111-:22 -net nic"
+
+# To check connection by ssh demonstration -- will be removed a little later
+# .PHONY: docker-run-suse
+# docker-run-suse:
+# 	docker run -it --rm \
+# 		--volume ${DOCKER_OPENSUSE_VOLUME}:${SUSE_DIR} \
+# 		${DOCKER_SUSE_TAG} \
+# 		bash -c "service ssh start && \
+# 				 screen -dmS qemu qemu-system-x86_64 -m 4G -nographic -drive file=open-suse-${SUSE_VER}.qcow2,index=0,media=disk \
+# 				     		       -cdrom cloud-init.iso -net user,hostfwd=tcp::1111-:22 -net nic & \
+# 				 echo \"Waiting for boot\" && \
+# 				 time sleep 240 && \
+# 				 ssh -o StrictHostKeyChecking=no -i keys suser@localhost -p 1111"
 
 .PHONY: ${PACKAGE_MGR}
 ${PACKAGE_MGR}:
