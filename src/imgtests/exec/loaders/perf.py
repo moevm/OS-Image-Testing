@@ -12,8 +12,8 @@ class Perf(GenericUtil):
     def bench(self, cmd: list[str]) -> ExecResult:
         return self(["bench", *cmd])
 
-    def parse_bench(self, result: ExecResult) -> dict:
-        lines = result.stdout.splitlines()
+    def _parse_bench(self, result: str) -> dict[str, int | float]:
+        lines = result.splitlines()
         results = {}
         i = 0
         while i < len(lines):
