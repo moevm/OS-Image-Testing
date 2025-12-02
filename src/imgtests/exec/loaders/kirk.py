@@ -14,6 +14,28 @@ class Kirk(GenericUtil):
     def __init__(self, ssh_client: SSHClient) -> None:
         super().__init__("kirk", ssh_client)
 
+    def list_suites(
+        self,
+        ltp_root: str | Path = "/opt/ltp",
+    ) -> list[str]:
+        """Return a list of available LTP suites."""
+        ltp_root_path = Path(ltp_root)
+        runtest_dir = ltp_root_path / "runtest"
+
+        cmd = f"ls -1 {shlex.quote(str(runtest_dir))}"
+        res = self.ssh_client(cmd)
+
+        if res.returncode != 0:
+            logger.error(
+                "Failed to list LTP suites in %s\nSTDOUT:\n%s\nSTDERR:\n%s",
+                runtest_dir,
+                res.stdout,
+                res.stderr,
+            )
+            return []
+
+        return [line.strip() for line in res.stdout.splitlines() if line.strip()]
+
     def run(
         self,
         scenarios: list[str],
