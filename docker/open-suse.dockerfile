@@ -13,7 +13,6 @@ RUN apt-get update && \
     cloud-init \
     cloud-image-utils \
     openssh-server \
-    screen \
     wget
 
 WORKDIR ${SUSE_DIR}

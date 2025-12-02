@@ -52,8 +52,11 @@ services:
 
 volumes:
   imgtests-yocto-build:
+    external: true
   imgtests-yocto-downloads:
+    external: true
   imgtests-yocto-sstate:
+    external: true
 
 networks:
   yocto-network:
