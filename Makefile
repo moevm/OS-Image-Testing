@@ -135,8 +135,6 @@ docker-suse:
 docker-init-suse:
 	docker run -it --rm \
 		--volume ${DOCKER_OPENSUSE_VOLUME}:${SUSE_DIR} \
-		--volume "${HOST_SCRIPTS_PATH}/download-opensuse-images.sh:${SUSE_DIR}/download-opensuse-images.sh" \
-		--volume "${HOST_SCRIPTS_PATH}/open-suse-cloud-setup.sh:${SUSE_DIR}/open-suse-cloud-setup.sh" \
 		--volume "${HOST_SCRIPTS_PATH}/opensuse:${SUSE_DIR}/scripts" \
 		${DOCKER_SUSE_TAG} \
 		bash -c "./scripts/download-images.sh ${SUSE_VER} && ./scripts/cloud-setup.sh ${S_USER} ${PASSWORD}"
