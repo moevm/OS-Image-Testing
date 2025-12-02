@@ -3,7 +3,7 @@
 CI_KEY=""
 KEY_FN="keys"
 
-if [ ! -e "${KEY_FN}".pub ]; then 
+if [ ! -e "${KEY_FN}".pub ]; then
     ssh-keygen -t rsa -b 4096 -f keys -P ""
 fi
 
