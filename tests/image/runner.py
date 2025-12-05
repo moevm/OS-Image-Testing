@@ -49,7 +49,6 @@ if __name__ == "__main__":
     logger.info(system_info.uname_info)
     logger.info("Packages count %d", len(system_info.package_list))    
 
-
     _, stress_ng_metrics = stress_ng.run(timeout_sec=20, cpu=1)
     logger.info(stress_ng_metrics)
 
