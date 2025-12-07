@@ -12,7 +12,7 @@ from imgtests.exec.loaders.stress_ng import StressNg
 from imgtests.logger import set_handlers
 from imgtests.sysrep import get_system_info
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()
 set_handlers(logger, Path("processing.log"))
 
 
