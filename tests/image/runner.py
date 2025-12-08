@@ -51,5 +51,5 @@ if __name__ == "__main__":
     logger.info(stress_ng_metrics)
 
     pts.setup()
-    PTS_metrics = pts.run(test_name="pts/pybench", run_count=2)
-    logger.info(PTS_metrics)
+    pts_metrics = pts.run(test_name="pts/pybench", run_count=1)
+    logger.info(pts_metrics)

@@ -106,7 +106,7 @@ class PhoronixTestSuite(GenericUtil):
             Readable results output in a form of string.
         """
         output = []
-        output.append("PTS Test results")
+        output.append("PTS test results")
 
         system = metrics.get("system_info", {})
         hardware = system.get("hardware", {})
