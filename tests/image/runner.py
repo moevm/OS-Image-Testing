@@ -8,7 +8,7 @@ import paramiko.ssh_exception
 
 from image.utils import env_var_to_type_or_exit
 from imgtests.exec.exec import SSHClient
-from imgtests.exec.loaders.pts import PhoronixTestSuite
+from imgtests.exec.loaders.pts import PhoronixTestSuite, setup_pts
 from imgtests.exec.loaders.stress_ng import StressNg
 from imgtests.logger import set_handlers
 from imgtests.sysrep import get_system_info
@@ -50,6 +50,6 @@ if __name__ == "__main__":
     _, stress_ng_metrics = stress_ng.run(timeout_sec=20, cpu=1)
     logger.info(stress_ng_metrics)
 
-    pts.setup()
+    setup_pts(client)
     pts_metrics = pts.run(test_name="pts/pybench", run_count=1)
     logger.info(pts_metrics)

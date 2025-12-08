@@ -15,26 +15,23 @@ class PhoronixTestSuite(GenericUtil):
     def __init__(self, ssh_client: SSHClient | None = None) -> None:
         super().__init__("phoronix-test-suite", ssh_client)
 
-    def setup(self) -> None:
-        """Prepares PTS for running tests.
-
-        Sets up Google DNS server and turns off interactive questions in the future tests.
-        """
-        self.ssh_client('echo "nameserver 8.8.8.8" > /etc/resolv.conf')
-        setup_answers = "y\n" + "n\n" * 6
-        result = self.ssh_client(f"printf '{setup_answers}' | phoronix-test-suite batch-setup")
-        if result.returncode == 0:
-            logger.info("PTS setup successful")
-        else:
-            logger.warning("PTS setup failed: '%s'", result.stderr)
-
     def install_test(self, test_name: str) -> None:
         """Installs a given test in the ssh client."""
-        result = self.ssh_client(f"phoronix-test-suite install {test_name}")
+        result = self(["install", test_name])
         if result.returncode == 0:
             logger.info("PTS test '%s' installed", test_name)
         else:
             logger.warning("Installation of PTS test '%s' failed", test_name)
+
+    def remove_test(self, test_name: str) -> None:
+        """Removes a given test in the ssh client."""
+        result = self.ssh_client(
+            f"printf 'y\n' | phoronix-test-suite remove-installed-test {test_name}"
+        )
+        if result.returncode == 0:
+            logger.info("PTS test '%s' removed", test_name)
+        else:
+            logger.warning("Removal of PTS test '%s' failed", test_name)
 
     def run_test(self, test_name: str, run_count: int) -> None:
         """Runs a given test with set amount of iterations in the ssh client."""
@@ -219,4 +216,19 @@ class PhoronixTestSuite(GenericUtil):
             json_data = self.get_result_json()
         except ValueError as e:
             return f"Error while processing results: {e}"
+
         return self.parse_metrics(json_data)
+
+
+def setup_pts(ssh_client: SSHClient) -> None:
+    """Prepares PTS for running tests.
+
+    Sets up Google DNS server and turns off interactive questions in the future tests.
+    """
+    ssh_client('echo "nameserver 8.8.8.8" > /etc/resolv.conf')
+    setup_answers = "y\n" + "n\n" * 6
+    result = ssh_client(f"printf '{setup_answers}' | phoronix-test-suite batch-setup")
+    if result.returncode == 0:
+        logger.info("PTS setup successful")
+    else:
+        logger.warning("PTS setup failed: '%s'", result.stderr)
