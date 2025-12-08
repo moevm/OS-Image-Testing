@@ -64,7 +64,7 @@ def main() -> None:
     logger.info(result.tools_versions)
     logger.info(result.uname_info)
     logger.info("Packages count %d", len(result.package_list))
-    future = executor.submit(stress_ng.run, timeout_sec=20, cpu=1)
+    future = executor.submit(stress_ng.run, timeout_sec=60, cpu=1)
     result = future.result()
     _, metrics = result
     logger.info(metrics)
