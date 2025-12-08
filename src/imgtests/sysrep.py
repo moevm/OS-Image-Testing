@@ -34,8 +34,8 @@ def get_system_info(ssh_client: SSHClient | None = None) -> SystemInfo:
     rpm = RPM(ssh_client)
     return SystemInfo(
         uname.info(),
-        os=grep(["-Po", r"^NAME=\s*\"\K.+", "/etc/os-release"]).stdout.strip().replace('"', ""),
-        os_ver=grep(["-Po", r"^VERSION=\s*\"\K.+", "/etc/os-release"])
+        os=grep(["-Po", r"'^NAME=\s*\"\K.+'", "/etc/os-release"]).stdout.strip().replace('"', ""),
+        os_ver=grep(["-Po", r"'^VERSION=\s*\"\K.+'", "/etc/os-release"])
         .stdout.strip()
         .replace('"', ""),
         kernel_config=zcat.get_compressed_files_contents(["/proc/config.gz"]),
