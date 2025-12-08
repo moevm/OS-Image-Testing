@@ -69,7 +69,7 @@ services:
         USER: ${USER}
         GROUP: ${GROUP}
     image: ${DOCKER_PYTHON_TAG}
-    command: python3 /home/${USER}/image/runner.py
+    command: python3 /home/${USER}/web/manage.py runserver 0.0.0.0:8000
     volumes:
       - ./tests/image:/home/${USER}/image
       - ${HOST_SCRIPTS_PATH}/bencher/bencher-test.sh:/home/${USER}/bencher-test.sh
@@ -90,6 +90,8 @@ services:
       POSTGRES_PORT: ${POSTGRES_PORT}
       VMETRICS_ADDRESS: ${VMETRICS_ADDRESS}
       VMETRICS_PORT: ${VMETRICS_PORT}
+    ports:
+      - ${DJANGO_PORT}:${DJANGO_PORT}
     networks:
       yocto-network:
         ipv4_address: ${PYTHON_ADDRESS}
