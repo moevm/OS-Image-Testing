@@ -28,6 +28,7 @@ dependencies = [
     "matplotlib~=3.10.8",
     "setuptools~=82.0.1",
     "numpy~=2.4.4",
+    "django~=6.0"
 ]
 
 [dependency-groups]

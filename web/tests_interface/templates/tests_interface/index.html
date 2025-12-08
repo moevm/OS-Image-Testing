@@ -1,0 +1,30 @@
+{% extends 'tests_interface/base.html' %}
+
+{% block title %}Home - Test Dashboard{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="title-container">
+        <h1>Test Platform Dashboard</h1>
+        <p class="subtitle">Select a platform to view test results and reports</p>
+    </div>
+    
+    <div class="links-container">
+        <a href="{% url 'yocto' %}" class="platform-link yocto-link">
+            <div class="link-content">
+                <div class="link-text">
+                    <h2>Yocto Project</h2>
+                </div>
+            </div>
+        </a>
+        
+        <a href="{% url 'opensuse' %}" class="platform-link opensuse-link">
+            <div class="link-content">
+                <div class="link-text">
+                    <h2>OpenSUSE</h2>
+                </div>
+            </div>
+        </a>
+    </div>
+</div>
+{% endblock %}

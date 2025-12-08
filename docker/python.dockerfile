@@ -23,5 +23,6 @@ RUN mkdir /home/${USER}/.ssh
 
 COPY --chown=${USER}:${GROUP} src/ /home/${USER}/python
 COPY --chown=${USER}:${GROUP} pyproject.toml /home/${USER}/python
+COPY --chown=${USER}:${GROUP} web/ /home/${USER}/web
 RUN cd /home/${USER}/python && python3 -m pip install .
 RUN rm -rf /home/${USER}/python

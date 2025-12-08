@@ -1,0 +1,64 @@
+{% extends 'tests_interface/base.html' %}
+
+{% block title %}Yocto Tests{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="header-with-back">
+        <a href="{% url 'index' %}" class="back-button">Back to Dashboard</a>
+        <div class="page-title">
+            <h1>Tests page for Yocto</h1>
+        </div>
+    </div>
+    
+    <div class="placeholder">
+      <button id="runTestsBtn" class="btn">Run tests</button>
+        <div id="outputContainer" style="
+          max-height: 400px;
+          overflow-y: auto;
+          background: #f5f5f5;
+          padding: 10px;
+          margin-top: 10px;
+          border-radius: 5px;
+          font-family: monospace;
+          white-space: pre-wrap;
+          text-align: left;
+          ">
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('runTestsBtn').addEventListener('click', function() {
+    const btn = this;
+    const outputContainer = document.getElementById('outputContainer');
+    
+    btn.disabled = true;
+    btn.textContent = 'Running...';
+    outputContainer.textContent = 'Tests Running...';
+    
+    fetch('/run-tests/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            outputContainer.textContent = data.output;
+        } else {
+            outputContainer.textContent = 'Error: ' + data.error;
+        }
+    })
+    .catch(error => {
+        outputContainer.textContent = 'Error: ' + error;
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.textContent = 'Run tests';
+    });
+});
+</script>
+{% endblock %}
