@@ -37,6 +37,7 @@ TESTS_DIR                  := ${CURDIR}/tests
 
 # Python
 PACKAGE_MGR                := uv
+DJANGO_PORT		   := 8000
 
 # Docker Network
 DOCKER_NETWORK             := yocto-network
