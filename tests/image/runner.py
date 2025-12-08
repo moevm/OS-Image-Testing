@@ -1,10 +1,10 @@
 import logging
 import sys
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from pathlib import Path
 from threading import Thread
 from time import sleep
-from typing import Final
+from typing import Any, Final
 
 import paramiko
 import paramiko.ssh_exception
@@ -13,7 +13,7 @@ from image.utils import env_var_to_type_or_exit
 from imgtests.exec.exec import SSHClient
 from imgtests.exec.loaders.stress_ng import StressNg
 from imgtests.logger import set_handlers
-from imgtests.sysrep import get_system_info
+from imgtests.sysrep import SystemInfo, compare_system_infos, get_system_info
 
 logger = logging.getLogger()
 set_handlers(logger, Path("processing.log"))
@@ -50,6 +50,14 @@ def is_remote_alive(client: SSHClient, executor: ThreadPoolExecutor) -> None:
     sys.exit(1)
 
 
+def run_tests(client: SSHClient, executor: ThreadPoolExecutor) -> None:
+    stress_ng = StressNg(client)
+    future = executor.submit(stress_ng.run, timeout_sec=60, cpu=1)
+    result = future.result()
+    _, metrics = result
+    logger.info(metrics)
+
+
 def main() -> None:
     executor = ThreadPoolExecutor()
     client = wait_remote()
@@ -58,16 +66,18 @@ def main() -> None:
         sys.exit(1)
     is_alive_cycle = Thread(target=is_remote_alive, args=(client, executor))
     is_alive_cycle.start()
-    stress_ng = StressNg(client)
-    future = executor.submit(get_system_info, client)
-    result = future.result()
-    logger.info(result.tools_versions)
-    logger.info(result.uname_info)
-    logger.info("Packages count %d", len(result.package_list))
-    future = executor.submit(stress_ng.run, timeout_sec=60, cpu=1)
-    result = future.result()
-    _, metrics = result
-    logger.info(metrics)
+    futures: list[Future[Any]] = []
+    futures.append(executor.submit(get_system_info))
+    futures.append(executor.submit(get_system_info, client))
+    sys_infos: list[SystemInfo] = []
+    for future in as_completed(futures):
+        result = future.result()
+        sys_infos.append(result)
+        logger.info(result.tools_versions)
+        logger.info(result.uname_info)
+        logger.info("Packages count %d", len(result.package_list))
+    logger.info(compare_system_infos(*sys_infos))
+    run_tests(client, executor)
     is_alive_cycle.join()
 
 
