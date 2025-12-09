@@ -144,9 +144,8 @@ docker-run-suse:
 	docker run -it --rm \
 		--volume ${DOCKER_OPENSUSE_VOLUME}:${SUSE_DIR} \
 		${DOCKER_SUSE_TAG} \
-		bash -c "service ssh start && \
-				 qemu-system-x86_64 -m 4G -nographic -drive file=open-suse-${SUSE_VER}.qcow2,index=0,media=disk \
-				     		        -cdrom cloud-init.iso -net user,hostfwd=tcp::1111-:22 -net nic"
+		bash -c "qemu-system-x86_64 -m 4G -nographic -drive file=open-suse-${SUSE_VER}.qcow2,index=0,media=disk \
+				-cdrom cloud-init.iso -net user,hostfwd=tcp::1111-:22 -net nic"
 
 .PHONY: docker-compose-up
 docker-compose-up: ensure-volumes
