@@ -1,7 +1,7 @@
 from typing import Any, Literal
 
 from imgtests.exec.base_util import GenericUtil
-from imgtests.exec.exec import ExecResult, SSHClient
+from imgtests.exec.exec import ExecResult, SSHClient, run_command
 from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
 from imgtests.exec.utils import create_opt
 
@@ -76,3 +76,41 @@ class Fio(PkgMgrMixin, GenericUtil):
             ],
             **kwargs,
         )
+
+
+class FioPlot(PkgMgrMixin, GenericUtil):
+    def __init__(self, ssh_client: SSHClient | None = None) -> None:
+        super().__init__("fio-plot", ssh_client)
+
+    def _ensure_pip3(self) -> ExecResult | None:
+        cmd = ["python3", "-m", "pip", "--version"]
+        if self.ssh_client is None:
+            check = run_command(cmd)
+            if check.returncode == 0:
+                return None
+            return ExecResult(
+                cmd=cmd,
+                stdout=check.stdout,
+                stderr=(
+                    "pip3 is not installed locally; please install it manually "
+                    "and re-run fio-plot installation."
+                ),
+                returncode=check.returncode or 1,
+            )
+
+        check = self.ssh_client(cmd)
+        if check.returncode == 0:
+            return None
+
+        return self.install_packages(["python3-pip"])
+
+    def install(self) -> ExecResult:
+        pip_result = self._ensure_pip3()
+        if pip_result is not None and pip_result.returncode != 0:
+            return pip_result
+
+        cmd = ["python3", "-m", "pip", "install", "fio-plot"]
+        if self.ssh_client is None:
+            return run_command(cmd)
+
+        return self.ssh_client(cmd)

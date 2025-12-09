@@ -36,19 +36,18 @@ class Zypper(GenericUtil):
 
         if self.path is None:
             return ExecResult(
-                cmd=f"which {self.name}",
+                cmd=["which", self.name],
                 stdout="",
                 stderr=f"Failed to locate '{self.name}'.",
                 returncode=1,
             )
 
         cmd_list = ["sudo", str(self.path), *base_args]
-        cmd_str = " ".join(cmd_list)
 
         if self.ssh_client is None:
             return run_command(cmd_list)
 
-        return self.ssh_client(cmd_str)
+        return self.ssh_client(cmd_list)
 
     def refresh(self) -> ExecResult:
         """Refresh repository metadata (zypper refresh)."""
@@ -65,7 +64,7 @@ class Zypper(GenericUtil):
             msg = "No packages specified for installation."
             logger.error(msg)
             return ExecResult(
-                cmd="zypper install",
+                cmd=["zypper", "install"],
                 stdout="",
                 stderr=msg,
                 returncode=1,

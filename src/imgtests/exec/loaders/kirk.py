@@ -16,7 +16,7 @@ class Kirk(GenericUtil):
                 f"{self.name!r} is not possible."
             )
             return ExecResult(
-                cmd="install-kirk",
+                cmd=["install-kirk"],
                 stdout="",
                 stderr=msg,
                 returncode=1,
@@ -25,19 +25,20 @@ class Kirk(GenericUtil):
         os_id = get_os_id(self.ssh_client)
 
         if os_id and "opensuse" in os_id:
-            zypper = Zypper(ssh_client=self.ssh_client)
+            zypper = Zypper(ssh_client=self.ssh_client, use_sudo=True)
             git_result = zypper.install(["git-core"])
             if git_result.returncode != 0:
                 return git_result
 
-        cmd = (
+        script = (
             "set -e; "
             "install_dir=/opt/kirk; "
             'if [ ! -d "$install_dir" ]; then '
-            "  git clone https://github.com/linux-test-project/kirk.git "
-            '"$install_dir"; '
+            'git clone https://github.com/linux-test-project/kirk.git "$install_dir"; '
             "fi; "
             'chmod +x "$install_dir/kirk"; '
             'ln -sf "$install_dir/kirk" /usr/local/bin/kirk'
         )
+
+        cmd = ["sudo", "bash", "-lc", f"'{script}'"]
         return self.ssh_client(cmd)

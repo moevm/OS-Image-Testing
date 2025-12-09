@@ -5,8 +5,8 @@ from imgtests.exec.loaders.fio import Fio
 from imgtests.exec.loaders.kirk import Kirk
 from imgtests.exec.loaders.perf import Perf
 from imgtests.exec.loaders.stress_ng import StressNg
-from imgtests.exec.observers.grep import Grep
 from imgtests.exec.observers.uname import Uname, UnameInfo
+from imgtests.exec.osinfo import get_os_release
 
 
 class ToolsVersions(NamedTuple):
@@ -25,13 +25,15 @@ class SystemInfo(NamedTuple):
 
 def get_system_info(ssh_client: SSHClient | None = None) -> SystemInfo:
     uname = Uname(ssh_client)
-    grep = Grep(ssh_client)
+    os_release = get_os_release(ssh_client)
+
+    os_name = os_release.name or ""
+    os_ver = os_release.raw.get("VERSION") or ""
+
     return SystemInfo(
         uname.info(),
-        os=grep(["-Po", r"^NAME=\s*\"\K.+", "/etc/os-release"]).stdout.strip().replace('"', ""),
-        os_ver=grep(["-Po", r"^VERSION=\s*\"\K.+", "/etc/os-release"])
-        .stdout.strip()
-        .replace('"', ""),
+        os=os_name,
+        os_ver=os_ver,
         tools_versions=ToolsVersions(
             Fio(ssh_client).version() or "",
             StressNg(ssh_client).version() or "",
