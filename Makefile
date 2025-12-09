@@ -15,6 +15,8 @@ DOCKER_DOWNLOADS_VOLUME    := ${DOCKER_PREFIX}-yocto-downloads
 DOCKER_SSTATE_VOLUME       := ${DOCKER_PREFIX}-yocto-sstate
 DOCKER_OPENSUSE_VOLUME     := ${DOCKER_PREFIX}-open-suse-files
 DOCKER_NETWORK             := yocto-network
+BENCHER_API_CONF_VOL       := ${DOCKER_PREFIX}-bencher-conf
+BENCHER_API_DB_VOL         := ${DOCKER_PREFIX}-bencher-database
 
 # Paths
 POKY_DIR                   := /home/${USER}/poky
@@ -31,10 +33,14 @@ PACKAGE_MGR                := uv
 # IP addresses
 YOCTO_ADDRESS              := 10.5.0.10
 PYTHON_ADDRESS             := 10.5.0.11
+BENCHER_API_ADDRESS        := 10.5.0.12
+BENCHER_CLI_ADDRESS        := 10.5.0.13
 SUBNET                     := 10.5.0.0/24
 GATEWAY                    := 10.5.0.1
 SSH_QEMU_USER              ?= root
 SSH_QEMU_PORT              ?= 2222
+BENCHER_API_PORT		   := 61016
+BENCHER_CLI_PORT		   := 3000
 
 # Library
 PYTHONDONTWRITEBYTECODE    := 1
@@ -148,8 +154,8 @@ docker-run-suse:
 				-cdrom cloud-init.iso -net user,hostfwd=tcp::1111-:22 -net nic"
 
 .PHONY: docker-compose-up
-docker-compose-up: ensure-volumes
-	docker compose --file docker/compose.yml --project-directory ./ up --detach --build
+docker-compose-up:
+	docker-compose -f docker/compose.yml --project-directory ./ up --detach --build
 
 .PHONY: ensure-volumes
 ensure-volumes: docker

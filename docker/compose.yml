@@ -1,6 +1,7 @@
 services:
   imgtests-yocto:
     build:
+      context: .
       dockerfile: docker/image_builder.dockerfile
       args:
         USER: ${USER}
@@ -32,6 +33,7 @@ services:
 
   imgtests-analyzer:
     build:
+      context: .
       dockerfile: docker/python.dockerfile
       args:
         USER: ${USER}
@@ -50,12 +52,42 @@ services:
       yocto-network:
         ipv4_address: ${PYTHON_ADDRESS}
 
+  bencher_api_compose:
+    image: ghcr.io/bencherdev/bencher-api:latest
+    container_name: bencher_api
+    ports:
+      - ${BENCHER_API_PORT}:${BENCHER_API_PORT}
+    volumes:
+      - ${BENCHER_API_CONF_VOL}:/etc/bencher
+      - ${BENCHER_API_DB_VOL}:/var/lib/bencher/data
+    networks:
+      yocto-network:
+        ipv4_address: ${BENCHER_API_ADDRESS}
+  
+  bencher_console_compose:
+    image: ghcr.io/bencherdev/bencher-console:latest
+    container_name: bencher_console
+    ports:
+      - ${BENCHER_CLI_PORT}:${BENCHER_CLI_PORT}
+    environment:
+      - BENCHER_API_URL=${BENCHER_API_ADDRESS}:${BENCHER_API_PORT}
+      - INTERNAL_API_URL=${BENCHER_API_ADDRESS}:${BENCHER_API_PORT}
+    depends_on:
+      - bencher_api_compose
+    networks:
+      yocto-network:
+        ipv4_address: ${BENCHER_CLI_ADDRESS}
+
 volumes:
   imgtests-yocto-build:
     external: true
   imgtests-yocto-downloads:
     external: true
   imgtests-yocto-sstate:
+    external: true
+  imgtests-bencher-conf:
+    external: true
+  imgtests-bencher-database:
     external: true
 
 networks:
