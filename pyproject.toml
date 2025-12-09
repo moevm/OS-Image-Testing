@@ -52,6 +52,9 @@ lint.ignore = [
 "tests/unit/*" = [
     "S101"      # We use asserts in the unit tests
 ]
+"tests/misc/*" = [
+    "S101"      # We use asserts in the unit tests
+]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
@@ -64,7 +67,7 @@ addopts = "-v"
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-testpaths = ["tests"]
+testpaths = ["tests/unit", "tests/misc"]
 pythonpath = [
     "src",
 ]
