@@ -9,6 +9,7 @@
 
 ## 2. Методологии
 
+- [ChaosEngineering](./methodology/ChaosEngineering.md)
 - [Performance тестирование](./methodology/performance-methodology.md)
 
 ## 3. Утилиты
