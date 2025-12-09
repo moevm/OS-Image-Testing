@@ -8,6 +8,7 @@
 
 ## 2. Методологии
 
+- [ChaosEngineering](./methodology/ChaosEngineering.md)
 - [Performance тестирование](./methodology/performance-methodology.md)
 - [Yocto API](./methodology/yocto-api-info.md)
 
