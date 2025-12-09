@@ -1,5 +1,6 @@
 # VictoriaMetrics
-[VictoriaMetrics](https://victoriametrics.com/) — это быстрая и масштабируемая система мониторинга и база данных временных рядов. Её используют как хранилище метрик и основу для наблюдений. Её можно применять как долгосрочное хранилище для [Prometheus](https://prometheus.io/docs/) и подключать в [Grafana](https://grafana.com/docs/) для визуализации
+
+[VictoriaMetrics](https://victoriametrics.com/) — это быстрая и масштабируемая система мониторинга и база данных временных рядов. Её используют как хранилище метрик и основу для наблюдений. Её можно применять как долгосрочное хранилище для [Prometheus](https://prometheus.io/docs/) и подключать в [Grafana](https://grafana.com/docs/) для визуализации.
 
 ## Какие типы данных можно хранить
 
@@ -49,7 +50,7 @@ VictoriaMetrics использует [MetricsQL](https://docs.victoriametrics.co
 - [HTTP API (Prometheus-совместимый)](https://prometheus.io/docs/prometheus/latest/querying/api/)
 
 <div align="center">
-  <img src="https://github.com/user-attachments/assets/9d7a8862-407c-4e8f-947a-db5d15d0e5ff" alt="Суммарная скорость HTTP-запросов за последние 5 минут" width="720">
+  <img src="../../images/victoria-metrics-http-test-graph.png" alt="Суммарная скорость HTTP-запросов за последние 5 минут" width="720">
   <br/>
   <em>Рисунок 1 — суммарная скорость HTTP-запросов за последние 5 минут, выполнен в
     <a href="https://play.victoriametrics.com/select/0/vmui/?#/?g0.range_input=30m&g0.end_input=2025-10-28T13%3A59%3A30&g0.relative_time=last_30_minutes&g0.tab=0&g0.tenantID=0">онлайн песочнице VMUI</a>.
