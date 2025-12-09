@@ -21,13 +21,27 @@ stress-ng: info:  [7645] vm  2283  2.00  1.98  0.00  1140.30  1153.03  98.90""",
         ("stress-ng: info: [12345] cpu 123456 10.50 8.20 2.30 11757.71 11834.15", []),
         ("", []),
         ("stress-ng: info: [12345] cpu 123456.7 10.50 8.20 2.30 11757.71 11834.15 105.00", []),
+        (
+            "stress-ng: metrc: [635] cpu  692  10.03  10.00  0.03  69.00  69.03  99.96  6200",
+            [StressNGMetrics("cpu", 692, 10.03, 10.00, 0.03, 69.00, 69.03, 99.96, 6200)],
+        ),
+        (
+            """stress-ng: metrc: [635] cpu  692  10.03  10.00  0.03  69.00  69.03  99.96  6200
+stress-ng: metrc: [635] vm  0  10.01  0.07  0.15  0.00  0.00  2.26  2236""",
+            [
+                StressNGMetrics("cpu", 692, 10.03, 10.00, 0.03, 69.00, 69.03, 99.96, 6200),
+                StressNGMetrics("vm", 0, 10.01, 0.07, 0.15, 0, 0, 2.26, 2236),
+            ],
+        ),
     ],
     ids=[
-        "One stressor.",
-        "Two stressors.",
+        "One stressor with old metrics format.",
+        "Two stressors with old metrics format.",
         "Less fields then required.",
         "Empty output.",
         "Invalid bogo opts format.",
+        "One stressor with new metrics format.",
+        "Two stressors with new metrics format.",
     ],
 )
 def test_parse_metrics(raw_metrics: str, expected: list[StressNGMetrics]) -> None:

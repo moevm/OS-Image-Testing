@@ -1,6 +1,9 @@
 # Bencher
 
+[Bencher](https://bencher.dev/) - набор инструментов для тестирования производительности, обертка над тестами, мониторинг работы и визуализация результатов.
+
 ## Ограничения:
+
 1. [Лицензия](https://bencher.dev/legal/license/)
 * Весь контент, расположенный в любом каталоге или функции с названием «plus», распространяется по лицензии [Bencher Plus License](https://bencher.dev/legal/plus/).
 * Весь остальной контент - Apache License, версия 2.0 или MIT License.
@@ -30,7 +33,7 @@
 
 ## Хранение данных:
 1. SQLite Database
-* [схема бд](https://bencher.dev/ru/docs/reference/schema/)
+* [Схема базы данных](https://bencher.dev/ru/docs/reference/schema/)
 2. Litestream для репликации и резервного копирования в Object Storage
 
 ## Как развернуть локально
@@ -99,13 +102,13 @@ bencher run --file results.json --adapter json --project project_name --token yo
 Примеры графиков на псевдоданных:
 
 1. 2 метрики, 1 стенд, 1 ветка, 1 набор тестов
-![график 1](imgs/latency_and_throughput_for_1_testbed_1_test_1_branch.png)
+![график 1](../../../images/bencher-first-graph.png)
 
 2. 1 метрика, 1 стенд, 2 ветки, 1 набор тестов
-![график 2](imgs/latency_for_1_test_all_branches_1_testbed.png)
+![график 2](../../../images/bencher-second-graph.png)
 
 3. 1 метрика, 1 стенд, 1 ветка, 2 набора тестов
-![график 3](imgs/latency_for_different_tests.png)
+![график 3](../../../images/bencher-third-graph.png)
 
 4. 1 метрика, 2 стенда, 2 ветки, 1 набор тестов
-![график 3](imgs/latency_for_different_tests.png)
+![график 3](../../../images/bencher-fourth-graph.png)

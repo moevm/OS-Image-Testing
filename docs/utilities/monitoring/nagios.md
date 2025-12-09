@@ -39,7 +39,7 @@ define service {
 
 Пример отслеживания сервисов:
 
-![Демонстрация функционала](https://github.com/user-attachments/assets/ec2a1b78-b662-4426-b65e-4a072204164b)
+![Демонстрация функционала](../../images/nagios-services.jpg)
 
 ## Недостатки
 
