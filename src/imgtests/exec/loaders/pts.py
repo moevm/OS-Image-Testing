@@ -1,14 +1,11 @@
 import json
 import logging
-from pathlib import Path
 from typing import Any
 
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import SSHClient
-from imgtests.logger import set_handlers
 
-logger = logging.getLogger(__name__)
-set_handlers(logger, Path("processing.log"))
+logger = logging.getLogger()
 
 
 class PhoronixTestSuite(GenericUtil):
@@ -25,9 +22,8 @@ class PhoronixTestSuite(GenericUtil):
 
     def remove_test(self, test_name: str) -> None:
         """Removes a given test in the ssh client."""
-        result = self.ssh_client(
-            f"printf 'y\n' | phoronix-test-suite remove-installed-test {test_name}"
-        )
+        command = f"printf 'y\n' | phoronix-test-suite remove-installed-test {test_name}"
+        result = self.ssh_client([command])
         if result.returncode == 0:
             logger.info("PTS test '%s' removed", test_name)
         else:
@@ -36,9 +32,8 @@ class PhoronixTestSuite(GenericUtil):
     def run_test(self, test_name: str, run_count: int) -> None:
         """Runs a given test with set amount of iterations in the ssh client."""
         self.install_test(test_name=test_name)
-        result = self.ssh_client(
-            f"FORCE_TIMES_TO_RUN={run_count} phoronix-test-suite batch-run {test_name}"
-        )
+        command = f"FORCE_TIMES_TO_RUN={run_count} phoronix-test-suite batch-run {test_name}"
+        result = self.ssh_client([command])
         if result.returncode == 0:
             logger.info("PTS test '%s' finished", test_name)
         else:
@@ -52,13 +47,14 @@ class PhoronixTestSuite(GenericUtil):
         Returns:
             Result name or None.
         """
-        result_name = self.ssh_client(
+        command = (
             "phoronix-test-suite list-results | "
             "grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{4}' | "
             "tail -1"
         )
-        if result_name.returncode == 0 and result_name.stdout.strip():
-            return result_name.stdout.strip()
+        result = self.ssh_client([command])
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip()
         logger.warning("PTS results are missing")
         return None
 
@@ -81,11 +77,11 @@ class PhoronixTestSuite(GenericUtil):
                 raise ValueError(error_message)
             result_name = latest_result_name
 
-        self.ssh_client(f"phoronix-test-suite result-file-to-json {result_name}")
+        self(["result-file-to-json", result_name])
 
-        result = self.ssh_client(f"cat {result_name}.json")
+        result = self.ssh_client(["cat", f"{result_name}.json"])
 
-        self.ssh_client(f"rm {result_name}.json")
+        self.ssh_client(["rm", f"{result_name}.json"])
 
         try:
             return json.loads(result.stdout)
@@ -225,9 +221,10 @@ def setup_pts(ssh_client: SSHClient) -> None:
 
     Sets up Google DNS server and turns off interactive questions in the future tests.
     """
-    ssh_client('echo "nameserver 8.8.8.8" > /etc/resolv.conf')
+    ssh_client(["echo 'nameserver 8.8.8.8' > /etc/resolv.conf"])
     setup_answers = "y\n" + "n\n" * 6
-    result = ssh_client(f"printf '{setup_answers}' | phoronix-test-suite batch-setup")
+    command = f"printf '{setup_answers}' | phoronix-test-suite batch-setup"
+    result = ssh_client([command])
     if result.returncode == 0:
         logger.info("PTS setup successful")
     else:

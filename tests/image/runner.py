@@ -1,5 +1,8 @@
 import logging
+import sys
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from threading import Thread
 from time import sleep
 from typing import Final
 
@@ -13,7 +16,7 @@ from imgtests.exec.loaders.stress_ng import StressNg
 from imgtests.logger import set_handlers
 from imgtests.sysrep import get_system_info
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()
 set_handlers(logger, Path("processing.log"))
 
 
@@ -36,20 +39,50 @@ def wait_remote() -> SSHClient | None:
     return None
 
 
-if __name__ == "__main__":
+def is_remote_alive(client: SSHClient, executor: ThreadPoolExecutor) -> None:
+    while True:
+        sleep(30)
+        try:
+            client(["echo", "yes"])
+        except paramiko.ssh_exception.SSHException:
+            break
+    executor.shutdown(cancel_futures=True)
+    logger.error("Remote node unavailable during test.")
+    sys.exit(1)
+
+
+def main() -> None:
+    executor = ThreadPoolExecutor()
     client = wait_remote()
+    if client is None:
+        logger.error("Failed to connect to the remote node.")
+        sys.exit(1)
+    is_alive_cycle = Thread(target=is_remote_alive, args=(client, executor))
+    is_alive_cycle.start()
 
     stress_ng = StressNg(client)
     pts = PhoronixTestSuite(client)
 
-    system_info = get_system_info(client)
-    logger.info(system_info.tools_versions)
-    logger.info(system_info.uname_info)
-    logger.info("Packages count %d", len(system_info.package_list))
+    future = executor.submit(get_system_info, client)
+    result = future.result()
+    logger.info(result.tools_versions)
+    logger.info(result.uname_info)
+    logger.info("Packages count %d", len(result.package_list))
 
-    _, stress_ng_metrics = stress_ng.run(timeout_sec=20, cpu=1)
-    logger.info(stress_ng_metrics)
+    future = executor.submit(stress_ng.run, timeout_sec=60, cpu=1)
+    result = future.result()
+    _, metrics = result
+    logger.info(metrics)
 
-    setup_pts(client)
-    pts_metrics = pts.run(test_name="pts/pybench", run_count=1)
-    logger.info(pts_metrics)
+    future = executor.submit(setup_pts, client)
+    future.result()
+
+    future = executor.submit(pts.run, test_name="pts/pybench", run_count=1)
+    result = future.result()
+    logger.info(result)
+
+    is_alive_cycle.join()
+
+
+if __name__ == "__main__":
+    main()
