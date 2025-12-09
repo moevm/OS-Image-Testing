@@ -39,7 +39,7 @@ class BaseTestUtil(ABC):
             cmd = []
         if self.path is None:
             return ExecResult(
-                cmd=f"which {self.name}", stderr=f"Failed to locate '{self.name}'.", returncode=1
+                cmd=("which", self.name), stderr=f"Failed to locate '{self.name}'.", returncode=1
             )
         for k in kwargs:
             if k in cmd:
@@ -48,7 +48,7 @@ class BaseTestUtil(ABC):
         final_cmd = [str(self.path), *cmd, *kwargs_to_cmd_args(**kwargs)]
         if self.ssh_client is None:
             return run_command(final_cmd)
-        return self.ssh_client(" ".join(final_cmd))
+        return self.ssh_client(final_cmd)
 
     def install(self) -> ExecResult:
         """Installs the utility.
