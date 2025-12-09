@@ -16,19 +16,18 @@ do_configure[noexec] = "1"
 do_compile[noexec] = "1"
 
 do_install() {
-    install -d ${D}/opt/chaosblade
-    install -d ${D}${bindir}
+    install -d ${D}${bindir}/chaosblade
 
-    cp -r ${S}/* ${D}/opt/chaosblade/
+    cp -r ${S}/* ${D}${bindir}/chaosblade/
 
-    ln -sf /opt/chaosblade/blade ${D}${bindir}/blade
+    ln -sf ${bindir}/chaosblade/blade ${D}${bindir}/blade
 
-    chmod 755 ${D}/opt/chaosblade/blade
+    chmod 755 ${D}${bindir}/chaosblade/blade
 }
 
 FILES:${PN} = " \
-    /opt/chaosblade/* \
     ${bindir}/blade \
+    ${bindir}/chaosblade/* \
 "
 
 INSANE_SKIP:${PN} = "already-stripped"
