@@ -11,6 +11,7 @@
 
 - [ChaosEngineering](./methodology/ChaosEngineering.md)
 - [Performance тестирование](./methodology/performance-methodology.md)
+- [Метод инструментов](./methodology/instrumental-method.md)
 
 ## 3. Утилиты
 
