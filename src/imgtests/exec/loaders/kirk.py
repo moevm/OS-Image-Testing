@@ -30,9 +30,7 @@ class Kirk(GenericUtil):
                 logger.exception("Failed to list LTP suites in local directory %s", runtest_dir)
                 return []
 
-        cmd = f"ls -1 {shlex.quote(str(runtest_dir))}"
-        res = self.ssh_client(cmd)
-
+        res = self.ssh_client(("ls", "-1", shlex.quote(str(runtest_dir))))
         if res.returncode:
             logger.error(
                 "Failed to list LTP suites in %s\nSTDOUT:\n%s\nSTDERR:\n%s",
@@ -66,7 +64,7 @@ class Kirk(GenericUtil):
                 )
                 return (
                     ExecResult(
-                        cmd=f"mkdir -p {results_dir_path}",
+                        cmd=("mkdir", "-p", str(results_dir_path)),
                         stdout="",
                         stderr="Failed to create local directory for LTP results",
                         returncode=1,
@@ -76,7 +74,7 @@ class Kirk(GenericUtil):
             remote_results_dir = results_dir_path
         else:
             remote_results_dir = Path(results_dir)
-            mkdir_cmd = f"mkdir -p {shlex.quote(str(remote_results_dir))}"
+            mkdir_cmd = ("mkdir", "-p", shlex.quote(str(remote_results_dir)))
             mkdir_res = self.ssh_client(mkdir_cmd)
             if mkdir_res.returncode != 0:
                 error_msg = (
@@ -98,9 +96,7 @@ class Kirk(GenericUtil):
         report_name = f"{suites_str}.json"
 
         remote_json_path = remote_results_dir / report_name
-        cmd = ["--run-suite", *scenarios_list, "--json-report", str(remote_json_path)]
-        res = self(cmd)
-
+        res = self(["--run-suite", *scenarios_list, "--json-report", str(remote_json_path)])
         if res.returncode:
             return res, None
 
@@ -120,7 +116,6 @@ class Kirk(GenericUtil):
             return res, None
 
         local_json_path = results_dir_path / remote_json_path.name
-
         download_res = self.ssh_client.download(
             remotepath=remote_json_path, localpath=local_json_path
         )
