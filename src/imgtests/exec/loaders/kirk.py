@@ -18,17 +18,19 @@ class Kirk(GenericUtil):
     def list_suites(
         self,
         ltp_root: str | Path = "/opt/ltp",
-    ) -> list[str]:
+    ) -> tuple[str, ...]:
         """Return a list of available LTP suites."""
         ltp_root_path = Path(ltp_root)
         runtest_dir = ltp_root_path / "runtest"
 
         if self.ssh_client is None:
             try:
-                return sorted(entry.name for entry in runtest_dir.iterdir() if entry.is_file())
+                return tuple(
+                    sorted(entry.name for entry in runtest_dir.iterdir() if entry.is_file())
+                )
             except OSError:
                 logger.exception("Failed to list LTP suites in local directory %s", runtest_dir)
-                return []
+                return ()
 
         res = self.ssh_client(("ls", "-1", shlex.quote(str(runtest_dir))))
         if res.returncode:
@@ -38,9 +40,9 @@ class Kirk(GenericUtil):
                 res.stdout,
                 res.stderr,
             )
-            return []
+            return ()
 
-        return [line.strip() for line in res.stdout.splitlines() if line.strip()]
+        return tuple(line.strip() for line in res.stdout.splitlines() if line.strip())
 
     def run(  # noqa: PLR0911
         self,
