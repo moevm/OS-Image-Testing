@@ -3,7 +3,7 @@ import logging
 from typing import Any
 
 from imgtests.exec.base_util import GenericUtil
-from imgtests.exec.exec import SSHClient, pipeline
+from imgtests.exec.exec import SSHClient, pipeline, run_command
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +23,7 @@ class PhoronixTestSuite(GenericUtil):
     def remove_test(self, test_name: str) -> None:
         """Removes a given test in the ssh client."""
         commands = [["printf", "y\n"], ["phoronix-test-suite", "remove-installed-test", test_name]]
-        result = list(pipeline(commands, ssh_client=self.ssh_client))[-1]
+        result = list(pipeline(cmds=commands, ssh_client=self.ssh_client), pass_output=True)[-1]
         if result.returncode == 0:
             logger.info("PTS test '%s' removed", test_name)
         else:
@@ -216,15 +216,18 @@ class PhoronixTestSuite(GenericUtil):
         return self.parse_metrics(json_data)
 
 
-def setup_pts(ssh_client: SSHClient) -> None:
+def setup_pts(ssh_client: SSHClient | None = None) -> None:
     """Prepares PTS for running tests.
 
     Sets up Google DNS server and turns off interactive questions in the future tests.
     """
-    ssh_client(["echo 'nameserver 8.8.8.8' > /etc/resolv.conf"])
+    call_func = run_command if ssh_client is None else ssh_client
+
+    pipeline(cmds=["echo", "'nameserver 8.8.8.8'", ">", "/etc/resolv.conf"], ssh_client=call_func)
+
     setup_answers = "y\n" + "n\n" * 6
     commands = [["echo", "-e", f'"{setup_answers}"'], ["phoronix-test-suite", "batch-setup"]]
-    result = list(pipeline(commands, ssh_client=ssh_client))[-1]
+    result = list(pipeline(cmds=commands, ssh_client=call_func, pass_output=True))[-1]
     if result.returncode == 0:
         logger.info("PTS setup successful")
     else:

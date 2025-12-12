@@ -128,7 +128,7 @@ def which(util: str, ssh_client: SSHClient | None = None) -> Path | None:
 
 
 def pipeline(
-    cmds: Sequence[Sequence[str]], ssh_client: SSHClient | None = None, pass_output: bool = True
+    cmds: Sequence[Sequence[str]], ssh_client: SSHClient | None = None, pass_output: bool = False
 ) -> Iterable[ExecResult]:
     call_func = run_command if ssh_client is None else ssh_client
     prev_stdout = None
