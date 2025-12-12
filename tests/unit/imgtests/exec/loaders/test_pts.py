@@ -12,13 +12,13 @@ from imgtests.exec.loaders.pts import PhoronixTestSuite
             {
                 "title": "2025-12-12-2222",
                 "last_modified": "2025-12-12 22:30:58",
-                "description": "Intel Xeon E3-12xx v2 testing with a QEMU Standard PC (Q35 + ICH9 2009) (rel-1.16.3-0-ga6ed6b701f0a-prebuilt.qemu.org BIOS) and bochs-drmdrmfb on poky 5.2.4 via the Phoronix Test Suite.",
+                "description": "Intel Xeon E3-12xx v2 testing on poky 5.2.4 via PTS.",
                 "systems": {
                     "2025-12-12 22:22": {
                         "identifier": "2025-12-12 22:22",
                         "hardware": {
                             "Processor": "Intel Xeon E3-12xx v2 (4 Cores)",
-                            "Motherboard": "QEMU Standard PC (Q35 + ICH9 2009) (rel-1.16.3-0-ga6ed6b701f0a-prebuilt.qemu.org BIOS)",
+                            "Motherboard": "QEMU Standard PC (Q35 + ICH9 2009)",
                             "Chipset": "Intel 82G33/G31/P35/P31 + ICH9",
                             "Memory": "1 x 2 GB RAM QEMU",
                             "Disk": "10GB",
@@ -39,7 +39,6 @@ from imgtests.exec.loaders.pts import PhoronixTestSuite
                         "data": {
                             "cpu-microcode": "0x1",
                             "python": "Python 3.13.4",
-                            "security": "gather_data_sampling: Not affected + indirect_target_selection: Mitigation of Aligned branch/return thunks + itlb_multihit: vulnerable + l1tf: Mitigation of PTE Inversion + mds: Vulnerable: Clear buffers attempted no microcode; SMT Host state unknown + meltdown: Mitigation of PTI + mmio_stale_data: Unknown: No mitigations + reg_file_data_sampling: Not affected + retbleed: Not affected + spec_rstack_overflow: Not affected + spec_store_bypass: Vulnerable + spectre_v1: Mitigation of usercopy/swapgs barriers and __user pointer sanitization + spectre_v2: Mitigation of Retpolines; STIBP: disabled; RSB filling; PBRSB-eIBRS: Not affected; BHI: Retpoline + srbds: Unknown: Dependent on hypervisor status + tsa: Not affected + tsx_async_abort: Not affected + vmscape: Not affected",
                         },
                     }
                 },
@@ -60,7 +59,7 @@ from imgtests.exec.loaders.pts import PhoronixTestSuite
                 "PTS test results\n\n"
                 "System info:\n"
                 "  Processor: Intel Xeon E3-12xx v2 (4 Cores)\n"
-                "  Motherboard: QEMU Standard PC (Q35 + ICH9 2009) (rel-1.16.3-0-ga6ed6b701f0a-prebuilt.qemu.org BIOS)\n"
+                "  Motherboard: QEMU Standard PC (Q35 + ICH9 2009)\n"
                 "  Chipset: Intel 82G33/G31/P35/P31 + ICH9\n"
                 "  Memory: 1 x 2 GB RAM QEMU\n"
                 "  Disk: 10GB\n"
@@ -78,13 +77,13 @@ from imgtests.exec.loaders.pts import PhoronixTestSuite
             {
                 "title": "2025-12-12-2222",
                 "last_modified": "2025-12-12 22:30:58",
-                "description": "Intel Xeon E3-12xx v2 testing with a QEMU Standard PC (Q35 + ICH9 2009) (rel-1.16.3-0-ga6ed6b701f0a-prebuilt.qemu.org BIOS) and bochs-drmdrmfb on poky 5.2.4 via the Phoronix Test Suite.",
+                "description": "Intel Xeon E3-12xx v2 testing on poky 5.2.4 via PTS.",
                 "systems": {
                     "2025-12-12 22:22": {
                         "identifier": "2025-12-12 22:22",
                         "hardware": {
                             "Processor": "Intel Xeon E3-12xx v2 (4 Cores)",
-                            "Motherboard": "QEMU Standard PC (Q35 + ICH9 2009) (rel-1.16.3-0-ga6ed6b701f0a-prebuilt.qemu.org BIOS)",
+                            "Motherboard": "QEMU Standard PC (Q35 + ICH9 2009)",
                             "Chipset": "Intel 82G33/G31/P35/P31 + ICH9",
                             "Memory": "1 x 2 GB RAM QEMU",
                             "Disk": "10GB",
@@ -105,7 +104,6 @@ from imgtests.exec.loaders.pts import PhoronixTestSuite
                         "data": {
                             "cpu-microcode": "0x1",
                             "python": "Python 3.13.4",
-                            "security": "gather_data_sampling: Not affected + indirect_target_selection: Mitigation of Aligned branch/return thunks + itlb_multihit: vulnerable + l1tf: Mitigation of PTE Inversion + mds: Vulnerable: Clear buffers attempted no microcode; SMT Host state unknown + meltdown: Mitigation of PTI + mmio_stale_data: Unknown: No mitigations + reg_file_data_sampling: Not affected + retbleed: Not affected + spec_rstack_overflow: Not affected + spec_store_bypass: Vulnerable + spectre_v1: Mitigation of usercopy/swapgs barriers and __user pointer sanitization + spectre_v2: Mitigation of Retpolines; STIBP: disabled; RSB filling; PBRSB-eIBRS: Not affected; BHI: Retpoline + srbds: Unknown: Dependent on hypervisor status + tsa: Not affected + tsx_async_abort: Not affected + vmscape: Not affected",
                         },
                     }
                 },
@@ -128,7 +126,7 @@ from imgtests.exec.loaders.pts import PhoronixTestSuite
                 "PTS test results\n\n"
                 "System info:\n"
                 "  Processor: Intel Xeon E3-12xx v2 (4 Cores)\n"
-                "  Motherboard: QEMU Standard PC (Q35 + ICH9 2009) (rel-1.16.3-0-ga6ed6b701f0a-prebuilt.qemu.org BIOS)\n"
+                "  Motherboard: QEMU Standard PC (Q35 + ICH9 2009)\n"
                 "  Chipset: Intel 82G33/G31/P35/P31 + ICH9\n"
                 "  Memory: 1 x 2 GB RAM QEMU\n"
                 "  Disk: 10GB\n"
