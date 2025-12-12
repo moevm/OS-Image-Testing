@@ -8,7 +8,7 @@ from imgtests.exec.exec import ExecResult, SSHClient
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_LTP_RESULTS_DIR = Path("/var/tmp/ltp-results")
+DEFAULT_LTP_RESULTS_DIR = Path("/var/tmp/ltp-results")  # noqa: S108
 
 
 class Kirk(GenericUtil):
@@ -33,7 +33,7 @@ class Kirk(GenericUtil):
         cmd = f"ls -1 {shlex.quote(str(runtest_dir))}"
         res = self.ssh_client(cmd)
 
-        if res.returncode != 0:
+        if res.returncode:
             logger.error(
                 "Failed to list LTP suites in %s\nSTDOUT:\n%s\nSTDERR:\n%s",
                 runtest_dir,
@@ -44,7 +44,7 @@ class Kirk(GenericUtil):
 
         return [line.strip() for line in res.stdout.splitlines() if line.strip()]
 
-    def run(
+    def run(  # noqa: PLR0911
         self,
         scenarios: Iterable[str],
         results_dir: str | Path = DEFAULT_LTP_RESULTS_DIR,
@@ -82,13 +82,13 @@ class Kirk(GenericUtil):
                 error_msg = (
                     f"Failed to create LTP results directory on remote host: {remote_results_dir}"
                 )
-                log_msg = f"{error_msg}\nSTDOUT:\n{mkdir_res.stdout}\nSTDERR:\n{mkdir_res.stderr}"
-                logger.error(log_msg)
+                logger.error(error_msg)
+                logger.error(mkdir_res.stderr)
                 return (
                     ExecResult(
                         cmd=mkdir_cmd,
                         stdout=mkdir_res.stdout,
-                        stderr=log_msg,
+                        stderr=f"{error_msg}\nSTDERR:\n{mkdir_res.stderr}",
                         returncode=mkdir_res.returncode,
                     ),
                     None,
@@ -101,7 +101,7 @@ class Kirk(GenericUtil):
         cmd = ["--run-suite", *scenarios_list, "--json-report", str(remote_json_path)]
         res = self(cmd)
 
-        if res.returncode != 0:
+        if res.returncode:
             return res, None
 
         if self.ssh_client is None:
@@ -125,7 +125,7 @@ class Kirk(GenericUtil):
             remotepath=remote_json_path, localpath=local_json_path
         )
 
-        if download_res.returncode != 0:
+        if download_res.returncode:
             logger.error(
                 "Failed to download LTP results from remote host. STDERR: %s", download_res.stderr
             )
