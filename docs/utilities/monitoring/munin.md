@@ -36,7 +36,7 @@ Munin состоит из двух компонентов - `Munin Master` и `M
 
 Пример графика:
 
-![Демонстрация функционала](https://github.com/user-attachments/assets/e67118df-efc8-429c-949b-7b2e966f1cb7)
+![Демонстрация функционала](../../images/munin-memory-graph.png)
 
 ## Недостатки
 
