@@ -16,10 +16,15 @@ class ExecResult(NamedTuple):
     returncode: int = 0
 
 
-def run_command(cmd: Sequence[str]) -> ExecResult:
+def run_command(cmd: Sequence[str], stdin: str | None = None) -> ExecResult:
     logger.info("Running command '%s'.", " ".join(cmd))
     result = subprocess.run(  # noqa: UP022, S603
-        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf-8", check=False
+        cmd,
+        input=stdin.encode("utf-8") if stdin else None,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        encoding="utf-8",
+        check=False,
     )
 
     result = ExecResult(
@@ -47,6 +52,7 @@ class SSHClient:
     def __call__(
         self,
         cmd: Sequence[str],
+        stdin: str | None = None,
     ) -> ExecResult:
         session = self.ssh_session.open_channel(kind="session")
         stdout = session.makefile("rb")
@@ -54,6 +60,13 @@ class SSHClient:
         logger.info("Running command '%s' on host '%s'.", cmd, self.hostname)
         cmd = " ".join(cmd)
         session.exec_command(cmd)
+
+        if stdin is not None:
+            stdin_channel = session.makefile_stdin("wb")
+            stdin_channel.write(stdin.encode("utf-8"))
+            stdin_channel.flush()
+            stdin_channel.close()
+
         retval = session.recv_exit_status()
         stdout = stdout.read().decode("utf-8").strip()
         stderr = stderr.read().decode("utf-8").strip()
@@ -115,8 +128,18 @@ def which(util: str, ssh_client: SSHClient | None = None) -> Path | None:
 
 
 def pipeline(
-    cmds: Sequence[Sequence[str]], ssh_client: SSHClient | None = None
+    cmds: Sequence[Sequence[str]], ssh_client: SSHClient | None = None, pass_output: bool = True
 ) -> Iterable[ExecResult]:
     call_func = run_command if ssh_client is None else ssh_client
+    prev_stdout = None
+
     for cmd in cmds:
-        yield call_func(cmd)
+        if pass_output and prev_stdout is not None:
+            result = call_func(cmd, stdin=prev_stdout)
+        else:
+            result = call_func(cmd)
+
+        yield result
+
+        if pass_output:
+            prev_stdout = result.stdout
