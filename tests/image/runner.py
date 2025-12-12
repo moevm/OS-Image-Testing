@@ -9,6 +9,7 @@ from typing import Final
 import paramiko
 import paramiko.ssh_exception
 
+from image.endurance.syscalls import run_ltp_syscalls
 from image.utils import env_var_to_type_or_exit
 from imgtests.exec.exec import SSHClient
 from imgtests.exec.loaders.pts import PhoronixTestSuite, setup_pts
@@ -81,6 +82,8 @@ def main() -> None:
     result = future.result()
     logger.info(result)
 
+    run_ltp_syscalls(executor, client)
+    logger.info("All tests completed successfully")
     is_alive_cycle.join()
 
 
