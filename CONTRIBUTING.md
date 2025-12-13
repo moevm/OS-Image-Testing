@@ -4,7 +4,7 @@ First of all, thank you for your desire to contribute in that project.
 
 ## Development environment
 
-You will need to install make in order to run Makefile targets and uv as a package manager for Python.
+You will need to install `make` in order to run Makefile targets and `uv` as a package manager for Python.
 
 ### Installation on Ubuntu
 
