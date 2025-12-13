@@ -223,7 +223,7 @@ def setup_pts(ssh_client: SSHClient | None = None) -> None:
     """
     call_func = run_command if ssh_client is None else ssh_client
 
-    pipeline(cmds=["echo", "'nameserver 8.8.8.8'", ">", "/etc/resolv.conf"], ssh_client=call_func)
+    list(pipeline(cmds=[["echo", "'nameserver 8.8.8.8'", ">", "/etc/resolv.conf"]], ssh_client=call_func))
 
     setup_answers = "y\n" + "n\n" * 6
     commands = [["echo", "-e", f'"{setup_answers}"'], ["phoronix-test-suite", "batch-setup"]]
