@@ -11,9 +11,9 @@ import paramiko.ssh_exception
 
 from image.endurance.syscalls import run_ltp_syscalls
 from image.performance.cpu import run_stress_ng_tests
+from image.performance.system import run_pts_tests
 from image.utils import env_var_to_type_or_exit
 from imgtests.exec.exec import SSHClient
-from imgtests.exec.loaders.pts import PhoronixTestSuite, setup_pts
 from imgtests.logger import set_handlers
 from imgtests.sysrep import SystemInfo, compare_system_infos, get_system_info
 
@@ -50,15 +50,6 @@ def is_remote_alive(client: SSHClient, executor: ThreadPoolExecutor) -> None:
     executor.shutdown(cancel_futures=True)
     logger.error("Remote node unavailable during test.")
     sys.exit(1)
-
-
-def run_pts_tests(executor: ThreadPoolExecutor, client: SSHClient | None = None) -> None:
-    pts = PhoronixTestSuite(client)
-    future = executor.submit(setup_pts, client)
-    future.result()
-    future = executor.submit(pts.run, test_name="pts/pybench", run_count=1)
-    result = future.result()
-    logger.info(result)
 
 
 def main() -> None:

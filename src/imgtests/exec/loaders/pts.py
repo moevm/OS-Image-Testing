@@ -13,31 +13,31 @@ class PhoronixTestSuite(GenericUtil):
         super().__init__("phoronix-test-suite", ssh_client)
 
     def install_test(self, test_name: str) -> None:
-        """Installs a given test in the ssh client."""
+        """Installs a given test."""
         result = self(["install", test_name])
-        if result.returncode == 0:
-            logger.info("PTS test '%s' installed", test_name)
-        else:
+        if result.returncode:
             logger.warning("Installation of PTS test '%s' failed", test_name)
+        else:
+            logger.info("PTS test '%s' installed", test_name)
 
     def remove_test(self, test_name: str) -> None:
-        """Removes a given test in the ssh client."""
+        """Removes a given test."""
         commands = [["printf", "y\n"], ["phoronix-test-suite", "remove-installed-test", test_name]]
-        result = list(pipeline(cmds=commands, ssh_client=self.ssh_client), pass_output=True)[-1]
-        if result.returncode == 0:
-            logger.info("PTS test '%s' removed", test_name)
-        else:
-            logger.warning("Removal of PTS test '%s' failed", test_name)
+        for result in pipeline(cmds=commands, ssh_client=self.ssh_client, pass_output=True):
+            if result.returncode:
+                logger.warning("Removal of PTS test '%s' failed", test_name)
+                return
+        logger.info("PTS test '%s' removed", test_name)
 
     def run_test(self, test_name: str, run_count: int) -> None:
-        """Runs a given test with set amount of iterations in the ssh client."""
+        """Runs a given test with set amount of iterations."""
         self.install_test(test_name=test_name)
         command = f"FORCE_TIMES_TO_RUN={run_count} phoronix-test-suite batch-run {test_name}"
         result = self.ssh_client([command])
-        if result.returncode == 0:
-            logger.info("PTS test '%s' finished", test_name)
-        else:
+        if result.returncode:
             logger.warning("PTS test '%s' failed", test_name)
+        else:
+            logger.info("PTS test '%s' finished", test_name)
 
     def get_latest_result_name(self) -> str | None:
         """Returns latest result name.
