@@ -16,13 +16,12 @@ class ExecResult(NamedTuple):
     returncode: int = 0
 
 
-def run_command(cmd: Sequence[str], stdin: str | None = None) -> ExecResult:
+def run_command(cmd: Sequence[str], input_: str | None = None) -> ExecResult:
     logger.info("Running command '%s'.", " ".join(cmd))
-    result = subprocess.run(  # noqa: UP022, S603
+    result = subprocess.run(  # noqa: S603
         cmd,
-        input=stdin.encode("utf-8") if stdin else None,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        input=input_,
+        capture_output=True,
         encoding="utf-8",
         check=False,
     )
@@ -52,7 +51,7 @@ class SSHClient:
     def __call__(
         self,
         cmd: Sequence[str],
-        stdin: str | None = None,
+        input_: str | None = None,
     ) -> ExecResult:
         session = self.ssh_session.open_channel(kind="session")
         stdout = session.makefile("rb")
@@ -61,9 +60,9 @@ class SSHClient:
         cmd = " ".join(cmd)
         session.exec_command(cmd)
 
-        if stdin is not None:
+        if input_ is not None:
             stdin_channel = session.makefile_stdin("wb")
-            stdin_channel.write(stdin.encode("utf-8"))
+            stdin_channel.write(input_)
             stdin_channel.flush()
             stdin_channel.close()
 
@@ -135,7 +134,7 @@ def pipeline(
 
     for cmd in cmds:
         if pass_output and prev_stdout is not None:
-            result = call_func(cmd, stdin=prev_stdout)
+            result = call_func(cmd, input_=prev_stdout)
         else:
             result = call_func(cmd)
 
