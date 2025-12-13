@@ -9,6 +9,7 @@ from typing import Any, Final
 import paramiko
 import paramiko.ssh_exception
 
+from image.endurance.syscalls import run_ltp_syscalls
 from image.utils import env_var_to_type_or_exit
 from imgtests.exec.exec import SSHClient
 from imgtests.exec.loaders.stress_ng import StressNg
@@ -50,7 +51,7 @@ def is_remote_alive(client: SSHClient, executor: ThreadPoolExecutor) -> None:
     sys.exit(1)
 
 
-def run_tests(client: SSHClient, executor: ThreadPoolExecutor) -> None:
+def run_tests(executor: ThreadPoolExecutor, client: SSHClient | None = None) -> None:
     stress_ng = StressNg(client)
     future = executor.submit(stress_ng.run, timeout_sec=60, cpu=1)
     result = future.result()
@@ -77,7 +78,9 @@ def main() -> None:
         logger.info(result.uname_info)
         logger.info("Packages count %d", len(result.package_list))
     logger.info(compare_system_infos(*sys_infos))
-    run_tests(client, executor)
+    run_tests(executor, client)
+    run_ltp_syscalls(executor, client)
+    logger.info("All tests completed successfully")
     is_alive_cycle.join()
 
 
