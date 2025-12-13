@@ -22,7 +22,7 @@ class PhoronixTestSuite(GenericUtil):
 
     def remove_test(self, test_name: str) -> None:
         """Removes a given test."""
-        commands = [["printf", "y\n"], ["phoronix-test-suite", "remove-installed-test", test_name]]
+        commands = [["printf", "y\n"], [self.name, "remove-installed-test", test_name]]
         for result in pipeline(cmds=commands, ssh_client=self.ssh_client, pass_output=True):
             if result.returncode:
                 logger.warning("Removal of PTS test '%s' failed", test_name)
@@ -32,8 +32,10 @@ class PhoronixTestSuite(GenericUtil):
     def run_test(self, test_name: str, run_count: int) -> None:
         """Runs a given test with set amount of iterations."""
         self.install_test(test_name=test_name)
-        command = f"FORCE_TIMES_TO_RUN={run_count} phoronix-test-suite batch-run {test_name}"
-        result = self.ssh_client([command])
+        result = common_run_command(
+            [f"FORCE_TIMES_TO_RUN={run_count}", self.name, "batch-run", test_name],
+            ssh_client=self.ssh_client,
+        )
         if result.returncode:
             logger.warning("PTS test '%s' failed", test_name)
         else:
@@ -47,16 +49,20 @@ class PhoronixTestSuite(GenericUtil):
         Returns:
             Result name or None.
         """
-        command = (
-            "phoronix-test-suite list-results | "
-            "grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{4}' | "
-            "tail -1"
-        )
-        result = self.ssh_client([command])
-        if result.returncode == 0 and result.stdout.strip():
-            return result.stdout.strip()
-        logger.warning("PTS results are missing")
-        return None
+        last_result = None
+        for result in pipeline(
+            [
+                [self.name, "list-results"],
+                ["grep", "-oE", "'[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{4}'"],
+                ["tail", "-1"],
+            ],
+            self.ssh_client,
+        ):
+            if result.returncode:
+                logger.warning("PTS results are missing")
+                return None
+            last_result = result
+        return last_result.stdout.strip() if last_result is not None else None
 
     def get_result_json(self, result_name: str | None = None) -> dict[str, Any]:
         """Creates and returns a json file if result name exists.
@@ -220,16 +226,18 @@ def setup_pts(ssh_client: SSHClient | None = None) -> None:
 
     Sets up Google DNS server and turns off interactive questions in the future tests.
     """
-    list(
-        pipeline(
-            cmds=[["echo", "'nameserver 8.8.8.8'", ">", "/etc/resolv.conf"]], ssh_client=ssh_client
-        )
+    result = common_run_command(
+        cmd=["echo", "'nameserver 8.8.8.8'", ">", "/etc/resolv.conf"],
+        ssh_client=ssh_client,
     )
+    if result.returncode:
+        logger.error("PTS setup failed: '%s'", result.stderr)
+        return
 
     setup_answers = "y\n" + "n\n" * 6
     commands = [["echo", "-e", f'"{setup_answers}"'], ["phoronix-test-suite", "batch-setup"]]
     for result in pipeline(cmds=commands, ssh_client=ssh_client, pass_output=True):
         if result.returncode:
-            logger.warning("PTS setup failed: '%s'", result.stderr)
+            logger.error("PTS setup failed: '%s'", result.stderr)
             return
     logger.info("PTS setup successful")
