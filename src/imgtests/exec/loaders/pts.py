@@ -57,6 +57,7 @@ class PhoronixTestSuite(GenericUtil):
                 ["tail", "-1"],
             ],
             self.ssh_client,
+            pass_output=True,
         ):
             if result.returncode:
                 logger.warning("PTS results are missing")
