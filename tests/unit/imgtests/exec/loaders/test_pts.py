@@ -151,6 +151,5 @@ from imgtests.exec.loaders.pts import PhoronixTestSuite
     ids=["pts empty results", "pts/pybench."],
 )
 def test_parse_metrics(raw_metrics: dict[str, Any], expected: str) -> None:
-    pts = PhoronixTestSuite()
-    result = pts.parse_metrics(raw_metrics)
+    result = PhoronixTestSuite.parse_metrics(raw_metrics)
     assert result == expected

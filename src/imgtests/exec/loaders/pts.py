@@ -89,7 +89,8 @@ class PhoronixTestSuite(GenericUtil):
             error_message = "JSON parsing error"
             raise ValueError(error_message) from e
 
-    def format_test_results(self, metrics: dict[str, Any]) -> str:
+    @staticmethod
+    def format_test_results(metrics: dict[str, Any]) -> str:
         """Format given metrics for readable output.
 
         Args:
@@ -98,7 +99,7 @@ class PhoronixTestSuite(GenericUtil):
         Returns:
             Readable results output in a form of string.
         """
-        output = []
+        output: list[str] = []
         output.append("PTS test results")
 
         system = metrics.get("system_info", {})
@@ -148,7 +149,8 @@ class PhoronixTestSuite(GenericUtil):
 
         return "\n".join(output)
 
-    def parse_metrics(self, json_data: dict[str, Any]) -> str:
+    @staticmethod
+    def parse_metrics(json_data: dict[str, Any]) -> str:
         """Optimizes given JSON.
 
         Args:
@@ -194,7 +196,7 @@ class PhoronixTestSuite(GenericUtil):
 
                         metrics["results"].append(test_result)
 
-        return self.format_test_results(metrics)
+        return PhoronixTestSuite.format_test_results(metrics)
 
     def run(self, test_name: str, run_count: int) -> str:
         """Runs a given test and parses results.
