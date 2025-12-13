@@ -1,4 +1,6 @@
-from typing import NamedTuple
+from typing import Any, NamedTuple
+
+from deepdiff import DeepDiff
 
 from imgtests.exec.exec import SSHClient
 from imgtests.exec.loaders.fio import Fio
@@ -11,6 +13,11 @@ from imgtests.exec.observers.zcat import Zcat
 from imgtests.exec.osinfo import get_os_release
 
 
+class OsInfo(NamedTuple):
+    os: str
+    os_ver: str
+
+
 class ToolsVersions(NamedTuple):
     fio_ver: str
     stress_ng_ver: str
@@ -20,11 +27,16 @@ class ToolsVersions(NamedTuple):
 
 class SystemInfo(NamedTuple):
     uname_info: UnameInfo
-    os: str
-    os_ver: str
+    os_info: OsInfo
     kernel_config: tuple[str, ...]
     package_list: tuple[str, ...]
     tools_versions: ToolsVersions
+
+
+class SystemInfoDiff(NamedTuple):
+    uname_diff: dict[str, Any]
+    os_diff: dict[str, Any]
+    tools_diff: dict[str, Any]
 
 
 def get_system_info(ssh_client: SSHClient | None = None) -> SystemInfo:
@@ -37,9 +49,11 @@ def get_system_info(ssh_client: SSHClient | None = None) -> SystemInfo:
     os_ver = os_release.raw.get("VERSION") or os_release.version_id or ""
 
     return SystemInfo(
-        uname_info=uname.info(),
-        os=os_name,
-        os_ver=os_ver,
+        uname.info(),
+        os_info=OsInfo(
+            os=os_name,
+            os_ver=os_ver,
+        ),
         kernel_config=zcat.get_compressed_files_contents(["/proc/config.gz"]),
         package_list=rpm.get_pkglist(),
         tools_versions=ToolsVersions(
@@ -48,4 +62,15 @@ def get_system_info(ssh_client: SSHClient | None = None) -> SystemInfo:
             Kirk(ssh_client).version() or "",
             Perf(ssh_client).version() or "",
         ),
+    )
+
+
+def compare_system_infos(sys_info1: SystemInfo, sys_info2: SystemInfo) -> SystemInfoDiff:
+    uname_diff = DeepDiff(sys_info1.uname_info, sys_info2.uname_info)
+    os_diff = DeepDiff(sys_info1.os_info, sys_info2.os_info)
+    tools_diff = DeepDiff(sys_info1.tools_versions, sys_info2.tools_versions)
+    return SystemInfoDiff(
+        uname_diff,
+        os_diff,
+        tools_diff,
     )
