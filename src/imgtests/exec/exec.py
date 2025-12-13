@@ -16,6 +16,33 @@ class ExecResult(NamedTuple):
     returncode: int = 0
 
 
+def common_run_command(
+    cmd: Sequence[str], ssh_client: "SSHClient | None" = None, input_: str | None = None
+) -> ExecResult:
+    """Executes a command locally or over SSH, depending on the provided client.
+
+    This function provides a unified way to run a command: if no SSH client is given,
+    the command is executed locally using `run_command`; if an SSH client is provided,
+    the command is executed through it (assuming the `ssh_client` object has a callable
+    interface compatible with `run_command`).
+
+    Args:
+        cmd (Sequence[str]): A sequence of strings representing the command and its arguments.
+                             Example: ["ls", "-l", "/home/user"].
+        ssh_client (SSHClient | None): An SSH client instance for remote execution.
+                                       If None, the command runs locally.
+        input_ (str | None): Input string to be passed to the command's stdin,
+                             useful for interactive commands.
+
+    Examples:
+        >>> result = common_run_command(["echo", "Hello"])
+        >>> print(result.stdout)
+        Hello
+    """
+    call_func = run_command if ssh_client is None else ssh_client
+    return call_func(cmd=cmd, input_=input_)
+
+
 def run_command(cmd: Sequence[str], input_: str | None = None) -> ExecResult:
     logger.info("Running command '%s'.", " ".join(cmd))
     result = subprocess.run(  # noqa: S603
@@ -129,14 +156,13 @@ def which(util: str, ssh_client: SSHClient | None = None) -> Path | None:
 def pipeline(
     cmds: Sequence[Sequence[str]], ssh_client: SSHClient | None = None, pass_output: bool = False
 ) -> Iterable[ExecResult]:
-    call_func = run_command if ssh_client is None else ssh_client
     prev_stdout = None
 
     for cmd in cmds:
         if pass_output and prev_stdout is not None:
-            result = call_func(cmd, input_=prev_stdout)
+            result = common_run_command(cmd, ssh_client=ssh_client, input_=prev_stdout)
         else:
-            result = call_func(cmd)
+            result = common_run_command(cmd, ssh_client=ssh_client)
 
         yield result
 

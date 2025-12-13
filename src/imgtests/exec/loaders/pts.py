@@ -3,7 +3,7 @@ import logging
 from typing import Any
 
 from imgtests.exec.base_util import GenericUtil
-from imgtests.exec.exec import SSHClient, pipeline
+from imgtests.exec.exec import SSHClient, common_run_command, pipeline
 
 logger = logging.getLogger(__name__)
 
@@ -78,11 +78,8 @@ class PhoronixTestSuite(GenericUtil):
             result_name = latest_result_name
 
         self(["result-file-to-json", result_name])
-
-        result = self.ssh_client(["cat", f"{result_name}.json"])
-
-        self.ssh_client(["rm", f"{result_name}.json"])
-
+        result = common_run_command(["cat", f"{result_name}.json"], self.ssh_client)
+        common_run_command(["rm", "-f", f"{result_name}.json"], self.ssh_client)
         try:
             return json.loads(result.stdout)
         except Exception as e:
