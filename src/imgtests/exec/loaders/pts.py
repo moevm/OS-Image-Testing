@@ -3,7 +3,7 @@ import logging
 from typing import Any
 
 from imgtests.exec.base_util import GenericUtil
-from imgtests.exec.exec import SSHClient, pipeline, run_command
+from imgtests.exec.exec import SSHClient, pipeline
 
 logger = logging.getLogger(__name__)
 
@@ -118,7 +118,7 @@ class PhoronixTestSuite(GenericUtil):
 
         total_tests = 0
         total_iterations = 0
-        tests_time = {}
+        tests_time: dict[str, int] = {}
 
         output.append("\nTest results:")
         for test in metrics.get("results", []):
@@ -159,7 +159,7 @@ class PhoronixTestSuite(GenericUtil):
         Returns:
             Readable results output after formatting in a form of string.
         """
-        metrics = {"test_info": {}, "system_info": {}, "results": []}
+        metrics: dict[str, Any] = {"test_info": {}, "system_info": {}, "results": []}
 
         metrics["test_info"] = {
             "title": json_data.get("title", ""),
@@ -223,18 +223,16 @@ def setup_pts(ssh_client: SSHClient | None = None) -> None:
 
     Sets up Google DNS server and turns off interactive questions in the future tests.
     """
-    call_func = run_command if ssh_client is None else ssh_client
-
     list(
         pipeline(
-            cmds=[["echo", "'nameserver 8.8.8.8'", ">", "/etc/resolv.conf"]], ssh_client=call_func
+            cmds=[["echo", "'nameserver 8.8.8.8'", ">", "/etc/resolv.conf"]], ssh_client=ssh_client
         )
     )
 
     setup_answers = "y\n" + "n\n" * 6
     commands = [["echo", "-e", f'"{setup_answers}"'], ["phoronix-test-suite", "batch-setup"]]
-    result = list(pipeline(cmds=commands, ssh_client=call_func, pass_output=True))[-1]
-    if result.returncode == 0:
-        logger.info("PTS setup successful")
-    else:
-        logger.warning("PTS setup failed: '%s'", result.stderr)
+    for result in pipeline(cmds=commands, ssh_client=ssh_client, pass_output=True):
+        if result.returncode:
+            logger.warning("PTS setup failed: '%s'", result.stderr)
+            return
+    logger.info("PTS setup successful")
