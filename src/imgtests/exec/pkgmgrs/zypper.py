@@ -36,7 +36,7 @@ class Zypper(GenericUtil):
 
         if self.path is None:
             return ExecResult(
-                cmd=["which", self.name],
+                cmd=("which", self.name),
                 stdout="",
                 stderr=f"Failed to locate '{self.name}'.",
                 returncode=1,
@@ -57,14 +57,14 @@ class Zypper(GenericUtil):
             logger.error("zypper refresh failed: %s", result.stderr)
         return result
 
-    def install(self, packages: Iterable[str]) -> ExecResult:
+    def install_packages(self, packages: Iterable[str]) -> ExecResult:
         """Install one or more packages via zypper install."""
         pkgs = [p for p in packages if p]
         if not pkgs:
             msg = "No packages specified for installation."
             logger.error(msg)
             return ExecResult(
-                cmd=["zypper", "install"],
+                cmd=("zypper", "install"),
                 stdout="",
                 stderr=msg,
                 returncode=1,

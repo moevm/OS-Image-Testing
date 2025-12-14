@@ -22,7 +22,7 @@ class PkgMgrMixin:
         os_id = get_os_id(getattr(self, "ssh_client", None))
         if os_id and "opensuse" in os_id:
             zypper = Zypper(ssh_client=getattr(self, "ssh_client", None), use_sudo=True)
-            return zypper.install(pkgs)
+            return zypper.install_packages(pkgs)
 
         name = getattr(self, "name", "<unknown>")
         msg = (

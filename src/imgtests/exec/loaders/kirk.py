@@ -22,7 +22,7 @@ class Kirk(GenericUtil):
         os_id = get_os_id(self.ssh_client)
         if os_id and "opensuse" in os_id:
             zypper = Zypper(ssh_client=self.ssh_client, use_sudo=True)
-            result = zypper.install(["git-core"])
+            result = zypper.install_packages(["git-core"])
             if result.returncode:
                 return result
 

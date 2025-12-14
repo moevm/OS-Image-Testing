@@ -1,8 +1,9 @@
 from typing import Any, Literal
 
 from imgtests.exec.base_util import GenericUtil
-from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
+from imgtests.exec.exec import ExecResult, SSHClient
 from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
+from imgtests.exec.pkgmgrs.pip3 import Pip3
 from imgtests.exec.utils import create_opt
 
 IOPattern = Literal[
@@ -83,10 +84,9 @@ class FioPlot(PkgMgrMixin, GenericUtil):
         super().__init__("fio-plot", ssh_client)
 
     def install(self) -> ExecResult:
-        result = common_run_command(["python3", "-m", "pip", "--version"], self.ssh_client)
+        pip3 = Pip3(self.ssh_client)
+        result = pip3.install()
         if result.returncode:
-            result = self._install_packages(["python3-pip"])
-            if result.returncode:
-                return result
+            return result
 
-        return common_run_command(["python3", "-m", "pip", "install", "fio-plot"], self.ssh_client)
+        return pip3(["install", "fio-plot"])
