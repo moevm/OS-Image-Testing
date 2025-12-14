@@ -4,7 +4,7 @@ from collections.abc import Iterable
 from pathlib import Path
 
 from imgtests.exec.base_util import GenericUtil
-from imgtests.exec.exec import ExecResult, SSHClient
+from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
 from imgtests.exec.osinfo import get_os_id
 from imgtests.exec.pkgmgrs.zypper import Zypper
 
@@ -19,25 +19,12 @@ class Kirk(GenericUtil):
 
     def install(self) -> ExecResult:
         """Install kirk from the official Git repository and expose it in PATH."""
-        if self.ssh_client is None:
-            msg = (
-                "SSH client is not configured; automatic installation of "
-                f"{self.name!r} is not possible."
-            )
-            return ExecResult(
-                cmd=["install-kirk"],
-                stdout="",
-                stderr=msg,
-                returncode=1,
-            )
-
         os_id = get_os_id(self.ssh_client)
-
         if os_id and "opensuse" in os_id:
             zypper = Zypper(ssh_client=self.ssh_client, use_sudo=True)
-            git_result = zypper.install(["git-core"])
-            if git_result.returncode != 0:
-                return git_result
+            result = zypper.install(["git-core"])
+            if result.returncode:
+                return result
 
         script = (
             "set -e; "
@@ -48,9 +35,7 @@ class Kirk(GenericUtil):
             'chmod +x "$install_dir/kirk"; '
             'ln -sf "$install_dir/kirk" /usr/local/bin/kirk'
         )
-
-        cmd = ["sudo", "bash", "-lc", f"'{script}'"]
-        return self.ssh_client(cmd)
+        return common_run_command(("sudo", "bash", "-lc", f"'{script}'"), self.ssh_client)
 
     def list_suites(
         self,
