@@ -31,14 +31,15 @@ PACKAGE_MGR                := uv
 # IP addresses
 YOCTO_ADDRESS              := 10.5.0.10
 PYTHON_ADDRESS             := 10.5.0.11
-SUSE_ADDRESS_5			   := 10.5.0.12
-SUSE_ADDRESS_6			   := 10.5.0.13
+SUSE_ADDRESS_155           := 10.5.0.12
+SUSE_ADDRESS_156           := 10.5.0.13
 SUBNET                     := 10.5.0.0/24
 GATEWAY                    := 10.5.0.1
-SSH_QEMU_USER              ?= root
 SSH_QEMU_PORT              ?= 2222
-SSH_SUSE_PORT_5		   	   := 1515
-SSH_SUSE_PORT_6		   	   := 1616
+SSH_SUSE_PORT_155          := 1515
+SSH_SUSE_PORT_156          := 1616
+
+SSH_QEMU_USER              ?= root
 
 # Library
 PYTHONDONTWRITEBYTECODE    := 1
@@ -157,7 +158,9 @@ docker-compose-up: ensure-volumes
 
 .PHONY: ensure-volumes
 ensure-volumes: docker
-	docker volume create ${DOCKER_OPENSUSE_VOLUME} \
+	@if ! docker volume inspect ${DOCKER_OPENSUSE_VOLUME} > /dev/null 2>&1; then \
+		docker volume create ${DOCKER_OPENSUSE_VOLUME}; \
+	fi
 	@for volume in ${DOCKER_BUILD_VOLUME} ${DOCKER_DOWNLOADS_VOLUME} ${DOCKER_SSTATE_VOLUME}; do \
 		if ! docker volume inspect $$volume > /dev/null 2>&1; then \
 			docker volume create $$volume; \

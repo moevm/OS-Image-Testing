@@ -21,30 +21,37 @@ logger = logging.getLogger()
 set_handlers(logger, Path("processing.log"))
 
 
-SSH_PASSWORD: Final = env_var_to_type_or_exit("SSH_PASS", str, logger)
-SSH_USER: Final = env_var_to_type_or_exit("SSH_USER", str, logger)
-SSH_ADDR: Final = env_var_to_type_or_exit("SSH_ADDR", str, logger)
-SSH_PORT: Final = env_var_to_type_or_exit("SSH_PORT", int, logger)
+SSH_YOCTO_PASSWORD: Final = env_var_to_type_or_exit("SSH_YOCTO_PASS", str, logger)
+SSH_YOCTO_USER: Final = env_var_to_type_or_exit("SSH_YOCTO_USER", str, logger)
+SSH_YOCTO_ADDR: Final = env_var_to_type_or_exit("SSH_YOCTO_ADDR", str, logger)
+SSH_YOCTO_PORT: Final = env_var_to_type_or_exit("SSH_YOCTO_PORT", int, logger)
+SSH_SUSE_PASSWORD: Final = env_var_to_type_or_exit("SSH_SUSE_PASS", str, logger)
+SSH_SUSE_USER: Final = env_var_to_type_or_exit("SSH_SUSE_USER", str, logger)
+SSH_SUSE_ADDR_155: Final = env_var_to_type_or_exit("SSH_SUSE_ADDR_155", str, logger)
+SSH_SUSE_PORT_155: Final = env_var_to_type_or_exit("SSH_SUSE_PORT_155", int, logger)
+SSH_SUSE_ADDR_156: Final = env_var_to_type_or_exit("SSH_SUSE_ADDR_156", str, logger)
+SSH_SUSE_PORT_156: Final = env_var_to_type_or_exit("SSH_SUSE_PORT_156", int, logger)
 
 
-def wait_remote() -> SSHClient | None:
+def wait_remote(addr: str, user: str, password: str, port: int) -> SSHClient:
     wait_sec = 60 * 60 * 5
     step_sec = 60
     while wait_sec > 0:
         try:
-            return SSHClient(SSH_ADDR, SSH_USER, SSH_PASSWORD, SSH_PORT)
+            return SSHClient(addr, user, password, port)
         except paramiko.ssh_exception.SSHException:
             logger.info("Waiting remote node to build and run image.")
         sleep(step_sec)
         wait_sec -= 60
-    return None
+    logger.error("Failed to connect to the remote node.")
+    sys.exit(1)
 
 
 def is_remote_alive(client: SSHClient, executor: ThreadPoolExecutor) -> None:
     while True:
         sleep(30)
         try:
-            client(["echo", "yes"])
+            client(["echo", "test"])
         except paramiko.ssh_exception.SSHException:
             break
     executor.shutdown(cancel_futures=True)
@@ -54,15 +61,17 @@ def is_remote_alive(client: SSHClient, executor: ThreadPoolExecutor) -> None:
 
 def main() -> None:
     executor = ThreadPoolExecutor()
-    client = wait_remote()
-    if client is None:
-        logger.error("Failed to connect to the remote node.")
-        sys.exit(1)
+    client = wait_remote(SSH_YOCTO_ADDR, SSH_YOCTO_USER, SSH_YOCTO_PASSWORD, SSH_YOCTO_PORT)
+    suse155 = wait_remote(SSH_SUSE_ADDR_155, SSH_SUSE_USER, SSH_SUSE_PASSWORD, SSH_SUSE_PORT_155)
+    suse156 = wait_remote(SSH_SUSE_ADDR_156, SSH_SUSE_USER, SSH_SUSE_PASSWORD, SSH_SUSE_PORT_156)
+    suse155(["echo", "test"])
+    suse156(["echo", "test"])
     is_alive_cycle = Thread(target=is_remote_alive, args=(client, executor))
     is_alive_cycle.start()
     futures: list[Future[Any]] = []
-    futures.append(executor.submit(get_system_info))
     futures.append(executor.submit(get_system_info, client))
+    futures.append(executor.submit(get_system_info, suse155))
+    futures.append(executor.submit(get_system_info, suse156))
     sys_infos: list[SystemInfo] = []
     for future in as_completed(futures):
         result = future.result()
@@ -70,7 +79,9 @@ def main() -> None:
         logger.info(result.tools_versions)
         logger.info(result.uname_info)
         logger.info("Packages count %d", len(result.package_list))
-    logger.info(compare_system_infos(*sys_infos))
+    logger.info(compare_system_infos(sys_infos[0], sys_infos[1]))
+    logger.info(compare_system_infos(sys_infos[0], sys_infos[2]))
+    logger.info(compare_system_infos(sys_infos[1], sys_infos[2]))
     run_pts_tests(executor, client)
     run_stress_ng_tests(executor, client)
     run_ltp_syscalls(executor, client)

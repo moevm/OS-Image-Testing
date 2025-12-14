@@ -45,7 +45,7 @@ def common_run_command(
 
 def run_command(cmd: Sequence[str], input_: str | None = None) -> ExecResult:
     """Executes a command locally."""
-    logger.info("Running command '%s'.", " ".join(cmd))
+    logger.debug("Running command '%s'.", " ".join(cmd))
     result = subprocess.run(  # noqa: S603
         cmd,
         input=input_,
@@ -60,7 +60,7 @@ def run_command(cmd: Sequence[str], input_: str | None = None) -> ExecResult:
         stderr=result.stderr,
         returncode=result.returncode,
     )
-    logger.info("Command '%s' completed with code %d.", " ".join(cmd), result.returncode)
+    logger.debug("Command '%s' completed with code %d.", " ".join(cmd), result.returncode)
     return result
 
 
@@ -84,7 +84,7 @@ class SSHClient:
         session = self.ssh_session.open_channel(kind="session")
         stdout = session.makefile("rb")
         stderr = session.makefile_stderr("rb")
-        logger.info("Running command '%s' on host '%s'.", cmd, self.hostname)
+        logger.debug("Running command '%s' on host '%s'.", cmd, self.hostname)
         cmd = " ".join(cmd)
         session.exec_command(cmd)
 
@@ -101,7 +101,7 @@ class SSHClient:
             logger.error("Command '%s' completed with errors on the remote.", cmd.strip())
             if stderr:
                 logger.error(stderr)
-        logger.info("Exit status: %d.", retval)
+        logger.debug("Exit status: %d.", retval)
         session.close()
         return ExecResult(
             cmd=tuple(cmd),

@@ -39,16 +39,16 @@ services:
     command: ${SUSE_DIR}/scripts/suse-compose.sh 15.5
     volumes:
       - ${DOCKER_OPENSUSE_VOLUME}:${SUSE_DIR}
-      - ${HOST_SCRIPTS_PATH}/opensuse/:${SUSE_DIR}/scripts
+      - ${HOST_SCRIPTS_PATH}/opensuse/:${SUSE_DIR}/scripts:ro
     environment:
       S_USER: ${S_USER}
       PASSWORD: ${PASSWORD}
-      SSH_SUSE_PORT: ${SSH_SUSE_PORT_5}
+      SSH_SUSE_PORT: ${SSH_SUSE_PORT_155}
     ports:
-      - ${SSH_SUSE_PORT_5}:${SSH_SUSE_PORT_5}
+      - ${SSH_SUSE_PORT_155}:${SSH_SUSE_PORT_155}
     networks:
       yocto-network:
-        ipv4_address: ${SUSE_ADDRESS_5}
+        ipv4_address: ${SUSE_ADDRESS_155}
 
   imgtests-suse-156:
     build:
@@ -59,16 +59,16 @@ services:
     command: ${SUSE_DIR}/scripts/suse-compose.sh 15.6
     volumes:
       - ${DOCKER_OPENSUSE_VOLUME}:${SUSE_DIR}
-      - ${HOST_SCRIPTS_PATH}/opensuse:${SUSE_DIR}/scripts
+      - ${HOST_SCRIPTS_PATH}/opensuse:${SUSE_DIR}/scripts:ro
     environment:
       S_USER: ${S_USER}
       PASSWORD: ${PASSWORD}
-      SSH_SUSE_PORT: ${SSH_SUSE_PORT_6}
+      SSH_SUSE_PORT: ${SSH_SUSE_PORT_156}
     ports:
-      - ${SSH_SUSE_PORT_6}:${SSH_SUSE_PORT_6}
+      - ${SSH_SUSE_PORT_156}:${SSH_SUSE_PORT_156}
     networks:
       yocto-network:
-        ipv4_address: ${SUSE_ADDRESS_6}
+        ipv4_address: ${SUSE_ADDRESS_156}
 
   imgtests-analyzer:
     build:
@@ -82,10 +82,16 @@ services:
       - ./tests/image:/home/${USER}/image
     environment:
       PYTHONPATH: /home/${USER}/
-      SSH_USER: ${SSH_QEMU_USER}
-      SSH_PASS: ""
-      SSH_ADDR: ${YOCTO_ADDRESS}
-      SSH_PORT: ${SSH_QEMU_PORT}
+      SSH_YOCTO_USER: ${SSH_QEMU_USER}
+      SSH_YOCTO_PASS: ""
+      SSH_YOCTO_ADDR: ${YOCTO_ADDRESS}
+      SSH_YOCTO_PORT: ${SSH_QEMU_PORT}
+      SSH_SUSE_USER: ${S_USER}
+      SSH_SUSE_PASS: ${PASSWORD}
+      SSH_SUSE_PORT_155: ${SSH_SUSE_PORT_155}
+      SSH_SUSE_ADDR_155: ${SUSE_ADDRESS_155}
+      SSH_SUSE_PORT_156: ${SSH_SUSE_PORT_156}
+      SSH_SUSE_ADDR_156: ${SUSE_ADDRESS_156}
     networks:
       yocto-network:
         ipv4_address: ${PYTHON_ADDRESS}
