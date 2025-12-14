@@ -8,12 +8,12 @@ from imgtests.exec.pkgmgrs.zypper import Zypper
 class PkgMgrMixin:
     """Mixin with helper for installing packages via system package manager."""
 
-    def install_packages(self, packages: Iterable[str]) -> ExecResult:
+    def _install_packages(self, packages: Iterable[str]) -> ExecResult:
         pkgs = [p for p in packages if p]
         if not pkgs:
             msg = "No packages specified for installation."
             return ExecResult(
-                cmd=str(getattr(self, "name", "")) or "pkg-install",
+                cmd=(str(getattr(self, "name", "")) or "pkg-install",),
                 stdout="",
                 stderr=msg,
                 returncode=1,
@@ -30,7 +30,7 @@ class PkgMgrMixin:
             f"is not supported on this OS (detected ID: {os_id!r})."
         )
         return ExecResult(
-            cmd=str(name),
+            cmd=(str(name),),
             stdout="",
             stderr=msg,
             returncode=1,

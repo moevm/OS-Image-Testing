@@ -9,7 +9,7 @@ class Perf(PkgMgrMixin, GenericUtil):
 
     def install(self) -> ExecResult:
         """Install perf via the system package manager."""
-        return self.install_packages(["perf"])
+        return self._install_packages(["perf"])
 
     def stat(self, cmd: list[str]) -> ExecResult:
         return self(["stat", "--json", *cmd])

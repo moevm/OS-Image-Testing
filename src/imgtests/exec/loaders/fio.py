@@ -16,7 +16,7 @@ class Fio(PkgMgrMixin, GenericUtil):
 
     def install(self) -> ExecResult:
         """Install fio via the system package manager."""
-        return self.install_packages(["fio"])
+        return self._install_packages(["fio"])
 
     def ioengines(self) -> tuple[str, ...] | None:
         result = self(["--enghelp"])
@@ -102,7 +102,7 @@ class FioPlot(PkgMgrMixin, GenericUtil):
         if check.returncode == 0:
             return None
 
-        return self.install_packages(["python3-pip"])
+        return self._install_packages(["python3-pip"])
 
     def install(self) -> ExecResult:
         pip_result = self._ensure_pip3()
