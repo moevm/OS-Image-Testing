@@ -44,11 +44,6 @@ def get_os_release(ssh_client: SSHClient | None = None) -> OSRelease:
     )
 
 
-def get_os_id(ssh_client: SSHClient | None = None) -> str | None:
-    """Return the distribution ID (ID field from /etc/os-release)."""
-    return get_os_release(ssh_client).id
-
-
 def _parse_os_release(content: str) -> dict[str, str]:
     """Parse /etc/os-release contents into a dict."""
     data: dict[str, str] = {}

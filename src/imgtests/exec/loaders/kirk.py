@@ -5,7 +5,7 @@ from pathlib import Path
 
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
-from imgtests.exec.osinfo import get_os_id
+from imgtests.exec.osinfo import get_os_release
 from imgtests.exec.pkgmgrs.zypper import Zypper
 
 logger = logging.getLogger(__name__)
@@ -19,7 +19,7 @@ class Kirk(GenericUtil):
 
     def install(self) -> ExecResult:
         """Install kirk from the official Git repository and expose it in PATH."""
-        os_id = get_os_id(self.ssh_client)
+        os_id = get_os_release(self.ssh_client).id
         if os_id and "opensuse" in os_id:
             zypper = Zypper(ssh_client=self.ssh_client, use_sudo=True)
             result = zypper.install_packages(["git-core"])

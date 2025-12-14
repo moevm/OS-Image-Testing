@@ -1,7 +1,7 @@
 from collections.abc import Iterable
 
 from imgtests.exec.exec import ExecResult
-from imgtests.exec.osinfo import get_os_id
+from imgtests.exec.osinfo import get_os_release
 from imgtests.exec.pkgmgrs.zypper import Zypper
 
 
@@ -19,7 +19,7 @@ class PkgMgrMixin:
                 returncode=1,
             )
 
-        os_id = get_os_id(getattr(self, "ssh_client", None))
+        os_id = get_os_release(getattr(self, "ssh_client", None)).id
         if os_id and "opensuse" in os_id:
             zypper = Zypper(ssh_client=getattr(self, "ssh_client", None), use_sudo=True)
             return zypper.install_packages(pkgs)
