@@ -4,7 +4,9 @@ from collections.abc import Iterable
 from pathlib import Path
 
 from imgtests.exec.base_util import GenericUtil
-from imgtests.exec.exec import ExecResult, SSHClient
+from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
+from imgtests.exec.osinfo import get_os_release
+from imgtests.exec.pkgmgrs.zypper import Zypper
 
 logger = logging.getLogger(__name__)
 
@@ -14,6 +16,26 @@ DEFAULT_LTP_RESULTS_DIR = Path("/var/tmp/ltp-results")  # noqa: S108
 class Kirk(GenericUtil):
     def __init__(self, ssh_client: SSHClient | None = None) -> None:
         super().__init__("kirk", ssh_client)
+
+    def install(self) -> ExecResult:
+        """Install kirk from the official Git repository and expose it in PATH."""
+        os_id = get_os_release(self.ssh_client).id
+        if os_id and "opensuse" in os_id:
+            zypper = Zypper(ssh_client=self.ssh_client, use_sudo=True)
+            result = zypper.install_packages(["git-core"])
+            if result.returncode:
+                return result
+
+        script = (
+            "set -e; "
+            "install_dir=/opt/kirk; "
+            'if [ ! -d "$install_dir" ]; then '
+            'git clone https://github.com/linux-test-project/kirk.git "$install_dir"; '
+            "fi; "
+            'chmod +x "$install_dir/kirk"; '
+            'ln -sf "$install_dir/kirk" /usr/local/bin/kirk'
+        )
+        return common_run_command(("sudo", "bash", "-lc", f"'{script}'"), self.ssh_client)
 
     def list_suites(
         self,

@@ -44,6 +44,7 @@ def common_run_command(
 
 
 def run_command(cmd: Sequence[str], input_: str | None = None) -> ExecResult:
+    """Executes a command locally."""
     logger.info("Running command '%s'.", " ".join(cmd))
     result = subprocess.run(  # noqa: S603
         cmd,
