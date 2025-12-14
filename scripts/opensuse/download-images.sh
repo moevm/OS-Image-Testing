@@ -3,7 +3,7 @@
 SUSE_DIST_URL="https://download.opensuse.org/repositories/Cloud:/Images:/Leap_""$1""/images/"
 
 SUSE_15_5_IMG_FN="openSUSE-Leap-15.5.x86_64-1.0.1-NoCloud-Build6.180.qcow2"
-SUSE_15_6_IMG_FN="openSUSE-Leap-15.6.x86_64-1.0.2-NoCloud-Build1.86.qcow2"
+SUSE_15_6_IMG_FN="openSUSE-Leap-15.6.x86_64-1.0.2-NoCloud-Build1.93.qcow2"
 
 download () {
     # original file
