@@ -45,8 +45,8 @@ def get_system_info(ssh_client: SSHClient | None = None) -> SystemInfo:
     rpm = RPM(ssh_client)
     os_release = get_os_release(ssh_client)
 
-    os_name = os_release.name or ""
-    os_ver = os_release.raw.get("VERSION") or os_release.version_id or ""
+    os_name = os_release.name
+    os_ver = os_release.version or os_release.version_id
 
     return SystemInfo(
         uname.info(),

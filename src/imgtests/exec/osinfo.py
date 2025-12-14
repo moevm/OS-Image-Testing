@@ -4,6 +4,8 @@ import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, Final, NamedTuple
 
+from imgtests.exec.exec import common_run_command
+
 if TYPE_CHECKING:
     from imgtests.exec.exec import SSHClient
 
@@ -16,46 +18,29 @@ class OSRelease(NamedTuple):
     """Structured representation of /etc/os-release contents."""
 
     raw: dict[str, str]
-    id: str | None
-    name: str | None
-    version_id: str | None
-    pretty_name: str | None
+    id: str
+    name: str
+    version: str
+    version_id: str
+    pretty_name: str
 
 
 def get_os_release(ssh_client: SSHClient | None = None) -> OSRelease:
     """Return selected fields and raw mapping from /etc/os-release."""
     data: dict[str, str] = {}
 
-    if ssh_client is not None:
-        cmd = ["cat", str(_OS_RELEASE_PATH)]
-        result = ssh_client(cmd)
-        if result.returncode:
-            logger.warning(
-                "Failed to read %s on remote host '%s': %s",
-                _OS_RELEASE_PATH,
-                getattr(ssh_client, "hostname", "<unknown>"),
-                result.stderr,
-            )
-        else:
-            data = _parse_os_release(result.stdout)
+    result = common_run_command(["cat", str(_OS_RELEASE_PATH)], ssh_client)
+    if result.returncode:
+        logger.error(result.stderr)
     else:
-        try:
-            content = _OS_RELEASE_PATH.read_text(encoding="utf-8")
-        except OSError as exc:
-            logger.warning(
-                "Failed to read local %s: %s",
-                _OS_RELEASE_PATH,
-                exc,
-            )
-        else:
-            data = _parse_os_release(content)
-
+        data = _parse_os_release(result.stdout)
     return OSRelease(
         raw=data,
-        id=data.get("ID"),
-        name=data.get("NAME"),
-        version_id=data.get("VERSION_ID"),
-        pretty_name=data.get("PRETTY_NAME"),
+        id=data.get("ID", ""),
+        name=data.get("NAME", ""),
+        version=data.get("VERSION", ""),
+        version_id=data.get("VERSION_ID", ""),
+        pretty_name=data.get("PRETTY_NAME", ""),
     )
 
 
