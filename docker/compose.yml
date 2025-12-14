@@ -30,6 +30,46 @@ services:
       yocto-network:
         ipv4_address: ${YOCTO_ADDRESS}
 
+  imgtests-suse-155:
+    build:
+      dockerfile: docker/open-suse.dockerfile
+      args:
+        USER: ${USER}
+    image: ${DOCKER_SUSE_TAG}-155
+    command: ${SUSE_DIR}/scripts/suse-compose.sh 15.5
+    volumes:
+      - ${DOCKER_OPENSUSE_VOLUME}:${SUSE_DIR}
+      - ${HOST_SCRIPTS_PATH}/opensuse/:${SUSE_DIR}/scripts
+    environment:
+      S_USER: ${S_USER}
+      PASSWORD: ${PASSWORD}
+      SSH_SUSE_PORT: ${SSH_SUSE_PORT_5}
+    ports:
+      - ${SSH_SUSE_PORT_5}:${SSH_SUSE_PORT_5}
+    networks:
+      yocto-network:
+        ipv4_address: ${SUSE_ADDRESS_5}
+
+  imgtests-suse-156:
+    build:
+      dockerfile: docker/open-suse.dockerfile
+      args:
+        USER: ${USER}
+    image: ${DOCKER_SUSE_TAG}-156
+    command: ${SUSE_DIR}/scripts/suse-compose.sh 15.6
+    volumes:
+      - ${DOCKER_OPENSUSE_VOLUME}:${SUSE_DIR}
+      - ${HOST_SCRIPTS_PATH}/opensuse:${SUSE_DIR}/scripts
+    environment:
+      S_USER: ${S_USER}
+      PASSWORD: ${PASSWORD}
+      SSH_SUSE_PORT: ${SSH_SUSE_PORT_6}
+    ports:
+      - ${SSH_SUSE_PORT_6}:${SSH_SUSE_PORT_6}
+    networks:
+      yocto-network:
+        ipv4_address: ${SUSE_ADDRESS_6}
+
   imgtests-analyzer:
     build:
       dockerfile: docker/python.dockerfile
@@ -56,6 +96,8 @@ volumes:
   imgtests-yocto-downloads:
     external: true
   imgtests-yocto-sstate:
+    external: true
+  imgtests-open-suse-files:
     external: true
 
 networks:
