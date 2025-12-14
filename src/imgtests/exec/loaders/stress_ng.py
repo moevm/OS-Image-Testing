@@ -131,10 +131,11 @@ class StressNg(GenericUtil):
             **kwargs,
         )
         if "stress-ng:" in result.stdout:
-            return result, self._parse_metrics(result.stdout.strip())
-        return result, self._parse_metrics(result.stderr.strip())
+            return result, self.parse_metrics(result.stdout.strip())
+        return result, self.parse_metrics(result.stderr.strip())
 
-    def _parse_metrics(self, raw_metrics: str) -> list[StressNGMetrics]:
+    @staticmethod
+    def parse_metrics(raw_metrics: str) -> list[StressNGMetrics]:
         """Parse stress-ng metrics output.
 
         Args:
