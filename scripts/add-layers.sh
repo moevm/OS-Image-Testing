@@ -25,6 +25,7 @@ LAYERS=(
     "meta-secure-core/meta-integrity"
     "meta-security"
     "meta-virtualization"
+    "meta-cloud-services"
 )
 
 for layer in "${LAYERS[@]}"; do
