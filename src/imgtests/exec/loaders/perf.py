@@ -50,17 +50,17 @@ class Perf(GenericUtil):
                     total_time = float(time_match.group(1))
                 else:
                     logger.warning("Failed to parse total time line")
-                    total_time = 0
+                    total_time = -1
                 if usecs_match:
                     usecs_per_op = float(usecs_match.group(1))
                 else:
                     logger.warning("Failed to parse usecs/op line")
-                    usecs_per_op = 0
+                    usecs_per_op = -1
                 if ops_match:
                     ops_per_sec = int(ops_match.group(1))
                 else:
                     logger.warning("Failed to parse ops/sec line")
-                    ops_per_sec = 0
+                    ops_per_sec = -1
                 data = PerfBenchMetrics(benchmark_name, total_time, usecs_per_op, ops_per_sec)
                 results.append(data)
             else:
