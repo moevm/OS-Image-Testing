@@ -26,11 +26,11 @@ class Perf(GenericUtil):
         return self(["bench", *cmd])
 
     def _parse_bench(self, result: str) -> list[PerfBenchMetrics]:
-        total_time_pattern = re.compile(r"Total time:\s*([\d.]+)")
-        usecs_per_op_pattern = re.compile(r"([\d.]+)\s*usecs/op")
-        ops_per_sec_pattern = re.compile(r"(\d+)\s*ops/sec")
-        benchmark_name_pattern = re.compile(r"# Running\s*(.*?)\s*benchmark...")
-        lines = result.splitlines()
+        total_time_pattern = re.compile(r"\s*Total time:\s*([\d.]+)")
+        usecs_per_op_pattern = re.compile(r"\s*([\d.]+)\s*usecs/op")
+        ops_per_sec_pattern = re.compile(r"\s*(\d+)\s*ops/sec")
+        benchmark_name_pattern = re.compile(r"\s*# Running\s*(.*?)\s*benchmark...")
+        lines = [line.strip() for line in result.splitlines() if line.strip()]
         results: list[PerfBenchMetrics] = []
         i = 0
         while i < len(lines):
@@ -51,8 +51,6 @@ class Perf(GenericUtil):
                     elif "ops/sec" in current_line:
                         ops_match = ops_per_sec_pattern.search(current_line)
                     i += 1
-                usecs_per_op = float(usecs_match.group(1)) if usecs_match else -1
-                ops_per_sec = int(ops_match.group(1)) if ops_match else -1
                 if time_match:
                     total_time = float(time_match.group(1))
                 else:
