@@ -26,26 +26,33 @@ class Perf(GenericUtil):
         return self(["bench", *cmd])
 
     def _parse_bench(self, result: str) -> list[PerfBenchMetrics]:
+        total_time_pattern = re.compile(r"Total time:\s*([\d.]+)")
+        usecs_per_op_pattern = re.compile(r"([\d.]+)\s*usecs/op")
+        ops_per_sec_pattern = re.compile(r"(\d+)\s*ops/sec")
+        benchmark_name_pattern = re.compile(r"# Running\s*(.*?)\s*benchmark...")
         lines = result.splitlines()
         results: list[PerfBenchMetrics] = []
         i = 0
         while i < len(lines):
             line = lines[i].strip()
-            if line.startswith("# Running"):
-                benchmark_name = line.replace("# Running", "").replace("benchmark...", "").strip()
-                time_match: re.Match[str] | None = None
-                usecs_match: re.Match[str] | None = None
-                ops_match: re.Match[str] | None = None
+            benchmark_match = benchmark_name_pattern.match(line)
+            if benchmark_match:
+                benchmark_name = benchmark_match.group(1).strip()
+                time_match = None
+                usecs_match = None
+                ops_match = None
                 i += 1
                 while i < len(lines) and not lines[i].startswith("# Running"):
                     current_line = lines[i].strip()
                     if current_line.startswith("Total time:"):
-                        time_match = re.search(r"Total time:\s*([\d.]+)", current_line)
+                        time_match = total_time_pattern.search(current_line)
                     elif "usecs/op" in current_line:
-                        usecs_match = re.search(r"([\d.]+)\s*usecs/op", current_line)
+                        usecs_match = usecs_per_op_pattern.search(current_line)
                     elif "ops/sec" in current_line:
-                        ops_match = re.search(r"(\d+)\s*ops/sec", current_line)
+                        ops_match = ops_per_sec_pattern.search(current_line)
                     i += 1
+                usecs_per_op = float(usecs_match.group(1)) if usecs_match else -1
+                ops_per_sec = int(ops_match.group(1)) if ops_match else -1
                 if time_match:
                     total_time = float(time_match.group(1))
                 else:
