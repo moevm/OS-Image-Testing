@@ -2,4 +2,7 @@ SUMMARY = "Packagegroup LTP"
 LICENSE = "MIT"
 inherit packagegroup
 
-RDEPENDS:${PN} = "ltp"
+RDEPENDS:${PN} = " \
+    ltp \
+    kirk \
+"
