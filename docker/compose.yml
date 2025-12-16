@@ -111,7 +111,7 @@ services:
     networks:
       yocto-network:
         ipv4_address: ${BENCHER_API_ADDRESS}
-  
+
   bencher_console_compose:
     image: ghcr.io/bencherdev/bencher-console:latest
     container_name: bencher_console

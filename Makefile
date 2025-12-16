@@ -160,7 +160,7 @@ docker-run-suse:
 
 .PHONY: docker-compose-up
 docker-compose-up:
-	docker-compose -f docker/compose.yml --project-directory ./ up --detach --build
+	docker compose --file docker/compose.yml --project-directory ./ up --detach --build
 
 .PHONY: ensure-volumes
 ensure-volumes: docker
