@@ -4,6 +4,7 @@ from typing import NamedTuple
 
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult, SSHClient
+from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
 
 logger = logging.getLogger(__name__)
 
@@ -15,9 +16,13 @@ class PerfBenchMetrics(NamedTuple):
     ops_per_sec: int
 
 
-class Perf(GenericUtil):
+class Perf(PkgMgrMixin, GenericUtil):
     def __init__(self, ssh_client: SSHClient | None = None) -> None:
         super().__init__("perf", ssh_client)
+
+    def install(self) -> ExecResult:
+        """Install perf via the system package manager."""
+        return self._install_packages(["perf"])
 
     def stat(self, cmd: list[str]) -> ExecResult:
         return self(["stat", "--json", *cmd])

@@ -5,11 +5,15 @@
 ## 1. Руководства
 
 - [Сборка минимального образа Yocto и его запуск в QEMU](./guides/yocto-qemu-minimal-image-guide.md)
+- [Тестирование образа Yocto](./guides/yocto-testing-guide.md)
 
 ## 2. Методологии
 
+- [ChaosEngineering](./methodology/ChaosEngineering.md)
 - [Performance тестирование](./methodology/performance-methodology.md)
-- [Yocto API](./methodology/yocto-api-info.md)
+- [Сравнительная матрица](./methodology/matrix.md)
+- [Метод инструментов](./methodology/instrumental-method.md)
+- [Метод USE](./methodology/use-method.md)
 
 ## 3. Утилиты
 
