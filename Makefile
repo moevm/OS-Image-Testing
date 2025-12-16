@@ -164,9 +164,11 @@ docker-compose-up:
 
 .PHONY: ensure-volumes
 ensure-volumes: docker
-	@if ! docker volume inspect ${DOCKER_OPENSUSE_VOLUME} > /dev/null 2>&1; then \
-		docker volume create ${DOCKER_OPENSUSE_VOLUME}; \
-	fi
+	@for volume in ${DOCKER_OPENSUSE_VOLUME} ${BENCHER_API_CONF_VOL} ${BENCHER_API_DB_VOL}; do \
+		if ! docker volume inspect $$volume > /dev/null 2>&1; then \
+			docker volume create $$volume; \
+		fi \
+	done && \
 	@for volume in ${DOCKER_BUILD_VOLUME} ${DOCKER_DOWNLOADS_VOLUME} ${DOCKER_SSTATE_VOLUME}; do \
 		if ! docker volume inspect $$volume > /dev/null 2>&1; then \
 			docker volume create $$volume; \

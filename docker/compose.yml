@@ -33,6 +33,7 @@ services:
 
   imgtests-suse-155:
     build:
+      context: .
       dockerfile: docker/open-suse.dockerfile
       args:
         USER: ${USER}
@@ -53,6 +54,7 @@ services:
 
   imgtests-suse-156:
     build:
+      context: .
       dockerfile: docker/open-suse.dockerfile
       args:
         USER: ${USER}
