@@ -15,6 +15,13 @@ class StressNGVerifications(NamedTuple):
     not_implemented: tuple[str, ...]
 
 
+class StressNGSyscallTiming(NamedTuple):
+    name: str
+    avg_ns: float
+    min_ns: int
+    max_ns: int
+
+
 class StressNGMetrics(NamedTuple):
     stressor: str
     bogo_ops: int
@@ -25,7 +32,7 @@ class StressNGMetrics(NamedTuple):
     bogo_ops_s_usr_sys_time: float
     cpu_used_per_instance: float
     rss_max_kb: int | None = None
-    top10_slowest: tuple[tuple[str, float, int, int], ...] | None = None
+    top10_slowest: tuple[StressNGSyscallTiming, ...] | None = None
 
 
 class StressNGSummary(NamedTuple):
@@ -160,11 +167,12 @@ class StressNg(GenericUtil):
         result = self(opts, **kwargs)
 
         if "stress-ng:" in result.stdout:
-            return result, self._parse_metrics(result.stdout.strip())
-        return result, self._parse_metrics(result.stderr.strip())
+            return result, self.parse_metrics(result.stdout.strip())
+        return result, self.parse_metrics(result.stderr.strip())
 
-    def _parse_metrics(
-        self, raw_metrics: str
+    @staticmethod
+    def parse_metrics(
+        raw_metrics: str,
     ) -> tuple[list[StressNGMetrics], StressNGSummary | None]:
         """Parse stress-ng metrics output.
 
@@ -311,12 +319,13 @@ class StressNg(GenericUtil):
         metrics: list[StressNGMetrics] = []
         for stressor, info in metrics_map.items():
             raw_syscall_calls = info.get("syscall_calls") or None
-            top10_slowest = None
+            top10_slowest: tuple[StressNGSyscallTiming, ...] | None = None
             if raw_syscall_calls:
                 items = [
-                    (name, vals[0], vals[1], vals[2]) for name, vals in raw_syscall_calls.items()
+                    StressNGSyscallTiming(name, vals[0], vals[1], vals[2])
+                    for name, vals in raw_syscall_calls.items()
                 ]
-                items_sorted = sorted(items, key=lambda x: x[1], reverse=True)
+                items_sorted = sorted(items, key=lambda x: x.avg_ns, reverse=True)
                 top10_slowest = tuple(items_sorted[:10])
 
             try:

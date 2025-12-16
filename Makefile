@@ -31,10 +31,15 @@ PACKAGE_MGR                := uv
 # IP addresses
 YOCTO_ADDRESS              := 10.5.0.10
 PYTHON_ADDRESS             := 10.5.0.11
+SUSE_ADDRESS_155           := 10.5.0.12
+SUSE_ADDRESS_156           := 10.5.0.13
 SUBNET                     := 10.5.0.0/24
 GATEWAY                    := 10.5.0.1
-SSH_QEMU_USER              ?= root
 SSH_QEMU_PORT              ?= 2222
+SSH_SUSE_PORT_155          := 1515
+SSH_SUSE_PORT_156          := 1616
+
+SSH_QEMU_USER              ?= root
 
 # Library
 PYTHONDONTWRITEBYTECODE    := 1
@@ -144,7 +149,8 @@ docker-run-suse:
 	docker run -it --rm \
 		--volume ${DOCKER_OPENSUSE_VOLUME}:${SUSE_DIR} \
 		${DOCKER_SUSE_TAG} \
-		bash -c "qemu-system-x86_64 -m 4G -nographic -drive file=open-suse-${SUSE_VER}.qcow2,index=0,media=disk -cdrom cloud-init.iso"
+		bash -c "qemu-system-x86_64 -m 4G -nographic -drive file=open-suse-${SUSE_VER}.qcow2,index=0,media=disk \
+				-cdrom cloud-init.iso -net user,hostfwd=tcp::1111-:22 -net nic"
 
 .PHONY: docker-compose-up
 docker-compose-up: ensure-volumes
@@ -152,6 +158,9 @@ docker-compose-up: ensure-volumes
 
 .PHONY: ensure-volumes
 ensure-volumes: docker
+	@if ! docker volume inspect ${DOCKER_OPENSUSE_VOLUME} > /dev/null 2>&1; then \
+		docker volume create ${DOCKER_OPENSUSE_VOLUME}; \
+	fi
 	@for volume in ${DOCKER_BUILD_VOLUME} ${DOCKER_DOWNLOADS_VOLUME} ${DOCKER_SSTATE_VOLUME}; do \
 		if ! docker volume inspect $$volume > /dev/null 2>&1; then \
 			docker volume create $$volume; \
