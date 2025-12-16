@@ -120,8 +120,6 @@ def test_parse_metrics_syscall_top10_slowest_selects_10_slowest() -> None:
 
     top10 = syscall_metrics[0].top10_slowest
     assert top10 is not None, "top10_slowest must not be None for syscall"
-    assert len(top10) == 10, f"Expected 10 entries, got {len(top10)}"
-
     names = [t.name for t in top10]
     assert names == ["s15", "s14", "s13", "s12", "s11", "s10", "s09", "s08", "s07", "s06"]
 

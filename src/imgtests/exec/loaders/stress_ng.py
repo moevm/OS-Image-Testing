@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import Any, NamedTuple
+from typing import Any, Final, NamedTuple
 
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult, SSHClient
@@ -40,6 +40,23 @@ class StressNGSummary(NamedTuple):
     passed: int
     failed: int
     metrics_untrustworthy: int
+
+
+SYSCALL_ENTRY_RE: Final = re.compile(r"^syscall:\s+(\S+)\s+([\d.]+)\s+(\d+)\s+(\d+)$")
+SPF_RE: Final = re.compile(r"^(skipped|passed|failed):\s*(\d+)(?::\s*([^\s()]+))?", re.IGNORECASE)
+METRICS_UNTRUSTY_RE: Final = re.compile(r"metrics untrustworthy:\s*(\d+)", re.IGNORECASE)
+CLEAN_LINE_RE: Final = re.compile(r"stress-ng: (?:info|metrc):\s+\[\d+\]\s*")
+METRICS_RE: Final = re.compile(
+    r"^(\S+)\s+"  # stressor name
+    r"(\d+)\s+"  # bogo ops
+    r"([\d.]+)\s+"  # real time
+    r"([\d.]+)\s+"  # usr time
+    r"([\d.]+)\s+"  # sys time
+    r"([\d.]+)\s+"  # bogo ops/s (real time)
+    r"([\d.]+)\s+"  # bogo ops/s (usr+sys time)
+    r"([\d.]+)"  # CPU used per instance
+    r"(?:\s+([\d]+))?$"  # RSS Max
+)
 
 
 class StressNg(GenericUtil):
@@ -171,34 +188,15 @@ class StressNg(GenericUtil):
         return result, self.parse_metrics(result.stderr.strip())
 
     @staticmethod
-    def parse_metrics(
+    def parse_metrics(  # noqa: PLR0915, PLR0912, C901
         raw_metrics: str,
     ) -> tuple[list[StressNGMetrics], StressNGSummary | None]:
         """Parse stress-ng metrics output.
 
         Args:
             raw_metrics (str): Raw stress-ng output metrics.
-
-        Returns:
-            list[StressNGMetrics]: List of parsed metrics objects.
         """
         metrics_map: dict[str, dict[str, Any]] = {}
-
-        p = re.compile(
-            r"^(\S+)\s+"  # stressor name
-            r"(\d+)\s+"  # bogo ops
-            r"([\d.]+)\s+"  # real time
-            r"([\d.]+)\s+"  # usr time
-            r"([\d.]+)\s+"  # sys time
-            r"([\d.]+)\s+"  # bogo ops/s (real time)
-            r"([\d.]+)\s+"  # bogo ops/s (usr+sys time)
-            r"([\d.]+)"  # CPU used per instance
-            r"(?:\s+([\d]+))?$"  # RSS Max
-        )
-
-        syscall_entry_re = re.compile(r"^syscall:\s+(\S+)\s+([\d.]+)\s+(\d+)\s+(\d+)$")
-        spf_re = re.compile(r"^(skipped|passed|failed):\s*(\d+)(?::\s*([^\s()]+))?", re.IGNORECASE)
-        metrics_untrusty_re = re.compile(r"metrics untrustworthy:\s*(\d+)", re.IGNORECASE)
 
         summary_skipped: int | None = None
         summary_passed: int | None = None
@@ -206,13 +204,12 @@ class StressNg(GenericUtil):
         summary_untrusty: int | None = None
 
         current_stressor: str | None = None
-
         for line in raw_metrics.splitlines():
-            clean_line = re.sub(r"stress-ng: (?:info|metrc):\s+\[\d+\]\s*", "", line).strip()
+            clean_line = CLEAN_LINE_RE.sub("", line).strip()
             if not clean_line:
                 continue
 
-            m = p.match(clean_line)
+            m = METRICS_RE.match(clean_line)
             if m is not None:
                 try:
                     stressor_name = m.group(1)
@@ -243,7 +240,7 @@ class StressNg(GenericUtil):
                         "bogo_ops_s_usr_sys_time": 0.0,
                         "cpu_used_per_instance": 0.0,
                         "rss_max_kb": None,
-                        "syscall_calls": {},
+                        "syscall_calls": [],
                     },
                 )
                 metrics_map[stressor_name].update(
@@ -261,7 +258,7 @@ class StressNg(GenericUtil):
                 current_stressor = stressor_name
                 continue
 
-            m_syscall = syscall_entry_re.match(clean_line)
+            m_syscall = SYSCALL_ENTRY_RE.match(clean_line)
             if m_syscall:
                 name = m_syscall.group(1)
                 try:
@@ -282,14 +279,16 @@ class StressNg(GenericUtil):
                         "bogo_ops_s_usr_sys_time": 0.0,
                         "cpu_used_per_instance": 0.0,
                         "rss_max_kb": None,
-                        "syscall_calls": {},
+                        "syscall_calls": [],
                     },
                 )
-                metrics_map[target]["syscall_calls"][name] = (avg, mn, mx)
+                metrics_map[target]["syscall_calls"].append(
+                    StressNGSyscallTiming(name, avg, mn, mx)
+                )
                 current_stressor = target
                 continue
 
-            m_spf = spf_re.search(clean_line)
+            m_spf = SPF_RE.search(clean_line)
             if m_spf:
                 key = m_spf.group(1).lower()
                 try:
@@ -306,26 +305,16 @@ class StressNg(GenericUtil):
                         summary_failed = num
                 continue
 
-            m_untrusty = metrics_untrusty_re.search(clean_line)
+            m_untrusty = StressNg.__parse_untrusty(clean_line)
             if m_untrusty:
-                try:
-                    num = int(m_untrusty.group(1))
-                except ValueError:
-                    num = None
-                if num is not None:
-                    summary_untrusty = num
-                continue
+                summary_untrusty = m_untrusty
 
         metrics: list[StressNGMetrics] = []
         for stressor, info in metrics_map.items():
             raw_syscall_calls = info.get("syscall_calls") or None
             top10_slowest: tuple[StressNGSyscallTiming, ...] | None = None
             if raw_syscall_calls:
-                items = [
-                    StressNGSyscallTiming(name, vals[0], vals[1], vals[2])
-                    for name, vals in raw_syscall_calls.items()
-                ]
-                items_sorted = sorted(items, key=lambda x: x.avg_ns, reverse=True)
+                items_sorted = sorted(raw_syscall_calls, key=lambda x: x.avg_ns, reverse=True)
                 top10_slowest = tuple(items_sorted[:10])
 
             try:
@@ -348,19 +337,27 @@ class StressNg(GenericUtil):
                 continue
             metrics.append(sm)
 
-        summary: StressNGSummary | None = None
-        if any(
-            v is not None
-            for v in (summary_skipped, summary_passed, summary_failed, summary_untrusty)
-        ):
-            summary = StressNGSummary(
-                skipped=summary_skipped or 0,
-                passed=summary_passed or 0,
-                failed=summary_failed or 0,
-                metrics_untrustworthy=summary_untrusty or 0,
-            )
+        if not any([summary_skipped, summary_passed, summary_failed, summary_untrusty]):
+            return metrics, None
+        summary = StressNGSummary(
+            skipped=summary_skipped or 0,
+            passed=summary_passed or 0,
+            failed=summary_failed or 0,
+            metrics_untrustworthy=summary_untrusty or 0,
+        )
 
         return metrics, summary
+
+    @staticmethod
+    def __parse_untrusty(line: str) -> int | None:
+        m_untrusty = METRICS_UNTRUSTY_RE.search(line)
+        if m_untrusty is None:
+            return None
+        try:
+            num = int(m_untrusty.group(1))
+        except ValueError:
+            num = None
+        return num
 
     def __parse_methods(self, raw_methods: str) -> tuple[str, ...] | None:
         try:
