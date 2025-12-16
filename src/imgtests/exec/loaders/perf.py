@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import NamedTuple
+from typing import Final, NamedTuple
 
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult, SSHClient
@@ -14,6 +14,12 @@ class PerfBenchMetrics(NamedTuple):
     total_time: float
     usecs_per_op: float
     ops_per_sec: int
+
+
+TOTAL_TIME_PATTERN: Final = re.compile(r"\s*Total time:\s*([\d.]+)")
+USECS_PER_OP_PATTERN: Final = re.compile(r"\s*([\d.]+)\s*usecs/op")
+OPS_PER_SEC_PATTERN: Final = re.compile(r"\s*(\d+)\s*ops/sec")
+BENCHMARK_NAME_PATTERN: Final = re.compile(r"\s*# Running\s*(.*?)\s*benchmark...")
 
 
 class Perf(PkgMgrMixin, GenericUtil):
@@ -30,17 +36,14 @@ class Perf(PkgMgrMixin, GenericUtil):
     def bench(self, cmd: list[str]) -> ExecResult:
         return self(["bench", *cmd])
 
-    def _parse_bench(self, result: str) -> list[PerfBenchMetrics]:
-        total_time_pattern = re.compile(r"\s*Total time:\s*([\d.]+)")
-        usecs_per_op_pattern = re.compile(r"\s*([\d.]+)\s*usecs/op")
-        ops_per_sec_pattern = re.compile(r"\s*(\d+)\s*ops/sec")
-        benchmark_name_pattern = re.compile(r"\s*# Running\s*(.*?)\s*benchmark...")
+    @staticmethod
+    def parse_bench(result: str) -> tuple[PerfBenchMetrics, ...]:  # noqa: PLR0912
         lines = [line.strip() for line in result.splitlines() if line.strip()]
         results: list[PerfBenchMetrics] = []
         i = 0
         while i < len(lines):
             line = lines[i].strip()
-            benchmark_match = benchmark_name_pattern.match(line)
+            benchmark_match = BENCHMARK_NAME_PATTERN.match(line)
             if benchmark_match:
                 benchmark_name = benchmark_match.group(1).strip()
                 time_match = None
@@ -50,11 +53,11 @@ class Perf(PkgMgrMixin, GenericUtil):
                 while i < len(lines) and not lines[i].startswith("# Running"):
                     current_line = lines[i].strip()
                     if current_line.startswith("Total time:"):
-                        time_match = total_time_pattern.search(current_line)
+                        time_match = TOTAL_TIME_PATTERN.search(current_line)
                     elif "usecs/op" in current_line:
-                        usecs_match = usecs_per_op_pattern.search(current_line)
+                        usecs_match = USECS_PER_OP_PATTERN.search(current_line)
                     elif "ops/sec" in current_line:
-                        ops_match = ops_per_sec_pattern.search(current_line)
+                        ops_match = OPS_PER_SEC_PATTERN.search(current_line)
                     i += 1
                 if time_match:
                     total_time = float(time_match.group(1))
@@ -71,8 +74,9 @@ class Perf(PkgMgrMixin, GenericUtil):
                 else:
                     logger.warning("Failed to parse ops/sec line")
                     ops_per_sec = -1
-                data = PerfBenchMetrics(benchmark_name, total_time, usecs_per_op, ops_per_sec)
-                results.append(data)
+                results.append(
+                    PerfBenchMetrics(benchmark_name, total_time, usecs_per_op, ops_per_sec)
+                )
             else:
                 i += 1
-        return results
+        return tuple(results)

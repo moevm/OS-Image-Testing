@@ -29,7 +29,7 @@ from imgtests.exec.loaders.perf import Perf, PerfBenchMetrics
                    9.110067 usecs/op
                      109768 ops/sec
             """,
-            [
+            (
                 PerfBenchMetrics(
                     benchmark="sched/messaging", total_time=0.464, usecs_per_op=-1, ops_per_sec=-1
                 ),
@@ -45,7 +45,7 @@ from imgtests.exec.loaders.perf import Perf, PerfBenchMetrics
                     usecs_per_op=9.110067,
                     ops_per_sec=109768,
                 ),
-            ],
+            ),
         ),
         (
             """# Running syscall/basic benchmark...
@@ -76,7 +76,7 @@ from imgtests.exec.loaders.perf import Perf, PerfBenchMetrics
                 2645.092600 usecs/op
                         378 ops/sec
             """,
-            [
+            (
                 PerfBenchMetrics(
                     benchmark="syscall/basic",
                     total_time=4.264,
@@ -101,9 +101,9 @@ from imgtests.exec.loaders.perf import Perf, PerfBenchMetrics
                     usecs_per_op=2645.0926,
                     ops_per_sec=378,
                 ),
-            ],
+            ),
         ),
-        ("", []),
+        ("", ()),
     ],
     ids=[
         "'perf sched all' parsing",
@@ -111,7 +111,6 @@ from imgtests.exec.loaders.perf import Perf, PerfBenchMetrics
         "Empty output",
     ],
 )
-def test_parse_metrics(raw_metrics: str, expected: list[PerfBenchMetrics]) -> None:
-    perf = Perf()
-    result = perf._parse_bench(raw_metrics)  # noqa: SLF001
+def test_parse_metrics(raw_metrics: str, expected: tuple[PerfBenchMetrics, ...]) -> None:
+    result = Perf.parse_bench(raw_metrics)
     assert result == expected
