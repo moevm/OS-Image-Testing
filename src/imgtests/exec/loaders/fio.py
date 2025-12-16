@@ -2,6 +2,8 @@ from typing import Any, Literal
 
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult, SSHClient
+from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
+from imgtests.exec.pkgmgrs.pip3 import Pip3
 from imgtests.exec.utils import create_opt
 
 IOPattern = Literal[
@@ -9,9 +11,13 @@ IOPattern = Literal[
 ]
 
 
-class Fio(GenericUtil):
+class Fio(PkgMgrMixin, GenericUtil):
     def __init__(self, ssh_client: SSHClient | None = None) -> None:
         super().__init__("fio", ssh_client)
+
+    def install(self) -> ExecResult:
+        """Install fio via the system package manager."""
+        return self._install_packages(["fio"])
 
     def ioengines(self) -> tuple[str, ...] | None:
         result = self(["--enghelp"])
@@ -71,3 +77,16 @@ class Fio(GenericUtil):
             ],
             **kwargs,
         )
+
+
+class FioPlot(PkgMgrMixin, GenericUtil):
+    def __init__(self, ssh_client: SSHClient | None = None) -> None:
+        super().__init__("fio-plot", ssh_client)
+
+    def install(self) -> ExecResult:
+        pip3 = Pip3(self.ssh_client)
+        result = pip3.install()
+        if result.returncode:
+            return result
+
+        return pip3(["install", "fio-plot"])

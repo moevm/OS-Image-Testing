@@ -45,6 +45,5 @@ stress-ng: metrc: [635] vm  0  10.01  0.07  0.15  0.00  0.00  2.26  2236""",
     ],
 )
 def test_parse_metrics(raw_metrics: str, expected: list[StressNGMetrics]) -> None:
-    stress_ng = StressNg()
-    result = stress_ng._parse_metrics(raw_metrics)  # noqa: SLF001
+    result = StressNg.parse_metrics(raw_metrics)
     assert result == expected
