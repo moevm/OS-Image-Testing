@@ -31,8 +31,6 @@ RUN mkdir --parents ${POKY_DIR} && \
 WORKDIR ${POKY_DIR}
 
 COPY --chown=${USER}:${GROUP} layers ${POKY_DIR}
-RUN sed -i "s/scarthgap/walnascar/g" ${POKY_DIR}/meta-cloud-services/conf/layer.conf
-RUN sed -i "s/scarthgap/walnascar/g" ${POKY_DIR}/meta-cloud-services/meta-openstack/conf/layer.conf
 COPY --chown=${USER}:${GROUP} scripts/entrypoint.sh ${POKY_DIR}/
 COPY --chown=${USER}:${GROUP} scripts/cmd_yocto.sh ${POKY_DIR}/
 
