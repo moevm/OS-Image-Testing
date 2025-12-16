@@ -9,7 +9,7 @@ from typing import Any, Final
 import paramiko
 import paramiko.ssh_exception
 
-from image.endurance.syscalls import run_ltp_syscalls
+from image.endurance.syscalls import test_ltp_syscalls, test_syscalls_all_stress_ng
 from image.performance.cpu import run_stress_ng_tests
 from image.performance.system import run_pts_tests
 from image.utils import env_var_to_type_or_exit
@@ -84,7 +84,10 @@ def main() -> None:
     logger.info(compare_system_infos(sys_infos[1], sys_infos[2]))
     run_pts_tests(executor, client)
     run_stress_ng_tests(executor, client)
-    run_ltp_syscalls(executor, client)
+    future = executor.submit(test_syscalls_all_stress_ng, client)
+    future.result()
+    future = executor.submit(test_ltp_syscalls, client)
+    future.result()
     logger.info("All tests completed successfully")
     is_alive_cycle.join()
 
