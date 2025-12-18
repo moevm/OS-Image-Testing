@@ -57,7 +57,7 @@ class Perf(PkgMgrMixin, GenericUtil):
         if add_opts is None:
             add_opts = []
 
-        result = self(
+        return self(
             [
                 "bench",
                 *create_opt("format", format_),
@@ -67,9 +67,6 @@ class Perf(PkgMgrMixin, GenericUtil):
                 *add_opts,
             ]
         )
-        if result.returncode:
-            return result
-        return result
 
     @staticmethod
     def parse_bench(result: str) -> tuple[PerfBenchMetrics, ...]:  # noqa: PLR0912
