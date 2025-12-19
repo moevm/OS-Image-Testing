@@ -1,10 +1,11 @@
 import logging
 import re
-from typing import Final, NamedTuple
+from typing import Final, Literal, NamedTuple
 
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult, SSHClient
 from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
+from imgtests.exec.utils import create_opt
 
 logger = logging.getLogger(__name__)
 
@@ -33,8 +34,39 @@ class Perf(PkgMgrMixin, GenericUtil):
     def stat(self, cmd: list[str]) -> ExecResult:
         return self(["stat", "--json", *cmd])
 
-    def bench(self, cmd: list[str]) -> ExecResult:
-        return self(["bench", *cmd])
+    def bench(
+        self,
+        collection: str = "all",
+        benchmark: str = "all",
+        add_opts: list[str] | None = None,
+        format_: Literal["default", "simple"] = "simple",
+        repeat: int = 1,
+    ) -> ExecResult:
+        """Runs benchmark suites.
+
+        Args:
+            collection (str): Testing subsystem. Default is "all".
+            benchmark (str): Running tests. Default is "all".
+            add_opts (list[str]): Additional tests options.
+            format_: The output formatting style. Default is "simple".
+            repeat (int): Number of times to repeat the run. Default is 1.
+        """
+        if repeat <= 0:
+            err_msg = f"Invalid repeat value: {repeat}. Must be more than zero."
+            raise ValueError(err_msg)
+        if add_opts is None:
+            add_opts = []
+
+        return self(
+            [
+                "bench",
+                *create_opt("format", format_),
+                *create_opt("repeat", repeat),
+                collection,
+                benchmark,
+                *add_opts,
+            ]
+        )
 
     @staticmethod
     def parse_bench(result: str) -> tuple[PerfBenchMetrics, ...]:  # noqa: PLR0912

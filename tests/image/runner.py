@@ -11,6 +11,7 @@ import paramiko.ssh_exception
 
 from image.endurance.syscalls import test_ltp_syscalls, test_syscalls_all_stress_ng
 from image.performance.cpu import run_stress_ng_tests
+from image.performance.ipc import test_sched
 from image.performance.system import run_pts_tests
 from image.utils import env_var_to_type_or_exit
 from imgtests.exec.exec import SSHClient
@@ -87,6 +88,8 @@ def main() -> None:
     future = executor.submit(test_syscalls_all_stress_ng, client)
     future.result()
     future = executor.submit(test_ltp_syscalls, client)
+    future.result()
+    future = executor.submit(test_sched, client)
     future.result()
     logger.info("All tests completed successfully")
     is_alive_cycle.join()
