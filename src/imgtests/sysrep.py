@@ -11,18 +11,19 @@ from imgtests.exec.observers.rpm import RPM
 from imgtests.exec.observers.uname import Uname, UnameInfo
 from imgtests.exec.observers.zcat import Zcat
 from imgtests.exec.osinfo import get_os_release
+from imgtests.types import Version
 
 
 class OsInfo(NamedTuple):
     os: str
-    os_ver: str
+    os_ver: Version
 
 
 class ToolsVersions(NamedTuple):
-    fio_ver: str
-    stress_ng_ver: str
-    kirk_ver: str
-    perf_ver: str
+    fio_ver: Version
+    stress_ng_ver: Version
+    kirk_ver: Version
+    perf_ver: Version
 
 
 class SystemInfo(NamedTuple):
@@ -52,15 +53,15 @@ def get_system_info(ssh_client: SSHClient | None = None) -> SystemInfo:
         uname.info(),
         os_info=OsInfo(
             os=os_name,
-            os_ver=os_ver,
+            os_ver=Version(os_ver),
         ),
         kernel_config=zcat.get_compressed_files_contents(["/proc/config.gz"]),
         package_list=rpm.get_pkglist(),
         tools_versions=ToolsVersions(
-            Fio(ssh_client).version() or "",
-            StressNg(ssh_client).version() or "",
-            Kirk(ssh_client).version() or "",
-            Perf(ssh_client).version() or "",
+            Version(Fio(ssh_client).version() or ""),
+            Version(StressNg(ssh_client).version() or ""),
+            Version(Kirk(ssh_client).version() or ""),
+            Version(Perf(ssh_client).version() or ""),
         ),
     )
 

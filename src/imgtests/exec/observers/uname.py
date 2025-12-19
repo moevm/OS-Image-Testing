@@ -2,11 +2,12 @@ from typing import NamedTuple
 
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import SSHClient
+from imgtests.types import Version
 
 
 class UnameInfo(NamedTuple):
     kernel_name: str
-    kernel_release: str
+    kernel_release: Version
     kernel_version: str
     machine: str
     hardware_platform: str
@@ -38,7 +39,7 @@ class Uname(GenericUtil):
     def info(self) -> UnameInfo:
         return UnameInfo(
             kernel_name=self.kernel_name(),
-            kernel_release=self.kernel_release(),
+            kernel_release=Version(self.kernel_release()),
             kernel_version=self.kernel_version(),
             machine=self.machine(),
             hardware_platform=self.hardware_platform(),
