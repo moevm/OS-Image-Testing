@@ -14,6 +14,7 @@
 - [Сравнительная матрица](./methodology/matrix.md)
 - [Метод инструментов](./methodology/instrumental-method.md)
 - [Метод USE](./methodology/use-method.md)
+- [Метод определения характеристик потребления памяти](./methodology/memory-consumption-characteristics.md)
 
 ## 3. Утилиты
 
