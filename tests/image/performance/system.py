@@ -16,5 +16,5 @@ def run_pts_tests(executor: ThreadPoolExecutor, client: SSHClient | None = None)
     try:
         result = future.result()
         logger.info(result)
-    except RuntimeError as e:
-        logger.error(e)
+    except RuntimeError:
+        logger.exception()
