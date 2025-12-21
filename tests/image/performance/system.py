@@ -11,6 +11,10 @@ def run_pts_tests(executor: ThreadPoolExecutor, client: SSHClient | None = None)
     pts = PhoronixTestSuite(client)
     future = executor.submit(setup_pts, client)
     future.result()
+
     future = executor.submit(pts.run, test_name="pts/ctx-clock", run_count=1)
-    result = future.result()
-    logger.info(result)
+    try:
+        result = future.result()
+        logger.info(result)
+    except RuntimeError as e:
+        logger.error(e)

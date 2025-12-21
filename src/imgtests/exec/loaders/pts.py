@@ -12,13 +12,19 @@ class PhoronixTestSuite(GenericUtil):
     def __init__(self, ssh_client: SSHClient | None = None) -> None:
         super().__init__("phoronix-test-suite", ssh_client)
 
-    def install_test(self, test_name: str) -> None:
+    def install_test(self, test_name: str) -> bool:
         """Installs a given test."""
-        result = self(["install", test_name])
-        if result.returncode:
-            logger.warning("Installation of PTS test '%s' failed", test_name)
-        else:
-            logger.info("PTS test '%s' installed", test_name)
+
+        retries = "y\n" * 2 + "n\n"
+        commands = [["echo", "-e", f'"{retries}"'], ["phoronix-test-suite", "install", test_name]]
+        for result in pipeline(cmds=commands, ssh_client=self.ssh_client, pass_output=True):
+            if result.returncode:
+                raise RuntimeError(f"Installation of PTS test {test_name} failed. {result.stderr}")
+        
+        result = self(["list-installed-tests"])
+        if result.stdout.find(test_name) == -1:
+            raise RuntimeError(f"Installation of PTS test {test_name} failed. {result.stderr}")
+        logger.info("PTS test '%s' installed", test_name)
 
     def remove_test(self, test_name: str) -> None:
         """Removes a given test."""
@@ -32,6 +38,7 @@ class PhoronixTestSuite(GenericUtil):
     def run_test(self, test_name: str, run_count: int) -> None:
         """Runs a given test with set amount of iterations."""
         self.install_test(test_name=test_name)
+        logger.info("PTS test '%s' started", test_name)
         result = common_run_command(
             [f"FORCE_TIMES_TO_RUN={run_count}", self.name, "batch-run", test_name],
             ssh_client=self.ssh_client,
@@ -234,7 +241,12 @@ def setup_pts(ssh_client: SSHClient | None = None) -> None:
     if result.returncode:
         logger.error("PTS setup failed: '%s'", result.stderr)
         return
-
+    
+    common_run_command(
+        cmd=["phoronix-test-suite", "openbenchmarking-refresh"],
+        ssh_client=ssh_client,
+    )
+    
     setup_answers = "y\n" + "n\n" * 6
     commands = [["echo", "-e", f'"{setup_answers}"'], ["phoronix-test-suite", "batch-setup"]]
     for result in pipeline(cmds=commands, ssh_client=ssh_client, pass_output=True):
