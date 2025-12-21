@@ -1,7 +1,6 @@
 services:
   imgtests-yocto:
     build:
-      context: .
       dockerfile: docker/image_builder.dockerfile
       args:
         USER: ${USER}
@@ -33,7 +32,6 @@ services:
 
   imgtests-suse-155:
     build:
-      context: .
       dockerfile: docker/open-suse.dockerfile
       args:
         USER: ${USER}

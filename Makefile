@@ -159,7 +159,7 @@ docker-run-suse:
 				-cdrom cloud-init.iso -net user,hostfwd=tcp::1111-:22 -net nic"
 
 .PHONY: docker-compose-up
-docker-compose-up:
+docker-compose-up: ensure-volumes
 	docker compose --file docker/compose.yml --project-directory ./ up --detach --build
 
 .PHONY: ensure-volumes
