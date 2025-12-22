@@ -5,6 +5,7 @@ from typing import Any, NamedTuple
 
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult, SSHClient
+from imgtests.exec.utils import create_opt
 
 logger = logging.getLogger(__name__)
 
@@ -40,16 +41,18 @@ class Chaosblade(GenericUtil):
     def create_cpu_exp(
         self, cpu_percent: int | None = None, timeout_sec: int = 0, **kwargs: dict[str, Any]
     ) -> ChaosResponse:
-        # Validation
         self._validate_cpu_params(cpu_percent, timeout_sec)
 
-        # Build command
-        args = ["create", "cpu", "fullload"]
-        args.extend(["--timeout", str(timeout_sec)])
-        if cpu_percent is not None:
-            args.extend(["--cpu-percent", str(cpu_percent)])
-
-        result = self(args, **kwargs)
+        result = self(
+            [
+                "create",
+                "cpu",
+                "fullload",
+                *create_opt("timeout", timeout_sec),
+                *create_opt("cpu-percent", cpu_percent),
+            ],
+            **kwargs,
+        )
         return self._parse_result(result)
 
     def _validate_cpu_params(self, cpu_percent: int | None, timeout_sec: int) -> None:
