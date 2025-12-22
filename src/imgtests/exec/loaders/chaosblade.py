@@ -159,20 +159,25 @@ class Chaosblade(GenericUtil):
             disk_write,
         )
 
-        # Build command
-        args = self._build_disk_args(
-            disk_action,
-            disk_path,
-            timeout_sec,
-            disk_size_mb,
-            disk_percent,
-            disk_reserve_mb,
-            disk_read,
-            disk_write,
-            disk_retain_handle,
+        action_args = []
+        if disk_action == "fill":
+            action_args.extend(create_opt("percent", disk_percent))
+            action_args.extend(create_opt("reserve", disk_reserve_mb))
+            action_args.extend(create_opt("retain-handle", disk_retain_handle))
+        elif disk_action == "burn":
+            action_args.extend(create_opt("read", disk_read))
+            action_args.extend(create_opt("write", disk_write))
+        result = self(
+            [
+                "create",
+                "disk",
+                disk_action,
+                *create_opt("path", disk_path),
+                *create_opt("size", disk_size_mb),
+                *create_opt("timeout", timeout_sec),
+            ],
+            **kwargs,
         )
-
-        result = self(args, **kwargs)
         return self._parse_result(result)
 
     def _validate_disk_params(  # noqa: PLR0913
@@ -420,41 +425,6 @@ class Chaosblade(GenericUtil):
             self._validate_ip(network_exclude_ip, "network_exclude_ip")
         if network_ip is not None:
             self._validate_ip(network_ip, "network_ip")
-
-    def _build_disk_args(  # noqa: PLR0913
-        self,
-        disk_action: str,
-        disk_path: str,
-        timeout_sec: int | None,
-        disk_size_mb: int | None,
-        disk_percent: int | None,
-        disk_reserve_mb: int | None,
-        disk_read: bool,
-        disk_write: bool,
-        disk_retain_handle: bool,
-    ) -> list[str]:
-        args = ["create", "disk", disk_action, "--path", disk_path]
-
-        if disk_action == "fill":
-            if disk_percent is not None:
-                args.extend(["--percent", str(disk_percent)])
-            if disk_reserve_mb is not None:
-                args.extend(["--reserve", str(disk_reserve_mb)])
-            if disk_retain_handle:
-                args.append("--retain-handle")
-        elif disk_action == "burn":
-            if disk_read:
-                args.append("--read")
-            if disk_write:
-                args.append("--write")
-
-        if disk_size_mb is not None:
-            args.extend(["--size", str(disk_size_mb)])
-
-        if timeout_sec is not None:
-            args.extend(["--timeout", str(timeout_sec)])
-
-        return args
 
     def _build_network_args(  # noqa: PLR0913
         self,
