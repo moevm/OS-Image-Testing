@@ -1,27 +1,34 @@
 # Contributing
 
-First of all thank you for your desire to contribute in that project.
+First of all, thank you for your desire to contribute in that project.
 
 ## Development environment
 
-You'll need to install and setup pre-commit hooks for checking style of source code, formatting it and checking types.
+You will need to install `make` in order to run Makefile targets and `uv` as a package manager for Python.
 
-### Installing pre-commit on Ubuntu
+### Installation on Ubuntu
 
-Installing a `pre-commit` in the distribution:
+Installing `make` and `uv`:
+
 ```
 sudo apt update
-sudo apt install pre-commit
+sudo apt install make
+sudo apt install python3-pip
+pip install uv
 ```
 
-Installing a `pre-commit` script in the repository to automatically run check scripts when committing to a branch.
+### Running pre-commit-checks and unit-tests
+
+Checks all the repository files using pre-commit hooks described in the [`.pre-commit-config.yaml`](.pre-commit-config.yaml) file:
+
 ```
-pre-commit install
+make pre-commit-check
 ```
 
-### Self-checking a commit
+Runs all unit tests in the [`tests/unit`](tests/unit) and [`tests/misc`](tests/misc) directories:
 
-Checks all the repository files:
 ```
-pre-commit run --all-files
+make unit-test
 ```
+
+The unit test configuration is described within [`pyproject.toml`](pyproject.toml) file. The testing files and functions begin with the `test_` prefix.

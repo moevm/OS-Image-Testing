@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-from imgtests.exec.exec import ExecResult, SSHClient, run_command, which
+from imgtests.exec.exec import ExecResult, SSHClient, common_run_command, which
 from imgtests.exec.utils import extract_version, kwargs_to_cmd_args
 
 
@@ -17,9 +17,15 @@ class BaseTestUtil(ABC):
         path (str | None): Path to the utility executable.
     """
 
-    def __init__(self, name: str, ssh_client: SSHClient | None = None) -> None:
+    def __init__(
+        self,
+        name: str,
+        ssh_client: SSHClient | None = None,
+        use_sudo: bool = False,
+    ) -> None:
         self.name = name
         self.ssh_client = ssh_client
+        self.use_sudo = use_sudo
         self.path = which(self.name, ssh_client)
 
     def __call__(self, cmd: list[str] | None = None, **kwargs: dict[str, Any]) -> ExecResult:
@@ -39,16 +45,16 @@ class BaseTestUtil(ABC):
             cmd = []
         if self.path is None:
             return ExecResult(
-                cmd=f"which {self.name}", stderr=f"Failed to locate '{self.name}'.", returncode=1
+                cmd=("which", self.name), stderr=f"Failed to locate '{self.name}'.", returncode=1
             )
         for k in kwargs:
             if k in cmd:
                 err_msg = f"Argument '{k}' is already set."
                 raise ValueError(err_msg)
         final_cmd = [str(self.path), *cmd, *kwargs_to_cmd_args(**kwargs)]
-        if self.ssh_client is None:
-            return run_command(final_cmd)
-        return self.ssh_client(" ".join(final_cmd))
+        if self.use_sudo:
+            final_cmd = ["sudo", *final_cmd]
+        return common_run_command(final_cmd, self.ssh_client)
 
     def install(self) -> ExecResult:
         """Installs the utility.

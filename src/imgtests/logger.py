@@ -50,7 +50,9 @@ def __get_file_handler(filename: Path) -> logging.FileHandler:
     file_handler = logging.FileHandler(filename)
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(
-        JsonFormatter(["asctime", "levelname", "name", "process", "message", "filename", "lineno"])
+        JsonFormatter(
+            ["asctime", "levelname", "name", "process", "thread", "message", "filename", "lineno"]
+        )
     )
 
     return file_handler
