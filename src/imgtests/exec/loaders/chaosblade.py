@@ -458,13 +458,14 @@ class Chaosblade(GenericUtil):
             raise ValueError(err_msg)
 
     def _parse_result(self, result: ExecResult) -> ChaosResponse:
-        if not result.stdout:
-            return ChaosResponse(
-                code=500, success=False, result=None, error=result.stderr or "No output"
-            )
+        response_text = result.stdout
+        if not response_text and result.stderr:
+            response_text = result.stderr
+        if not response_text:
+            return ChaosResponse(code=500, success=False, result=None, error="No output")
 
         try:
-            data = json.loads(result.stdout)
+            data = json.loads(response_text.strip())
             return ChaosResponse(
                 code=data.get("code", 0),
                 success=data.get("success", False),
@@ -473,7 +474,7 @@ class Chaosblade(GenericUtil):
             )
         except json.JSONDecodeError as e:
             logger.warning(
-                "Failed to parse chaosblade result: '%s'. Error: %s", result.stdout, str(e)
+                "Failed to parse chaosblade result: '%s'. Error: %s", response_text, str(e)
             )
             return ChaosResponse(
                 code=500, success=False, result=None, error=f"Failed to parse: {result.stdout}"
