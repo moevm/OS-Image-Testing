@@ -134,44 +134,44 @@ class Chaosblade(GenericUtil):
 
     def create_disk_exp(  # noqa: PLR0913
         self,
-        disk_action: str,
-        disk_path: str = "/",
+        action: str,
+        path: str = "/",
         timeout_sec: int | None = None,
-        disk_size_mb: int | None = None,
-        disk_percent: int | None = None,
-        disk_reserve_mb: int | None = None,
-        disk_read: bool = False,
-        disk_write: bool = False,
-        disk_retain_handle: bool = False,
+        size_mb: int | None = None,
+        percent: int | None = None,
+        reserve_mb: int | None = None,
+        read: bool = False,
+        write: bool = False,
+        retain_handle: bool = False,
         **kwargs: dict[str, Any],
     ) -> ChaosResponse:
         # Validation
         self._validate_disk_params(
-            disk_action,
-            disk_path,
+            action,
+            path,
             timeout_sec,
-            disk_percent,
-            disk_size_mb,
-            disk_reserve_mb,
-            disk_read,
-            disk_write,
+            percent,
+            size_mb,
+            reserve_mb,
+            read,
+            write,
         )
 
         action_args = []
-        if disk_action == "fill":
-            action_args.extend(create_opt("percent", disk_percent))
-            action_args.extend(create_opt("reserve", disk_reserve_mb))
-            action_args.extend(create_opt("retain-handle", disk_retain_handle))
-        elif disk_action == "burn":
-            action_args.extend(create_opt("read", disk_read))
-            action_args.extend(create_opt("write", disk_write))
+        if action == "fill":
+            action_args.extend(create_opt("percent", percent))
+            action_args.extend(create_opt("reserve", reserve_mb))
+            action_args.extend(create_opt("retain-handle", retain_handle))
+        elif action == "burn":
+            action_args.extend(create_opt("read", read))
+            action_args.extend(create_opt("write", write))
         result = self(
             [
                 "create",
                 "disk",
-                disk_action,
-                *create_opt("path", disk_path),
-                *create_opt("size", disk_size_mb),
+                action,
+                *create_opt("path", path),
+                *create_opt("size", size_mb),
                 *create_opt("timeout", timeout_sec),
             ],
             **kwargs,
@@ -180,35 +180,41 @@ class Chaosblade(GenericUtil):
 
     def _validate_disk_params(  # noqa: PLR0913
         self,
-        disk_action: str,
-        disk_path: str,
+        action: str,
+        path: str,
         timeout_sec: int | None,
-        disk_percent: int | None,
-        disk_size_mb: int | None,
-        disk_reserve_mb: int | None,
-        disk_read: bool,
-        disk_write: bool,
+        percent: int | None,
+        size_mb: int | None,
+        reserve_mb: int | None,
+        read: bool,
+        write: bool,
     ) -> None:
-        if disk_action not in ["fill", "burn"]:
-            err_msg = f"Invalid disk_action '{disk_action}'. Expected 'fill' or 'burn'."
+        if action not in ["fill", "burn"]:
+            err_msg = f"Invalid action '{action}'. Expected 'fill' or 'burn'."
             raise ValueError(err_msg)
-        if not disk_path:
-            err_msg = "disk_path cannot be empty."
+        if not path:
+            err_msg = "path cannot be empty."
             raise ValueError(err_msg)
         if timeout_sec is not None and timeout_sec < 0:
             err_msg = f"Invalid timeout_sec '{timeout_sec}'. Expected more or equal 0."
             raise ValueError(err_msg)
-        if disk_percent is not None and not 0 < disk_percent < MAX_PERCENT:
-            err_msg = f"Invalid disk_percent '{disk_percent}'. Expected 0-100."
+        if percent is not None and not 0 < percent < MAX_PERCENT:
+            err_msg = f"Invalid percent '{percent}'. Expected 0-100."
             raise ValueError(err_msg)
-        if disk_size_mb is not None and disk_size_mb < 0:
-            err_msg = f"Invalid disk_size_mb '{disk_size_mb}'. Expected more or equal 0."
+        if size_mb is not None and size_mb < 0:
+            err_msg = f"Invalid disk_size_mb '{size_mb}'. Expected more or equal 0."
             raise ValueError(err_msg)
-        if disk_reserve_mb is not None and disk_reserve_mb < 0:
-            err_msg = f"Invalid disk_reserve_mb '{disk_reserve_mb}'. Expected more or equal 0."
+        if reserve_mb is not None and reserve_mb < 0:
+            err_msg = f"Invalid disk_reserve_mb '{reserve_mb}'. Expected more or equal 0."
             raise ValueError(err_msg)
-        if disk_action == "burn" and not (disk_read or disk_write):
-            err_msg = "For burn, need disk_read or disk_write"
+        if action == "burn" and not (read or write):
+            err_msg = "For burn, need read or write"
+            raise ValueError(err_msg)
+        if action == "burn" and not size_mb:
+            err_msg = "For burn, size_mb is required"
+            raise ValueError(err_msg)
+        if action == "burn" and not (size_mb or percent or reserve_mb):
+            err_msg = "For burn, need one of size_mb or percent or reserve_mb"
             raise ValueError(err_msg)
 
     def create_network_exp(  # noqa: PLR0913
