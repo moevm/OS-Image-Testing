@@ -5,6 +5,7 @@ from typing import Any, NamedTuple
 
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult, SSHClient
+from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
 from imgtests.exec.utils import create_opt
 
 logger = logging.getLogger(__name__)
@@ -22,9 +23,42 @@ class ChaosResponse(NamedTuple):
     error: str | None = None
 
 
-class Chaosblade(GenericUtil):
+class Chaosblade(GenericUtil, PkgMgrMixin):
     def __init__(self, ssh_client: SSHClient | None = None) -> None:
         super().__init__("blade", ssh_client)
+
+    def install(self) -> ExecResult:
+        version_check = self(["version"])
+        if version_check.returncode == 0:
+            match = re.search(r"[Vv]ersion[:\s]+(\d+\.\d+\.\d+)", version_check.stdout)
+            if match:
+                return ExecResult(
+                    cmd=(self.name, "install"),
+                    stdout=f"ChaosBlade v{match.group(1)} already installed",
+                    returncode=0,
+                )
+        deps_result = self._install_packages(["wget", "tar"])
+        if deps_result.returncode != 0:
+            return deps_result
+
+        version = "1.8.0"
+        arch = "linux_amd64"
+        install_dir = "/opt/chaosblade"
+
+        install_script = f"""
+        set -e
+        tmpdir=$(mktemp -d)
+        cd $tmpdir
+        wget -q https://github.com/chaosblade-io/chaosblade/releases/download/v{version}/chaosblade-{version}-{arch}.tar.gz
+        tar -xzf chaosblade-{version}-{arch}.tar.gz
+        sudo mkdir -p {install_dir}
+        sudo cp -r chaosblade-{version}/* {install_dir}/
+        sudo ln -sf {install_dir}/blade /usr/local/bin/blade
+        sudo chmod 755 {install_dir}/blade
+        cd /
+        rm -rf $tmpdir
+        """
+        return self(["bash", "-c", install_script])
 
     def check_env(self, experiment_type: str, action: str) -> ChaosResponse:
         result = self(["check", "os", experiment_type, action])
