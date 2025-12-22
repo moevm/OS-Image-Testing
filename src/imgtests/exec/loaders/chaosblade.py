@@ -66,34 +66,32 @@ class Chaosblade(GenericUtil):
     def create_memory_exp(  # noqa: PLR0913
         self,
         mem_percent: int | None = None,
-        mem_reserve_mb: int | None = None,
+        reserve_mb: int | None = None,
         timeout_sec: int | None = None,
-        mem_mode: str = "ram",
-        mem_include_buffer_cache: bool = False,
-        mem_rate_mbps: int | None = None,
+        mode: str = "ram",
+        include_buffer_cache: bool = False,
+        rate_mbps: int | None = None,
         **kwargs: dict[str, Any],
     ) -> ChaosResponse:
         # Validation
-        self._validate_memory_params(
-            mem_percent, mem_reserve_mb, timeout_sec, mem_mode, mem_rate_mbps
-        )
-        self._validate_memory_flags_compatibility(mem_mode, mem_rate_mbps, mem_include_buffer_cache)
+        self._validate_memory_params(mem_percent, reserve_mb, timeout_sec, mode, rate_mbps)
+        self._validate_memory_flags_compatibility(mode, rate_mbps, include_buffer_cache)
 
         # Build command
         ram_args = []
-        if mem_mode == "ram":
-            ram_args.extend(create_opt("include-buffer-cache", mem_include_buffer_cache))
-            ram_args.extend(create_opt("rate", mem_rate_mbps))
+        if mode == "ram":
+            ram_args.extend(create_opt("include-buffer-cache", include_buffer_cache))
+            ram_args.extend(create_opt("rate", rate_mbps))
 
         result = self(
             [
                 "create",
                 "mem",
                 "load",
-                *create_opt("mode", mem_mode),
+                *create_opt("mode", mode),
                 *create_opt("timeout", timeout_sec),
                 *create_opt("mem-percent", mem_percent),
-                *create_opt("reserve", mem_reserve_mb),
+                *create_opt("reserve", reserve_mb),
                 *ram_args,
             ],
             **kwargs,
@@ -103,34 +101,34 @@ class Chaosblade(GenericUtil):
     def _validate_memory_params(
         self,
         mem_percent: int | None,
-        mem_reserve_mb: int | None,
+        reserve_mb: int | None,
         timeout_sec: int | None,
-        mem_mode: str,
-        mem_rate_mbps: int | None,
+        mode: str,
+        rate_mbps: int | None,
     ) -> None:
         if mem_percent is not None and not 0 < mem_percent < MAX_PERCENT:
             err_msg = f"Invalid mem_percent '{mem_percent}'. Expected 0-100."
             raise ValueError(err_msg)
-        if mem_reserve_mb is not None and mem_reserve_mb < 0:
-            err_msg = f"Invalid mem_reserve_mb '{mem_reserve_mb}'. Expected more or equal 0."
+        if reserve_mb is not None and reserve_mb < 0:
+            err_msg = f"Invalid mem_reserve_mb '{reserve_mb}'. Expected more or equal 0."
             raise ValueError(err_msg)
         if timeout_sec is not None and timeout_sec < 0:
             err_msg = f"Invalid timeout_sec '{timeout_sec}'. Expected more or equal 0."
             raise ValueError(err_msg)
-        if mem_mode not in ["ram", "cache"]:
-            err_msg = f"Invalid mem_mode '{mem_mode}'. Expected 'ram' or 'cache'."
+        if mode not in ["ram", "cache"]:
+            err_msg = f"Invalid mem_mode '{mode}'. Expected 'ram' or 'cache'."
             raise ValueError(err_msg)
-        if mem_rate_mbps is not None and mem_rate_mbps < 0:
-            err_msg = f"Invalid mem_rate_mbps '{mem_rate_mbps}'. Expected more or equal 0."
+        if rate_mbps is not None and rate_mbps < 0:
+            err_msg = f"Invalid mem_rate_mbps '{rate_mbps}'. Expected more or equal 0."
             raise ValueError(err_msg)
 
     def _validate_memory_flags_compatibility(
-        self, mem_mode: str, mem_rate_mbps: int | None, mem_include_buffer_cache: bool
+        self, mem_mode: str, rate_mbps: int | None, include_buffer_cache: bool
     ) -> None:
-        if mem_mode == "cache" and mem_rate_mbps is not None:
+        if mem_mode == "cache" and rate_mbps is not None:
             err_msg = "--rate is only available in 'ram' mode"
             raise ValueError(err_msg)
-        if mem_mode == "cache" and mem_include_buffer_cache:
+        if mem_mode == "cache" and include_buffer_cache:
             err_msg = "--include_buffer_cache is only available in 'ram' mode"
             raise ValueError(err_msg)
 
