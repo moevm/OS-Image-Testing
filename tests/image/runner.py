@@ -12,7 +12,7 @@ import paramiko.ssh_exception
 from image.endurance.syscalls import test_ltp_syscalls, test_syscalls_all_stress_ng
 from image.performance.cpu import run_stress_ng_tests
 from image.performance.ipc import test_sched
-from image.performance.system import run_pts_tests
+from image.performance.system import test_pts_system
 from image.utils import env_var_to_type_or_exit
 from imgtests.exec.exec import SSHClient
 from imgtests.logger import set_handlers
@@ -93,7 +93,7 @@ def main() -> None:
     logger.info(compare_system_infos(sys_infos[0], sys_infos[1]))
     logger.info(compare_system_infos(sys_infos[0], sys_infos[2]))
     logger.info(compare_system_infos(sys_infos[1], sys_infos[2]))
-    run_pts_tests(executor, client)
+    test_pts_system(executor, client)
     run_stress_ng_tests(executor, client)
     future = executor.submit(test_syscalls_all_stress_ng, client)
     future.result()
