@@ -131,7 +131,7 @@ class Chaosblade(GenericUtil):
             err_msg = "--rate is only available in 'ram' mode"
             raise ValueError(err_msg)
         if mem_mode == "cache" and mem_include_buffer_cache:
-            err_msg = "include_buffer_cache is only available in 'ram' mode"
+            err_msg = "--include_buffer_cache is only available in 'ram' mode"
             raise ValueError(err_msg)
 
     def create_disk_exp(  # noqa: PLR0913
@@ -215,85 +215,83 @@ class Chaosblade(GenericUtil):
 
     def create_network_exp(  # noqa: PLR0913
         self,
-        network_action: str,
+        action: str,
         timeout_sec: int | None = None,
-        network_interface: str | None = None,
-        network_destination_ip: str | None = None,
-        network_exclude_ip: str | None = None,
-        network_percent: int | None = None,
-        network_time_ms: int | None = None,
-        network_offset_ms: int | None = None,
-        network_correlation: int | None = None,
-        network_gap: int | None = None,
-        network_source_ip: str | None = None,
-        network_source_port: int | None = None,
-        network_destination_port: int | None = None,
-        network_string_pattern: str | None = None,
+        interface: str | None = None,
+        destination_ip: str | None = None,
+        exclude_ip: str | None = None,
+        percent: int | None = None,
+        time_ms: int | None = None,
+        offset_ms: int | None = None,
+        correlation: int | None = None,
+        gap: int | None = None,
+        source_ip: str | None = None,
+        source_port: int | None = None,
+        destination_port: int | None = None,
+        string_pattern: str | None = None,
         network_traffic: str | None = None,
-        network_domain: str | None = None,
-        network_ip: str | None = None,
-        network_allow_domain: str | None = None,
-        network_force: bool = False,
-        network_port: int | None = None,
+        domain: str | None = None,
+        ip: str | None = None,
+        allow_domain: str | None = None,
+        force: bool = False,
+        port: int | None = None,
         **kwargs: dict[str, Any],
     ) -> ChaosResponse:
         # Validation
         self._validate_network_basic_params(
-            network_action,
+            action,
             timeout_sec,
-            network_percent,
-            network_time_ms,
-            network_offset_ms,
+            percent,
+            time_ms,
+            offset_ms,
             network_traffic,
         )
-        self._validate_network_ports(network_source_port, network_destination_port, network_port)
+        self._validate_network_ports(source_port, destination_port, port)
         self._validate_network_action_specific(
-            network_action,
-            network_percent,
-            network_time_ms,
-            network_domain,
-            network_ip,
-            network_port,
-            network_source_ip,
-            network_source_port,
-            network_destination_port,
+            action,
+            percent,
+            time_ms,
+            domain,
+            ip,
+            port,
+            source_ip,
+            source_port,
+            destination_port,
         )
-        self._validate_network_ips(
-            network_source_ip, network_destination_ip, network_exclude_ip, network_ip
-        )
+        self._validate_network_ips(source_ip, destination_ip, exclude_ip, ip)
 
         action_args = []
-        if network_action in ["delay", "reorder"]:
-            action_args.extend(create_opt("time", network_time_ms))
-        if network_action == "delay":
-            action_args.extend(create_opt("offset", network_offset_ms))
-        if network_action in ["loss", "duplicate", "corrupt", "reorder"]:
-            action_args.extend(create_opt("percent", network_percent))
-        if network_action == "reorder":
-            action_args.extend(create_opt("correlation", network_correlation))
-            action_args.extend(create_opt("gap", network_gap))
-        if network_action == "drop":
-            action_args.extend(create_opt("source-ip", network_source_ip))
-            action_args.extend(create_opt("source-port", network_source_port))
-            action_args.extend(create_opt("destination-port", network_destination_port))
-            action_args.extend(create_opt("string-pattern", network_string_pattern))
+        if action in ["delay", "reorder"]:
+            action_args.extend(create_opt("time", time_ms))
+        if action == "delay":
+            action_args.extend(create_opt("offset", offset_ms))
+        if action in ["loss", "duplicate", "corrupt", "reorder"]:
+            action_args.extend(create_opt("percent", percent))
+        if action == "reorder":
+            action_args.extend(create_opt("correlation", correlation))
+            action_args.extend(create_opt("gap", gap))
+        if action == "drop":
+            action_args.extend(create_opt("source-ip", source_ip))
+            action_args.extend(create_opt("source-port", source_port))
+            action_args.extend(create_opt("destination-port", destination_port))
+            action_args.extend(create_opt("string-pattern", string_pattern))
             action_args.extend(create_opt("network-traffic", network_traffic))
-        if network_action == "dns":
-            action_args.extend(create_opt("domain", network_domain))
-            action_args.extend(create_opt("ip", network_ip))
-        if network_action == "dns_down":
-            action_args.extend(create_opt("allow-domain", network_allow_domain))
-        if network_action == "occupy":
-            action_args.extend(create_opt("force", network_force))
-            action_args.extend(create_opt("port", network_port))
+        if action == "dns":
+            action_args.extend(create_opt("domain", domain))
+            action_args.extend(create_opt("ip", ip))
+        if action == "dns_down":
+            action_args.extend(create_opt("allow-domain", allow_domain))
+        if action == "occupy":
+            action_args.extend(create_opt("force", force))
+            action_args.extend(create_opt("port", port))
         result = self(
             [
                 "create",
                 "network",
-                network_action,
-                *create_opt("interface", network_interface),
-                *create_opt("destination-ip", network_destination_ip),
-                *create_opt("exclude-ip", network_exclude_ip),
+                action,
+                *create_opt("interface", interface),
+                *create_opt("destination-ip", destination_ip),
+                *create_opt("exclude-ip", exclude_ip),
                 *create_opt("timeout", timeout_sec),
                 *action_args,
             ],
@@ -301,31 +299,13 @@ class Chaosblade(GenericUtil):
         )
         return self._parse_result(result)
 
-    def _validate_ip(self, ip: str, param_name: str) -> None:
-        pattern = r"^([0-9]{1,3}\.){3}[0-9]{1,3}$"
-        if not re.match(pattern, ip):
-            err_msg = f"{param_name} '{ip}' must be valid IPv4"
-            raise ValueError(err_msg)
-
-        parts = ip.split(".")
-
-        for i, part in enumerate(parts, 1):
-            if not part.isdigit():
-                err_msg = f"{param_name} octet {i} must be numeric"
-                raise ValueError(err_msg)
-
-            num = int(part)
-            if num < 0 or num > MAX_OCTET_VALUE:
-                err_msg = f"{param_name} octet {i} must be 0-255"
-                raise ValueError(err_msg)
-
     def _validate_network_basic_params(  # noqa: PLR0913
         self,
-        network_action: str,
+        action: str,
         timeout_sec: int | None,
-        network_percent: int | None,
-        network_time_ms: int | None,
-        network_offset_ms: int | None,
+        percent: int | None,
+        time_ms: int | None,
+        offset_ms: int | None,
         network_traffic: str | None,
     ) -> None:
         valid_actions = [
@@ -340,24 +320,24 @@ class Chaosblade(GenericUtil):
             "occupy",
         ]
 
-        if network_action not in valid_actions:
-            err_msg = f"Invalid network_action '{network_action}'. Expected one of {valid_actions}."
+        if action not in valid_actions:
+            err_msg = f"Invalid action '{action}'. Expected one of {valid_actions}."
             raise ValueError(err_msg)
 
         if timeout_sec is not None and timeout_sec < 0:
             err_msg = f"Invalid timeout_sec '{timeout_sec}'. Expected more or equal 0."
             raise ValueError(err_msg)
 
-        if network_percent is not None and not 0 < network_percent < MAX_PERCENT:
-            err_msg = f"Invalid network_percent '{network_percent}'. Expected 0-100."
+        if percent is not None and not 0 < percent < MAX_PERCENT:
+            err_msg = f"Invalid percent '{percent}'. Expected 0-100."
             raise ValueError(err_msg)
 
-        if network_time_ms is not None and network_time_ms < 0:
-            err_msg = f"Invalid network_time_ms '{network_time_ms}'. Expected more or equal 0."
+        if time_ms is not None and time_ms < 0:
+            err_msg = f"Invalid time_ms '{time_ms}'. Expected more or equal 0."
             raise ValueError(err_msg)
 
-        if network_offset_ms is not None and network_offset_ms < 0:
-            err_msg = f"Invalid network_offset_ms '{network_offset_ms}'. Expected more or equal 0."
+        if offset_ms is not None and offset_ms < 0:
+            err_msg = f"Invalid offset_ms '{offset_ms}'. Expected more or equal 0."
             raise ValueError(err_msg)
 
         if network_traffic is not None and network_traffic not in ["in", "out"]:
@@ -366,77 +346,91 @@ class Chaosblade(GenericUtil):
 
     def _validate_network_ports(
         self,
-        network_source_port: int | None,
-        network_destination_port: int | None,
-        network_port: int | None,
+        source_port: int | None,
+        destination_port: int | None,
+        port: int | None,
     ) -> None:
         port_params = [
-            (network_source_port, "network_source_port"),
-            (network_destination_port, "network_destination_port"),
-            (network_port, "network_port"),
+            (source_port, "source_port"),
+            (destination_port, "destination_port"),
+            (port, "port"),
         ]
 
-        for port, param_name in port_params:
-            if port is not None and not 0 <= port <= MAX_PORT:
-                err_msg = f"Invalid {param_name} '{port}'. Expected 0-65535."
+        for param, param_name in port_params:
+            if param is not None and not 0 <= param <= MAX_PORT:
+                err_msg = f"Invalid {param_name} '{param}'. Expected 0-65535."
                 raise ValueError(err_msg)
 
     def _validate_network_action_specific(  # noqa: PLR0913
         self,
-        network_action: str,
-        network_percent: int | None,
-        network_time_ms: int | None,
-        network_domain: str | None,
-        network_ip: str | None,
-        network_port: int | None,
-        network_source_ip: str | None,
-        network_source_port: int | None,
-        network_destination_port: int | None,
+        action: str,
+        percent: int | None,
+        time_ms: int | None,
+        domain: str | None,
+        ip: str | None,
+        port: int | None,
+        source_ip: str | None,
+        source_port: int | None,
+        destination_port: int | None,
     ) -> None:
-        if (
-            network_action in ["loss", "duplicate", "corrupt", "reorder"]
-            and network_percent is None
-        ):
-            err_msg = f"For {network_action}, network_percent is required"
+        if action in ["loss", "duplicate", "corrupt", "reorder"] and percent is None:
+            err_msg = f"For {action}, percent is required"
             raise ValueError(err_msg)
 
-        if network_action in ["delay", "reorder"] and network_time_ms is None:
-            err_msg = f"For {network_action}, network_time_ms is required"
+        if action in ["delay", "reorder"] and time_ms is None:
+            err_msg = f"For {action}, time_ms is required"
             raise ValueError(err_msg)
 
-        if network_action == "dns":
-            if network_domain is None:
-                err_msg = "For dns, network_domain is required"
+        if action == "dns":
+            if domain is None:
+                err_msg = "For dns, domain is required"
                 raise ValueError(err_msg)
-            if network_ip is None:
-                err_msg = "For dns, network_ip is required"
+            if ip is None:
+                err_msg = "For dns, ip is required"
                 raise ValueError(err_msg)
 
-        if network_action == "occupy" and network_port is None:
-            err_msg = "For occupy, network_port is required"
+        if action == "occupy" and port is None:
+            err_msg = "For occupy, port is required"
             raise ValueError(err_msg)
 
-        if network_action == "drop":
-            params = [network_source_ip, network_source_port, network_destination_port]
+        if action == "drop":
+            params = [source_ip, source_port, destination_port]
             if all(p is None for p in params):
                 err_msg = "For drop, need at least one: source_ip, source_port, or destination_port"
                 raise ValueError(err_msg)
 
     def _validate_network_ips(
         self,
-        network_source_ip: str | None,
-        network_destination_ip: str | None,
-        network_exclude_ip: str | None,
-        network_ip: str | None,
+        source_ip: str | None,
+        destination_ip: str | None,
+        exclude_ip: str | None,
+        ip: str | None,
     ) -> None:
-        if network_source_ip is not None:
-            self._validate_ip(network_source_ip, "network_source_ip")
-        if network_destination_ip is not None:
-            self._validate_ip(network_destination_ip, "network_destination_ip")
-        if network_exclude_ip is not None:
-            self._validate_ip(network_exclude_ip, "network_exclude_ip")
-        if network_ip is not None:
-            self._validate_ip(network_ip, "network_ip")
+        ip_params = [
+            (source_ip, "source_ip"),
+            (destination_ip, "destination_ip"),
+            (exclude_ip, "exclude_ip"),
+            (ip, "ip"),
+        ]
+
+        for param, param_name in ip_params:
+            if param is not None:
+                pattern = r"^([0-9]{1,3}\.){3}[0-9]{1,3}$"
+                if not re.match(pattern, ip):
+                    err_msg = f"{param_name} '{ip}' must be valid IPv4"
+                    raise ValueError(err_msg)
+
+                parts = ip.split(".")
+
+                for i, part in enumerate(parts, 1):
+                    if not part.isdigit():
+                        err_msg = f"{param_name} octet {i} must be numeric"
+                        raise ValueError(err_msg)
+
+                    num = int(part)
+                    if num < 0 or num > MAX_OCTET_VALUE:
+                        err_msg = f"{param_name} octet {i} must be 0-255"
+                        raise ValueError(err_msg)
 
     def _parse_result(self, result: ExecResult) -> ChaosResponse:
         if not result.stdout:
