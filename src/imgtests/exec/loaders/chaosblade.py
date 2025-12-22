@@ -80,16 +80,24 @@ class Chaosblade(GenericUtil):
         self._validate_memory_flags_compatibility(mem_mode, mem_rate_mbps, mem_include_buffer_cache)
 
         # Build command
-        args = self._build_memory_args(
-            mem_percent,
-            mem_reserve_mb,
-            timeout_sec,
-            mem_mode,
-            mem_include_buffer_cache,
-            mem_rate_mbps,
-        )
+        ram_args = []
+        if mem_mode == "ram":
+            ram_args.extend(create_opt("include-buffer-cache", mem_include_buffer_cache))
+            ram_args.extend(create_opt("rate", mem_rate_mbps))
 
-        result = self(args, **kwargs)
+        result = self(
+            [
+                "create",
+                "mem",
+                "load",
+                *create_opt("mode", mem_mode),
+                *create_opt("timeout", timeout_sec),
+                *create_opt("mem-percent", mem_percent),
+                *create_opt("reserve", mem_reserve_mb),
+                *ram_args,
+            ],
+            **kwargs,
+        )
         return self._parse_result(result)
 
     def _validate_memory_params(
@@ -412,33 +420,6 @@ class Chaosblade(GenericUtil):
             self._validate_ip(network_exclude_ip, "network_exclude_ip")
         if network_ip is not None:
             self._validate_ip(network_ip, "network_ip")
-
-    def _build_memory_args(  # noqa: PLR0913
-        self,
-        mem_percent: int | None,
-        mem_reserve_mb: int | None,
-        timeout_sec: int | None,
-        mem_mode: str,
-        mem_include_buffer_cache: bool,
-        mem_rate_mbps: int | None,
-    ) -> list[str]:
-        args = ["create", "mem", "load", "--mode", mem_mode]
-
-        if timeout_sec is not None:
-            args.extend(["--timeout", str(timeout_sec)])
-
-        if mem_percent is not None:
-            args.extend(["--mem-percent", str(mem_percent)])
-        elif mem_reserve_mb is not None:
-            args.extend(["--reserve", str(mem_reserve_mb)])
-
-        if mem_mode == "ram":
-            if mem_include_buffer_cache:
-                args.append("--include-buffer-cache")
-            if mem_rate_mbps is not None:
-                args.extend(["--rate", str(mem_rate_mbps)])
-
-        return args
 
     def _build_disk_args(  # noqa: PLR0913
         self,
