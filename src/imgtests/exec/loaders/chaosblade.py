@@ -157,6 +157,7 @@ class Chaosblade(GenericUtil):
             write,
         )
 
+        # Build command
         action_args = []
         if action == "fill":
             action_args.extend(create_opt("percent", percent))
@@ -249,9 +250,13 @@ class Chaosblade(GenericUtil):
             time_ms,
             offset_ms,
             network_traffic,
+            interface,
+            correlation,
+            gap,
         )
         self._validate_network_ports(source_port, destination_port, port)
-        self._validate_network_action_specific(
+        self._validate_network_ips(source_ip, destination_ip, exclude_ip, ip)
+        self._validate_network_flags_compatibility(
             action,
             percent,
             time_ms,
@@ -262,8 +267,8 @@ class Chaosblade(GenericUtil):
             source_port,
             destination_port,
         )
-        self._validate_network_ips(source_ip, destination_ip, exclude_ip, ip)
 
+        # Build command
         action_args = []
         if action in ["delay", "reorder"]:
             action_args.extend(create_opt("time", time_ms))
@@ -311,6 +316,9 @@ class Chaosblade(GenericUtil):
         time_ms: int | None,
         offset_ms: int | None,
         network_traffic: str | None,
+        interface: str | None = None,
+        correlation: int | None = None,
+        gap: int | None = None,
     ) -> None:
         valid_actions = [
             "delay",
@@ -332,7 +340,11 @@ class Chaosblade(GenericUtil):
             err_msg = f"Invalid timeout_sec '{timeout_sec}'. Expected more or equal 0."
             raise ValueError(err_msg)
 
-        if percent is not None and not 0 < percent < MAX_PERCENT:
+        if interface is None:
+            err_msg = "Interface is required."
+            raise ValueError(err_msg)
+
+        if percent is not None and not 0 <= percent <= MAX_PERCENT:
             err_msg = f"Invalid percent '{percent}'. Expected 0-100."
             raise ValueError(err_msg)
 
@@ -346,6 +358,14 @@ class Chaosblade(GenericUtil):
 
         if network_traffic is not None and network_traffic not in ["in", "out"]:
             err_msg = f"Invalid network_traffic '{network_traffic}'. Expected 'in' or 'out'."
+            raise ValueError(err_msg)
+
+        if correlation is not None and not 0 <= correlation <= MAX_PERCENT:
+            err_msg = f"Invalid correlation '{correlation}'. Expected 0-100."
+            raise ValueError(err_msg)
+
+        if gap is not None and gap < 0:
+            err_msg = f"Invalid gap '{gap}'. Expected more or equal 0."
             raise ValueError(err_msg)
 
     def _validate_network_ports(
@@ -365,7 +385,39 @@ class Chaosblade(GenericUtil):
                 err_msg = f"Invalid {param_name} '{param}'. Expected 0-65535."
                 raise ValueError(err_msg)
 
-    def _validate_network_action_specific(  # noqa: PLR0913
+    def _validate_network_ips(
+        self,
+        source_ip: str | None,
+        destination_ip: str | None,
+        exclude_ip: str | None,
+        ip: str | None,
+    ) -> None:
+        ip_params = [
+            (source_ip, "source_ip"),
+            (destination_ip, "destination_ip"),
+            (exclude_ip, "exclude_ip"),
+            (ip, "ip"),
+        ]
+
+        for param, param_name in ip_params:
+            if param is not None:
+                pattern = r"^([0-9]{1,3}\.){3}[0-9]{1,3}$"
+                if not re.match(pattern, param):
+                    err_msg = f"{param_name} '{param}' must be valid IPv4"
+                    raise ValueError(err_msg)
+
+                parts = param.split(".")
+                for i, part in enumerate(parts, 1):
+                    if not part.isdigit():
+                        err_msg = f"{param_name} octet {i} must be numeric"
+                        raise ValueError(err_msg)
+
+                    num = int(part)
+                    if num < 0 or num > MAX_OCTET_VALUE:
+                        err_msg = f"{param_name} octet {i} must be 0-255"
+                        raise ValueError(err_msg)
+
+    def _validate_network_flags_compatibility(  # noqa: PLR0913
         self,
         action: str,
         percent: int | None,
@@ -400,41 +452,8 @@ class Chaosblade(GenericUtil):
         if action == "drop":
             params = [source_ip, source_port, destination_port]
             if all(p is None for p in params):
-                err_msg = "For drop, need at least one: source_ip, source_port, or destination_port"
+                err_msg = "For drop, need at least one: source_ip, source_port, destination_port"
                 raise ValueError(err_msg)
-
-    def _validate_network_ips(
-        self,
-        source_ip: str | None,
-        destination_ip: str | None,
-        exclude_ip: str | None,
-        ip: str | None,
-    ) -> None:
-        ip_params = [
-            (source_ip, "source_ip"),
-            (destination_ip, "destination_ip"),
-            (exclude_ip, "exclude_ip"),
-            (ip, "ip"),
-        ]
-
-        for param, param_name in ip_params:
-            if param is not None:
-                pattern = r"^([0-9]{1,3}\.){3}[0-9]{1,3}$"
-                if not re.match(pattern, ip):
-                    err_msg = f"{param_name} '{ip}' must be valid IPv4"
-                    raise ValueError(err_msg)
-
-                parts = ip.split(".")
-
-                for i, part in enumerate(parts, 1):
-                    if not part.isdigit():
-                        err_msg = f"{param_name} octet {i} must be numeric"
-                        raise ValueError(err_msg)
-
-                    num = int(part)
-                    if num < 0 or num > MAX_OCTET_VALUE:
-                        err_msg = f"{param_name} octet {i} must be 0-255"
-                        raise ValueError(err_msg)
 
     def _parse_result(self, result: ExecResult) -> ChaosResponse:
         if not result.stdout:
