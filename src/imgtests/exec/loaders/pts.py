@@ -3,7 +3,7 @@ import logging
 from typing import Any
 
 from imgtests.exec.base_util import GenericUtil
-from imgtests.exec.exec import SSHClient, common_run_command, pipeline
+from imgtests.exec.exec import ExecResult, SSHClient, common_run_command, pipeline
 
 logger = logging.getLogger(__name__)
 
@@ -18,14 +18,15 @@ class PhoronixTestSuite(GenericUtil):
         commands = [["echo", "-e", f'"{retries}"'], ["phoronix-test-suite", "install", test_name]]
         for result in pipeline(cmds=commands, ssh_client=self.ssh_client, pass_output=True):
             if result.returncode:
-                error_message = f"Installation of PTS test {test_name} failed. {result.stderr}"
-                raise RuntimeError(error_message)
+                logger.error("Installation of PTS test %s failed. %s", test_name, result.stderr)
+                return False
 
         result = self(["list-installed-tests"])
         if result.stdout.find(test_name) == -1:
-            error_message = f"Installation of PTS test {test_name} failed. {result.stderr}"
-            raise RuntimeError(error_message)
+            logger.error("Installation of PTS test %s failed. %s", test_name, result.stderr)
+            return False
         logger.info("PTS test '%s' installed", test_name)
+        return True
 
     def remove_test(self, test_name: str) -> None:
         """Removes a given test."""
@@ -36,9 +37,10 @@ class PhoronixTestSuite(GenericUtil):
                 return
         logger.info("PTS test '%s' removed", test_name)
 
-    def run_test(self, test_name: str, run_count: int) -> None:
+    def run_test(self, test_name: str, run_count: int) -> ExecResult | None:
         """Runs a given test with set amount of iterations."""
-        self.install_test(test_name=test_name)
+        if not self.install_test(test_name=test_name):
+            return None
         logger.info("PTS test '%s' started", test_name)
         result = common_run_command(
             [f"FORCE_TIMES_TO_RUN={run_count}", self.name, "batch-run", test_name],
@@ -48,6 +50,7 @@ class PhoronixTestSuite(GenericUtil):
             logger.warning("PTS test '%s' failed", test_name)
         else:
             logger.info("PTS test '%s' finished", test_name)
+        return result
 
     def get_latest_result_name(self) -> str | None:
         """Returns latest result name.
