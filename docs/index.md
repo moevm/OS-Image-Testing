@@ -15,6 +15,7 @@
 - [Метод инструментов](./methodology/instrumental-method.md)
 - [Метод USE](./methodology/use-method.md)
 - [Метод определения характеристик потребления памяти](./methodology/memory-consumption-characteristics.md)
+- [Метод оценки размера рабочего набора](./methodology/working-set-size-estimation-method.md)
 
 ## 3. Утилиты
 
