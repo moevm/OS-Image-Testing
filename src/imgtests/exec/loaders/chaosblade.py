@@ -174,6 +174,7 @@ class Chaosblade(GenericUtil):
                 *create_opt("path", path),
                 *create_opt("size", size_mb),
                 *create_opt("timeout", timeout_sec),
+                *action_args,
             ],
             **kwargs,
         )
@@ -250,7 +251,6 @@ class Chaosblade(GenericUtil):
             time_ms,
             offset_ms,
             network_traffic,
-            interface,
             correlation,
             gap,
         )
@@ -266,6 +266,7 @@ class Chaosblade(GenericUtil):
             source_ip,
             source_port,
             destination_port,
+            interface,
         )
 
         # Build command
@@ -293,14 +294,15 @@ class Chaosblade(GenericUtil):
         if action == "occupy":
             action_args.extend(create_opt("force", force))
             action_args.extend(create_opt("port", port))
+        if action in ["delay", "loss", "duplicate", "corrupt", "reorder"]:
+            action_args.extend(create_opt("interface", interface))
+            action_args.extend(create_opt("destination-ip", destination_ip))
+            action_args.extend(create_opt("exclude-ip", exclude_ip))
         result = self(
             [
                 "create",
                 "network",
                 action,
-                *create_opt("interface", interface),
-                *create_opt("destination-ip", destination_ip),
-                *create_opt("exclude-ip", exclude_ip),
                 *create_opt("timeout", timeout_sec),
                 *action_args,
             ],
@@ -316,7 +318,6 @@ class Chaosblade(GenericUtil):
         time_ms: int | None,
         offset_ms: int | None,
         network_traffic: str | None,
-        interface: str | None = None,
         correlation: int | None = None,
         gap: int | None = None,
     ) -> None:
@@ -338,10 +339,6 @@ class Chaosblade(GenericUtil):
 
         if timeout_sec is not None and timeout_sec < 0:
             err_msg = f"Invalid timeout_sec '{timeout_sec}'. Expected more or equal 0."
-            raise ValueError(err_msg)
-
-        if interface is None:
-            err_msg = "Interface is required."
             raise ValueError(err_msg)
 
         if percent is not None and not 0 <= percent <= MAX_PERCENT:
@@ -428,6 +425,7 @@ class Chaosblade(GenericUtil):
         source_ip: str | None,
         source_port: int | None,
         destination_port: int | None,
+        interface: str | None = None,
     ) -> None:
         if action in ["loss", "duplicate", "corrupt", "reorder"] and percent is None:
             err_msg = f"For {action}, percent is required"
@@ -454,6 +452,10 @@ class Chaosblade(GenericUtil):
             if all(p is None for p in params):
                 err_msg = "For drop, need at least one: source_ip, source_port, destination_port"
                 raise ValueError(err_msg)
+
+        if action in ["delay", "loss", "duplicate", "corrupt", "reorder"] and interface is None:
+            err_msg = f"For {action}, interface is required"
+            raise ValueError(err_msg)
 
     def _parse_result(self, result: ExecResult) -> ChaosResponse:
         if not result.stdout:
