@@ -262,31 +262,43 @@ class Chaosblade(GenericUtil):
             network_source_ip, network_destination_ip, network_exclude_ip, network_ip
         )
 
-        # Build command
-        args = self._build_network_args(
-            network_action,
-            timeout_sec,
-            network_interface,
-            network_destination_ip,
-            network_exclude_ip,
-            network_percent,
-            network_time_ms,
-            network_offset_ms,
-            network_correlation,
-            network_gap,
-            network_source_ip,
-            network_source_port,
-            network_destination_port,
-            network_string_pattern,
-            network_traffic,
-            network_domain,
-            network_ip,
-            network_allow_domain,
-            network_force,
-            network_port,
+        action_args = []
+        if network_action in ["delay", "reorder"]:
+            action_args.extend(create_opt("time", network_time_ms))
+        if network_action == "delay":
+            action_args.extend(create_opt("offset", network_offset_ms))
+        if network_action in ["loss", "duplicate", "corrupt", "reorder"]:
+            action_args.extend(create_opt("percent", network_percent))
+        if network_action == "reorder":
+            action_args.extend(create_opt("correlation", network_correlation))
+            action_args.extend(create_opt("gap", network_gap))
+        if network_action == "drop":
+            action_args.extend(create_opt("source-ip", network_source_ip))
+            action_args.extend(create_opt("source-port", network_source_port))
+            action_args.extend(create_opt("destination-port", network_destination_port))
+            action_args.extend(create_opt("string-pattern", network_string_pattern))
+            action_args.extend(create_opt("network-traffic", network_traffic))
+        if network_action == "dns":
+            action_args.extend(create_opt("domain", network_domain))
+            action_args.extend(create_opt("ip", network_ip))
+        if network_action == "dns_down":
+            action_args.extend(create_opt("allow-domain", network_allow_domain))
+        if network_action == "occupy":
+            action_args.extend(create_opt("force", network_force))
+            action_args.extend(create_opt("port", network_port))
+        result = self(
+            [
+                "create",
+                "network",
+                network_action,
+                *create_opt("interface", network_interface),
+                *create_opt("destination-ip", network_destination_ip),
+                *create_opt("exclude-ip", network_exclude_ip),
+                *create_opt("timeout", timeout_sec),
+                *action_args,
+            ],
+            **kwargs,
         )
-
-        result = self(args, **kwargs)
         return self._parse_result(result)
 
     def _validate_ip(self, ip: str, param_name: str) -> None:
@@ -425,141 +437,6 @@ class Chaosblade(GenericUtil):
             self._validate_ip(network_exclude_ip, "network_exclude_ip")
         if network_ip is not None:
             self._validate_ip(network_ip, "network_ip")
-
-    def _build_network_args(  # noqa: PLR0913
-        self,
-        network_action: str,
-        timeout_sec: int | None,
-        network_interface: str | None,
-        network_destination_ip: str | None,
-        network_exclude_ip: str | None,
-        network_percent: int | None,
-        network_time_ms: int | None,
-        network_offset_ms: int | None,
-        network_correlation: int | None,
-        network_gap: int | None,
-        network_source_ip: str | None,
-        network_source_port: int | None,
-        network_destination_port: int | None,
-        network_string_pattern: str | None,
-        network_traffic: str | None,
-        network_domain: str | None,
-        network_ip: str | None,
-        network_allow_domain: str | None,
-        network_force: bool,
-        network_port: int | None,
-    ) -> list[str]:
-        args = ["create", "network", network_action]
-
-        args = self._add_network_common_args(
-            args, network_interface, network_destination_ip, network_exclude_ip, timeout_sec
-        )
-
-        return self._add_network_action_specific_args(
-            args,
-            network_action,
-            network_percent,
-            network_time_ms,
-            network_offset_ms,
-            network_correlation,
-            network_gap,
-            network_source_ip,
-            network_source_port,
-            network_destination_port,
-            network_string_pattern,
-            network_traffic,
-            network_domain,
-            network_ip,
-            network_allow_domain,
-            network_force,
-            network_port,
-        )
-
-    def _add_network_common_args(
-        self,
-        args: list[str],
-        network_interface: str | None,
-        network_destination_ip: str | None,
-        network_exclude_ip: str | None,
-        timeout_sec: int | None,
-    ) -> list[str]:
-        if network_interface is not None:
-            args.extend(["--interface", network_interface])
-        if network_destination_ip is not None:
-            args.extend(["--destination-ip", network_destination_ip])
-        if network_exclude_ip is not None:
-            args.extend(["--exclude-ip", network_exclude_ip])
-        if timeout_sec is not None:
-            args.extend(["--timeout", str(timeout_sec)])
-
-        return args
-
-    def _add_network_action_specific_args(  # noqa: PLR0913 PLR0912 C901
-        self,
-        args: list[str],
-        network_action: str,
-        network_percent: int | None,
-        network_time_ms: int | None,
-        network_offset_ms: int | None,
-        network_correlation: int | None,
-        network_gap: int | None,
-        network_source_ip: str | None,
-        network_source_port: int | None,
-        network_destination_port: int | None,
-        network_string_pattern: str | None,
-        network_traffic: str | None,
-        network_domain: str | None,
-        network_ip: str | None,
-        network_allow_domain: str | None,
-        network_force: bool,
-        network_port: int | None,
-    ) -> list[str]:
-        if network_action in ["delay", "reorder"] and network_time_ms is not None:
-            args.extend(["--time", str(network_time_ms)])
-
-        if network_action == "delay" and network_offset_ms is not None:
-            args.extend(["--offset", str(network_offset_ms)])
-
-        if (
-            network_action in ["loss", "duplicate", "corrupt", "reorder"]
-            and network_percent is not None
-        ):
-            args.extend(["--percent", str(network_percent)])
-
-        if network_action == "reorder":
-            if network_correlation is not None:
-                args.extend(["--correlation", str(network_correlation)])
-            if network_gap is not None:
-                args.extend(["--gap", str(network_gap)])
-
-        if network_action == "drop":
-            if network_source_ip is not None:
-                args.extend(["--source-ip", network_source_ip])
-            if network_source_port is not None:
-                args.extend(["--source-port", str(network_source_port)])
-            if network_destination_port is not None:
-                args.extend(["--destination-port", str(network_destination_port)])
-            if network_string_pattern is not None:
-                args.extend(["--string-pattern", network_string_pattern])
-            if network_traffic is not None:
-                args.extend(["--network-traffic", network_traffic])
-
-        if network_action == "dns":
-            if network_domain is not None:
-                args.extend(["--domain", network_domain])
-            if network_ip is not None:
-                args.extend(["--ip", network_ip])
-
-        if network_action == "dns_down" and network_allow_domain is not None:
-            args.extend(["--allow-domain", network_allow_domain])
-
-        if network_action == "occupy":
-            if network_force:
-                args.append("--force")
-            if network_port is not None:
-                args.extend(["--port", str(network_port)])
-
-        return args
 
     def _parse_result(self, result: ExecResult) -> ChaosResponse:
         if not result.stdout:
