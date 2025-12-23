@@ -29,15 +29,6 @@ class Chaosblade(GenericUtil):
         super().__init__("blade", ssh_client)
 
     def install(self) -> ExecResult:
-        version_check = self(["version"])
-        if version_check.returncode == 0:
-            match = re.search(r"[Vv]ersion[:\s]+(\d+\.\d+\.\d+)", version_check.stdout)
-            if match:
-                return ExecResult(
-                    cmd=(self.name, "install"),
-                    stdout=f"ChaosBlade v{match.group(1)} already installed",
-                    returncode=0,
-                )
         os_id = get_os_release(self.ssh_client).id
         if os_id and "opensuse" in os_id:
             zypper = Zypper(ssh_client=self.ssh_client, use_sudo=True)
