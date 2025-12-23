@@ -28,9 +28,9 @@ download () {
 }
 
 if [ "$1" = 15.5 ]; then
-    download ${SUSE_15_5_IMG_FN} "open-suse-""$1"".qcow2"
+    download "${SUSE_15_5_IMG_FN}" "open-suse-""$1"".qcow2"
 elif [ "$1" = 15.6 ]; then
-    download ${SUSE_15_6_IMG_FN} "open-suse-""$1"".qcow2"
+    download "${SUSE_15_6_IMG_FN}" "open-suse-""$1"".qcow2"
 else
     echo "Leap version is incorrect! Should be 15.5, 15.6 or both"
     exit 1
