@@ -82,6 +82,7 @@ services:
     command: python3 /home/${USER}/image/runner.py
     volumes:
       - ./tests/image:/home/${USER}/image
+      - ${HOST_SCRIPTS_PATH}/bencher/bencher-test.sh:/home/${USER}/bencher-test.sh
     environment:
       PYTHONPATH: /home/${USER}/
       SSH_YOCTO_USER: ${SSH_QEMU_USER}
@@ -116,7 +117,6 @@ services:
     ports:
       - ${BENCHER_CLI_PORT}:${BENCHER_CLI_PORT}
     environment:
-      - BENCHER_API_URL=${BENCHER_API_ADDRESS}:${BENCHER_API_PORT}
       - INTERNAL_API_URL=${BENCHER_API_ADDRESS}:${BENCHER_API_PORT}
     depends_on:
       - bencher_api_compose
