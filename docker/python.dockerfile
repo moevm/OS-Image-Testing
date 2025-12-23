@@ -6,6 +6,7 @@ ARG GROUP
 RUN apt update && \
     apt install -y \
     openssh-client \
+    curl \ 
     sudo
 
 RUN groupadd -g 510 ${GROUP} && \
