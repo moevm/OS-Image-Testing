@@ -63,7 +63,7 @@ class Chaosblade(GenericUtil):
             "cd /; "
             "rm -rf $tmpdir"
         )
-        return common_run_command(("sudo", "bash", "-c", script), self.ssh_client)
+        return common_run_command(("sudo", "bash", "-lc", f"'{script}'"), self.ssh_client)
 
     def check_env(self, experiment_type: str, action: str) -> ChaosResponse:
         result = self(["check", "os", experiment_type, action])
