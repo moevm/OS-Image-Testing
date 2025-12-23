@@ -4,6 +4,7 @@ from typing import Any
 import pytest
 
 from imgtests.exec.utils import add_flag, create_opt, extract_version, kwargs_to_cmd_args
+from imgtests.types import Version
 
 
 class TEnum(Enum):
@@ -37,10 +38,14 @@ def test_add_flag() -> None:
 @pytest.mark.parametrize(
     ("out", "version"),
     [
-        ("kirk, 2.3", "2.3"),
-        ("stress-ng, version 0.17.06 (gcc 13.2.0, x86_64 Linux 6.14.0-29-generic) 💻🔥", "0.17.06"),
-        ("fio-3.36", "3.36"),
-        ("perf version 6.12.47", "6.12.47"),
+        ("kirk, 2.3", Version("2.3")),
+        (
+            "stress-ng, version 0.17.06 (gcc 13.2.0, x86_64 Linux 6.14.0-29-generic) 💻🔥",
+            Version("0.17.06"),
+        ),
+        ("fio-3.36", Version("3.36")),
+        ("perf version 6.12.47", Version("6.12.47")),
+        ("Phoronix Test Suite v10.8.4", Version("10.8.4")),
     ],
 )
 def test_extract_version(out: str, version: str) -> None:

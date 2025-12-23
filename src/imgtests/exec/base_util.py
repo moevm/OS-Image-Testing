@@ -3,6 +3,7 @@ from typing import Any
 
 from imgtests.exec.exec import ExecResult, SSHClient, common_run_command, which
 from imgtests.exec.utils import extract_version, kwargs_to_cmd_args
+from imgtests.types import Version
 
 
 class BaseTestUtil(ABC):
@@ -70,7 +71,7 @@ class BaseTestUtil(ABC):
         raise NotImplementedError(not_implemented_message)
 
     @abstractmethod
-    def version(self) -> str | None:
+    def version(self) -> Version | None:
         """Returns the utility version.
 
         Returns:
@@ -80,7 +81,7 @@ class BaseTestUtil(ABC):
 
 
 class GenericUtil(BaseTestUtil):
-    def version(self) -> str | None:
+    def version(self) -> Version | None:
         result = self(["--version"])
         if result.returncode:
             return None
