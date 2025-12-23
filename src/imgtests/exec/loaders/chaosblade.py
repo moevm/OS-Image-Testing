@@ -4,8 +4,9 @@ import re
 from typing import Any, NamedTuple
 
 from imgtests.exec.base_util import GenericUtil
-from imgtests.exec.exec import ExecResult, SSHClient
-from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
+from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
+from imgtests.exec.osinfo import get_os_release
+from imgtests.exec.pkgmgrs.zypper import Zypper
 from imgtests.exec.utils import create_opt
 
 logger = logging.getLogger(__name__)
@@ -23,7 +24,7 @@ class ChaosResponse(NamedTuple):
     error: str | None = None
 
 
-class Chaosblade(GenericUtil, PkgMgrMixin):
+class Chaosblade(GenericUtil):
     def __init__(self, ssh_client: SSHClient | None = None) -> None:
         super().__init__("blade", ssh_client)
 
@@ -37,28 +38,32 @@ class Chaosblade(GenericUtil, PkgMgrMixin):
                     stdout=f"ChaosBlade v{match.group(1)} already installed",
                     returncode=0,
                 )
-        deps_result = self._install_packages(["wget", "tar"])
-        if deps_result.returncode != 0:
-            return deps_result
+        os_id = get_os_release(self.ssh_client).id
+        if os_id and "opensuse" in os_id:
+            zypper = Zypper(ssh_client=self.ssh_client, use_sudo=True)
+            deps_result = zypper.install_packages(["wget", "tar"])
+            if deps_result.returncode != 0:
+                return deps_result
 
         version = "1.8.0"
         arch = "linux_amd64"
         install_dir = "/opt/chaosblade"
+        install_link = f"https://github.com/chaosblade-io/chaosblade/releases/download/v{version}/chaosblade-{version}-{arch}.tar.gz"
 
-        install_script = f"""
-        set -e
-        tmpdir=$(mktemp -d)
-        cd $tmpdir
-        wget -q https://github.com/chaosblade-io/chaosblade/releases/download/v{version}/chaosblade-{version}-{arch}.tar.gz
-        tar -xzf chaosblade-{version}-{arch}.tar.gz
-        sudo mkdir -p {install_dir}
-        sudo cp -r chaosblade-{version}/* {install_dir}/
-        sudo ln -sf {install_dir}/blade /usr/local/bin/blade
-        sudo chmod 755 {install_dir}/blade
-        cd /
-        rm -rf $tmpdir
-        """
-        return self(["bash", "-c", install_script])
+        script = (
+            "set -e; "
+            "tmpdir=$(mktemp -d); "
+            "cd $tmpdir; "
+            f"wget -q {install_link}; "
+            f"tar -xzf chaosblade-{version}-{arch}.tar.gz; "
+            f"mkdir -p {install_dir}; "
+            f"cp -r chaosblade-{version}-{arch}/* {install_dir}/; "
+            f"ln -sf {install_dir}/blade /usr/local/bin/blade; "
+            f"chmod 755 {install_dir}/blade; "
+            "cd /; "
+            "rm -rf $tmpdir"
+        )
+        return common_run_command(("sudo", "bash", "-c", script), self.ssh_client)
 
     def check_env(self, experiment_type: str, action: str) -> ChaosResponse:
         result = self(["check", "os", experiment_type, action])
