@@ -1,3 +1,5 @@
+#!/bin/bash
+
 curl --tlsv1.2 -sSfL bencher_console:3000/download/install-cli.sh | sh
 source $HOME/.cargo/env
 

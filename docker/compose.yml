@@ -52,7 +52,6 @@ services:
 
   imgtests-suse-156:
     build:
-      context: .
       dockerfile: docker/open-suse.dockerfile
       args:
         USER: ${USER}
@@ -73,7 +72,6 @@ services:
 
   imgtests-analyzer:
     build:
-      context: .
       dockerfile: docker/python.dockerfile
       args:
         USER: ${USER}
