@@ -59,15 +59,15 @@ class Chaosblade(GenericUtil):
 
     def check_env(self, experiment_type: str, action: str) -> ChaosResponse:
         result = self(["check", "os", experiment_type, action])
-        return self._parse_result(result)
+        return Chaosblade._parse_result(result)
 
     def get_exp_status(self, experiment_id: str) -> ChaosResponse:
         result = self(["status", experiment_id])
-        return self._parse_result(result)
+        return Chaosblade._parse_result(result)
 
     def destroy_exp(self, experiment_id: str) -> ChaosResponse:
         result = self(["destroy", experiment_id])
-        return self._parse_result(result)
+        return Chaosblade._parse_result(result)
 
     def create_cpu_exp(
         self, cpu_percent: int | None = None, timeout_sec: int = 0, **kwargs: dict[str, Any]
@@ -84,7 +84,7 @@ class Chaosblade(GenericUtil):
             ],
             **kwargs,
         )
-        return self._parse_result(result)
+        return Chaosblade._parse_result(result)
 
     def _validate_cpu_params(self, cpu_percent: int | None, timeout_sec: int) -> None:
         if cpu_percent is not None and not 0 < cpu_percent < MAX_PERCENT:
@@ -127,7 +127,7 @@ class Chaosblade(GenericUtil):
             ],
             **kwargs,
         )
-        return self._parse_result(result)
+        return Chaosblade._parse_result(result)
 
     def _validate_memory_params(
         self,
@@ -209,7 +209,7 @@ class Chaosblade(GenericUtil):
             ],
             **kwargs,
         )
-        return self._parse_result(result)
+        return Chaosblade._parse_result(result)
 
     def _validate_disk_params(  # noqa: PLR0913
         self,
@@ -339,7 +339,7 @@ class Chaosblade(GenericUtil):
             ],
             **kwargs,
         )
-        return self._parse_result(result)
+        return Chaosblade._parse_result(result)
 
     def _validate_network_basic_params(  # noqa: PLR0913
         self,
@@ -488,12 +488,13 @@ class Chaosblade(GenericUtil):
             err_msg = f"For {action}, interface is required"
             raise ValueError(err_msg)
 
-    def _parse_result(self, result: ExecResult) -> ChaosResponse:
+    @staticmethod
+    def _parse_result(result: ExecResult) -> ChaosResponse:
         response_text = result.stdout
         if not response_text and result.stderr:
             response_text = result.stderr
         if not response_text:
-            return ChaosResponse(code=500, success=False, result=None, error="No output")
+            return ChaosResponse(code=0, success=False, result=None, error="No output")
 
         try:
             data = json.loads(response_text.strip())
