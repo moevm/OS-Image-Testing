@@ -12,7 +12,10 @@ RUN apt-get update && \
     qemu-user-static \
     cloud-init \
     cloud-image-utils \
-    wget
+    wget \
+    python3 python3-pip
+
+RUN pip3 install requests beautifulsoup4 --break-system-packages
 
 WORKDIR ${SUSE_DIR}
 CMD ["/bin/bash"]
