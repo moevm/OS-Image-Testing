@@ -58,6 +58,7 @@ class Chaosblade(GenericUtil):
             f"tar -xzf chaosblade-{version}-{arch}.tar.gz; "
             f"mkdir -p {install_dir}; "
             f"cp -r chaosblade-{version}-{arch}/* {install_dir}/; "
+            f"find {install_dir} -name '*.db' -o -name '*.sqlite*' -exec chmod 666 {{}} \\; ; "
             f"ln -sf {install_dir}/blade /usr/local/bin/blade; "
             f"chmod 755 {install_dir}/blade; "
             "cd /; "
