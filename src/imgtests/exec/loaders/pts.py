@@ -4,6 +4,8 @@ from typing import Any
 
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult, SSHClient, common_run_command, pipeline
+from imgtests.exec.utils import extract_version
+from imgtests.types import Version
 
 logger = logging.getLogger(__name__)
 
@@ -11,6 +13,12 @@ logger = logging.getLogger(__name__)
 class PhoronixTestSuite(GenericUtil):
     def __init__(self, ssh_client: SSHClient | None = None) -> None:
         super().__init__("phoronix-test-suite", ssh_client)
+
+    def version(self) -> Version | None:
+        result = self(["version"])
+        if result.returncode:
+            return None
+        return extract_version(result.stdout.strip())
 
     def install_test(self, test_name: str) -> bool:
         """Installs a given test."""
