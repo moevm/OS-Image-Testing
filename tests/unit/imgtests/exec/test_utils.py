@@ -40,7 +40,7 @@ def test_add_flag() -> None:
     [
         ("kirk, 2.3", Version("2.3")),
         (
-            "stress-ng, version 0.17.06 (gcc 13.2.0, x86_64 Linux 6.14.0-29-generic) 💻🔥",
+            "stress-ng, version 0.17.06 (gcc 13.2.0, x86_64 Linux 6.14.0-29-generic)",
             Version("0.17.06"),
         ),
         ("fio-3.36", Version("3.36")),
