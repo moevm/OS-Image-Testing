@@ -51,8 +51,12 @@ def is_sha256sum_pass(target_file: Path, target_file_sha256: Path) -> bool:
 def download(suse_ver: str) -> None:
     target_file = Path(f"open-suse-{suse_ver}.qcow2")
     target_file_sha256 = target_file.with_suffix(".sha256")
-    if target_file.exists() and target_file_sha256.exists():
-        is_sha256sum_pass(target_file, target_file_sha256)
+    if (
+        target_file.exists()
+        and target_file_sha256.exists()
+        and is_sha256sum_pass(target_file, target_file_sha256)
+    ):
+        return
     images_url = (
         f"https://download.opensuse.org/repositories/Cloud:/Images:/Leap_{suse_ver}/images/"
     )
@@ -91,8 +95,8 @@ def download(suse_ver: str) -> None:
         handle_result(
             call_cmd(["sed", "-i", f"s/{last_image}/{target_file!s}/g", str(target_file_sha256)])
         )
-        if not is_sha256sum_pass(target_file, target_file_sha256):
-            error("sha256sum check failed.")
+    if not is_sha256sum_pass(target_file, target_file_sha256):
+        error("sha256sum check failed.")
 
 
 if __name__ == "__main__":
