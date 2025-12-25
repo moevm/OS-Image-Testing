@@ -1,9 +1,8 @@
 #!/bin/bash
 
-SUSE_DIST_URL="https://download.opensuse.org/repositories/Cloud:/Images:/Leap_""$1""/images/"
-
 set -e
 
+SUSE_DIST_URL="https://download.opensuse.org/repositories/Cloud:/Images:/Leap_""$1""/images/"
 SUSE_15_5_IMG_FN=$(python3 ./scripts/repo_check.py 15.5)
 SUSE_15_6_IMG_FN=$(python3 ./scripts/repo_check.py 15.6)
 

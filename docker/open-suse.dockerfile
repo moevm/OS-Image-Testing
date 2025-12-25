@@ -13,9 +13,10 @@ RUN apt-get update && \
     cloud-init \
     cloud-image-utils \
     wget \
-    python3 python3-pip
+    python3-pip
 
-RUN pip3 install requests beautifulsoup4 --break-system-packages
+RUN pip3 install requests~=2.32.5 beautifulsoup4~=4.14.3 --break-system-packages
 
 WORKDIR ${SUSE_DIR}
+
 CMD ["/bin/bash"]
