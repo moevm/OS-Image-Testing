@@ -14,9 +14,8 @@ DOCKER_BUILD_VOLUME        := ${DOCKER_PREFIX}-yocto-build
 DOCKER_DOWNLOADS_VOLUME    := ${DOCKER_PREFIX}-yocto-downloads
 DOCKER_SSTATE_VOLUME       := ${DOCKER_PREFIX}-yocto-sstate
 DOCKER_OPENSUSE_VOLUME     := ${DOCKER_PREFIX}-open-suse-files
-DOCKER_NETWORK             := yocto-network
-BENCHER_API_CONF_VOL       := ${DOCKER_PREFIX}-bencher-conf
-BENCHER_API_DB_VOL         := ${DOCKER_PREFIX}-bencher-database
+BENCHER_API_CONF_VOLUME    := ${DOCKER_PREFIX}-bencher-conf
+BENCHER_API_DB_VOLUME      := ${DOCKER_PREFIX}-bencher-database
 
 # Paths
 POKY_DIR                   := /home/${USER}/poky
@@ -30,7 +29,8 @@ HOST_TEMP_PATH             := ${CURDIR}/results
 # Python
 PACKAGE_MGR                := uv
 
-# IP addresses
+# Docker Network
+DOCKER_NETWORK             := yocto-network
 YOCTO_ADDRESS              := 10.5.0.10
 PYTHON_ADDRESS             := 10.5.0.11
 SUSE_ADDRESS_155           := 10.5.0.12
@@ -42,8 +42,8 @@ GATEWAY                    := 10.5.0.1
 SSH_QEMU_PORT              ?= 2222
 SSH_SUSE_PORT_155          := 1515
 SSH_SUSE_PORT_156          := 1616
-BENCHER_API_PORT		   := 61016
-BENCHER_CLI_PORT		   := 3000
+BENCHER_API_PORT           := 61016
+BENCHER_CLI_PORT           := 3000
 
 SSH_QEMU_USER              ?= root
 
@@ -164,7 +164,7 @@ docker-compose-up: ensure-volumes
 
 .PHONY: ensure-volumes
 ensure-volumes: docker
-	@for volume in ${DOCKER_OPENSUSE_VOLUME} ${BENCHER_API_CONF_VOL} ${BENCHER_API_DB_VOL}; do \
+	@for volume in ${DOCKER_OPENSUSE_VOLUME} ${BENCHER_API_CONF_VOLUME} ${BENCHER_API_DB_VOLUME}; do \
 		if ! docker volume inspect $$volume > /dev/null 2>&1; then \
 			docker volume create $$volume; \
 		fi \
