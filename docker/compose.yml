@@ -98,7 +98,7 @@ services:
         ipv4_address: ${PYTHON_ADDRESS}
 
   bencher_api_compose:
-    image: ghcr.io/bencherdev/bencher-api:latest
+    image: ghcr.io/bencherdev/bencher-api:v0.5.9
     container_name: bencher_api
     ports:
       - ${BENCHER_API_PORT}:${BENCHER_API_PORT}
@@ -110,7 +110,7 @@ services:
         ipv4_address: ${BENCHER_API_ADDRESS}
 
   bencher_console_compose:
-    image: ghcr.io/bencherdev/bencher-console:latest
+    image: ghcr.io/bencherdev/bencher-console:v0.5.9
     container_name: bencher_console
     ports:
       - ${BENCHER_CLI_PORT}:${BENCHER_CLI_PORT}
