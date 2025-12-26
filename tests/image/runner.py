@@ -4,41 +4,53 @@ from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from pathlib import Path
 from threading import Thread
 from time import sleep
-from typing import Any, Final
+from typing import Any
 
 import paramiko
 import paramiko.ssh_exception
 
-from image.endurance.syscalls import run_ltp_syscalls
+from image.endurance.syscalls import test_ltp_syscalls, test_syscalls_all_stress_ng
 from image.performance.cpu import run_stress_ng_tests
-from image.performance.system import run_pts_tests
+from image.performance.ipc import test_sched
+from image.performance.system import test_pts_system
 from image.utils import env_var_to_type_or_exit
 from imgtests.exec.exec import SSHClient
 from imgtests.logger import set_handlers
 from imgtests.sysrep import SystemInfo, compare_system_infos, get_system_info
+from imgtests.types import NodeCreds
 
 logger = logging.getLogger()
 set_handlers(logger, Path("processing.log"))
 
 
-SSH_YOCTO_PASSWORD: Final = env_var_to_type_or_exit("SSH_YOCTO_PASS", str, logger)
-SSH_YOCTO_USER: Final = env_var_to_type_or_exit("SSH_YOCTO_USER", str, logger)
-SSH_YOCTO_ADDR: Final = env_var_to_type_or_exit("SSH_YOCTO_ADDR", str, logger)
-SSH_YOCTO_PORT: Final = env_var_to_type_or_exit("SSH_YOCTO_PORT", int, logger)
-SSH_SUSE_PASSWORD: Final = env_var_to_type_or_exit("SSH_SUSE_PASS", str, logger)
-SSH_SUSE_USER: Final = env_var_to_type_or_exit("SSH_SUSE_USER", str, logger)
-SSH_SUSE_ADDR_155: Final = env_var_to_type_or_exit("SSH_SUSE_ADDR_155", str, logger)
-SSH_SUSE_PORT_155: Final = env_var_to_type_or_exit("SSH_SUSE_PORT_155", int, logger)
-SSH_SUSE_ADDR_156: Final = env_var_to_type_or_exit("SSH_SUSE_ADDR_156", str, logger)
-SSH_SUSE_PORT_156: Final = env_var_to_type_or_exit("SSH_SUSE_PORT_156", int, logger)
+yocto_creds = NodeCreds(
+    env_var_to_type_or_exit("SSH_YOCTO_USER", str, logger),
+    env_var_to_type_or_exit("SSH_YOCTO_PASS", str, logger),
+    env_var_to_type_or_exit("SSH_YOCTO_ADDR", str, logger),
+    env_var_to_type_or_exit("SSH_YOCTO_PORT", int, logger),
+)
+suse_155_creds = NodeCreds(
+    env_var_to_type_or_exit("SSH_SUSE_USER", str, logger),
+    env_var_to_type_or_exit("SSH_SUSE_PASS", str, logger),
+    env_var_to_type_or_exit("SSH_SUSE_ADDR_155", str, logger),
+    env_var_to_type_or_exit("SSH_SUSE_PORT_155", int, logger),
+)
+suse_156_creds = NodeCreds(
+    suse_155_creds.user,
+    suse_155_creds.password,
+    env_var_to_type_or_exit("SSH_SUSE_ADDR_156", str, logger),
+    env_var_to_type_or_exit("SSH_SUSE_PORT_156", int, logger),
+)
 
 
-def wait_remote(addr: str, user: str, password: str, port: int) -> SSHClient:
+def wait_remote(node_creds: NodeCreds) -> SSHClient:
     wait_sec = 60 * 60 * 5
     step_sec = 60
     while wait_sec > 0:
         try:
-            return SSHClient(addr, user, password, port)
+            return SSHClient(
+                node_creds.address, node_creds.user, node_creds.password, node_creds.port
+            )
         except paramiko.ssh_exception.SSHException:
             logger.info("Waiting remote node to build and run image.")
         sleep(step_sec)
@@ -56,14 +68,13 @@ def is_remote_alive(client: SSHClient, executor: ThreadPoolExecutor) -> None:
             break
     executor.shutdown(cancel_futures=True)
     logger.error("Remote node unavailable during test.")
-    sys.exit(1)
 
 
 def main() -> None:
     executor = ThreadPoolExecutor()
-    client = wait_remote(SSH_YOCTO_ADDR, SSH_YOCTO_USER, SSH_YOCTO_PASSWORD, SSH_YOCTO_PORT)
-    suse155 = wait_remote(SSH_SUSE_ADDR_155, SSH_SUSE_USER, SSH_SUSE_PASSWORD, SSH_SUSE_PORT_155)
-    suse156 = wait_remote(SSH_SUSE_ADDR_156, SSH_SUSE_USER, SSH_SUSE_PASSWORD, SSH_SUSE_PORT_156)
+    client = wait_remote(yocto_creds)
+    suse155 = wait_remote(suse_155_creds)
+    suse156 = wait_remote(suse_156_creds)
     suse155(["echo", "test"])
     suse156(["echo", "test"])
     is_alive_cycle = Thread(target=is_remote_alive, args=(client, executor))
@@ -82,9 +93,14 @@ def main() -> None:
     logger.info(compare_system_infos(sys_infos[0], sys_infos[1]))
     logger.info(compare_system_infos(sys_infos[0], sys_infos[2]))
     logger.info(compare_system_infos(sys_infos[1], sys_infos[2]))
-    run_pts_tests(executor, client)
+    test_pts_system(executor, client)
     run_stress_ng_tests(executor, client)
-    run_ltp_syscalls(executor, client)
+    future = executor.submit(test_syscalls_all_stress_ng, client)
+    future.result()
+    future = executor.submit(test_ltp_syscalls, client)
+    future.result()
+    future = executor.submit(test_sched, client)
+    future.result()
     logger.info("All tests completed successfully")
     is_alive_cycle.join()
 

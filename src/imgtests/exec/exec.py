@@ -85,8 +85,8 @@ class SSHClient:
         stdout = session.makefile("rb")
         stderr = session.makefile_stderr("rb")
         logger.debug("Running command '%s' on host '%s'.", cmd, self.hostname)
-        cmd = " ".join(cmd)
-        session.exec_command(cmd)
+        cmd_str = " ".join(cmd)
+        session.exec_command(cmd_str)
 
         if input_ is not None:
             stdin_channel = session.makefile_stdin("wb")
@@ -98,7 +98,7 @@ class SSHClient:
         stdout = stdout.read().decode("utf-8").strip()
         stderr = stderr.read().decode("utf-8").strip()
         if retval:
-            logger.error("Command '%s' completed with errors on the remote.", cmd.strip())
+            logger.error("Command '%s' completed with errors on the remote.", cmd_str.strip())
             if stderr:
                 logger.error(stderr)
         logger.debug("Exit status: %d.", retval)

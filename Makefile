@@ -61,15 +61,6 @@ docker: init-submodule
 		--build-arg POKY_DIR="${POKY_DIR}" \
 		--file docker/image_builder.dockerfile .
 
-.PHONY: docker-analyzer
-docker-analyzer:
-	docker build \
-		--tag ${DOCKER_PYTHON_TAG} \
-		--build-arg USER="${USER}" \
-		--build-arg GROUP="${GROUP}" \
-		--build-arg PASSWORD="${PASSWORD}" \
-		--file docker/python.dockerfile .
-
 .PHONY: docker-init-volumes
 docker-init-volumes: ensure-volumes
 	docker run -it --rm \
@@ -134,30 +125,6 @@ docker-test-image: docker-init-volumes
 	} &
 	@echo "QEMU test started in background"
 
-.PHONY: docker-suse
-docker-suse:
-	docker build \
-		--tag ${DOCKER_SUSE_TAG} \
-		--build-arg USER="${USER}" \
-		--file docker/open-suse.dockerfile .
-	docker volume create ${DOCKER_OPENSUSE_VOLUME}
-
-.PHONY: docker-init-suse
-docker-init-suse:
-	docker run -it --rm \
-		--volume ${DOCKER_OPENSUSE_VOLUME}:${SUSE_DIR} \
-		--volume "${HOST_SCRIPTS_PATH}/opensuse:${SUSE_DIR}/scripts" \
-		${DOCKER_SUSE_TAG} \
-		bash -c "./scripts/download-images.sh ${SUSE_VER} && ./scripts/cloud-setup.sh ${S_USER} ${PASSWORD}"
-
-.PHONY: docker-run-suse
-docker-run-suse:
-	docker run -it --rm \
-		--volume ${DOCKER_OPENSUSE_VOLUME}:${SUSE_DIR} \
-		${DOCKER_SUSE_TAG} \
-		bash -c "qemu-system-x86_64 -m 4G -nographic -drive file=open-suse-${SUSE_VER}.qcow2,index=0,media=disk \
-				-cdrom cloud-init.iso -net user,hostfwd=tcp::1111-:22 -net nic"
-
 .PHONY: docker-compose-up
 docker-compose-up: ensure-volumes
 	docker compose --file docker/compose.yml --project-directory ./ up --detach --build
@@ -204,14 +171,8 @@ help:
 	@echo "  make [targets] [arguments]"
 	@echo
 	@echo "  docker                             Builds a docker image;"
-	@echo "  docker-suse                        Builds a docker image for openSUSE images environment;"
-	@echo "  docker-analyzer                    Builds a docker image for analyze tests results;"
 	@echo "  docker-init-volumes                Initializes docker volumes;"
-	@echo "  docker-init-suse                   Downloads openSUSE image (Default: ${SUSE_VER});"
-	@echo "      SUSE_VER=[15.5|15.6]"
 	@echo "  docker-run-image                   Runs builded Yocto image from builded docker image;"
-	@echo "  docker-run-suse                    Runs openSUSE image via QEMU (Default: ${SUSE_VER});"
-	@echo "      SUSE_VER=[15.5|15.6]"
 	@echo "  docker-test-image                  Tests builded Yocto image from builded docker image;"
 	@echo "  docker-compose-up                  Run tests stand with analysis container and target containers;"
 	@echo -n "  ${PACKAGE_MGR}"
