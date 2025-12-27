@@ -97,9 +97,8 @@ services:
       yocto-network:
         ipv4_address: ${PYTHON_ADDRESS}
 
-  bencher_api_compose:
+  imgtests-bencher-api:
     image: ghcr.io/bencherdev/bencher-api:v0.5.9
-    container_name: bencher_api
     ports:
       - ${BENCHER_API_PORT}:${BENCHER_API_PORT}
     volumes:
@@ -109,15 +108,14 @@ services:
       yocto-network:
         ipv4_address: ${BENCHER_API_ADDRESS}
 
-  bencher_console_compose:
+  imgtests-bencher-console:
     image: ghcr.io/bencherdev/bencher-console:v0.5.9
-    container_name: bencher_console
     ports:
       - ${BENCHER_CLI_PORT}:${BENCHER_CLI_PORT}
     environment:
       - INTERNAL_API_URL=${BENCHER_API_ADDRESS}:${BENCHER_API_PORT}
     depends_on:
-      - bencher_api_compose
+      - imgtests-bencher-api
     networks:
       yocto-network:
         ipv4_address: ${BENCHER_CLI_ADDRESS}
