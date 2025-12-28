@@ -8,27 +8,15 @@ from imgtests.exec.loaders.chaosblade import Chaosblade, ChaosResponse
     ("raw_result", "expected"),
     [
         (
-            ExecResult(
-                cmd=("blade", "create", "cpu", "fullload", "--timeout", "2", "--cpu-percent", "2"),
-                stdout='{"code":200,"success":true,"result":"1e6896ba9979b93c"}\n',
-                stderr="",
-                returncode=0,
-            ),
+            '{"code":200,"success":true,"result":"1e6896ba9979b93c"}\n',
             ChaosResponse(code=200, success=True, result="1e6896ba9979b93c", error=None),
         ),
         (
-            ExecResult(
-                cmd=("blade", "status", "1e6896ba9979b93c"),
-                stdout=(
-                    '{"code":200,"success":true,"result":{"Uid":"1e6896ba9979b93c",'
-                    '"Command":"cpu","SubCommand":"fullload",'
-                    '"Flag":" --timeout=2 --cpu-percent=2","Status":"Destroyed",'
-                    '"Error":"","CreateTime":"2025-12-23T15:16:42.81615009+03:00",'
-                    '"UpdateTime":"2025-12-23T15:16:46.833154462+03:00"}}\n'
-                ),
-                stderr="",
-                returncode=0,
-            ),
+            '{"code":200,"success":true,"result":{"Uid":"1e6896ba9979b93c",'
+            '"Command":"cpu","SubCommand":"fullload",'
+            '"Flag":" --timeout=2 --cpu-percent=2","Status":"Destroyed",'
+            '"Error":"","CreateTime":"2025-12-23T15:16:42.81615009+03:00",'
+            '"UpdateTime":"2025-12-23T15:16:46.833154462+03:00"}}\n',
             ChaosResponse(
                 code=200,
                 success=True,
@@ -46,16 +34,9 @@ from imgtests.exec.loaders.chaosblade import Chaosblade, ChaosResponse
             ),
         ),
         (
-            ExecResult(
-                cmd=("blade", "destroy", "1e6896ba9979b93c"),
-                stdout=(
-                    '{"code":200,"success":true,"result":"command: cpu fullload  '
-                    "--timeout=2 --cpu-percent=2, destroy time: "
-                    '2025-12-23T15:16:46.833154462+03:00"}\n'
-                ),
-                stderr="",
-                returncode=0,
-            ),
+            '{"code":200,"success":true,"result":"command: cpu fullload  '
+            "--timeout=2 --cpu-percent=2, destroy time: "
+            '2025-12-23T15:16:46.833154462+03:00"}\n',
             ChaosResponse(
                 code=200,
                 success=True,
@@ -67,15 +48,8 @@ from imgtests.exec.loaders.chaosblade import Chaosblade, ChaosResponse
             ),
         ),
         (
-            ExecResult(
-                cmd=("blade", "check", "os", "cpu", "fullload"),
-                stdout="",
-                stderr=(
-                    '{"code":200,"success":true,"result":"[success] cpu fullload, '
-                    'success! `taskset` command exists"}\n'
-                ),
-                returncode=1,
-            ),
+            '{"code":200,"success":true,"result":"[success] cpu fullload, '
+            'success! `taskset` command exists"}\n',
             ChaosResponse(
                 code=200,
                 success=True,
@@ -84,16 +58,11 @@ from imgtests.exec.loaders.chaosblade import Chaosblade, ChaosResponse
             ),
         ),
         (
-            ExecResult(cmd=(), stdout="", stderr="", returncode=0),
+            "",
             ChaosResponse(code=0, success=False, result=None, error="No output"),
         ),
         (
-            ExecResult(
-                cmd=("blade", "command"),
-                stdout="Not a valid JSON response",
-                stderr="",
-                returncode=1,
-            ),
+            "Not a valid JSON response",
             ChaosResponse(
                 code=500,
                 success=False,
