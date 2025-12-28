@@ -57,21 +57,21 @@ class Chaosblade(GenericUtil):
         )
         return common_run_command(("sudo", "bash", "-lc", f"'{script}'"), self.ssh_client)
 
-    def check_env(self, experiment_type: str, action: str) -> ChaosResponse:
+    def check_env(self, experiment_type: str, action: str) -> tuple[ExecResult, ChaosResponse]:
         result = self(["check", "os", experiment_type, action])
-        return Chaosblade.parse_result(result)
+        return result, Chaosblade.parse_result(result.stderr)
 
-    def get_exp_status(self, experiment_id: str) -> ChaosResponse:
+    def get_exp_status(self, experiment_id: str) -> tuple[ExecResult, ChaosResponse]:
         result = self(["status", experiment_id])
-        return Chaosblade.parse_result(result)
+        return result, Chaosblade.parse_result(result.stdout)
 
-    def destroy_exp(self, experiment_id: str) -> ChaosResponse:
+    def destroy_exp(self, experiment_id: str) -> tuple[ExecResult, ChaosResponse]:
         result = self(["destroy", experiment_id])
-        return Chaosblade.parse_result(result)
+        return result, Chaosblade.parse_result(result.stdout)
 
     def create_cpu_exp(
         self, cpu_percent: int | None = None, timeout_sec: int = 0, **kwargs: dict[str, Any]
-    ) -> ChaosResponse:
+    ) -> tuple[ExecResult, ChaosResponse]:
         self._validate_cpu_params(cpu_percent, timeout_sec)
 
         result = self(
@@ -84,7 +84,7 @@ class Chaosblade(GenericUtil):
             ],
             **kwargs,
         )
-        return Chaosblade.parse_result(result)
+        return result, Chaosblade.parse_result(result.stdout)
 
     def _validate_cpu_params(self, cpu_percent: int | None, timeout_sec: int) -> None:
         if cpu_percent is not None and not 0 < cpu_percent < _MAX_PERCENT:
@@ -103,7 +103,7 @@ class Chaosblade(GenericUtil):
         include_buffer_cache: bool = False,
         rate_mbps: int | None = None,
         **kwargs: dict[str, Any],
-    ) -> ChaosResponse:
+    ) -> tuple[ExecResult, ChaosResponse]:
         # Validation
         self._validate_memory_params(mem_percent, reserve_mb, timeout_sec, mode, rate_mbps)
         self._validate_memory_flags_compatibility(mode, rate_mbps, include_buffer_cache)
@@ -127,7 +127,7 @@ class Chaosblade(GenericUtil):
             ],
             **kwargs,
         )
-        return Chaosblade.parse_result(result)
+        return result, Chaosblade.parse_result(result.stdout)
 
     def _validate_memory_params(
         self,
@@ -175,7 +175,7 @@ class Chaosblade(GenericUtil):
         write: bool = False,
         retain_handle: bool = False,
         **kwargs: dict[str, Any],
-    ) -> ChaosResponse:
+    ) -> tuple[ExecResult, ChaosResponse]:
         # Validation
         self._validate_disk_params(
             action,
@@ -209,7 +209,7 @@ class Chaosblade(GenericUtil):
             ],
             **kwargs,
         )
-        return Chaosblade.parse_result(result)
+        return result, Chaosblade.parse_result(result.stdout)
 
     def _validate_disk_params(  # noqa: PLR0913
         self,
@@ -270,7 +270,7 @@ class Chaosblade(GenericUtil):
         force: bool = False,
         port: int | None = None,
         **kwargs: dict[str, Any],
-    ) -> ChaosResponse:
+    ) -> tuple[ExecResult, ChaosResponse]:
         # Validation
         self._validate_network_basic_params(
             action,
@@ -336,7 +336,7 @@ class Chaosblade(GenericUtil):
             ],
             **kwargs,
         )
-        return Chaosblade.parse_result(result)
+        return result, Chaosblade.parse_result(result.stdout)
 
     def _validate_network_basic_params(  # noqa: PLR0913
         self,
@@ -486,25 +486,20 @@ class Chaosblade(GenericUtil):
             raise ValueError(err_msg)
 
     @staticmethod
-    def parse_result(result: ExecResult) -> ChaosResponse:
-        response_text = result.stdout
-        if not response_text and result.stderr:
-            response_text = result.stderr
-        if not response_text:
+    def parse_result(result: str) -> ChaosResponse:
+        if not result:
             return ChaosResponse(code=0, success=False, result=None, error="No output")
 
         try:
-            data = json.loads(response_text.strip())
-            return ChaosResponse(
-                code=data.get("code", 0),
-                success=data.get("success", False),
-                result=data.get("result"),
-                error=data.get("error"),
-            )
+            data = json.loads(result.strip())
         except json.JSONDecodeError as e:
-            logger.warning(
-                "Failed to parse chaosblade result: '%s'. Error: %s", response_text, str(e)
-            )
+            logger.warning("Failed to parse chaosblade result: '%s'. Error: %s", result, str(e))
             return ChaosResponse(
-                code=500, success=False, result=None, error=f"Failed to parse: {result.stdout}"
+                code=500, success=False, result=None, error=f"Failed to parse: {result}"
             )
+        return ChaosResponse(
+            code=data.get("code", 0),
+            success=data.get("success", False),
+            result=data.get("result"),
+            error=data.get("error"),
+        )
