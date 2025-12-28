@@ -8,6 +8,7 @@ from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
 from imgtests.exec.osinfo import get_os_release
 from imgtests.exec.pkgmgrs.zypper import Zypper
 from imgtests.exec.utils import create_opt
+from imgtests.types import Distro
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +30,7 @@ class Chaosblade(GenericUtil):
 
     def install(self) -> ExecResult:
         os_id = get_os_release(self.ssh_client).id
-        if os_id and "opensuse" in os_id:
+        if os_id and Distro.OPEN_SUSE.value in os_id:
             zypper = Zypper(ssh_client=self.ssh_client, use_sudo=True)
             deps_result = zypper.install_packages(["wget", "tar"])
             if deps_result.returncode != 0:
