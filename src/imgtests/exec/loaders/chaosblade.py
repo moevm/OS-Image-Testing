@@ -1,7 +1,7 @@
 import json
 import logging
 import re
-from typing import Any, NamedTuple
+from typing import Any, Final, NamedTuple
 
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
@@ -11,10 +11,9 @@ from imgtests.exec.utils import create_opt
 
 logger = logging.getLogger(__name__)
 
-SUCCESS_CODE = 200
-MAX_PERCENT = 100
-MAX_PORT = 65535
-MAX_OCTET_VALUE = 255
+_MAX_PERCENT: Final[int] = 100
+_MAX_PORT: Final[int] = 65535
+_MAX_OCTET_VALUE: Final[int] = 255
 
 
 class ChaosResponse(NamedTuple):
@@ -87,7 +86,7 @@ class Chaosblade(GenericUtil):
         return Chaosblade.parse_result(result)
 
     def _validate_cpu_params(self, cpu_percent: int | None, timeout_sec: int) -> None:
-        if cpu_percent is not None and not 0 < cpu_percent < MAX_PERCENT:
+        if cpu_percent is not None and not 0 < cpu_percent < _MAX_PERCENT:
             err_msg = f"Invalid cpu_percent '{cpu_percent}'. Expected 0-100."
             raise ValueError(err_msg)
         if timeout_sec < 0:
@@ -137,7 +136,7 @@ class Chaosblade(GenericUtil):
         mode: str,
         rate_mbps: int | None,
     ) -> None:
-        if mem_percent is not None and not 0 < mem_percent < MAX_PERCENT:
+        if mem_percent is not None and not 0 < mem_percent < _MAX_PERCENT:
             err_msg = f"Invalid mem_percent '{mem_percent}'. Expected 0-100."
             raise ValueError(err_msg)
         if reserve_mb is not None and reserve_mb < 0:
@@ -231,7 +230,7 @@ class Chaosblade(GenericUtil):
         if timeout_sec is not None and timeout_sec < 0:
             err_msg = f"Invalid timeout_sec '{timeout_sec}'. Expected more or equal 0."
             raise ValueError(err_msg)
-        if percent is not None and not 0 < percent < MAX_PERCENT:
+        if percent is not None and not 0 < percent < _MAX_PERCENT:
             err_msg = f"Invalid percent '{percent}'. Expected 0-100."
             raise ValueError(err_msg)
         if size_mb is not None and size_mb < 0:
@@ -372,7 +371,7 @@ class Chaosblade(GenericUtil):
             err_msg = f"Invalid timeout_sec '{timeout_sec}'. Expected more or equal 0."
             raise ValueError(err_msg)
 
-        if percent is not None and not 0 <= percent <= MAX_PERCENT:
+        if percent is not None and not 0 <= percent <= _MAX_PERCENT:
             err_msg = f"Invalid percent '{percent}'. Expected 0-100."
             raise ValueError(err_msg)
 
@@ -388,7 +387,7 @@ class Chaosblade(GenericUtil):
             err_msg = f"Invalid network_traffic '{network_traffic}'. Expected 'in' or 'out'."
             raise ValueError(err_msg)
 
-        if correlation is not None and not 0 <= correlation <= MAX_PERCENT:
+        if correlation is not None and not 0 <= correlation <= _MAX_PERCENT:
             err_msg = f"Invalid correlation '{correlation}'. Expected 0-100."
             raise ValueError(err_msg)
 
@@ -409,7 +408,7 @@ class Chaosblade(GenericUtil):
         ]
 
         for param, param_name in port_params:
-            if param is not None and not 0 <= param <= MAX_PORT:
+            if param is not None and not 0 <= param <= _MAX_PORT:
                 err_msg = f"Invalid {param_name} '{param}'. Expected 0-65535."
                 raise ValueError(err_msg)
 
@@ -441,7 +440,7 @@ class Chaosblade(GenericUtil):
                         raise ValueError(err_msg)
 
                     num = int(part)
-                    if num < 0 or num > MAX_OCTET_VALUE:
+                    if num < 0 or num > _MAX_OCTET_VALUE:
                         err_msg = f"{param_name} octet {i} must be 0-255"
                         raise ValueError(err_msg)
 
