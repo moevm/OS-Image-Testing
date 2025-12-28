@@ -33,7 +33,7 @@ class Chaosblade(GenericUtil):
         if os_id and Distro.OPEN_SUSE.value in os_id:
             zypper = Zypper(ssh_client=self.ssh_client, use_sudo=True)
             deps_result = zypper.install_packages(["wget", "tar"])
-            if deps_result.returncode != 0:
+            if deps_result.returncode:
                 return deps_result
 
         version = "1.8.0"
@@ -242,9 +242,6 @@ class Chaosblade(GenericUtil):
             raise ValueError(err_msg)
         if action == "burn" and not (read or write):
             err_msg = "For burn, need read or write"
-            raise ValueError(err_msg)
-        if action == "burn" and not size_mb:
-            err_msg = "For burn, size_mb is required"
             raise ValueError(err_msg)
         if action == "burn" and not (size_mb or percent or reserve_mb):
             err_msg = "For burn, need one of size_mb or percent or reserve_mb"
