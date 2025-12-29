@@ -16,6 +16,8 @@
 * [nanobench](https://github.com/martinus/nanobench) - еще одна C++ библиотека для микробенчмаркинга;
 * [hackbench](https://www.opennet.ru/prog/info/2727.shtml) - утилита для измерения скорости создания указанного числа процессов и скорости обмена данными между ними;
 * perf-bench также является инструментом микробенчмаркинга.
+* [fio](https://fio.readthedocs.io/en/latest/index.html) - утилита для тестирования дисковой подсистемы, позволяющая тестировать случайное и последовательное чтение/запись, синхронные/асинхронные операции;
+* [iperf](https://github.com/esnet/iperf) - клиент-серверная программа для тестирования пропускной способности сети.
 
 Также полезные инструменты можно найти [здесь](https://github.com/topics/micro-benchmarks)
 
@@ -23,6 +25,8 @@
 
 * [lmbench](https://layers.openembedded.org/layerindex/recipe/869/);
 * [google benchmark](https://layers.openembedded.org/layerindex/recipe/299724/);
-* [sysbench](https://layers.openembedded.org/layerindex/recipe/52203/).
+* [sysbench](https://layers.openembedded.org/layerindex/recipe/52203/);
+* [iperf](https://layers.openembedded.org/layerindex/recipe/32243/);
+* [fio](https://layers.openembedded.org/layerindex/recipe/866/).
 
 Все рецепты находятся в `meta-oe`
