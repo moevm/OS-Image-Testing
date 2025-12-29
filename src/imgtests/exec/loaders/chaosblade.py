@@ -29,6 +29,11 @@ class Chaosblade(GenericUtil):
         super().__init__("blade", ssh_client)
 
     def install(self) -> ExecResult:
+        """Install chaosblade from the official Git repository.
+
+        Returns:
+            ExecResult: Result of the installation.
+        """
         os_id = get_os_release(self.ssh_client).id
         if os_id and Distro.OPEN_SUSE.value in os_id:
             zypper = Zypper(ssh_client=self.ssh_client, use_sudo=True)
@@ -58,20 +63,58 @@ class Chaosblade(GenericUtil):
         return common_run_command(("sudo", "bash", "-lc", f"'{script}'"), self.ssh_client)
 
     def check_env(self, experiment_type: str, action: str) -> tuple[ExecResult, ChaosResponse]:
+        """Check if experiment supports specific experiment type and action.
+
+        Args:
+            experiment_type (str): Type of experiment (cpu, mem, network, disk).
+            action (str): Specific action within experiment type.
+
+        Returns:
+            tuple[ExecResult, ChaosResponse]: Command execution result and parsed response.
+        """
         result = self(["check", "os", experiment_type, action])
         return result, Chaosblade.parse_result(result.stderr)
 
     def get_exp_status(self, experiment_id: str) -> tuple[ExecResult, ChaosResponse]:
+        """Get status of an experiment by ID.
+
+        Args:
+            experiment_id (str): Identifier of the experiment.
+
+        Returns:
+            tuple[ExecResult, ChaosResponse]: Command execution result and parsed response.
+        """
         result = self(["status", experiment_id])
         return result, Chaosblade.parse_result(result.stdout)
 
     def destroy_exp(self, experiment_id: str) -> tuple[ExecResult, ChaosResponse]:
+        """Destroy (stop) an experiment by ID.
+
+        Args:
+            experiment_id (str): Identifier of the experiment.
+
+        Returns:
+            tuple[ExecResult, ChaosResponse]: Command execution result and parsed response.
+        """
         result = self(["destroy", experiment_id])
         return result, Chaosblade.parse_result(result.stdout)
 
     def create_cpu_exp(
         self, cpu_percent: int | None = None, timeout_sec: int = 0, **kwargs: dict[str, Any]
     ) -> tuple[ExecResult, ChaosResponse]:
+        """Create CPU load experiment.
+
+        Args:
+            cpu_percent (int | None): Percentage of CPU (0-100). If not specified occupy 100.
+            timeout_sec (int): Experiment duration in seconds. When set to 0 run forever.
+            **kwargs (dict[str, Any]): Command arguments in the free form with values.
+
+        Raises:
+            ValueError: When invalid parameters provided, required flags missing.
+
+        Returns:
+            tuple[ExecResult, ChaosResponse]: Command execution result and parsed response.
+        """
         self._validate_cpu_params(cpu_percent, timeout_sec)
 
         result = self(
@@ -104,6 +147,23 @@ class Chaosblade(GenericUtil):
         rate_mbps: int | None = None,
         **kwargs: dict[str, Any],
     ) -> tuple[ExecResult, ChaosResponse]:
+        """Create memory load experiment.
+
+        Args:
+            mem_percent (int | None): Percentage of memory to occupy (0-100).
+            reserve_mb (int | None): Free memory to keep free in MB.
+            timeout_sec (int): Experiment duration in seconds. When set to 0 run forever.
+            mode (str): experiment mode (ram or cache).
+            include_buffer_cache (bool): Include buffer, cache memory when calculating percentage.
+            rate_mbps (int | None): Memory consupmtion rate in MB/s.
+            **kwargs (dict[str, Any]): Command arguments in the free form with values.
+
+        Raises:
+            ValueError: When invalid parameters provided, required flags missing.
+
+        Returns:
+            tuple[ExecResult, ChaosResponse]: Command execution result and parsed response.
+        """
         # Validation
         self._validate_memory_params(mem_percent, reserve_mb, timeout_sec, mode, rate_mbps)
         self._validate_memory_flags_compatibility(mode, rate_mbps, include_buffer_cache)
@@ -176,6 +236,26 @@ class Chaosblade(GenericUtil):
         retain_handle: bool = False,
         **kwargs: dict[str, Any],
     ) -> tuple[ExecResult, ChaosResponse]:
+        """Create disk experiment.
+
+        Args:
+            action (str): experiment action (fill, burn).
+            path (str): Target directory path. Default is '/'.
+            timeout_sec (int): Experiment duration in seconds. When set to 0 run forever.
+            size_mb (int | None): Data size in MB.
+            percent (int | None): Percentage of disk space (0-100).
+            reserve_mb (int | None): Disk space to leave free in MB.
+            read (bool): Enable read I/O load.
+            write (bool): Enable write I/O load.
+            retain_handle (bool): Keep file handle open.
+            **kwargs (dict[str, Any]): Command arguments in the free form with values.
+
+        Raises:
+            ValueError: When invalid parameters provided, required flags missing.
+
+        Returns:
+            tuple[ExecResult, ChaosResponse]: Command execution result and parsed response.
+        """
         # Validation
         self._validate_disk_params(
             action,
@@ -271,6 +351,37 @@ class Chaosblade(GenericUtil):
         port: int | None = None,
         **kwargs: dict[str, Any],
     ) -> tuple[ExecResult, ChaosResponse]:
+        """Create network experiment.
+
+        Args:
+            action (str): experiment action (delay, loss, etc.).
+            timeout_sec (int): Experiment duration in seconds. When set to 0 run forever.
+            interface (str | None): Target network interface.
+            destination_ip (str | None): Destination IP address.
+            exclude_ip (str | None): IP to exclude from filtering.
+            percent (int | None): Packet percentage (0-100).
+            time_ms (int | None): Delay time in milliseconds.
+            offset_ms (int | None): Delay offset/jitter in milliseconds.
+            correlation (int | None): Correlation with previous packet (0-100).
+            gap (int | None): Packet gap.
+            source_ip (str | None): Source IP address of packet.
+            source_port (int | None): Source port of packet.
+            destination_port (int | None): Destination port of packet.
+            string_pattern (str | None): String contained in packet payload.
+            network_traffic (str | None): Direction of traffic (in or out).
+            domain (str | None): Domain name to manipulate.
+            ip (str | None): IP address for DNS resolution.
+            allow_domain (str | None): List of domains that should continue resolving.
+            force (bool): Force kill process using the port.
+            port (int | None): Port number.
+            **kwargs (dict[str, Any]): Command arguments in the free form with values.
+
+        Raises:
+            ValueError: When invalid parameters provided, required flags missing.
+
+        Returns:
+            tuple[ExecResult, ChaosResponse]: Command execution result and parsed response.
+        """
         # Validation
         self._validate_network_basic_params(
             action,
@@ -487,6 +598,14 @@ class Chaosblade(GenericUtil):
 
     @staticmethod
     def parse_result(result: str) -> ChaosResponse:
+        """Parse chaosblade output.
+
+        Args:
+            result (str): Raw chaosblade output.
+
+        Returns:
+            ChaosResponse: Parsed response.
+        """
         if not result:
             return ChaosResponse(code=0, success=False, result=None, error="No output")
 
