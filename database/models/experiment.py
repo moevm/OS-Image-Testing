@@ -13,10 +13,10 @@ if TYPE_CHECKING:
 
 
 class ExperimentBase(Base):
-    __tablename__ = "experiments"
+    __tablename__ = "experiment"
 
     experiment_id: Mapped[int] = mapped_column(primary_key=True)
-    config_id: Mapped[int] = mapped_column(ForeignKey("configurations.config_id"))
+    config_id: Mapped[int] = mapped_column(ForeignKey("configuration.config_id"))
     description: Mapped[str | None] = mapped_column(String(100))
     type: Mapped[str | None] = mapped_column(String(20))
     started_at: Mapped[datetime | None] = mapped_column(DateTime)

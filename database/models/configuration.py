@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 
 
 class ConfigurationBase(Base):
-    __tablename__ = "configurations"
+    __tablename__ = "configuration"
 
     config_id: Mapped[int] = mapped_column(primary_key=True)
     configuration: Mapped[dict] = mapped_column(JSON)

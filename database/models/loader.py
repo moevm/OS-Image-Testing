@@ -11,10 +11,10 @@ if TYPE_CHECKING:
 
 
 class LoaderBase(Base):
-    __tablename__ = "loaders"
+    __tablename__ = "loader"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    experiment_id: Mapped[int] = mapped_column(ForeignKey("experiments.experiment_id"))
+    experiment_id: Mapped[int] = mapped_column(ForeignKey("experiment.experiment_id"))
     command: Mapped[str] = mapped_column(String(30))
     result: Mapped[dict] = mapped_column(JSON)
     description: Mapped[str | None] = mapped_column(String(100))
