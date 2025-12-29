@@ -6,6 +6,7 @@ from imgtests.exec.exec import SSHClient
 from imgtests.exec.loaders.fio import Fio
 from imgtests.exec.loaders.kirk import Kirk
 from imgtests.exec.loaders.perf import Perf
+from imgtests.exec.loaders.pts import PhoronixTestSuite
 from imgtests.exec.loaders.stress_ng import StressNg
 from imgtests.exec.observers.rpm import RPM
 from imgtests.exec.observers.uname import Uname, UnameInfo
@@ -24,6 +25,7 @@ class ToolsVersions(NamedTuple):
     stress_ng_ver: Version
     kirk_ver: Version
     perf_ver: Version
+    pts_ver: Version
 
 
 class SystemInfo(NamedTuple):
@@ -58,10 +60,11 @@ def get_system_info(ssh_client: SSHClient | None = None) -> SystemInfo:
         kernel_config=zcat.get_compressed_files_contents(["/proc/config.gz"]),
         package_list=rpm.get_pkglist(),
         tools_versions=ToolsVersions(
-            Version(Fio(ssh_client).version() or ""),
-            Version(StressNg(ssh_client).version() or ""),
-            Version(Kirk(ssh_client).version() or ""),
-            Version(Perf(ssh_client).version() or ""),
+            Fio(ssh_client).version() or Version(""),
+            StressNg(ssh_client).version() or Version(""),
+            Kirk(ssh_client).version() or Version(""),
+            Perf(ssh_client).version() or Version(""),
+            PhoronixTestSuite(ssh_client).version() or Version(""),
         ),
     )
 

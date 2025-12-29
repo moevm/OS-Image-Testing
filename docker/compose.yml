@@ -80,6 +80,7 @@ services:
     command: python3 /home/${USER}/image/runner.py
     volumes:
       - ./tests/image:/home/${USER}/image
+      - ${HOST_SCRIPTS_PATH}/bencher/bencher-test.sh:/home/${USER}/bencher-test.sh
     environment:
       PYTHONPATH: /home/${USER}/
       SSH_YOCTO_USER: ${SSH_QEMU_USER}
@@ -96,12 +97,39 @@ services:
       yocto-network:
         ipv4_address: ${PYTHON_ADDRESS}
 
+  imgtests-bencher-api:
+    image: ghcr.io/bencherdev/bencher-api:v0.5.9
+    ports:
+      - ${BENCHER_API_PORT}:${BENCHER_API_PORT}
+    volumes:
+      - ${BENCHER_API_CONF_VOLUME}:/etc/bencher
+      - ${BENCHER_API_DB_VOLUME}:/var/lib/bencher/data
+    networks:
+      yocto-network:
+        ipv4_address: ${BENCHER_API_ADDRESS}
+
+  imgtests-bencher-console:
+    image: ghcr.io/bencherdev/bencher-console:v0.5.9
+    ports:
+      - ${BENCHER_CLI_PORT}:${BENCHER_CLI_PORT}
+    environment:
+      - INTERNAL_API_URL=${BENCHER_API_ADDRESS}:${BENCHER_API_PORT}
+    depends_on:
+      - imgtests-bencher-api
+    networks:
+      yocto-network:
+        ipv4_address: ${BENCHER_CLI_ADDRESS}
+
 volumes:
   imgtests-yocto-build:
     external: true
   imgtests-yocto-downloads:
     external: true
   imgtests-yocto-sstate:
+    external: true
+  imgtests-bencher-conf:
+    external: true
+  imgtests-bencher-database:
     external: true
   imgtests-open-suse-files:
     external: true
