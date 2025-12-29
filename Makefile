@@ -2,6 +2,7 @@ USER                       := user
 S_USER                     := suser
 PASSWORD                   := password
 GROUP                      := yoctogroup
+POSTGRES_DB                := os-testing-db
 OS_IMAGE                   := core-image-minimal
 SUSE_VER                   ?= 15.6
 
@@ -37,6 +38,7 @@ SUSE_ADDRESS_155           := 10.5.0.12
 SUSE_ADDRESS_156           := 10.5.0.13
 BENCHER_API_ADDRESS        := 10.5.0.14
 BENCHER_CLI_ADDRESS        := 10.5.0.15
+POSTGRES_ADDRESS           := 10.5.0.20
 SUBNET                     := 10.5.0.0/24
 GATEWAY                    := 10.5.0.1
 SSH_QEMU_PORT              ?= 2222
@@ -44,6 +46,7 @@ SSH_SUSE_PORT_155          := 1515
 SSH_SUSE_PORT_156          := 1616
 BENCHER_API_PORT           := 61016
 BENCHER_CLI_PORT           := 3000
+SSH_POSTGRES_PORT          := 5432
 
 SSH_QEMU_USER              ?= root
 

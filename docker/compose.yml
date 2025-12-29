@@ -81,7 +81,11 @@ services:
     volumes:
       - ./tests/image:/home/${USER}/image
       - ${HOST_SCRIPTS_PATH}/bencher/bencher-test.sh:/home/${USER}/bencher-test.sh
+      - ./database:/home/${USER}/database
     environment:
+      POSTGRES_USER: ${USER}
+      POSTGRES_PASSWORD: ${PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
       PYTHONPATH: /home/${USER}/
       SSH_YOCTO_USER: ${SSH_QEMU_USER}
       SSH_YOCTO_PASS: ""
@@ -93,9 +97,30 @@ services:
       SSH_SUSE_ADDR_155: ${SUSE_ADDRESS_155}
       SSH_SUSE_PORT_156: ${SSH_SUSE_PORT_156}
       SSH_SUSE_ADDR_156: ${SUSE_ADDRESS_156}
+      SSH_POSTGRES_PORT: ${SSH_POSTGRES_PORT}
     networks:
       yocto-network:
         ipv4_address: ${PYTHON_ADDRESS}
+    depends_on:
+      - imgtests-postgres
+
+  imgtests-postgres:
+    image: postgres:17.7
+    environment:
+      POSTGRES_USER: ${USER}
+      POSTGRES_PASSWORD: ${PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - ${SSH_POSTGRES_PORT}:${SSH_POSTGRES_PORT}
+    networks:
+      yocto-network:
+        ipv4_address: ${POSTGRES_ADDRESS}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
 
   imgtests-bencher-api:
     image: ghcr.io/bencherdev/bencher-api:v0.5.9
