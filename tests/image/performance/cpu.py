@@ -17,10 +17,10 @@ def run_stress_ng_tests(executor: ThreadPoolExecutor, client: SSHClient | None =
     logger.info(metrics)
 
 
-def run_chaosblade_test(executor: ThreadPoolExecutor, client: SSHClient | None = None) -> None:
+def run_chaosblade_test(client: SSHClient | None = None) -> None:
     chaos = Chaosblade(client)
     perf = Perf(client)
-    future_chaos = executor.submit(chaos.create_cpu_exp, cpu_percent=70, timeout_sec=15)
+    _, chaos_result = chaos.create_cpu_exp(cpu_percent=70, timeout_sec=10)
     perf_result = perf.stat(
         cmd=[
             "-e",
@@ -32,9 +32,8 @@ def run_chaosblade_test(executor: ThreadPoolExecutor, client: SSHClient | None =
             "--",
             "bash",
             "-c",
-            "echo 'scale=2000; 4*a(1)' | bc -l",
+            "echo 'scale=4000; 4*a(1)' | bc -l",
         ]
     )
-    chaos_result = future_chaos.result()
     logger.info(chaos_result)
     logger.info(perf_result.stderr)
