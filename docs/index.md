@@ -17,6 +17,7 @@
 - [Метод определения характеристик потребления памяти](./methodology/memory-consumption-characteristics.md)
 - [Метод оценки размера рабочего набора](./methodology/working-set-size-estimation-method.md)
 - [Метод выявления утечек](./methodology/leak-detection-method.md)
+- [Управление ресурсами](./methodology/resource-management.md)
 
 ## 3. Утилиты
 
