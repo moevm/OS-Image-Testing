@@ -29,8 +29,19 @@ class Database:
         self.Session = sessionmaker(self.engine)
         Base.metadata.create_all(self.engine)
 
-    def insert_configuration(self, configuration: dict[str, Any]) -> None:
-        configuration_object = ConfigurationBase(configuration=configuration)
+    def insert_configuration(
+        self,
+        os: str,
+        packages: dict[str, Any] | None = None,
+        core_info: str | None = None,
+        core_config: dict[str, Any] | None = None,
+    ) -> None:
+        configuration_object = ConfigurationBase(
+            os=os,
+            packages=packages,
+            core_info=core_info,
+            core_config=core_config,
+        )
         with self.Session() as session:
             session.add(configuration_object)
             session.commit()
