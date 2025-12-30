@@ -23,7 +23,7 @@ class Database:
         db_name = os.environ["POSTGRES_DB"].strip()
         host = "imgtests-postgres"
         port = os.environ["SSH_POSTGRES_PORT"].strip()
-        self.engine = create_engine(f"postgresql://{user}:{password}@{host}:{port}/{db_name}")
+        self.engine = create_engine(f"postgresql+psycopg://{user}:{password}@{host}:{port}/{db_name}")
         self.Session = sessionmaker(self.engine)
         Base.metadata.create_all(self.engine)
 
