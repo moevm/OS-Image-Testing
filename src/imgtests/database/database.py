@@ -17,7 +17,13 @@ logger = logging.getLogger(__name__)
 
 
 class Database:
-    def __init__(self):
+    def __init__(self, database: str = "postgres"):
+        if database == "postgres":
+            self.initialize_postgres()
+        else:
+            logger.error("Incorrect database name.")
+
+    def initialize_postgres(self):
         user = os.environ["POSTGRES_USER"].strip()
         password = os.environ["POSTGRES_PASSWORD"].strip()
         db_name = os.environ["POSTGRES_DB"].strip()
@@ -28,6 +34,10 @@ class Database:
         )
         self.Session = sessionmaker(self.engine)
         Base.metadata.create_all(self.engine)
+
+    def _check_session(self):
+        if not hasattr(self, 'Session') or self.Session is None:
+            raise RuntimeError("Database session not initialized.")
 
     def insert_configuration(
         self,
@@ -42,6 +52,8 @@ class Database:
             core_info=core_info,
             core_config=core_config,
         )
+
+        self._check_session()
         with self.Session() as session:
             session.add(configuration_object)
             session.commit()
@@ -58,6 +70,7 @@ class Database:
             started_at = datetime.now(ZoneInfo("UTC"))
         if ended_at is None:
             ended_at = datetime.now(ZoneInfo("UTC"))
+
         experiment_object = ExperimentBase(
             config_id=config_id,
             description=description,
@@ -65,6 +78,8 @@ class Database:
             started_at=started_at,
             ended_at=ended_at,
         )
+
+        self._check_session()
         with self.Session() as session:
             session.add(experiment_object)
             session.commit()
@@ -82,6 +97,7 @@ class Database:
             started_at = datetime.now(ZoneInfo("UTC"))
         if ended_at is None:
             ended_at = datetime.now(ZoneInfo("UTC"))
+
         loader_object = LoaderBase(
             experiment_id=experiment_id,
             command=command,
@@ -90,6 +106,8 @@ class Database:
             started_at=started_at,
             ended_at=ended_at,
         )
+
+        self._check_session()
         with self.Session() as session:
             session.add(loader_object)
             session.commit()
@@ -107,6 +125,7 @@ class Database:
             started_at = datetime.now(ZoneInfo("UTC"))
         if ended_at is None:
             ended_at = datetime.now(ZoneInfo("UTC"))
+
         observer_object = ObserverBase(
             experiment_id=experiment_id,
             command=command,
@@ -115,11 +134,14 @@ class Database:
             started_at=started_at,
             ended_at=ended_at,
         )
+
+        self._check_session()
         with self.Session() as session:
             session.add(observer_object)
             session.commit()
 
     def return_table(self, table_name: str):
+        self._check_session()
         with self.Session() as session:
             models = {
                 "configurations": ConfigurationBase,
