@@ -4,14 +4,14 @@ from typing import TYPE_CHECKING
 from sqlalchemy import JSON, DateTime, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from database.models.base import Base
+from imgtests.database.models.base import Base
 
 if TYPE_CHECKING:
-    from database.models.experiment import ExperimentBase
+    from imgtests.database.models.experiment import ExperimentBase
 
 
-class ObserverBase(Base):
-    __tablename__ = "observer"
+class LoaderBase(Base):
+    __tablename__ = "loader"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     experiment_id: Mapped[int] = mapped_column(ForeignKey("experiment.experiment_id"))
@@ -20,9 +20,7 @@ class ObserverBase(Base):
     description: Mapped[str | None] = mapped_column(String(100))
     started_at: Mapped[datetime | None] = mapped_column(DateTime)
     ended_at: Mapped[datetime | None] = mapped_column(DateTime)
-    experiment: Mapped["ExperimentBase"] = relationship(
-        "ExperimentBase", back_populates="observers"
-    )
+    experiment: Mapped["ExperimentBase"] = relationship("ExperimentBase", back_populates="loaders")
 
     def __repr__(self) -> str:
         return (

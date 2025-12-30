@@ -7,11 +7,11 @@ from zoneinfo import ZoneInfo
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from database.models.base import Base
-from database.models.configuration import ConfigurationBase
-from database.models.experiment import ExperimentBase
-from database.models.loader import LoaderBase
-from database.models.observer import ObserverBase
+from imgtests.database.models.base import Base
+from imgtests.database.models.configuration import ConfigurationBase
+from imgtests.database.models.experiment import ExperimentBase
+from imgtests.database.models.loader import LoaderBase
+from imgtests.database.models.observer import ObserverBase
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +23,9 @@ class Database:
         db_name = os.environ["POSTGRES_DB"].strip()
         host = "imgtests-postgres"
         port = os.environ["SSH_POSTGRES_PORT"].strip()
-        self.engine = create_engine(f"postgresql+psycopg://{user}:{password}@{host}:{port}/{db_name}")
+        self.engine = create_engine(
+            f"postgresql+psycopg://{user}:{password}@{host}:{port}/{db_name}"
+        )
         self.Session = sessionmaker(self.engine)
         Base.metadata.create_all(self.engine)
 

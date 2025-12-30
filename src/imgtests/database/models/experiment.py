@@ -4,12 +4,12 @@ from typing import TYPE_CHECKING
 from sqlalchemy import DateTime, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from database.models.base import Base
-from database.models.loader import LoaderBase
-from database.models.observer import ObserverBase
+from imgtests.database.models.base import Base
+from imgtests.database.models.loader import LoaderBase
+from imgtests.database.models.observer import ObserverBase
 
 if TYPE_CHECKING:
-    from database.models.configuration import ConfigurationBase
+    from imgtests.database.models.configuration import ConfigurationBase
 
 
 class ExperimentBase(Base):
