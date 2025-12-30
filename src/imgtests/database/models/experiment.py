@@ -31,6 +31,6 @@ class ExperimentBase(Base):
 
     def __repr__(self) -> str:
         return (
-            f"<exp_id={self.config_id}, desc={self.description}, "
-            f"start={self.started_at}, end={self.ended_at}>"
+            f"ExperimentBase(id={self.config_id}, description={self.description}, "
+            f"start={self.started_at}, end={self.ended_at})"
         )
