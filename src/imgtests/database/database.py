@@ -23,7 +23,7 @@ class Database:
         else:
             logger.error("Incorrect database name.")
 
-    def initialize_postgres(self):
+    def initialize_postgres(self) -> None:
         user = os.environ["POSTGRES_USER"].strip()
         password = os.environ["POSTGRES_PASSWORD"].strip()
         db_name = os.environ["POSTGRES_DB"].strip()
@@ -35,9 +35,10 @@ class Database:
         self.Session = sessionmaker(self.engine)
         Base.metadata.create_all(self.engine)
 
-    def _check_session(self):
-        if not hasattr(self, 'Session') or self.Session is None:
-            raise RuntimeError("Database session not initialized.")
+    def _check_session(self) -> None:
+        if not hasattr(self, "Session") or self.Session is None:
+            error_message = "Database session not initialized."
+            raise RuntimeError(error_message)
 
     def insert_configuration(
         self,
