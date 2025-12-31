@@ -19,6 +19,7 @@
 - [Мониторинг производительности](./methodology/perfomance-monitoring.md)
 - [Метод выявления утечек](./methodology/leak-detection-method.md)
 - [Статическая настройка производительности](./methodology/static-performance-tuning.md)
+- [Управление ресурсами](./methodology/resource-management.md)
 - [Микробенчмаркинг](./methodology/microbenchmarking.md)
 
 ## 3. Утилиты
