@@ -27,5 +27,5 @@ class ConfigurationBase(Base):
             f"os={self.os}), "
             f"packages={self.packages}, "
             f"core_info={self.core_info}, "
-            f"core_config={self.core_config}"
+            f"core_config={self.core_config})"
         )
