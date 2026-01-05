@@ -15,7 +15,7 @@ class LoaderBase(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     experiment_id: Mapped[int] = mapped_column(ForeignKey("experiment.experiment_id"))
-    command: Mapped[str] = mapped_column(String(30))
+    command: Mapped[str] = mapped_column(String(200))
     result: Mapped[dict] = mapped_column(JSON)
     description: Mapped[str | None] = mapped_column(String(100))
     started_at: Mapped[datetime | None] = mapped_column(DateTime)
