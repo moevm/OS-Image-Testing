@@ -26,6 +26,11 @@ class ObserverBase(Base):
 
     def __repr__(self) -> str:
         return (
-            f"ObserverBase(id={self.id}, command={self.command}, "
-            f"start={self.started_at}, end={self.ended_at})"
+            f"ObserverBase(id={self.id}, "
+            f"experiment_id={self.experiment_id}, "
+            f"command={self.command}, "
+            f"result={self.result}, "
+            f"description={self.description}, "
+            f"start={self.started_at}, "
+            f"end={self.ended_at})"
         )

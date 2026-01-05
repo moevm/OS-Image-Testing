@@ -31,6 +31,10 @@ class ExperimentBase(Base):
 
     def __repr__(self) -> str:
         return (
-            f"ExperimentBase(id={self.config_id}, description={self.description}, "
-            f"start={self.started_at}, end={self.ended_at})"
+            f"ExperimentBase(id={self.experiment_id}, "
+            f"config_id={self.config_id}, "
+            f"description={self.description}, "
+            f"type={self.type}, "
+            f"started_at={self.started_at}, "
+            f"ended_at={self.ended_at})"
         )

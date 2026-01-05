@@ -22,4 +22,10 @@ class ConfigurationBase(Base):
     )
 
     def __repr__(self) -> str:
-        return f"ConfigurationBase(id={self.config_id}, os={self.os})"
+        return (
+            f"ConfigurationBase(id={self.config_id}, "
+            f"os={self.os}), "
+            f"packages={self.packages}, "
+            f"core_info={self.core_info}, "
+            f"core_config={self.core_config}"
+        )
