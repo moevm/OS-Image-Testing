@@ -27,16 +27,16 @@ class Database:
         user = os.environ["POSTGRES_USER"].strip()
         password = os.environ["POSTGRES_PASSWORD"].strip()
         db_name = os.environ["POSTGRES_DB"].strip()
-        host = "imgtests-postgres"
+        host = os.environ["POSTGRES_HOST"].strip()
         port = os.environ["SSH_POSTGRES_PORT"].strip()
         self.engine = create_engine(
             f"postgresql+psycopg://{user}:{password}@{host}:{port}/{db_name}"
         )
-        self.Session = sessionmaker(self.engine)
+        self.session = sessionmaker(self.engine)
         Base.metadata.create_all(self.engine)
 
     def _check_session(self) -> None:
-        if not hasattr(self, "Session") or self.Session is None:
+        if not hasattr(self, "session") or self.session is None:
             error_message = "Database session not initialized."
             raise RuntimeError(error_message)
 
@@ -55,7 +55,7 @@ class Database:
         )
 
         self._check_session()
-        with self.Session() as session:
+        with self.session() as session:
             session.add(configuration_object)
             session.commit()
 
@@ -81,7 +81,7 @@ class Database:
         )
 
         self._check_session()
-        with self.Session() as session:
+        with self.session() as session:
             session.add(experiment_object)
             session.commit()
 
@@ -109,7 +109,7 @@ class Database:
         )
 
         self._check_session()
-        with self.Session() as session:
+        with self.session() as session:
             session.add(loader_object)
             session.commit()
 
@@ -137,13 +137,13 @@ class Database:
         )
 
         self._check_session()
-        with self.Session() as session:
+        with self.session() as session:
             session.add(observer_object)
             session.commit()
 
     def return_table(self, table_name: str):
         self._check_session()
-        with self.Session() as session:
+        with self.session() as session:
             models = {
                 "configurations": ConfigurationBase,
                 "experiments": ExperimentBase,

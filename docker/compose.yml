@@ -86,6 +86,7 @@ services:
       POSTGRES_USER: ${USER}
       POSTGRES_PASSWORD: ${PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_HOST: imgtests-postgres
       PYTHONPATH: /home/${USER}/
       SSH_YOCTO_USER: ${SSH_QEMU_USER}
       SSH_YOCTO_PASS: ""
