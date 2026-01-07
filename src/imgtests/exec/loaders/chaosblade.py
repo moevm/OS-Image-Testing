@@ -131,7 +131,7 @@ class Chaosblade(GenericUtil):
 
     def _validate_cpu_params(self, cpu_percent: int | None, timeout_sec: int) -> None:
         if cpu_percent is not None and not 0 <= cpu_percent <= _MAX_PERCENT:
-            err_msg = f"Invalid cpu_percent '{cpu_percent}'. Expected 0-100."
+            err_msg = f"Invalid cpu_percent '{cpu_percent}'. Expected 0-{_MAX_PERCENT}."
             raise ValueError(err_msg)
         if timeout_sec < 0:
             err_msg = f"Invalid timeout_sec '{timeout_sec}'. Expected more or equal 0."
@@ -198,7 +198,7 @@ class Chaosblade(GenericUtil):
         rate_mbps: int | None,
     ) -> None:
         if mem_percent is not None and not 0 <= mem_percent <= _MAX_PERCENT:
-            err_msg = f"Invalid mem_percent '{mem_percent}'. Expected 0-100."
+            err_msg = f"Invalid mem_percent '{mem_percent}'. Expected 0-{_MAX_PERCENT}."
             raise ValueError(err_msg)
         if reserve_mb is not None and reserve_mb < 0:
             err_msg = f"Invalid mem_reserve_mb '{reserve_mb}'. Expected more or equal 0."
@@ -312,7 +312,7 @@ class Chaosblade(GenericUtil):
             err_msg = f"Invalid timeout_sec '{timeout_sec}'. Expected more or equal 0."
             raise ValueError(err_msg)
         if percent is not None and not 0 <= percent <= _MAX_PERCENT:
-            err_msg = f"Invalid percent '{percent}'. Expected 0-100."
+            err_msg = f"Invalid percent '{percent}'. Expected 0-{_MAX_PERCENT}."
             raise ValueError(err_msg)
         if size_mb is not None and size_mb < 0:
             err_msg = f"Invalid disk_size_mb '{size_mb}'. Expected more or equal 0."
@@ -481,7 +481,7 @@ class Chaosblade(GenericUtil):
             raise ValueError(err_msg)
 
         if percent is not None and not 0 <= percent <= _MAX_PERCENT:
-            err_msg = f"Invalid percent '{percent}'. Expected 0-100."
+            err_msg = f"Invalid percent '{percent}'. Expected 0-{_MAX_PERCENT}."
             raise ValueError(err_msg)
 
         if time_ms is not None and time_ms < 0:
@@ -497,7 +497,7 @@ class Chaosblade(GenericUtil):
             raise ValueError(err_msg)
 
         if correlation is not None and not 0 <= correlation <= _MAX_PERCENT:
-            err_msg = f"Invalid correlation '{correlation}'. Expected 0-100."
+            err_msg = f"Invalid correlation '{correlation}'. Expected 0-{_MAX_PERCENT}."
             raise ValueError(err_msg)
 
         if gap is not None and gap <= 0:
@@ -518,7 +518,7 @@ class Chaosblade(GenericUtil):
 
         for param, param_name in port_params:
             if param is not None and not 0 <= param <= _MAX_PORT:
-                err_msg = f"Invalid {param_name} '{param}'. Expected 0-65535."
+                err_msg = f"Invalid {param_name} '{param}'. Expected 0-{_MAX_PORT}."
                 raise ValueError(err_msg)
 
     def _validate_network_ips(
