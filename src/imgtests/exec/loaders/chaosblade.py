@@ -88,6 +88,8 @@ class Chaosblade(GenericUtil):
             tuple[ExecResult, ChaosResponse]: Command execution result and parsed response.
         """
         result = self(["check", "os", experiment_type, action])
+        if result.stdout:
+            return result, Chaosblade.parse_result(result.stdout)
         return result, Chaosblade.parse_result(result.stderr)
 
     def get_exp_status(self, experiment_id: str) -> tuple[ExecResult, ChaosResponse]:
@@ -100,6 +102,8 @@ class Chaosblade(GenericUtil):
             tuple[ExecResult, ChaosResponse]: Command execution result and parsed response.
         """
         result = self(["status", experiment_id])
+        if result.stderr:
+            return result, Chaosblade.parse_result(result.stderr)
         return result, Chaosblade.parse_result(result.stdout)
 
     def destroy_exp(self, experiment_id: str) -> tuple[ExecResult, ChaosResponse]:
@@ -112,6 +116,8 @@ class Chaosblade(GenericUtil):
             tuple[ExecResult, ChaosResponse]: Command execution result and parsed response.
         """
         result = self(["destroy", experiment_id])
+        if result.stderr:
+            return result, Chaosblade.parse_result(result.stderr)
         return result, Chaosblade.parse_result(result.stdout)
 
     def create_cpu_exp(
@@ -142,6 +148,8 @@ class Chaosblade(GenericUtil):
             ],
             **kwargs,
         )
+        if result.stderr:
+            return result, Chaosblade.parse_result(result.stderr)
         return result, Chaosblade.parse_result(result.stdout)
 
     def _validate_cpu_params(self, cpu_percent: int | None, timeout_sec: int) -> None:
@@ -202,6 +210,8 @@ class Chaosblade(GenericUtil):
             ],
             **kwargs,
         )
+        if result.stderr:
+            return result, Chaosblade.parse_result(result.stderr)
         return result, Chaosblade.parse_result(result.stdout)
 
     def _validate_memory_params(
@@ -304,6 +314,8 @@ class Chaosblade(GenericUtil):
             ],
             **kwargs,
         )
+        if result.stderr:
+            return result, Chaosblade.parse_result(result.stderr)
         return result, Chaosblade.parse_result(result.stdout)
 
     def _validate_disk_params(  # noqa: PLR0913
@@ -462,6 +474,8 @@ class Chaosblade(GenericUtil):
             ],
             **kwargs,
         )
+        if result.stderr:
+            return result, Chaosblade.parse_result(result.stderr)
         return result, Chaosblade.parse_result(result.stdout)
 
     def _validate_network_basic_params(  # noqa: PLR0913
