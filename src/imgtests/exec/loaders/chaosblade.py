@@ -1,7 +1,7 @@
 import json
 import logging
 import re
-from typing import Any, Final, NamedTuple
+from typing import Any, Final, Literal, NamedTuple
 
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
@@ -142,7 +142,7 @@ class Chaosblade(GenericUtil):
         mem_percent: int | None = None,
         reserve_mb: int | None = None,
         timeout_sec: int | None = None,
-        mode: str = "ram",
+        mode: Literal["ram", "cache"] = "ram",
         include_buffer_cache: bool = False,
         rate_mbps: int | None = None,
         **kwargs: dict[str, Any],
@@ -225,7 +225,7 @@ class Chaosblade(GenericUtil):
 
     def create_disk_exp(  # noqa: PLR0913
         self,
-        action: str,
+        action: Literal["fill", "burn"],
         path: str = "/",
         timeout_sec: int | None = None,
         size_mb: int | None = None,
@@ -329,7 +329,17 @@ class Chaosblade(GenericUtil):
 
     def create_network_exp(  # noqa: PLR0913
         self,
-        action: str,
+        action: Literal[
+            "delay",
+            "loss",
+            "duplicate",
+            "corrupt",
+            "reorder",
+            "drop",
+            "dns",
+            "dns_down",
+            "occupy",
+        ],
         timeout_sec: int | None = None,
         interface: str | None = None,
         destination_ip: str | None = None,
