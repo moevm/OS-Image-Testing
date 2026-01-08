@@ -1,7 +1,7 @@
 import json
 import logging
 import re
-from typing import Any, Final, Literal, NamedTuple
+from typing import Any, Final, Literal, NamedTuple, get_args
 
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
@@ -15,6 +15,21 @@ logger = logging.getLogger(__name__)
 _MAX_PERCENT: Final[int] = 100
 _MAX_PORT: Final[int] = 65535
 _MAX_OCTET_VALUE: Final[int] = 255
+
+NetworkAction = Literal[
+    "delay",
+    "loss",
+    "duplicate",
+    "corrupt",
+    "reorder",
+    "drop",
+    "dns",
+    "dns_down",
+    "occupy",
+]
+NetworkTraffic = Literal["in", "out"]
+MemoryMode = Literal["ram", "cache"]
+DiskAction = Literal["fill", "burn"]
 
 
 class ChaosResponse(NamedTuple):
@@ -142,7 +157,7 @@ class Chaosblade(GenericUtil):
         mem_percent: int | None = None,
         reserve_mb: int | None = None,
         timeout_sec: int | None = None,
-        mode: Literal["ram", "cache"] = "ram",
+        mode: MemoryMode = "ram",
         include_buffer_cache: bool = False,
         rate_mbps: int | None = None,
         **kwargs: dict[str, Any],
@@ -153,7 +168,7 @@ class Chaosblade(GenericUtil):
             mem_percent (int | None): Percentage of memory to occupy (0-100).
             reserve_mb (int | None): Free memory to keep free in MB.
             timeout_sec (int): Experiment duration in seconds. When set to 0 run forever.
-            mode (str): experiment mode (ram or cache).
+            mode (MemoryMode): experiment mode (ram or cache).
             include_buffer_cache (bool): Include buffer, cache memory when calculating percentage.
             rate_mbps (int | None): Memory consupmtion rate in MB/s.
             **kwargs (dict[str, Any]): Command arguments in the free form with values.
@@ -194,7 +209,7 @@ class Chaosblade(GenericUtil):
         mem_percent: int | None,
         reserve_mb: int | None,
         timeout_sec: int | None,
-        mode: str,
+        mode: MemoryMode,
         rate_mbps: int | None,
     ) -> None:
         if mem_percent is not None and not 0 <= mem_percent <= _MAX_PERCENT:
@@ -206,15 +221,15 @@ class Chaosblade(GenericUtil):
         if timeout_sec is not None and timeout_sec < 0:
             err_msg = f"Invalid timeout_sec '{timeout_sec}'. Expected more or equal 0."
             raise ValueError(err_msg)
-        if mode not in ["ram", "cache"]:
-            err_msg = f"Invalid mem_mode '{mode}'. Expected 'ram' or 'cache'."
+        if mode not in get_args(MemoryMode):
+            err_msg = f"Invalid mem_mode '{mode}'. Expected one of {get_args(MemoryMode)}."
             raise ValueError(err_msg)
         if rate_mbps is not None and rate_mbps < 0:
             err_msg = f"Invalid mem_rate_mbps '{rate_mbps}'. Expected more or equal 0."
             raise ValueError(err_msg)
 
     def _validate_memory_flags_compatibility(
-        self, mem_mode: str, rate_mbps: int | None, include_buffer_cache: bool
+        self, mem_mode: MemoryMode, rate_mbps: int | None, include_buffer_cache: bool
     ) -> None:
         if mem_mode == "cache" and rate_mbps is not None:
             err_msg = "--rate is only available in 'ram' mode"
@@ -225,7 +240,7 @@ class Chaosblade(GenericUtil):
 
     def create_disk_exp(  # noqa: PLR0913
         self,
-        action: Literal["fill", "burn"],
+        action: DiskAction,
         path: str = "/",
         timeout_sec: int | None = None,
         size_mb: int | None = None,
@@ -239,7 +254,7 @@ class Chaosblade(GenericUtil):
         """Create disk experiment.
 
         Args:
-            action (str): experiment action (fill, burn).
+            action (DiskAction): experiment action (fill, burn).
             path (str): Target directory path. Default is '/'.
             timeout_sec (int): Experiment duration in seconds. When set to 0 run forever.
             size_mb (int | None): Data size in MB.
@@ -293,7 +308,7 @@ class Chaosblade(GenericUtil):
 
     def _validate_disk_params(  # noqa: PLR0913
         self,
-        action: str,
+        action: DiskAction,
         path: str,
         timeout_sec: int | None,
         percent: int | None,
@@ -302,8 +317,8 @@ class Chaosblade(GenericUtil):
         read: bool,
         write: bool,
     ) -> None:
-        if action not in ["fill", "burn"]:
-            err_msg = f"Invalid action '{action}'. Expected 'fill' or 'burn'."
+        if action not in get_args(DiskAction):
+            err_msg = f"Invalid action '{action}'. Expected one of {get_args(DiskAction)}."
             raise ValueError(err_msg)
         if not path:
             err_msg = "path cannot be empty."
@@ -329,17 +344,7 @@ class Chaosblade(GenericUtil):
 
     def create_network_exp(  # noqa: PLR0913
         self,
-        action: Literal[
-            "delay",
-            "loss",
-            "duplicate",
-            "corrupt",
-            "reorder",
-            "drop",
-            "dns",
-            "dns_down",
-            "occupy",
-        ],
+        action: NetworkAction,
         timeout_sec: int | None = None,
         interface: str | None = None,
         destination_ip: str | None = None,
@@ -353,7 +358,7 @@ class Chaosblade(GenericUtil):
         source_port: int | None = None,
         destination_port: int | None = None,
         string_pattern: str | None = None,
-        network_traffic: str | None = None,
+        network_traffic: NetworkTraffic | None = None,
         domain: str | None = None,
         ip: str | None = None,
         allow_domain: str | None = None,
@@ -364,7 +369,7 @@ class Chaosblade(GenericUtil):
         """Create network experiment.
 
         Args:
-            action (str): experiment action (delay, loss, etc.).
+            action (NetworkAction): experiment action (delay, loss, etc.).
             timeout_sec (int): Experiment duration in seconds. When set to 0 run forever.
             interface (str | None): Target network interface.
             destination_ip (str | None): Destination IP address.
@@ -378,7 +383,7 @@ class Chaosblade(GenericUtil):
             source_port (int | None): Source port of packet.
             destination_port (int | None): Destination port of packet.
             string_pattern (str | None): String contained in packet payload.
-            network_traffic (str | None): Direction of traffic (in or out).
+            network_traffic (NetworkTraffic | None): Direction of traffic (in or out).
             domain (str | None): Domain name to manipulate.
             ip (str | None): IP address for DNS resolution.
             allow_domain (str | None): List of domains that should continue resolving.
@@ -461,29 +466,17 @@ class Chaosblade(GenericUtil):
 
     def _validate_network_basic_params(  # noqa: PLR0913
         self,
-        action: str,
+        action: NetworkAction,
         timeout_sec: int | None,
         percent: int | None,
         time_ms: int | None,
         offset_ms: int | None,
-        network_traffic: str | None,
+        network_traffic: NetworkTraffic | None,
         correlation: int | None = None,
         gap: int | None = None,
     ) -> None:
-        valid_actions = [
-            "delay",
-            "loss",
-            "duplicate",
-            "corrupt",
-            "reorder",
-            "drop",
-            "dns",
-            "dns_down",
-            "occupy",
-        ]
-
-        if action not in valid_actions:
-            err_msg = f"Invalid action '{action}'. Expected one of {valid_actions}."
+        if action not in get_args(NetworkAction):
+            err_msg = f"Invalid action '{action}'. Expected one of {get_args(NetworkAction)}."
             raise ValueError(err_msg)
 
         if timeout_sec is not None and timeout_sec < 0:
@@ -502,8 +495,11 @@ class Chaosblade(GenericUtil):
             err_msg = f"Invalid offset_ms '{offset_ms}'. Expected more or equal 0."
             raise ValueError(err_msg)
 
-        if network_traffic is not None and network_traffic not in ["in", "out"]:
-            err_msg = f"Invalid network_traffic '{network_traffic}'. Expected 'in' or 'out'."
+        if network_traffic is not None and network_traffic not in get_args(NetworkTraffic):
+            err_msg = (
+                f"Invalid network_traffic '{network_traffic}'. "
+                f"Expected one of {get_args(NetworkTraffic)}."
+            )
             raise ValueError(err_msg)
 
         if correlation is not None and not 0 <= correlation <= _MAX_PERCENT:
@@ -565,7 +561,7 @@ class Chaosblade(GenericUtil):
 
     def _validate_network_flags_compatibility(  # noqa: PLR0913
         self,
-        action: str,
+        action: NetworkAction,
         percent: int | None,
         time_ms: int | None,
         domain: str | None,
