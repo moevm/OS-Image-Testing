@@ -32,6 +32,7 @@
 
 ### 3.2 Мониторинг
 
+- [eBPF-tracing](./utilities/monitoring/eBPF-tracing.md)
 - [Munin](./utilities/monitoring/munin.md)
 - [Nagios](./utilities/monitoring/nagios.md)
 - [RRDtool](./utilities/monitoring/RRDtool.md)
