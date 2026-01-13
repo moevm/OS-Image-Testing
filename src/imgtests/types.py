@@ -1,5 +1,6 @@
 import re
 from contextlib import suppress
+from enum import Enum
 from functools import total_ordering
 from typing import NamedTuple
 
@@ -60,3 +61,7 @@ class Version:
             else:
                 str_parts.append(str(part))
         return ".".join(str_parts)
+
+
+class Distro(str, Enum):
+    OPEN_SUSE = "opensuse"
