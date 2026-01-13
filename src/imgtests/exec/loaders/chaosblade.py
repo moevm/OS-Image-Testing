@@ -88,9 +88,7 @@ class Chaosblade(GenericUtil):
             tuple[ExecResult, ChaosResponse]: Command execution result and parsed response.
         """
         result = self(["check", "os", experiment_type, action])
-        if result.stdout:
-            return result, Chaosblade.parse_result(result.stdout)
-        return result, Chaosblade.parse_result(result.stderr)
+        return result, self._extract_result(result)
 
     def get_exp_status(self, experiment_id: str) -> tuple[ExecResult, ChaosResponse]:
         """Get status of an experiment by ID.
@@ -102,9 +100,7 @@ class Chaosblade(GenericUtil):
             tuple[ExecResult, ChaosResponse]: Command execution result and parsed response.
         """
         result = self(["status", experiment_id])
-        if result.stderr:
-            return result, Chaosblade.parse_result(result.stderr)
-        return result, Chaosblade.parse_result(result.stdout)
+        return result, self._extract_result(result)
 
     def destroy_exp(self, experiment_id: str) -> tuple[ExecResult, ChaosResponse]:
         """Destroy (stop) an experiment by ID.
@@ -116,9 +112,7 @@ class Chaosblade(GenericUtil):
             tuple[ExecResult, ChaosResponse]: Command execution result and parsed response.
         """
         result = self(["destroy", experiment_id])
-        if result.stderr:
-            return result, Chaosblade.parse_result(result.stderr)
-        return result, Chaosblade.parse_result(result.stdout)
+        return result, self._extract_result(result)
 
     def create_cpu_exp(
         self, cpu_percent: int | None = None, timeout_sec: int = 0, **kwargs: dict[str, Any]
@@ -148,9 +142,7 @@ class Chaosblade(GenericUtil):
             ],
             **kwargs,
         )
-        if result.stderr:
-            return result, Chaosblade.parse_result(result.stderr)
-        return result, Chaosblade.parse_result(result.stdout)
+        return result, self._extract_result(result)
 
     def _validate_cpu_params(self, cpu_percent: int | None, timeout_sec: int) -> None:
         if cpu_percent is not None and not 0 <= cpu_percent <= _MAX_PERCENT:
@@ -210,9 +202,7 @@ class Chaosblade(GenericUtil):
             ],
             **kwargs,
         )
-        if result.stderr:
-            return result, Chaosblade.parse_result(result.stderr)
-        return result, Chaosblade.parse_result(result.stdout)
+        return result, self._extract_result(result)
 
     def _validate_memory_params(
         self,
@@ -314,9 +304,7 @@ class Chaosblade(GenericUtil):
             ],
             **kwargs,
         )
-        if result.stderr:
-            return result, Chaosblade.parse_result(result.stderr)
-        return result, Chaosblade.parse_result(result.stdout)
+        return result, self._extract_result(result)
 
     def _validate_disk_params(  # noqa: PLR0913
         self,
@@ -474,9 +462,7 @@ class Chaosblade(GenericUtil):
             ],
             **kwargs,
         )
-        if result.stderr:
-            return result, Chaosblade.parse_result(result.stderr)
-        return result, Chaosblade.parse_result(result.stdout)
+        return result, self._extract_result(result)
 
     def _validate_network_basic_params(  # noqa: PLR0913
         self,
@@ -615,6 +601,11 @@ class Chaosblade(GenericUtil):
         if action in ["delay", "loss", "duplicate", "corrupt", "reorder"] and interface is None:
             err_msg = f"For {action}, interface is required"
             raise ValueError(err_msg)
+
+    def _extract_result(self, result: ExecResult) -> ChaosResponse:
+        if result.stderr:
+            return Chaosblade.parse_result(result.stderr)
+        return Chaosblade.parse_result(result.stdout)
 
     @staticmethod
     def parse_result(result: str) -> ChaosResponse:
