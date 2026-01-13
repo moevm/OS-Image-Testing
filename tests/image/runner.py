@@ -10,7 +10,7 @@ import paramiko
 import paramiko.ssh_exception
 
 from image.endurance.syscalls import test_ltp_syscalls, test_syscalls_all_stress_ng
-from image.performance.cpu import run_chaosblade_test, run_stress_ng_tests
+from image.performance.cpu import run_chaosblade_tests, run_stress_ng_tests
 from image.performance.ipc import test_sched
 from image.performance.system import test_pts_system
 from image.utils import env_var_to_type_or_exit
@@ -95,8 +95,7 @@ def main() -> None:
     logger.info(compare_system_infos(sys_infos[1], sys_infos[2]))
     test_pts_system(executor, client)
     run_stress_ng_tests(executor, client)
-    future = executor.submit(run_chaosblade_test, client)
-    future.result()
+    run_chaosblade_tests(executor, client)
     future = executor.submit(test_syscalls_all_stress_ng, client)
     future.result()
     future = executor.submit(test_ltp_syscalls, client)

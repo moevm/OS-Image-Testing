@@ -3,7 +3,6 @@ from concurrent.futures import ThreadPoolExecutor
 
 from imgtests.exec.exec import SSHClient
 from imgtests.exec.loaders.chaosblade import Chaosblade
-from imgtests.exec.loaders.perf import Perf
 from imgtests.exec.loaders.stress_ng import StressNg
 
 logger = logging.getLogger(__name__)
@@ -17,23 +16,8 @@ def run_stress_ng_tests(executor: ThreadPoolExecutor, client: SSHClient | None =
     logger.info(metrics)
 
 
-def run_chaosblade_test(client: SSHClient | None = None) -> None:
+def run_chaosblade_tests(executor: ThreadPoolExecutor, client: SSHClient | None = None) -> None:
     chaos = Chaosblade(client)
-    perf = Perf(client)
-    _, chaos_result = chaos.create_cpu_exp(cpu_percent=70, timeout_sec=10)
-    perf_result = perf.stat(
-        cmd=[
-            "-e",
-            "task-clock",
-            "-e",
-            "cpu-migrations",
-            "-e",
-            "cpu-clock",
-            "--",
-            "bash",
-            "-c",
-            "echo 'scale=4000; 4*a(1)' | bc -l",
-        ]
-    )
+    future = executor.submit(chaos.create_cpu_exp, cpu_percent=70, timeout_sec=10)
+    _, chaos_result = future.result()
     logger.info(chaos_result)
-    logger.info(perf_result.stderr)
