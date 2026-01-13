@@ -20,6 +20,7 @@
 - [Метод выявления утечек](./methodology/leak-detection-method.md)
 - [Управление ресурсами](./methodology/resource-management.md)
 - [Микробенчмаркинг](./methodology/microbenchmarking.md)
+- [Анализ тактов](./methodology/cycle-analysis.md)
 
 ## 3. Утилиты
 
