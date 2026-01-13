@@ -5,9 +5,8 @@
 }
 
 body {
-    font-family: 'Inter', sans-serif;
-    /* Теплый градиентный фон */
-    background: linear-gradient(135deg, #FFD89B 0%, #ff9966 100%);
+    font-family: "Inter", sans-serif;
+    background: linear-gradient(135deg, #ffd89b 0%, #ff9966 100%);
     min-height: 100vh;
     display: flex;
     justify-content: center;
@@ -30,20 +29,19 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-/* Контейнер для заголовка */
 .title-container {
-    background: linear-gradient(135deg, #FFF8E1 0%, #FFECB3 100%);
+    background: linear-gradient(135deg, #fff8e1 0%, #ffecb3 100%);
     border-radius: 20px;
     padding: 40px;
     margin: 0 auto 50px auto;
     text-align: center;
-    border: 2px solid #FFD54F;
+    border: 2px solid #ffd54f;
     box-shadow: 0 8px 30px rgba(255, 213, 79, 0.2);
     max-width: 800px;
 }
 
 h1 {
-    color: #5D4037; /* Теплый коричневый */
+    color: #5d4037;
     font-size: 2.8rem;
     margin-bottom: 15px;
     display: flex;
@@ -54,12 +52,12 @@ h1 {
 }
 
 h1 i {
-    color: #FF9800; /* Теплый оранжевый */
+    color: #ff9800;
     font-size: 2.5rem;
 }
 
 .subtitle {
-    color: #8D6E63; /* Более светлый коричневый */
+    color: #8d6e63;
     font-size: 1.2rem;
     line-height: 1.6;
     max-width: 600px;
@@ -67,7 +65,6 @@ h1 i {
     font-weight: 400;
 }
 
-/* Контейнер для ссылок */
 .links-container {
     display: flex;
     flex-direction: column;
@@ -76,7 +73,6 @@ h1 i {
     margin: 0 auto;
 }
 
-/* Стили для ссылок-платформ */
 .platform-link {
     text-decoration: none;
     display: block;
@@ -99,16 +95,15 @@ h1 i {
 }
 
 .yocto-link:hover .link-content {
-    border-color: #FF9800;
-    background: linear-gradient(to right, #FFF8E1, white);
+    border-color: #ff9800;
+    background: linear-gradient(to right, #fff8e1, white);
 }
 
 .opensuse-link:hover .link-content {
-    border-color: #4CAF50;
-    background: linear-gradient(to right, #E8F5E9, white);
+    border-color: #4caf50;
+    background: linear-gradient(to right, #e8f5e9, white);
 }
 
-/* Иконка ссылки */
 .link-icon {
     width: 70px;
     height: 70px;
@@ -122,47 +117,44 @@ h1 i {
 }
 
 .yocto-link .link-icon {
-    background: linear-gradient(135deg, #FF9800, #FFB74D);
+    background: linear-gradient(135deg, #ff9800, #ffb74d);
     color: white;
 }
 
 .opensuse-link .link-icon {
-    background: linear-gradient(135deg, #4CAF50, #81C784);
+    background: linear-gradient(135deg, #4caf50, #81c784);
     color: white;
 }
 
-/* Текст ссылки */
 .link-text {
     flex-grow: 1;
 }
 
 .link-text h2 {
-    color: #5D4037;
+    color: #5d4037;
     font-size: 1.8rem;
     margin-bottom: 8px;
     font-weight: 600;
 }
 
 .link-text p {
-    color: #8D6E63;
+    color: #8d6e63;
     font-size: 1rem;
     line-height: 1.5;
 }
 
-/* Стрелка */
 .link-arrow {
-    color: #BDBDBD;
+    color: #bdbdbd;
     font-size: 1.5rem;
     transition: all 0.3s ease;
     margin-left: 20px;
 }
 
 .platform-link:hover .link-arrow {
-    color: #FF9800;
+    color: #ff9800;
     transform: translateX(5px);
 }
 
-/* Стили для страниц платформ */
 .header-with-back {
     margin-bottom: 40px;
     display: flex;
@@ -173,7 +165,7 @@ h1 i {
     display: inline-flex;
     align-items: center;
     gap: 10px;
-    color: #FF9800;
+    color: #ff9800;
     text-decoration: none;
     font-weight: 500;
     padding: 12px 24px;
@@ -193,15 +185,15 @@ h1 i {
 }
 
 .info-box {
-    background: linear-gradient(135deg, #FFF8E1, #FFECB3);
+    background: linear-gradient(135deg, #fff8e1, #ffecb3);
     border-radius: 16px;
     padding: 30px;
     margin-bottom: 40px;
-    border: 2px solid #FFD54F;
+    border: 2px solid #ffd54f;
 }
 
 .info-box h3 {
-    color: #5D4037;
+    color: #5d4037;
     margin-bottom: 15px;
     display: flex;
     align-items: center;
@@ -210,11 +202,11 @@ h1 i {
 }
 
 .info-box h3 i {
-    color: #FF9800;
+    color: #ff9800;
 }
 
 .info-box p {
-    color: #8D6E63;
+    color: #8d6e63;
     line-height: 1.7;
     margin-bottom: 10px;
     font-size: 1.1rem;
@@ -225,71 +217,70 @@ h1 i {
     padding: 60px 30px;
     background: rgba(255, 255, 255, 0.8);
     border-radius: 16px;
-    border: 2px dashed #FFD54F;
+    border: 2px dashed #ffd54f;
 }
 
 .placeholder i {
     font-size: 4.5rem;
     margin-bottom: 25px;
-    color: #FFB74D;
+    color: #ffb74d;
     opacity: 0.8;
 }
 
 .placeholder p {
     font-size: 1.3rem;
-    color: #8D6E63;
+    color: #8d6e63;
 }
 
-/* Адаптивность */
 @media (max-width: 768px) {
     .card {
         padding: 30px 20px;
         margin: 10px;
     }
-    
+
     .title-container {
         padding: 30px 20px;
         margin-bottom: 40px;
     }
-    
+
     h1 {
         font-size: 2.2rem;
         flex-direction: column;
         gap: 15px;
     }
-    
+
     h1 i {
         font-size: 2rem;
     }
-    
+
     .subtitle {
         font-size: 1.1rem;
     }
-    
+
     .link-content {
         padding: 20px;
         flex-direction: column;
         text-align: center;
     }
-    
+
     .link-icon {
         margin-right: 0;
         margin-bottom: 20px;
     }
-    
+
     .link-text h2 {
         font-size: 1.6rem;
     }
-    
+
     .link-arrow {
         display: none;
     }
-    
+
     .header-with-back {
         flex-direction: column;
         align-items: flex-start;
     }
-    
+
     .back-button {
         margin-right: 0;
         margin-bottom: 20px;
@@ -300,11 +291,11 @@ h1 i {
     .title-container {
         padding: 25px 15px;
     }
-    
+
     h1 {
         font-size: 1.8rem;
     }
-    
+
     .subtitle {
         font-size: 1rem;
     }
@@ -315,29 +306,30 @@ h1 i {
 }
 
 .page-subtitle {
-    color: #8D6E63;
+    color: #8d6e63;
     font-size: 1.1rem;
     margin-top: 5px;
     font-weight: 400;
 }
 
 .btn {
-    background: linear-gradient(135deg, #FF9A3C 0%, #FF6B6B 100%);
+    background: linear-gradient(135deg, #ff9a3c 0%, #ff6b6b 100%);
     color: white;
-    
+
     border-radius: 25px;
-    
+
     border: none;
     box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
-    
+
     padding: 14px 32px;
     font-size: 16px;
     font-weight: 600;
-    
+
     cursor: pointer;
     transition: all 0.3s ease;
-    
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+    font-family:
+        -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
@@ -345,7 +337,7 @@ h1 i {
 .btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
-    background: linear-gradient(135deg, #FF8A2E 0%, #FF5252 100%);
+    background: linear-gradient(135deg, #ff8a2e 0%, #ff5252 100%);
 }
 
 .btn:active {
@@ -354,7 +346,7 @@ h1 i {
 }
 
 .btn:disabled {
-    background: linear-gradient(135deg, #FFC8A2 0%, #FFB8B8 100%);
+    background: linear-gradient(135deg, #ffc8a2 0%, #ffb8b8 100%);
     cursor: not-allowed;
     transform: none;
     box-shadow: 0 2px 10px rgba(255, 200, 162, 0.3);
