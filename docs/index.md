@@ -15,6 +15,13 @@
 - [Метод инструментов](./methodology/instrumental-method.md)
 - [Метод USE](./methodology/use-method.md)
 - [Метод определения характеристик потребления памяти](./methodology/memory-consumption-characteristics.md)
+- [Метод оценки размера рабочего набора](./methodology/working-set-size-estimation-method.md)
+- [Мониторинг производительности](./methodology/perfomance-monitoring.md)
+- [Метод выявления утечек](./methodology/leak-detection-method.md)
+- [Статическая настройка производительности](./methodology/static-performance-tuning.md)
+- [Управление ресурсами](./methodology/resource-management.md)
+- [Микробенчмаркинг](./methodology/microbenchmarking.md)
+- [Анализ тактов](./methodology/cycle-analysis.md)
 
 ## 3. Утилиты
 
@@ -31,6 +38,7 @@
 
 ### 3.2 Мониторинг
 
+- [eBPF-tracing](./utilities/monitoring/eBPF-tracing.md)
 - [Munin](./utilities/monitoring/munin.md)
 - [Nagios](./utilities/monitoring/nagios.md)
 - [RRDtool](./utilities/monitoring/RRDtool.md)

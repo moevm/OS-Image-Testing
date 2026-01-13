@@ -3,7 +3,9 @@ import logging
 from typing import Any
 
 from imgtests.exec.base_util import GenericUtil
-from imgtests.exec.exec import SSHClient, common_run_command, pipeline
+from imgtests.exec.exec import ExecResult, SSHClient, common_run_command, pipeline
+from imgtests.exec.utils import extract_version
+from imgtests.types import Version
 
 logger = logging.getLogger(__name__)
 
@@ -12,13 +14,27 @@ class PhoronixTestSuite(GenericUtil):
     def __init__(self, ssh_client: SSHClient | None = None) -> None:
         super().__init__("phoronix-test-suite", ssh_client)
 
-    def install_test(self, test_name: str) -> None:
-        """Installs a given test."""
-        result = self(["install", test_name])
+    def version(self) -> Version | None:
+        result = self(["version"])
         if result.returncode:
-            logger.warning("Installation of PTS test '%s' failed", test_name)
-        else:
-            logger.info("PTS test '%s' installed", test_name)
+            return None
+        return extract_version(result.stdout.strip())
+
+    def install_test(self, test_name: str) -> bool:
+        """Installs a given test."""
+        retries = "y\n" * 2 + "n\n"
+        commands = [["echo", "-e", f'"{retries}"'], ["phoronix-test-suite", "install", test_name]]
+        for result in pipeline(cmds=commands, ssh_client=self.ssh_client, pass_output=True):
+            if result.returncode:
+                logger.error("Installation of PTS test %s failed. %s", test_name, result.stderr)
+                return False
+
+        result = self(["list-installed-tests"])
+        if result.stdout.find(test_name) == -1:
+            logger.error("Installation of PTS test %s failed. %s", test_name, result.stderr)
+            return False
+        logger.info("PTS test '%s' installed", test_name)
+        return True
 
     def remove_test(self, test_name: str) -> None:
         """Removes a given test."""
@@ -29,9 +45,11 @@ class PhoronixTestSuite(GenericUtil):
                 return
         logger.info("PTS test '%s' removed", test_name)
 
-    def run_test(self, test_name: str, run_count: int) -> None:
+    def run_test(self, test_name: str, run_count: int) -> ExecResult | None:
         """Runs a given test with set amount of iterations."""
-        self.install_test(test_name=test_name)
+        if not self.install_test(test_name=test_name):
+            return None
+        logger.info("PTS test '%s' started", test_name)
         result = common_run_command(
             [f"FORCE_TIMES_TO_RUN={run_count}", self.name, "batch-run", test_name],
             ssh_client=self.ssh_client,
@@ -40,6 +58,7 @@ class PhoronixTestSuite(GenericUtil):
             logger.warning("PTS test '%s' failed", test_name)
         else:
             logger.info("PTS test '%s' finished", test_name)
+        return result
 
     def get_latest_result_name(self) -> str | None:
         """Returns latest result name.
@@ -234,6 +253,11 @@ def setup_pts(ssh_client: SSHClient | None = None) -> None:
     if result.returncode:
         logger.error("PTS setup failed: '%s'", result.stderr)
         return
+
+    common_run_command(
+        cmd=["phoronix-test-suite", "openbenchmarking-refresh"],
+        ssh_client=ssh_client,
+    )
 
     setup_answers = "y\n" + "n\n" * 6
     commands = [["echo", "-e", f'"{setup_answers}"'], ["phoronix-test-suite", "batch-setup"]]

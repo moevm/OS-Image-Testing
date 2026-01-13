@@ -2,6 +2,7 @@ USER                       := user
 S_USER                     := suser
 PASSWORD                   := password
 GROUP                      := yoctogroup
+POSTGRES_DB                := os-testing-db
 OS_IMAGE                   := core-image-minimal
 SUSE_VER                   ?= 15.6
 
@@ -14,7 +15,8 @@ DOCKER_BUILD_VOLUME        := ${DOCKER_PREFIX}-yocto-build
 DOCKER_DOWNLOADS_VOLUME    := ${DOCKER_PREFIX}-yocto-downloads
 DOCKER_SSTATE_VOLUME       := ${DOCKER_PREFIX}-yocto-sstate
 DOCKER_OPENSUSE_VOLUME     := ${DOCKER_PREFIX}-open-suse-files
-DOCKER_NETWORK             := yocto-network
+BENCHER_API_CONF_VOLUME    := ${DOCKER_PREFIX}-bencher-conf
+BENCHER_API_DB_VOLUME      := ${DOCKER_PREFIX}-bencher-database
 
 # Paths
 POKY_DIR                   := /home/${USER}/poky
@@ -28,16 +30,23 @@ HOST_TEMP_PATH             := ${CURDIR}/results
 # Python
 PACKAGE_MGR                := uv
 
-# IP addresses
+# Docker Network
+DOCKER_NETWORK             := yocto-network
 YOCTO_ADDRESS              := 10.5.0.10
 PYTHON_ADDRESS             := 10.5.0.11
 SUSE_ADDRESS_155           := 10.5.0.12
 SUSE_ADDRESS_156           := 10.5.0.13
+BENCHER_API_ADDRESS        := 10.5.0.14
+BENCHER_CLI_ADDRESS        := 10.5.0.15
+POSTGRES_ADDRESS           := 10.5.0.20
 SUBNET                     := 10.5.0.0/24
 GATEWAY                    := 10.5.0.1
 SSH_QEMU_PORT              ?= 2222
 SSH_SUSE_PORT_155          := 1515
 SSH_SUSE_PORT_156          := 1616
+BENCHER_API_PORT           := 61016
+BENCHER_CLI_PORT           := 3000
+SSH_POSTGRES_PORT          := 5432
 
 SSH_QEMU_USER              ?= root
 
@@ -54,15 +63,6 @@ docker: init-submodule
 		--build-arg PASSWORD="${PASSWORD}" \
 		--build-arg POKY_DIR="${POKY_DIR}" \
 		--file docker/image_builder.dockerfile .
-
-.PHONY: docker-analyzer
-docker-analyzer:
-	docker build \
-		--tag ${DOCKER_PYTHON_TAG} \
-		--build-arg USER="${USER}" \
-		--build-arg GROUP="${GROUP}" \
-		--build-arg PASSWORD="${PASSWORD}" \
-		--file docker/python.dockerfile .
 
 .PHONY: docker-init-volumes
 docker-init-volumes: ensure-volumes
@@ -128,39 +128,17 @@ docker-test-image: docker-init-volumes
 	} &
 	@echo "QEMU test started in background"
 
-.PHONY: docker-suse
-docker-suse:
-	docker build \
-		--tag ${DOCKER_SUSE_TAG} \
-		--build-arg USER="${USER}" \
-		--file docker/open-suse.dockerfile .
-	docker volume create ${DOCKER_OPENSUSE_VOLUME}
-
-.PHONY: docker-init-suse
-docker-init-suse:
-	docker run -it --rm \
-		--volume ${DOCKER_OPENSUSE_VOLUME}:${SUSE_DIR} \
-		--volume "${HOST_SCRIPTS_PATH}/opensuse:${SUSE_DIR}/scripts" \
-		${DOCKER_SUSE_TAG} \
-		bash -c "./scripts/download-images.sh ${SUSE_VER} && ./scripts/cloud-setup.sh ${S_USER} ${PASSWORD}"
-
-.PHONY: docker-run-suse
-docker-run-suse:
-	docker run -it --rm \
-		--volume ${DOCKER_OPENSUSE_VOLUME}:${SUSE_DIR} \
-		${DOCKER_SUSE_TAG} \
-		bash -c "qemu-system-x86_64 -m 4G -nographic -drive file=open-suse-${SUSE_VER}.qcow2,index=0,media=disk \
-				-cdrom cloud-init.iso -net user,hostfwd=tcp::1111-:22 -net nic"
-
 .PHONY: docker-compose-up
 docker-compose-up: ensure-volumes
 	docker compose --file docker/compose.yml --project-directory ./ up --detach --build
 
 .PHONY: ensure-volumes
 ensure-volumes: docker
-	@if ! docker volume inspect ${DOCKER_OPENSUSE_VOLUME} > /dev/null 2>&1; then \
-		docker volume create ${DOCKER_OPENSUSE_VOLUME}; \
-	fi
+	@for volume in ${DOCKER_OPENSUSE_VOLUME} ${BENCHER_API_CONF_VOLUME} ${BENCHER_API_DB_VOLUME}; do \
+		if ! docker volume inspect $$volume > /dev/null 2>&1; then \
+			docker volume create $$volume; \
+		fi \
+	done;
 	@for volume in ${DOCKER_BUILD_VOLUME} ${DOCKER_DOWNLOADS_VOLUME} ${DOCKER_SSTATE_VOLUME}; do \
 		if ! docker volume inspect $$volume > /dev/null 2>&1; then \
 			docker volume create $$volume; \
@@ -196,14 +174,8 @@ help:
 	@echo "  make [targets] [arguments]"
 	@echo
 	@echo "  docker                             Builds a docker image;"
-	@echo "  docker-suse                        Builds a docker image for openSUSE images environment;"
-	@echo "  docker-analyzer                    Builds a docker image for analyze tests results;"
 	@echo "  docker-init-volumes                Initializes docker volumes;"
-	@echo "  docker-init-suse                   Downloads openSUSE image (Default: ${SUSE_VER});"
-	@echo "      SUSE_VER=[15.5|15.6]"
 	@echo "  docker-run-image                   Runs builded Yocto image from builded docker image;"
-	@echo "  docker-run-suse                    Runs openSUSE image via QEMU (Default: ${SUSE_VER});"
-	@echo "      SUSE_VER=[15.5|15.6]"
 	@echo "  docker-test-image                  Tests builded Yocto image from builded docker image;"
 	@echo "  docker-compose-up                  Run tests stand with analysis container and target containers;"
 	@echo -n "  ${PACKAGE_MGR}"

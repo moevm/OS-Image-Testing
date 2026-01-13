@@ -75,23 +75,3 @@ make docker-test-image
 To add a test using, for example, **stress-ng**, go to the layers/meta-image-tests/recipes-tests folder, then to endurance-tests or performance-tests, depending on the type of test, then add the test to the folder of the chosen subsystem and update the corresponding .bb file.
 
 To add a new utility, you need to update the local.conf and write the appropriate recipe, then add the paths to the recipe and dependent files for all called containers in the `Makefile`.
-
-## OpenSUSE testing
-
-Builds the Docker image for building and running openSUSE inside it.
-
-```bash
-make docker-suse
-```
-
-Starts downloading necessary openSUSE images.
-
-```bash
-make docker-init-suse [SUSE_VER=[15.5|15.6]]
-```
-
-Runs openSUSE in a Docker container via QEMU.
-
-```bash
-make docker-run-suse [SUSE_VER=[15.5|15.6]]
-```
