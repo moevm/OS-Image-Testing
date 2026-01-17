@@ -2,8 +2,7 @@ import logging
 from concurrent.futures import ThreadPoolExecutor
 
 from imgtests.exec.exec import SSHClient
-from imgtests.exec.loaders.chaosblade import Chaosblade
-from imgtests.exec.loaders.stress_ng import StressNg
+from imgtests.exec.loaders import Chaosblade, StressNg
 
 logger = logging.getLogger(__name__)
 

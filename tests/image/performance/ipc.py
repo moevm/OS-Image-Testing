@@ -1,7 +1,7 @@
 import logging
 
 from imgtests.exec.exec import SSHClient
-from imgtests.exec.loaders.perf import Perf
+from imgtests.exec.loaders import Perf
 
 logger = logging.getLogger(__name__)
 

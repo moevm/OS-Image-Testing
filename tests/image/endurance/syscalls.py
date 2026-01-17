@@ -1,8 +1,7 @@
 import logging
 
 from imgtests.exec.exec import SSHClient
-from imgtests.exec.loaders.kirk import Kirk
-from imgtests.exec.loaders.stress_ng import StressNg
+from imgtests.exec.loaders import Kirk, StressNg
 
 logger = logging.getLogger(__name__)
 

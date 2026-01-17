@@ -4,7 +4,7 @@ from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from pathlib import Path
 from threading import Thread
 from time import sleep
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import paramiko
 import paramiko.ssh_exception
@@ -14,10 +14,13 @@ from image.performance.cpu import run_chaosblade_tests, run_stress_ng_tests
 from image.performance.ipc import test_sched
 from image.performance.system import test_pts_system
 from image.utils import env_var_to_type_or_exit
+
+if TYPE_CHECKING:
+    from imgtests.exec.base_util import BaseTestUtil
 from imgtests.exec.exec import SSHClient
 from imgtests.logger import set_handlers
-from imgtests.sysrep import SystemInfo, compare_system_infos, get_system_info
-from imgtests.types import NodeCreds
+from imgtests.sysrep import SystemInfo, compare_system_infos, get_os_release, get_system_info
+from imgtests.types import Distro, NodeCreds
 
 logger = logging.getLogger()
 set_handlers(logger, Path("processing.log"))
@@ -68,6 +71,35 @@ def is_remote_alive(client: SSHClient, executor: ThreadPoolExecutor) -> None:
             break
     executor.shutdown(cancel_futures=True)
     logger.error("Remote node unavailable during test.")
+
+
+def suse_install_dependencies(client: SSHClient) -> None:
+    os_id = get_os_release(client).id
+    if not (os_id and os_id == Distro.OPEN_SUSE_LEAP.value):
+        logger.error("Required openSUSE LEAP to install dependencies. Provided %s.", os_id)
+        return
+    from imgtests.exec.loaders import (  # noqa: PLC0415
+        Chaosblade,
+        Fio,
+        FioPlot,
+        Kirk,
+        Perf,
+        PhoronixTestSuite,
+        StressNg,
+    )
+
+    tool: BaseTestUtil
+    for tool in [Chaosblade, Fio, FioPlot, Kirk, Perf, StressNg, PhoronixTestSuite]:
+        tool_instance = tool(client)
+        try:
+            tool_instance.install()
+        except NotImplementedError:
+            logger.exception("Failed to install dependencies.")
+            continue
+        tool_instance = tool(client)
+        logger.info(
+            "Installed '%s' with version '%s'.", tool_instance.name, tool_instance.version()
+        )
 
 
 def main() -> None:

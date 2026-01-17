@@ -21,7 +21,7 @@ class Kirk(GenericUtil):
     def install(self) -> ExecResult:
         """Install kirk from the official Git repository and expose it in PATH."""
         os_id = get_os_release(self.ssh_client).id
-        if os_id and Distro.OPEN_SUSE.value in os_id:
+        if os_id and os_id == Distro.OPEN_SUSE_LEAP.value:
             zypper = Zypper(ssh_client=self.ssh_client, use_sudo=True)
             result = zypper.install_packages(["git-core"])
             if result.returncode:

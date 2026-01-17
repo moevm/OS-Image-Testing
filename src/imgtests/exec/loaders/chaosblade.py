@@ -50,7 +50,7 @@ class Chaosblade(GenericUtil):
             ExecResult: Result of the installation.
         """
         os_id = get_os_release(self.ssh_client).id
-        if os_id and Distro.OPEN_SUSE.value in os_id:
+        if os_id and os_id == Distro.OPEN_SUSE_LEAP.value:
             zypper = Zypper(ssh_client=self.ssh_client, use_sudo=True)
             deps_result = zypper.install_packages(["wget", "tar"])
             if deps_result.returncode:

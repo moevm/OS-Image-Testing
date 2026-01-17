@@ -2,7 +2,7 @@ import logging
 from concurrent.futures import ThreadPoolExecutor
 
 from imgtests.exec.exec import SSHClient
-from imgtests.exec.loaders.pts import PhoronixTestSuite, setup_pts
+from imgtests.exec.loaders import PhoronixTestSuite, setup_pts
 
 logger = logging.getLogger(__name__)
 
