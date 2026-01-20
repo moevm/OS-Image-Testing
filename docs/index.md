@@ -43,6 +43,7 @@
 - [Nagios](./utilities/monitoring/nagios.md)
 - [RRDtool](./utilities/monitoring/RRDtool.md)
 - [Victoria Metrics](./utilities/monitoring/VictoriaMetrics.md)
+- [Collectd](./utilities/monitoring/collectd.md)
 
 ### 3.3 Раннеры
 
