@@ -13,53 +13,36 @@ from image.endurance.syscalls import test_ltp_syscalls, test_syscalls_all_stress
 from image.performance.cpu import run_chaosblade_tests, run_stress_ng_tests
 from image.performance.ipc import test_sched
 from image.performance.system import test_pts_system
-from image.utils import env_var_to_type_or_exit
 
 if TYPE_CHECKING:
     from imgtests.exec.base_util import BaseTestUtil
-from imgtests.exec.exec import SSHClient
+from imgtests.exec.exec import SSHClient, wait_remote
 from imgtests.logger import set_handlers
 from imgtests.sysrep import SystemInfo, compare_system_infos, get_os_release, get_system_info
-from imgtests.types import Distro, NodeCreds
+from imgtests.types import Distro
 
 logger = logging.getLogger()
 set_handlers(logger, Path("processing.log"))
 
 
-yocto_creds = NodeCreds(
-    env_var_to_type_or_exit("SSH_YOCTO_USER", str, logger),
-    env_var_to_type_or_exit("SSH_YOCTO_PASS", str, logger),
-    env_var_to_type_or_exit("SSH_YOCTO_ADDR", str, logger),
-    env_var_to_type_or_exit("SSH_YOCTO_PORT", int, logger),
+yocto_conf = (
+    "SSH_YOCTO_ADDR",
+    "SSH_YOCTO_USER",
+    "SSH_YOCTO_PASS",
+    "SSH_YOCTO_PORT",
 )
-suse_155_creds = NodeCreds(
-    env_var_to_type_or_exit("SSH_SUSE_USER", str, logger),
-    env_var_to_type_or_exit("SSH_SUSE_PASS", str, logger),
-    env_var_to_type_or_exit("SSH_SUSE_ADDR_155", str, logger),
-    env_var_to_type_or_exit("SSH_SUSE_PORT_155", int, logger),
+suse_155_conf = (
+    "SSH_SUSE_ADDR_155",
+    "SSH_SUSE_USER",
+    "SSH_SUSE_PASS",
+    "SSH_SUSE_PORT_155",
 )
-suse_156_creds = NodeCreds(
-    suse_155_creds.user,
-    suse_155_creds.password,
-    env_var_to_type_or_exit("SSH_SUSE_ADDR_156", str, logger),
-    env_var_to_type_or_exit("SSH_SUSE_PORT_156", int, logger),
+suse_156_conf = (
+    "SSH_SUSE_ADDR_156",
+    "SSH_SUSE_USER",
+    "SSH_SUSE_PASS",
+    "SSH_SUSE_PORT_156",
 )
-
-
-def wait_remote(node_creds: NodeCreds) -> SSHClient:
-    wait_sec = 60 * 60 * 5
-    step_sec = 60
-    while wait_sec > 0:
-        try:
-            return SSHClient(
-                node_creds.address, node_creds.user, node_creds.password, node_creds.port
-            )
-        except paramiko.ssh_exception.SSHException:
-            logger.info("Waiting remote node to build and run image.")
-        sleep(step_sec)
-        wait_sec -= 60
-    logger.error("Failed to connect to the remote node.")
-    sys.exit(1)
 
 
 def is_remote_alive(client: SSHClient, executor: ThreadPoolExecutor) -> None:
@@ -104,9 +87,9 @@ def suse_install_dependencies(client: SSHClient) -> None:
 
 def main() -> None:
     executor = ThreadPoolExecutor()
-    client = wait_remote(yocto_creds)
-    suse155 = wait_remote(suse_155_creds)
-    suse156 = wait_remote(suse_156_creds)
+    client = wait_remote(*yocto_conf) or sys.exit(1)
+    suse155 = wait_remote(*suse_155_conf) or sys.exit(1)
+    suse156 = wait_remote(*suse_156_conf) or sys.exit(1)
     suse155(["echo", "test"])
     suse156(["echo", "test"])
     is_alive_cycle = Thread(target=is_remote_alive, args=(client, executor))

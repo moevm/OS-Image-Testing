@@ -2,9 +2,13 @@ import logging
 import subprocess
 from collections.abc import Iterable, Sequence
 from pathlib import Path
+from time import sleep
 from typing import NamedTuple
 
 import paramiko
+import paramiko.ssh_exception
+
+from imgtests.environment import env_var_to_type
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +69,8 @@ def run_command(cmd: Sequence[str], input_: str | None = None) -> ExecResult:
 
 
 class SSHClient:
+    __slots__ = ("hostname", "password", "port", "ssh_session", "username")
+
     def __init__(
         self, hostname: str, username: str = "root", password: str | None = None, port: int = 22
     ) -> None:
@@ -110,6 +116,17 @@ class SSHClient:
             returncode=retval,
         )
 
+    @classmethod
+    def build_from_env(
+        cls, address_env: str, user_env: str, password_env: str, port_env: str
+    ) -> "SSHClient":
+        return SSHClient(
+            env_var_to_type(address_env, str),
+            env_var_to_type(user_env, str),
+            env_var_to_type(password_env, str),
+            env_var_to_type(port_env, int),
+        )
+
     def close(self) -> None:
         self.ssh_session.close()
 
@@ -144,6 +161,22 @@ class SSHClient:
         return ExecResult(
             cmd=("scp", f"{self.username}@{self.hostname}:{remotepath}", str(localpath))
         )
+
+
+def wait_remote(
+    address_env: str, user_env: str, password_env: str, port_env: str
+) -> SSHClient | None:
+    wait_sec = 60 * 60 * 5
+    step_sec = 60
+    while wait_sec > 0:
+        try:
+            return SSHClient.build_from_env(address_env, user_env, password_env, port_env)
+        except paramiko.ssh_exception.SSHException:
+            logger.info("Waiting remote node to build and run image.")
+        sleep(step_sec)
+        wait_sec -= 60
+    logger.error("Failed to connect to the remote node.")
+    return None
 
 
 def which(util: str, ssh_client: SSHClient | None = None) -> Path | None:

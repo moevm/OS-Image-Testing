@@ -2,14 +2,6 @@ import re
 from contextlib import suppress
 from enum import Enum
 from functools import total_ordering
-from typing import NamedTuple
-
-
-class NodeCreds(NamedTuple):
-    user: str
-    password: str
-    address: str
-    port: int
 
 
 @total_ordering
