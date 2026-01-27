@@ -10,7 +10,7 @@
             <h1>Tests page for Yocto</h1>
         </div>
     </div>
-    
+
     <div class="placeholder">
       <button id="runTestsBtn" class="btn">Run tests</button>
         <div id="outputContainer" style="
@@ -32,11 +32,11 @@
 document.getElementById('runTestsBtn').addEventListener('click', function() {
     const btn = this;
     const outputContainer = document.getElementById('outputContainer');
-    
+
     btn.disabled = true;
     btn.textContent = 'Running...';
     outputContainer.textContent = 'Tests Running...';
-    
+
     fetch('/run-tests/', {
         method: 'POST',
         headers: {

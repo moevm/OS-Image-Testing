@@ -10,9 +10,9 @@
             <h1>Tests page for OpenSUSE</h1>
         </div>
     </div>
-    
+
     <div class="content">
-        
+
         <div class="placeholder">
           <button id="runTestsBtn" class="btn btn-primary">Run tests</button>
           <div id="outputContainer" style="
@@ -35,11 +35,11 @@
 document.getElementById('runTestsBtn').addEventListener('click', function() {
     const btn = this;
     const outputContainer = document.getElementById('outputContainer');
-    
+
     btn.disabled = true;
     btn.textContent = 'Running...';
     outputContainer.textContent = 'Tests Running...';
-    
+
     fetch('/run-tests/', {
         method: 'POST',
         headers: {

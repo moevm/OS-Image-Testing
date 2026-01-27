@@ -1,23 +1,24 @@
 import os
 import subprocess
 
-from django.http import JsonResponse
+from django.http import HttpRequest, JsonResponse
+from django.http.response import HttpResponse
 from django.shortcuts import render
 
 
-def index(request):
+def index(request: HttpRequest) -> HttpResponse:
     return render(request, "tests_interface/index.html")
 
 
-def yocto_page(request):
+def yocto_page(request: HttpRequest) -> HttpResponse:
     return render(request, "tests_interface/yocto.html")
 
 
-def opensuse_page(request):
+def opensuse_page(request: HttpRequest) -> HttpResponse:
     return render(request, "tests_interface/opensuse.html")
 
 
-def run_tests(request):
+def run_tests(request: HttpRequest) -> JsonResponse:
     referer = request.META.get("HTTP_REFERER", "")
 
     if "yocto" in referer:
@@ -30,19 +31,17 @@ def run_tests(request):
 
     try:
         result = subprocess.run(
-            "python3 /home/user/image/runner.py",
-            shell=True,
+            ["/usr/bin/env", "python3", "/home/user/image/runner.py"],
+            check=True,
             capture_output=True,
             text=True,
             timeout=600,
             env=env_vars,
         )
-
-        output = result.stdout
-        if result.stderr:
-            output += f"\n\nErrors:\n{result.stderr}"
-
-        return JsonResponse({"success": True, "output": output, "exit_code": result.returncode})
-
-    except Exception as e:
+    except subprocess.CalledProcessError as e:
         return JsonResponse({"success": False, "error": str(e)}, status=500)
+
+    output = result.stdout
+    if result.stderr:
+        output += f"\n\nErrors:\n{result.stderr}"
+    return JsonResponse({"success": True, "output": output, "exit_code": result.returncode})
