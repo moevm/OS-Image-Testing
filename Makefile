@@ -37,7 +37,6 @@ TESTS_DIR                  := ${CURDIR}/tests
 
 # Python
 PACKAGE_MGR                := uv
-DJANGO_PORT                := 8000
 
 # Docker Network
 DOCKER_NETWORK             := yocto-network
@@ -54,6 +53,7 @@ SSH_TO_QEMU_PORT		   := 22
 SSH_QEMU_PORT              ?= 2222
 SSH_SUSE_PORT_156          := 1616
 IPERF3_PORT                := 5201
+DJANGO_PORT                := 8000
 BENCHER_API_PORT           := 61016
 BENCHER_CLI_PORT           := 3000
 POSTGRES_PORT              := 5432
