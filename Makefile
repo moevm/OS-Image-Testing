@@ -58,6 +58,7 @@ BENCHER_API_PORT           := 61016
 BENCHER_CLI_PORT           := 3000
 POSTGRES_PORT              := 5432
 VMETRICS_PORT              := 8438
+DJANGO_SECRET              := $(shell date | sha256sum | tr ' ' '_')
 
 SSH_QEMU_USER              ?= root
 

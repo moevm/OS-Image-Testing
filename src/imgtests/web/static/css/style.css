@@ -184,34 +184,6 @@ h1 i {
     margin-top: 40px;
 }
 
-.info-box {
-    background: linear-gradient(135deg, #fff8e1, #ffecb3);
-    border-radius: 16px;
-    padding: 30px;
-    margin-bottom: 40px;
-    border: 2px solid #ffd54f;
-}
-
-.info-box h3 {
-    color: #5d4037;
-    margin-bottom: 15px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-size: 1.5rem;
-}
-
-.info-box h3 i {
-    color: #ff9800;
-}
-
-.info-box p {
-    color: #8d6e63;
-    line-height: 1.7;
-    margin-bottom: 10px;
-    font-size: 1.1rem;
-}
-
 .placeholder {
     text-align: center;
     padding: 60px 30px;

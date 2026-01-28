@@ -79,6 +79,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_HOST: imgtests-postgres
       PYTHONPATH: /home/${USER}/
+      DJANGO_SECRET: ${DJANGO_SECRET}
       SSH_YOCTO_USER: ${SSH_QEMU_USER}
       SSH_YOCTO_PASS: ""
       SSH_YOCTO_ADDR: ${YOCTO_ADDRESS}
