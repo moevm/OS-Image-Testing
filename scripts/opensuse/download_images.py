@@ -50,6 +50,10 @@ def is_sha256sum_pass(target_file: Path, target_file_sha256: Path) -> bool:
 
 def download(suse_ver: str) -> None:
     target_file = Path(f"open-suse-{suse_ver}.qcow2")
+    ready_file = target_file.with_suffix(".ready.qcow2")
+    if ready_file.exists():
+        logger.info("'%s' already exists.", ready_file)
+        return
     target_file_sha256 = target_file.with_suffix(".sha256")
     if (
         target_file.exists()
@@ -78,7 +82,9 @@ def download(suse_ver: str) -> None:
     if not target_file.exists():
         logger.info("Downloading image '%s' ...", image_url)
         handle_result(
-            call_cmd(["wget", image_url, "-O", str(target_file), "--no-check-certificate"])
+            call_cmd(
+                ["wget", image_url, "-O", str(target_file), "--verbose", "--no-check-certificate"]
+            )
         )
     if not target_file_sha256.exists():
         handle_result(
@@ -97,6 +103,8 @@ def download(suse_ver: str) -> None:
         )
     if not is_sha256sum_pass(target_file, target_file_sha256):
         error("sha256sum check failed.")
+    target_file.rename(ready_file)
+    target_file_sha256.unlink()
 
 
 if __name__ == "__main__":
