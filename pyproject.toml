@@ -99,9 +99,13 @@ pythonpath = [
     "src",
 ]
 
-[tool.setuptools]
-include-package-data = true
-
 [build-system]
-requires = ["setuptools>=80.9.0", "wheel"]
+requires = ["setuptools~=80.10.2", "wheel~=0.46.3"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools.package-data]
+"imgtests" = [
+    "**/*.css",
+    "**/*.js",
+    "**/*.html"
+]

@@ -1,10 +1,10 @@
 import sys
 
+from .web import run_django
 
-def main():
+
+def main() -> None:
     if len(sys.argv) > 1 and sys.argv[1] == "runserver":
-        from .web import run_django
-
         sys.argv[0] = "manage.py"
         run_django()
     else:
