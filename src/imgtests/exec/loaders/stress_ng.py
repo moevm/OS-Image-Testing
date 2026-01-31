@@ -116,7 +116,7 @@ class StressNg(GenericUtil):
         hdd_bytes: str | None = None,
         hdd_opts: str | None = None,
         sock: int | None = None,
-        sock_ops: str | None = None,
+        sock_ops: int | None = None,
         iomix: int | None = None,
         iomix_bytes: str | None = None,
         syscall: int | None = None,
@@ -143,7 +143,7 @@ class StressNg(GenericUtil):
             hdd_opts (str | None): Additional options for HDD stressor.
             sock (int | None): Count of the socket stressors. When set to 0 got count of logical
               processors.
-            sock_ops (str | None): Number of socket operations per stressor.
+            sock_ops (int | None): Number of socket operations per stressor.
             iomix (int | None): Count of the I/O stressors. When set to 0 got count of logical
               processors.
             iomix_bytes (str | None): Utilized memory as value or percent of all available memory.
