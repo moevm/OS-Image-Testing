@@ -22,14 +22,15 @@ def test_endurance_network(client: SSHClient | None) -> None:
     if metrics:
         logger.info(metrics)
 
-    cmd = (
-        "GOOGLE_DNS="
-        + _DNS_SERVER
-        + " GOOGLE_IP="
-        + _GOOGLE_URL
-        + " bash ./scripts/network_endurance.sh"
+    if common_run_command(
+        ["echo", "nameserver", _DNS_SERVER, ">>", "/etc/resolv.conf"], client
+    ).returncode:
+        logger.error("NETWORK endurance test FAILED")
+        return
+    result = common_run_command(
+        ["wget", "--timeout=10", "--tries=1", _GOOGLE_URL],
+        client,
     )
-    result = common_run_command(["bash", "-lc", cmd], client)
     if result.returncode:
         logger.error("NETWORK endurance test FAILED")
         return
