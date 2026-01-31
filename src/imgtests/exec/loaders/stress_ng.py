@@ -112,6 +112,11 @@ class StressNg(GenericUtil):
         vm: int | None = None,
         vm_method: str = "all",
         vm_bytes: str | None = None,
+        hdd: int | None = None,
+        hdd_bytes: str | None = None,
+        hdd_opts: str | None = None,
+        sock: int | None = None,
+        sock_ops: str | None = None,
         iomix: int | None = None,
         iomix_bytes: str | None = None,
         syscall: int | None = None,
@@ -132,6 +137,13 @@ class StressNg(GenericUtil):
               of logical processors.
             vm_method (str): Stress virtual memory method.
             vm_bytes (str | None): Utilized memory as value or percent of all available memory.
+            hdd (int | None): Count of the HDD stressors. When set to 0 got count of logical
+              processors.
+            hdd_bytes (str | None): Utilized disk space as value or percent of all available disk.
+            hdd_opts (str | None): Additional options for HDD stressor.
+            sock (int | None): Count of the socket stressors. When set to 0 got count of logical
+              processors.
+            sock_ops (str | None): Number of socket operations per stressor.
             iomix (int | None): Count of the I/O stressors. When set to 0 got count of logical
               processors.
             iomix_bytes (str | None): Utilized memory as value or percent of all available memory.
@@ -170,6 +182,11 @@ class StressNg(GenericUtil):
             *create_opt("vm", vm),
             *create_opt("vm-method", vm_method),
             *create_opt("vm-bytes", vm_bytes),
+            *create_opt("hdd", hdd),
+            *create_opt("hdd-bytes", hdd_bytes),
+            *create_opt("hdd-opts", hdd_opts),
+            *create_opt("sock", sock),
+            *create_opt("sock-ops", sock_ops),
             *create_opt("iomix", iomix),
             *create_opt("iomix-bytes", iomix_bytes),
             *create_opt("syscall", syscall),

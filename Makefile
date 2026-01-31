@@ -97,37 +97,6 @@ docker-run-image: docker-init-volumes
 		${DOCKER_TAG} \
 		runqemu qemux86-64 slirp nographic
 
-.PHONY: docker-test-image
-docker-test-image: docker-init-volumes
-	@echo "Starting QEMU test..."
-	@mkdir -p ${HOST_TEMP_PATH}; \
-	chmod 757 "${HOST_TEMP_PATH}"; \
-	CONTAINER_ID=$$(docker run -d --rm \
-		--env BUILD_DIR=${BUILD_DIR} \
-		--env POKY_DIR=${POKY_DIR} \
-		--env USER=${USER} \
-		--env GROUP=${GROUP} \
-		--volume ${DOCKER_BUILD_VOLUME}:${BUILD_DIR} \
-		--volume ${DOCKER_DOWNLOADS_VOLUME}:${POKY_DIR}/downloads \
-		--volume ${DOCKER_SSTATE_VOLUME}:${POKY_DIR}/sstate-cache \
-		--volume "${HOST_CONF_PATH}/local.conf:${BUILD_DIR}/conf/local.conf" \
-		--volume "${HOST_CONF_PATH}/packages.conf:${BUILD_DIR}/conf/packages.conf" \
-		--volume "${HOST_LAYERS_PATH}/meta-image-tests:${POKY_DIR}/meta-image-tests" \
-		--volume "${HOST_TEMP_PATH}:/tmp/results" \
-		--volume "${HOST_SCRIPTS_PATH}:/tmp/scripts" \
-		${DOCKER_TAG} \
-		bash /tmp/scripts/run-qemu-test.sh); \
-	{ \
-		echo "Waiting for container $$CONTAINER_ID..."; \
-		docker wait "$$CONTAINER_ID"; \
-		docker logs "$$CONTAINER_ID" > "${HOST_TEMP_PATH}/container.log" 2>&1; \
-		echo "=== SCREEN LOG ==="; \
-		cat "${HOST_TEMP_PATH}/screen.log" 2>/dev/null || echo "Screen log not found"; \
-		rm -rf "${HOST_TEMP_PATH}"; \
-		echo "QEMU test completed. Press enter"; \
-	} &
-	@echo "QEMU test started in background"
-
 .PHONY: docker-compose-up
 docker-compose-up: ensure-volumes
 	docker compose --file docker/compose.yml --project-directory ./ up --detach --build
