@@ -88,6 +88,7 @@ def suse_install_dependencies(client: SSHClient) -> None:
 
 
 def main() -> None:
+    db_inst = Database()
     executor = ThreadPoolExecutor()
     
     client = wait_remote(*yocto_conf) or sys.exit(1)
@@ -108,18 +109,19 @@ def main() -> None:
     for future in as_completed(futures):
         result = future.result()
         sys_infos.append(result)
+        
         logger.info(result.tools_versions)
         logger.info(result.uname_info)
         logger.info("Packages count %d", len(result.package_list))
+        
+        # save system info to DB
+        db_inst.insert_from_system_info(get_system_info(sys_infos[0]))
+        db_inst.insert_from_system_info(get_system_info(sys_infos[1]))
+        db_inst.insert_from_system_info(get_system_info(sys_infos[2]))
+    
     logger.info(compare_system_infos(sys_infos[0], sys_infos[1]))
     logger.info(compare_system_infos(sys_infos[0], sys_infos[2]))
     logger.info(compare_system_infos(sys_infos[1], sys_infos[2]))
-
-    # save system info to DB
-    db_inst = Database()
-    db_inst.insert_from_system_info(get_system_info(client))
-    db_inst.insert_from_system_info(get_system_info(suse155))
-    db_inst.insert_from_system_info(get_system_info(suse156))
 
     test_pts_system(executor, client)
     run_stress_ng_tests(executor, client)
@@ -137,4 +139,7 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    # main()
+    while True:
+        sleep(53)
+
