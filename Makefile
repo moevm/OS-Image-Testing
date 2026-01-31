@@ -25,7 +25,6 @@ BUILD_DIR                  := ${POKY_DIR}/build
 HOST_LAYERS_PATH           := ${CURDIR}/layers
 HOST_CONF_PATH             := ${CURDIR}/conf
 HOST_SCRIPTS_PATH          := ${CURDIR}/scripts
-HOST_TEMP_PATH             := ${CURDIR}/results
 
 # Python
 PACKAGE_MGR                := uv
