@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any
 import paramiko
 import paramiko.ssh_exception
 
+from image.endurance.firmware import test_fwts
 from image.endurance.syscalls import test_ltp_syscalls, test_syscalls_all_stress_ng
 from image.performance.cpu import run_chaosblade_tests, run_stress_ng_tests
 from image.performance.ipc import test_sched
@@ -108,6 +109,7 @@ def main() -> None:
     logger.info(compare_system_infos(sys_infos[0], sys_infos[1]))
     logger.info(compare_system_infos(sys_infos[0], sys_infos[2]))
     logger.info(compare_system_infos(sys_infos[1], sys_infos[2]))
+    test_fwts(executor, client)
     test_pts_system(executor, client)
     run_stress_ng_tests(executor, client)
     run_chaosblade_tests(executor, client)

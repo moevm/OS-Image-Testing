@@ -1,4 +1,5 @@
 import logging
+from concurrent.futures import ThreadPoolExecutor
 
 from imgtests.exec.exec import SSHClient
 from imgtests.exec.loaders import Fwts
@@ -6,9 +7,10 @@ from imgtests.exec.loaders import Fwts
 logger = logging.getLogger(__name__)
 
 
-def test_endurance_fwts(client: SSHClient | None) -> None:
+def test_fwts(executor: ThreadPoolExecutor, client: SSHClient | None) -> None:
     fwts = Fwts(client)
-    r = fwts.run()
+    future = executor.submit(fwts)
+    r = future.result()
     if r.returncode:
         logger.error("FWTS endurance test FAILED")
     else:
