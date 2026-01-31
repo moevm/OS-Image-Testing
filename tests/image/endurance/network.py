@@ -22,7 +22,7 @@ def test_endurance_network(client: SSHClient | None) -> None:
     if client is None:
         logger.warning("SSH client is None, skipping")
         return
-        
+
     dns_q = shlex.quote(_DNS_SERVER)
     url_q = shlex.quote(_GOOGLE_URL)
 

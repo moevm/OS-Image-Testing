@@ -7,10 +7,6 @@ logger = logging.getLogger(__name__)
 
 
 def test_perf_stat_cpu_stress_ng(client: SSHClient | None) -> None:
-    if client is None:
-        logger.warning("SSH client is None, skipping")
-        return
-
     perf = Perf(client)
     r = perf(
         [
@@ -37,10 +33,6 @@ def test_perf_stat_cpu_stress_ng(client: SSHClient | None) -> None:
 
 
 def test_perf_stat_disks_stress_ng(client: SSHClient | None) -> None:
-    if client is None:
-        logger.warning("SSH client is None, skipping")
-        return
-
     perf = Perf(client)
     r = perf(
         [
@@ -67,10 +59,6 @@ def test_perf_stat_disks_stress_ng(client: SSHClient | None) -> None:
 
 
 def test_perf_stat_memory_stress_ng(client: SSHClient | None) -> None:
-    if client is None:
-        logger.warning("SSH client is None, skipping")
-        return
-
     perf = Perf(client)
     r = perf(
         [
@@ -97,10 +85,6 @@ def test_perf_stat_memory_stress_ng(client: SSHClient | None) -> None:
 
 
 def test_perf_stat_network_stress_ng(client: SSHClient | None) -> None:
-    if client is None:
-        logger.warning("SSH client is None, skipping")
-        return
-
     perf = Perf(client)
     r = perf(
         [
@@ -126,10 +110,6 @@ def test_perf_stat_network_stress_ng(client: SSHClient | None) -> None:
 
 
 def test_perf_stat_find_syscalls(client: SSHClient | None) -> None:
-    if client is None:
-        logger.warning("SSH client is None, skipping")
-        return
-
     perf = Perf(client)
     r = perf(
         [
@@ -138,7 +118,7 @@ def test_perf_stat_find_syscalls(client: SSHClient | None) -> None:
             "syscalls:sys_enter_newstat,syscalls:sys_enter_newlstat,syscalls:sys_enter_newfstatat,syscalls:sys_enter_openat,context-switches,minor-faults",
             "--",
             "find",
-            "/tmp",
+            "/tmp",  # noqa: S108
             "-name",
             "nonexistentfile",
         ]
@@ -148,4 +128,3 @@ def test_perf_stat_find_syscalls(client: SSHClient | None) -> None:
         logger.error("perf stat find syscalls FAILED")
     else:
         logger.info("perf stat find syscalls PASSED")
-

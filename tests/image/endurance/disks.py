@@ -28,4 +28,3 @@ def test_endurance_disks_stress_ng(client: SSHClient | None) -> None:
         logger.info(summary)
     if metrics:
         logger.info(metrics)
-
