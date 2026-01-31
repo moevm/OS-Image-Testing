@@ -7,10 +7,6 @@ logger = logging.getLogger(__name__)
 
 
 def test_endurance_memory_stress_ng(client: SSHClient | None) -> None:
-    if client is None:
-        logger.warning("SSH client is None, skipping")
-        return
-
     stress_ng = StressNg(client)
     result, (metrics, summary) = stress_ng.run(
         timeout_sec=10,

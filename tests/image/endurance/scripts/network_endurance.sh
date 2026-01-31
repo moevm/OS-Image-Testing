@@ -30,4 +30,3 @@ else
     echo "NETWORK test FAILED"
     exit 1
 fi
-
