@@ -21,6 +21,8 @@ from imgtests.logger import set_handlers
 from imgtests.sysrep import SystemInfo, compare_system_infos, get_os_release, get_system_info
 from imgtests.types import Distro
 
+from imgtests.database.database import Database
+
 logger = logging.getLogger()
 set_handlers(logger, Path("processing.log"))
 
@@ -87,17 +89,21 @@ def suse_install_dependencies(client: SSHClient) -> None:
 
 def main() -> None:
     executor = ThreadPoolExecutor()
+    
     client = wait_remote(*yocto_conf) or sys.exit(1)
     suse155 = wait_remote(*suse_155_conf) or sys.exit(1)
     suse156 = wait_remote(*suse_156_conf) or sys.exit(1)
     suse155(["echo", "test"])
     suse156(["echo", "test"])
+
     is_alive_cycle = Thread(target=is_remote_alive, args=(client, executor))
     is_alive_cycle.start()
+
     futures: list[Future[Any]] = []
     futures.append(executor.submit(get_system_info, client))
     futures.append(executor.submit(get_system_info, suse155))
     futures.append(executor.submit(get_system_info, suse156))
+    
     sys_infos: list[SystemInfo] = []
     for future in as_completed(futures):
         result = future.result()
@@ -108,15 +114,24 @@ def main() -> None:
     logger.info(compare_system_infos(sys_infos[0], sys_infos[1]))
     logger.info(compare_system_infos(sys_infos[0], sys_infos[2]))
     logger.info(compare_system_infos(sys_infos[1], sys_infos[2]))
+
+    # save system info to DB
+    db_inst = Database()
+    db_inst.insert_from_system_info(get_system_info(client))
+    db_inst.insert_from_system_info(get_system_info(suse155))
+    db_inst.insert_from_system_info(get_system_info(suse156))
+
     test_pts_system(executor, client)
     run_stress_ng_tests(executor, client)
     run_chaosblade_tests(executor, client)
+    
     future = executor.submit(test_syscalls_all_stress_ng, client)
     future.result()
     future = executor.submit(test_ltp_syscalls, client)
     future.result()
     future = executor.submit(test_sched, client)
     future.result()
+
     logger.info("All tests completed successfully")
     is_alive_cycle.join()
 

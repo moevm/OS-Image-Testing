@@ -7,4 +7,4 @@ class RPM(GenericUtil):
         super().__init__("rpm", ssh_client)
 
     def get_pkglist(self) -> tuple[str, ...]:
-        return tuple(self(["-qa"]).stdout.strip().split("\n"))
+        return tuple(self(["-qa", "--queryformat", "'%{NAME} %{VERSION}:%{RELEASE}\n'"]).stdout.strip().split("\n"))
