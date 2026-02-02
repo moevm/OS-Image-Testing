@@ -20,8 +20,8 @@ class OsInfo(NamedTuple):
     os: str
     os_ver: Version
 
-    def __str__(self):
-        return " ".join([self.os, str(self.os_ver)])
+    def __str__(self) -> str:
+        return f"{self.os} {self.os_ver!s}"
 
 
 class ToolsVersions(NamedTuple):

@@ -13,7 +13,7 @@ class UnameInfo(NamedTuple):
     hardware_platform: str
     operating_system: str
 
-    def __str__(self):
+    def __str__(self) -> str:
         return " ".join(
             [
                 self.kernel_name,
