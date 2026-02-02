@@ -7,19 +7,18 @@ from zoneinfo import ZoneInfo
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from imgtests.sysrep import SystemInfo
-
 from imgtests.database.models.base import Base
 from imgtests.database.models.configuration import ConfigurationBase
 from imgtests.database.models.experiment import ExperimentBase
 from imgtests.database.models.loader import LoaderBase
 from imgtests.database.models.observer import ObserverBase
+from imgtests.sysrep import SystemInfo
 
 logger = logging.getLogger(__name__)
 
 
 class Database:
-    def __init__(self, database: str = "postgres"):
+    def __init__(self, database: str = "postgres") -> None:
         if database == "postgres":
             self.initialize_postgres()
         else:
@@ -45,26 +44,20 @@ class Database:
     def insert_from_system_info(self, sys_info: SystemInfo) -> None:
         db_os = str(sys_info.os_info)
         db_cinfo = str(sys_info.uname_info)
-        # convert package_list
-        to_dict_tuples = []
+        db_pkgs: dict[str, str] = {}
         for line in sys_info.package_list:
             to_dict_tuple = (line.split()[0], line.split()[1])
-            to_dict_tuples.append(to_dict_tuple)
-        db_pkgs = dict(to_dict_tuples)
-        # convert kernel config
-        to_dict_tuples = []
+            db_pkgs[to_dict_tuple[0]] = to_dict_tuple[1]
+        db_kconf: dict[str, str] = {}
         for line in sys_info.kernel_config:
             if line:
-                # separate lines with # symbol
                 if line[0] == "#":
                     if line[0:8] == "# CONFIG":
-                        to_dict_tuple = (line.split()[1], "not set")
-                        to_dict_tuples.append(to_dict_tuple)
+                        db_kconf[line.split()[1]] = "not set"
                 else:
                     idx = line.find("=")
-                    to_dict_tuple = (line[0:idx], line[idx+1:])
-                    to_dict_tuples.append(to_dict_tuple)
-        db_kconf = dict(to_dict_tuples)
+                    to_dict_tuple = (line[0:idx], line[idx + 1 :])
+                    db_kconf[line[0:idx]] = line[idx + 1 :]
         self.insert_configuration(db_os, db_pkgs, db_cinfo, db_kconf)
 
     def insert_configuration(
