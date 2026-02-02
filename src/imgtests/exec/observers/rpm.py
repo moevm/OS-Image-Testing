@@ -10,8 +10,4 @@ class RPM(GenericUtil):
         if rpm_format is None:
             # default rpm -qa return format
             rpm_format = "'%{NAME}-%{VERSION}-%{RELEASE}-%{ARCH}\n'"
-        return tuple(self([
-            "-qa",
-            "--queryformat",
-            rpm_format
-        ]).stdout.strip().split("\n"))
+        return tuple(self(["-qa", "--queryformat", rpm_format]).stdout.strip().split("\n"))

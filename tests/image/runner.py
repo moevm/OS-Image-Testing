@@ -16,12 +16,11 @@ from image.performance.system import test_pts_system
 
 if TYPE_CHECKING:
     from imgtests.exec.base_util import BaseTestUtil
+from imgtests.database.database import Database
 from imgtests.exec.exec import SSHClient, wait_remote
 from imgtests.logger import set_handlers
 from imgtests.sysrep import SystemInfo, compare_system_infos, get_os_release, get_system_info
 from imgtests.types import Distro
-
-from imgtests.database.database import Database
 
 logger = logging.getLogger()
 set_handlers(logger, Path("processing.log"))
@@ -98,12 +97,15 @@ def main() -> None:
     is_alive_cycle = Thread(target=is_remote_alive, args=(client, executor))
     is_alive_cycle.start()
     futures: list[Future[Any]] = []
-    futures.append(executor.submit(get_system_info, client, 
-                                   "'%{NAME} %{VERSION}:%{RELEASE}:%{ARCH}\n'"))
-    futures.append(executor.submit(get_system_info, suse155, 
-                                   "'%{NAME} %{VERSION}:%{RELEASE}:%{ARCH}\n'"))
-    futures.append(executor.submit(get_system_info, suse156, 
-                                   "'%{NAME} %{VERSION}:%{RELEASE}:%{ARCH}\n'"))
+    futures.append(
+        executor.submit(get_system_info, client, "'%{NAME} %{VERSION}:%{RELEASE}:%{ARCH}\n'")
+    )
+    futures.append(
+        executor.submit(get_system_info, suse155, "'%{NAME} %{VERSION}:%{RELEASE}:%{ARCH}\n'")
+    )
+    futures.append(
+        executor.submit(get_system_info, suse156, "'%{NAME} %{VERSION}:%{RELEASE}:%{ARCH}\n'")
+    )
     sys_infos: list[SystemInfo] = []
     for future in as_completed(futures):
         result = future.result()
@@ -111,7 +113,6 @@ def main() -> None:
         logger.info(result.tools_versions)
         logger.info(result.uname_info)
         logger.info("Packages count %d", len(result.package_list))
-        # save system info to DB
         db_inst.insert_from_system_info(result)
     logger.info(compare_system_infos(sys_infos[0], sys_infos[1]))
     logger.info(compare_system_infos(sys_infos[0], sys_infos[2]))

@@ -14,14 +14,16 @@ class UnameInfo(NamedTuple):
     operating_system: str
 
     def __str__(self):
-        return " ".join([
-            self.kernel_name,
-            str(self.kernel_release),
-            self.kernel_version,
-            self.machine,
-            self.hardware_platform,
-            self.operating_system
-        ])
+        return " ".join(
+            [
+                self.kernel_name,
+                str(self.kernel_release),
+                self.kernel_version,
+                self.machine,
+                self.hardware_platform,
+                self.operating_system,
+            ]
+        )
 
 
 class Uname(GenericUtil):

@@ -47,8 +47,9 @@ class SystemInfoDiff(NamedTuple):
     tools_diff: dict[str, Any]
 
 
-def get_system_info(ssh_client: SSHClient | None = None, 
-                    rpm_format: str | None = None) -> SystemInfo:
+def get_system_info(
+    ssh_client: SSHClient | None = None, rpm_format: str | None = None
+) -> SystemInfo:
     uname = Uname(ssh_client)
     zcat = Zcat(ssh_client)
     rpm = RPM(ssh_client)
