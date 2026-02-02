@@ -44,6 +44,7 @@
 - [RRDtool](./utilities/monitoring/RRDtool.md)
 - [Victoria Metrics](./utilities/monitoring/VictoriaMetrics.md)
 - [Collectd](./utilities/monitoring/collectd.md)
+- [Monigo](./utilities/monitoring/monigo.md)
 
 ### 3.3 Раннеры
 

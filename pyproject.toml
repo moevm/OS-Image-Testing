@@ -19,13 +19,13 @@ dependencies = [
     "typing-extensions~=4.15.0",
     "python-json-logger~=4.0.0",
     "deepdiff~=8.6.1",
-    "sqlalchemy~=2.0.45",
+    "sqlalchemy~=2.0.46",
     "psycopg[binary]~=3.3.2",
 ]
 
 [dependency-groups]
 lint = [
-    "ruff~=0.14.10",
+    "ruff~=0.14.14",
 ]
 tests = [
     "pytest~=9.0.2",

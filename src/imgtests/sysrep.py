@@ -3,6 +3,7 @@ from typing import Any, NamedTuple
 from deepdiff import DeepDiff
 
 from imgtests.exec.exec import SSHClient
+from imgtests.exec.loaders import Fwts
 from imgtests.exec.loaders.fio import Fio
 from imgtests.exec.loaders.kirk import Kirk
 from imgtests.exec.loaders.perf import Perf
@@ -25,6 +26,7 @@ class OsInfo(NamedTuple):
 
 class ToolsVersions(NamedTuple):
     fio_ver: Version
+    fwts_ver: Version
     stress_ng_ver: Version
     kirk_ver: Version
     perf_ver: Version
@@ -65,6 +67,7 @@ def get_system_info(ssh_client: SSHClient | None = None,
         package_list=rpm.get_pkglist(rpm_format),
         tools_versions=ToolsVersions(
             Fio(ssh_client).version() or Version(""),
+            Fwts(ssh_client).version() or Version(""),
             StressNg(ssh_client).version() or Version(""),
             Kirk(ssh_client).version() or Version(""),
             Perf(ssh_client).version() or Version(""),

@@ -2,6 +2,7 @@ from .chaosblade import Chaosblade as Chaosblade
 from .chaosblade import ChaosResponse as ChaosResponse
 from .fio import Fio as Fio
 from .fio import FioPlot as FioPlot
+from .fwts import Fwts as Fwts
 from .kirk import Kirk as Kirk
 from .perf import Perf as Perf
 from .perf import PerfBenchMetrics as PerfBenchMetrics
