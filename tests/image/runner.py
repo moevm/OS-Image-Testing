@@ -90,50 +90,38 @@ def suse_install_dependencies(client: SSHClient) -> None:
 def main() -> None:
     db_inst = Database()
     executor = ThreadPoolExecutor()
-    
     client = wait_remote(*yocto_conf) or sys.exit(1)
     suse155 = wait_remote(*suse_155_conf) or sys.exit(1)
     suse156 = wait_remote(*suse_156_conf) or sys.exit(1)
     suse155(["echo", "test"])
     suse156(["echo", "test"])
-
     is_alive_cycle = Thread(target=is_remote_alive, args=(client, executor))
     is_alive_cycle.start()
-
     futures: list[Future[Any]] = []
-    futures.append(executor.submit(get_system_info, client))
-    futures.append(executor.submit(get_system_info, suse155))
-    futures.append(executor.submit(get_system_info, suse156))
-    
+    futures.append(executor.submit(get_system_info, client, "'%{NAME} %{VERSION}:%{RELEASE}:%{ARCH}\n'"))
+    futures.append(executor.submit(get_system_info, suse155, "'%{NAME} %{VERSION}:%{RELEASE}:%{ARCH}\n'"))
+    futures.append(executor.submit(get_system_info, suse156, "'%{NAME} %{VERSION}:%{RELEASE}:%{ARCH}\n'"))
     sys_infos: list[SystemInfo] = []
     for future in as_completed(futures):
         result = future.result()
         sys_infos.append(result)
-        
         logger.info(result.tools_versions)
         logger.info(result.uname_info)
         logger.info("Packages count %d", len(result.package_list))
-        
         # save system info to DB
-        db_inst.insert_from_system_info(get_system_info(sys_infos[0]))
-        db_inst.insert_from_system_info(get_system_info(sys_infos[1]))
-        db_inst.insert_from_system_info(get_system_info(sys_infos[2]))
-    
+        db_inst.insert_from_system_info(result)
     logger.info(compare_system_infos(sys_infos[0], sys_infos[1]))
     logger.info(compare_system_infos(sys_infos[0], sys_infos[2]))
     logger.info(compare_system_infos(sys_infos[1], sys_infos[2]))
-
     test_pts_system(executor, client)
     run_stress_ng_tests(executor, client)
     run_chaosblade_tests(executor, client)
-    
     future = executor.submit(test_syscalls_all_stress_ng, client)
     future.result()
     future = executor.submit(test_ltp_syscalls, client)
     future.result()
     future = executor.submit(test_sched, client)
     future.result()
-
     logger.info("All tests completed successfully")
     is_alive_cycle.join()
 

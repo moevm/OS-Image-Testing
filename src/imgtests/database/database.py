@@ -43,36 +43,28 @@ class Database:
             raise RuntimeError(error_message)
 
     def insert_from_system_info(self, sys_info: SystemInfo) -> None:
-        db_os = " ".join([sys_info.os_info.os, str(sys_info.os_info.os_ver)])
-        db_cinfo = " ".join([
-            sys_info.uname_info.kernel_name,
-            str(sys_info.uname_info.kernel_release),
-            sys_info.uname_info.kernel_version,
-            sys_info.uname_info.machine,
-            sys_info.uname_info.hardware_platform,
-            sys_info.uname_info.operating_system
-        ])
-
-        tps = []
+        db_os = str(sys_info.os_info)
+        db_cinfo = str(sys_info.uname_info)
+        # convert package_list
+        to_dict_tuples = []
         for line in sys_info.package_list:
-            tp = (line.split()[0], line.split()[1])
-            tps.append(tp)
-        db_pkgs = dict(tps)
-
-        tps = []
+            to_dict_tuple = (line.split()[0], line.split()[1])
+            to_dict_tuples.append(to_dict_tuple)
+        db_pkgs = dict(to_dict_tuples)
+        # convert kernel config
+        to_dict_tuples = []
         for line in sys_info.kernel_config:
             if line:
                 # separate lines with # symbol
                 if line[0] == "#":
                     if line[0:8] == "# CONFIG":
-                        tp = (line.split()[1], "not set")
-                        tps.append(tp)
+                        to_dict_tuple = (line.split()[1], "not set")
+                        to_dict_tuples.append(to_dict_tuple)
                 else:
                     idx = line.find("=")
-                    tp = (line[0:idx], line[idx+1:])
-                    tps.append(tp)
-        db_kconf = dict(tps)
-
+                    to_dict_tuple = (line[0:idx], line[idx+1:])
+                    to_dict_tuples.append(to_dict_tuple)
+        db_kconf = dict(to_dict_tuples)
         self.insert_configuration(db_os, db_pkgs, db_cinfo, db_kconf)
 
     def insert_configuration(

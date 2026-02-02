@@ -13,6 +13,16 @@ class UnameInfo(NamedTuple):
     hardware_platform: str
     operating_system: str
 
+    def __str__(self):
+        return " ".join([
+            self.kernel_name,
+            str(self.kernel_release),
+            self.kernel_version,
+            self.machine,
+            self.hardware_platform,
+            self.operating_system
+        ])
+
 
 class Uname(GenericUtil):
     def __init__(self, ssh_client: SSHClient | None = None) -> None:

@@ -19,6 +19,9 @@ class OsInfo(NamedTuple):
     os: str
     os_ver: Version
 
+    def __str__(self):
+        return " ".join([self.os, str(self.os_ver)])
+
 
 class ToolsVersions(NamedTuple):
     fio_ver: Version
@@ -42,7 +45,7 @@ class SystemInfoDiff(NamedTuple):
     tools_diff: dict[str, Any]
 
 
-def get_system_info(ssh_client: SSHClient | None = None) -> SystemInfo:
+def get_system_info(ssh_client: SSHClient | None = None, rpm_format: str | None = None) -> SystemInfo:
     uname = Uname(ssh_client)
     zcat = Zcat(ssh_client)
     rpm = RPM(ssh_client)
@@ -58,7 +61,7 @@ def get_system_info(ssh_client: SSHClient | None = None) -> SystemInfo:
             os_ver=Version(os_ver),
         ),
         kernel_config=zcat.get_compressed_files_contents(["/proc/config.gz"]),
-        package_list=rpm.get_pkglist(),
+        package_list=rpm.get_pkglist(rpm_format),
         tools_versions=ToolsVersions(
             Fio(ssh_client).version() or Version(""),
             StressNg(ssh_client).version() or Version(""),
