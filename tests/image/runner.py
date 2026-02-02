@@ -16,6 +16,7 @@ from image.performance.system import test_pts_system
 
 if TYPE_CHECKING:
     from imgtests.exec.base_util import BaseTestUtil
+from imgtests.database.database import Database
 from imgtests.exec.exec import SSHClient, wait_remote
 from imgtests.logger import set_handlers
 from imgtests.sysrep import SystemInfo, compare_system_infos, get_os_release, get_system_info
@@ -86,6 +87,7 @@ def suse_install_dependencies(client: SSHClient) -> None:
 
 
 def main() -> None:
+    db_inst = Database()
     executor = ThreadPoolExecutor()
     client = wait_remote(*yocto_conf) or sys.exit(1)
     suse155 = wait_remote(*suse_155_conf) or sys.exit(1)
@@ -105,6 +107,7 @@ def main() -> None:
         logger.info(result.tools_versions)
         logger.info(result.uname_info)
         logger.info("Packages count %d", len(result.package_list))
+        db_inst.insert_from_system_info(result)
     logger.info(compare_system_infos(sys_infos[0], sys_infos[1]))
     logger.info(compare_system_infos(sys_infos[0], sys_infos[2]))
     logger.info(compare_system_infos(sys_infos[1], sys_infos[2]))

@@ -13,10 +13,10 @@ class ConfigurationBase(Base):
     __tablename__ = "configuration"
 
     config_id: Mapped[int] = mapped_column(primary_key=True)
-    os: Mapped[str] = mapped_column(String(30))
-    packages: Mapped[dict | None] = mapped_column(JSON)
-    core_info: Mapped[str | None] = mapped_column(String(300))
-    core_config: Mapped[dict | None] = mapped_column(JSON)
+    os: Mapped[str] = mapped_column(String(100))
+    packages: Mapped[dict[str, str]] = mapped_column(JSON)
+    core_info: Mapped[str] = mapped_column(String(300))
+    core_config: Mapped[dict[str, str]] = mapped_column(JSON)
     experiments: Mapped[list["ExperimentBase"]] = relationship(
         "ExperimentBase", back_populates="configuration"
     )
