@@ -98,9 +98,12 @@ def main() -> None:
     is_alive_cycle = Thread(target=is_remote_alive, args=(client, executor))
     is_alive_cycle.start()
     futures: list[Future[Any]] = []
-    futures.append(executor.submit(get_system_info, client, "'%{NAME} %{VERSION}:%{RELEASE}:%{ARCH}\n'"))
-    futures.append(executor.submit(get_system_info, suse155, "'%{NAME} %{VERSION}:%{RELEASE}:%{ARCH}\n'"))
-    futures.append(executor.submit(get_system_info, suse156, "'%{NAME} %{VERSION}:%{RELEASE}:%{ARCH}\n'"))
+    futures.append(executor.submit(get_system_info, client, 
+                                   "'%{NAME} %{VERSION}:%{RELEASE}:%{ARCH}\n'"))
+    futures.append(executor.submit(get_system_info, suse155, 
+                                   "'%{NAME} %{VERSION}:%{RELEASE}:%{ARCH}\n'"))
+    futures.append(executor.submit(get_system_info, suse156, 
+                                   "'%{NAME} %{VERSION}:%{RELEASE}:%{ARCH}\n'"))
     sys_infos: list[SystemInfo] = []
     for future in as_completed(futures):
         result = future.result()
