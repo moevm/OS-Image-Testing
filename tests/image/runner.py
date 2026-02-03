@@ -7,6 +7,12 @@ from image.performance.cpu import test_chaosblade_cpu, test_stress_ng_cpu
 from image.performance.fio_disks import test_fio_disks_scaling
 from image.performance.ipc import test_sched
 from image.performance.network import test_iperf3
+from image.performance.std_utils import (
+    test_net_utils,
+    test_other_tools,
+    test_utils_for_dirs,
+    test_utils_for_files,
+)
 from image.performance.system import test_pts_system
 from imgtests.exec.exec import wait_remote
 from imgtests.exec.observers.systemd_analyze import SystemdAnalyze
