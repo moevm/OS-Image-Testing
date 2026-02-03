@@ -17,16 +17,12 @@ USER ${USER}
 WORKDIR /home/${USER}
 
 ENV PATH="/home/${USER}/.local/bin:${PATH}"
-ENV MPLBACKEND=Agg
 
 RUN mkdir /home/${USER}/.ssh
 
 COPY --chown=${USER}:${GROUP} src/ /home/${USER}/python
 COPY --chown=${USER}:${GROUP} pyproject.toml /home/${USER}/python
-RUN cd /home/${USER}/python && \
-    python3 -m pip install --user -U pip setuptools wheel && \
-    python3 -m pip install --user . && \
-    python3 -m pip install --user fio-plot matplotlib
+RUN cd /home/${USER}/python && python3 -m pip install .
 RUN rm -rf /home/${USER}/python
 
 VOLUME [ "/home/${USER}/tests" ]

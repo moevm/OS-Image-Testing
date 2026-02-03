@@ -181,13 +181,6 @@ class FioSuite:
 
     def _plot(self, local_suite_root: Path, stamp: str) -> None:
         fio_plot = FioPlot(None)
-        if fio_plot.path is None:
-            fio_plot.install()
-            fio_plot = FioPlot(None)
-
-        if fio_plot.path is None:
-            err_msg = "fio-plot not found locally"
-            raise RuntimeError(err_msg)
 
         for rw_dir in sorted(local_suite_root.iterdir()):
             if not rw_dir.is_dir():
