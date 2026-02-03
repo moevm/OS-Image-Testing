@@ -84,12 +84,6 @@ class FioSuite:
             raise ValueError(err_msg)
 
         fio = Fio(self.client)
-        if fio.path is None:
-            err_msg = "fio not found on target"
-            raise RuntimeError(err_msg)
-        if not self.cfg.workloads:
-            err_msg = "workloads must be non-empty"
-            raise ValueError(err_msg)
 
         stamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%SZ")
         remote_suite_root = self.cfg.remote_tmp_root / f"{self.cfg.suite}-{stamp}"
