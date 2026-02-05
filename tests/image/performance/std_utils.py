@@ -75,27 +75,27 @@ def test_utils_for_files(client: SSHClient | None) -> None:
         cmd = tool
         if tool in {"head", "tail"}:
             cmd = f"{tool} -n 1000 {filename1}"
-        if tool == "grep":
+        elif tool == "grep":
             cmd = f"{tool} test {filename1}"
-        if tool == "paste":
+        elif tool == "paste":
             cmd = f"{tool} {filename2} {filename1}"
-        if tool == "tr":
+        elif tool == "tr":
             cmd = f"{tool} 'a-z' 'A-Z' < {filename1}"
-        if tool == "diff":
+        elif tool == "diff":
             cmd = f"{tool} -u {filename1} {filename2} > diff.patch"
-        if tool == "patch":
+        elif tool == "patch":
             cmd = f"{tool} {filename1} < diff.patch"
-        if tool == "cp":
+        elif tool == "cp":
             cmd = " ".join([tool, filename1, f"{filename1}.new"])
-        if tool == "mv":
+        elif tool == "mv":
             cmd = " ".join([tool, f"{filename1}.new", filename1])
-        if tool == "ln":
+        elif tool == "ln":
             cmd = " ".join([tool, filename1, f"{filename1}.hardlink"])
-        if tool == "chmod":
+        elif tool == "chmod":
             cmd = f"{tool} 777 {filename1}"
-        if tool in {"chown", "chgrp"}:
+        elif tool in {"chown", "chgrp"}:
             cmd = f"{tool} root {filename1}"
-        if tool == "tar":
+        elif tool == "tar":
             cmd = f"{tool} cf {filename1}.tar {filename1}"
         ret = time([cmd, ">", "/dev/null"])
         logger.info(
@@ -138,13 +138,13 @@ def test_utils_for_dirs(client: SSHClient | None) -> None:
         cmd = tool
         if tool in {"mkdir", "rmdir"}:
             cmd = f"{tool} -p {path}"
-        if tool == "find":
+        elif tool == "find":
             cmd = f"{tool} /tmp -type d -name '40'"
-        if tool == "ls":
+        elif tool == "ls":
             for i in range(1, 101):
                 dd(["if=/dev/urandom", f"of=/tmp/file{i}", "bs=10", "count=1", "2>/dev/null"])
             cmd = f"{tool} /tmp"
-        if tool == "realpath":
+        elif tool == "realpath":
             cmd = f"{tool} {path}"
         ret = time([cmd, ">", "/dev/null"])
         logger.info(
@@ -176,9 +176,9 @@ def test_other_tools(client: SSHClient | None) -> None:
         cmd = tool
         if tool == "ps":
             cmd = f"{tool} aux | grep {process}"
-        if tool == "pgrep":
+        elif tool == "pgrep":
             cmd = f"{tool} {process}"
-        if tool in {"echo", "hello"}:
+        elif tool in {"echo", "hello"}:
             string = "a" * 1000
             cmd = f"{tool} {string}"
         ret = time([cmd, ">", "/dev/null"])
