@@ -32,12 +32,6 @@ yocto_conf = (
     "SSH_YOCTO_PASS",
     "SSH_YOCTO_PORT",
 )
-suse_155_conf = (
-    "SSH_SUSE_ADDR_155",
-    "SSH_SUSE_USER",
-    "SSH_SUSE_PASS",
-    "SSH_SUSE_PORT_155",
-)
 suse_156_conf = (
     "SSH_SUSE_ADDR_156",
     "SSH_SUSE_USER",
@@ -86,31 +80,7 @@ def suse_install_dependencies(client: SSHClient) -> None:
         )
 
 
-def main() -> None:
-    db_inst = Database()
-    executor = ThreadPoolExecutor()
-    client = wait_remote(*yocto_conf) or sys.exit(1)
-    suse155 = wait_remote(*suse_155_conf) or sys.exit(1)
-    suse156 = wait_remote(*suse_156_conf) or sys.exit(1)
-    suse155(["echo", "test"])
-    suse156(["echo", "test"])
-    is_alive_cycle = Thread(target=is_remote_alive, args=(client, executor))
-    is_alive_cycle.start()
-    futures: list[Future[Any]] = []
-    futures.append(executor.submit(get_system_info, client))
-    futures.append(executor.submit(get_system_info, suse155))
-    futures.append(executor.submit(get_system_info, suse156))
-    sys_infos: list[SystemInfo] = []
-    for future in as_completed(futures):
-        result = future.result()
-        sys_infos.append(result)
-        logger.info(result.tools_versions)
-        logger.info(result.uname_info)
-        logger.info("Packages count %d", len(result.package_list))
-        db_inst.insert_from_system_info(result)
-    logger.info(compare_system_infos(sys_infos[0], sys_infos[1]))
-    logger.info(compare_system_infos(sys_infos[0], sys_infos[2]))
-    logger.info(compare_system_infos(sys_infos[1], sys_infos[2]))
+def run_tests(executor: ThreadPoolExecutor, client: SSHClient) -> None:
     test_pts_system(executor, client)
     run_stress_ng_tests(executor, client)
     run_chaosblade_tests(executor, client)
@@ -121,6 +91,29 @@ def main() -> None:
     future = executor.submit(test_sched, client)
     future.result()
     logger.info("All tests completed successfully")
+
+
+def main() -> None:
+    db_inst = Database()
+    executor = ThreadPoolExecutor()
+    client = wait_remote(*yocto_conf) or sys.exit(1)
+    suse156 = wait_remote(*suse_156_conf) or sys.exit(1)
+    suse156(["echo", "test"])
+    is_alive_cycle = Thread(target=is_remote_alive, args=(client, executor))
+    is_alive_cycle.start()
+    futures: list[Future[Any]] = []
+    futures.append(executor.submit(get_system_info, client))
+    futures.append(executor.submit(get_system_info, suse156))
+    sys_infos: list[SystemInfo] = []
+    for future in as_completed(futures):
+        result = future.result()
+        sys_infos.append(result)
+        logger.info(result.tools_versions)
+        logger.info(result.uname_info)
+        logger.info("Packages count %d", len(result.package_list))
+        db_inst.insert_from_system_info(result)
+    logger.info(compare_system_infos(sys_infos[0], sys_infos[1]))
+    run_tests(executor, client)
     is_alive_cycle.join()
 
 

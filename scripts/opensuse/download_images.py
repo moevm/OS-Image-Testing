@@ -34,7 +34,7 @@ def handle_result(result: subprocess.CompletedProcess[str]) -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument("suse_ver", help="OpenSUSE version.", choices=["15.5", "15.6"])
+    parser.add_argument("suse_ver", help="OpenSUSE version.", choices=["15.6"])
     return parser.parse_args()
 
 
