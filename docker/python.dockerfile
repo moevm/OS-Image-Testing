@@ -3,6 +3,8 @@ FROM python:3.13.12-slim-trixie
 ARG USER
 ARG GROUP
 
+ENV PATH="/home/${USER}/.local/bin:${PATH}"
+
 RUN apt update && \
     apt install -y \
     openssh-client \
@@ -15,8 +17,6 @@ RUN groupadd -g 510 ${GROUP} && \
 
 USER ${USER}
 WORKDIR /home/${USER}
-
-ENV PATH="/home/${USER}/.local/bin:${PATH}"
 
 RUN mkdir /home/${USER}/.ssh
 
