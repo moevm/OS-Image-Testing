@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 
 from imgtests.exec.exec import SSHClient
-from imgtests.exec.suites.fio_suite import FioSuiteConfig, FioWorkload, run_fio_suite
+from imgtests.suites.drive.fio import FioSuiteConfig, FioWorkload, run_fio_suite
 
 logger = logging.getLogger(__name__)
 
