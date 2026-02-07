@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 
 from imgtests.exec.exec import SSHClient
-from imgtests.suites.drive.fio import FioSuiteConfig, FioWorkload, run_fio_suite
+from imgtests.suites.drive.fio import FioSuite, FioSuiteConfig, FioWorkload
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +37,7 @@ def test_fio_disks_scaling(remote: SSHClient, duration_sec: int, results_dir: Pa
         results_dir=results_dir / "fio",
         workloads=SCALING_WORKLOADS,
     )
-    out = run_fio_suite(remote, cfg)
+    out = FioSuite(remote, cfg).run()
     logger.info("FIO scaling PASSED: %s", out)
 
 
@@ -48,5 +48,5 @@ def test_fio_disks_nightly(remote: SSHClient, duration_sec: int, results_dir: Pa
         results_dir=results_dir / "fio",
         workloads=NIGHTLY_WORKLOADS,
     )
-    out = run_fio_suite(remote, cfg)
+    out = FioSuite(remote, cfg).run()
     logger.info("FIO nightly PASSED: %s", out)
