@@ -23,7 +23,7 @@ dependencies = [
     "psycopg[binary]~=3.3.2",
     "fio-plot~=1.1.15",
     "matplotlib~=3.10.8",
-    "setuptools"
+    "setuptools~=81.0.0",
 ]
 
 [dependency-groups]
