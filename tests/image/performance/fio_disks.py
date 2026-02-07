@@ -30,7 +30,7 @@ NIGHTLY_WORKLOADS: tuple[FioWorkload, ...] = (
 )
 
 
-def test_fio_disks_scaling(remote: SSHClient, duration_sec: int, results_dir: Path) -> None:
+def test_fio_disks_scaling(remote: SSHClient | None, duration_sec: int, results_dir: Path) -> None:
     cfg = FioSuiteConfig(
         suite="scaling",
         duration_sec=duration_sec,
@@ -41,7 +41,7 @@ def test_fio_disks_scaling(remote: SSHClient, duration_sec: int, results_dir: Pa
     logger.info("FIO scaling PASSED: %s", out)
 
 
-def test_fio_disks_nightly(remote: SSHClient, duration_sec: int, results_dir: Path) -> None:
+def test_fio_disks_nightly(remote: SSHClient | None, duration_sec: int, results_dir: Path) -> None:
     cfg = FioSuiteConfig(
         suite="nightly",
         duration_sec=duration_sec,

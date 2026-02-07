@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 _DIFF_GUARD_MAX = 1_000_000
-_DEFAULT_REMOTE_TMP_ROOT = Path(tempfile.gettempdir()) / "imgtests-fio"
+_DEFAULT_TMP_ROOT = Path(tempfile.gettempdir()) / "imgtests-fio"
 
 
 @dataclass(frozen=True)
@@ -51,7 +51,7 @@ class FioCase:
     iodepth: int
     numjobs: int
     runtime_sec: int
-    remote_out_dir: Path
+    out_dir: Path
 
 
 @dataclass(frozen=True)
@@ -66,7 +66,7 @@ class FioSuiteConfig:
 
 
 class FioSuite:
-    def __init__(self, client: SSHClient, cfg: FioSuiteConfig) -> None:
+    def __init__(self, client: SSHClient | None, cfg: FioSuiteConfig) -> None:
         self.client = client
         self.cfg = cfg
 
@@ -77,12 +77,12 @@ class FioSuite:
 
         fio = Fio(self.client)
         stamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%SZ")
-        remote_suite_root = _DEFAULT_REMOTE_TMP_ROOT / f"{self.cfg.suite}-{stamp}"
-        remote_tgz = _DEFAULT_REMOTE_TMP_ROOT / f"{self.cfg.suite}-{stamp}.tgz"
-        remote_testfiles_dir = remote_suite_root / "testfiles"
+        suite_root = _DEFAULT_TMP_ROOT / f"{self.cfg.suite}-{stamp}"
+        suite_tgz = _DEFAULT_TMP_ROOT / f"{self.cfg.suite}-{stamp}.tgz"
+        testfiles_dir = suite_root / "testfiles"
 
         mkdir = MkDir(self.client)
-        mkdir(["--parents", remote_suite_root, remote_testfiles_dir])
+        mkdir(["--parents", suite_root, testfiles_dir])
         workloads = list(self.cfg.workloads)
         timing = _normalize_timing(
             duration_sec=self.cfg.duration_sec,
@@ -93,7 +93,7 @@ class FioSuite:
             duration_sec=self.cfg.duration_sec,
             workloads=workloads,
             timing=timing,
-            remote_suite_root=remote_suite_root,
+            suite_root=suite_root,
         )
 
         logger.info(
@@ -106,13 +106,13 @@ class FioSuite:
         )
 
         for case in cases:
-            mkdir(["--parents", case.remote_out_dir])
-            prefix = _fio_prefix(case.workload.rw, case.iodepth, case.numjobs)
-            base = case.remote_out_dir / prefix
-            out_json = case.remote_out_dir / f"{prefix}.json"
+            mkdir(["--parents", case.out_dir])
+            prefix = f"{case.workload.rw}-iodepth-{case.iodepth}-numjobs-{case.numjobs}"
+            base = case.out_dir / prefix
+            out_json = case.out_dir / f"{prefix}.json"
 
             extra: dict[str, Any] = {
-                "directory": str(remote_testfiles_dir),
+                "directory": testfiles_dir,
                 "direct": self.cfg.direct,
                 "bs": case.workload.bs,
                 "iodepth": case.iodepth,
@@ -121,10 +121,10 @@ class FioSuite:
                 "runtime": case.runtime_sec,
                 "unlink": 1,
                 "log_avg_msec": timing.log_avg_msec,
-                "write_bw_log": str(base),
-                "write_iops_log": str(base),
-                "write_lat_log": str(base),
-                "output": str(out_json),
+                "write_bw_log": base,
+                "write_iops_log": base,
+                "write_lat_log": base,
+                "output": out_json,
                 "eta": "never",
             }
             if timing.ramp_time_sec > 0:
@@ -142,27 +142,26 @@ class FioSuite:
                 err_msg = res.stderr or res.stdout or "fio failed"
                 raise RuntimeError(err_msg)
 
-        _remote_tar(self.client, remote_suite_root, remote_tgz)
-
-        self.cfg.results_dir.mkdir(parents=True, exist_ok=True)
-        local_tgz = self.cfg.results_dir / remote_tgz.name
-        dl = self.client.download(remote_tgz, local_tgz)
-        if dl.returncode:
-            err_msg = dl.stderr or dl.stdout or "download failed"
-            raise RuntimeError(err_msg)
-
-        _local_extract(local_tgz, self.cfg.results_dir)
-        local_suite_root = self.cfg.results_dir / f"{self.cfg.suite}-{stamp}"
-
+        if self.client:
+            _remote_tar(self.client, suite_root, suite_tgz)
+            self.cfg.results_dir.mkdir(parents=True, exist_ok=True)
+            local_tgz = self.cfg.results_dir / suite_tgz.name
+            dl = self.client.download(suite_tgz, local_tgz)
+            rm = Rm(self.client)
+            rm(["-rf", suite_root, suite_tgz])
+            if dl.returncode:
+                err_msg = dl.stderr or dl.stdout or "download failed"
+                raise RuntimeError(err_msg)
+            _local_extract(local_tgz, self.cfg.results_dir)
+            local_suite_root = self.cfg.results_dir / f"{self.cfg.suite}-{stamp}"
+        else:
+            local_suite_root = suite_root
         self._plot(local_suite_root, stamp)
-
-        rm = Rm(self.client)
-        rm(["-rf", remote_suite_root, remote_tgz])
         logger.info("fio done: %s", local_suite_root)
         return local_suite_root
 
     def _plot(self, local_suite_root: Path, stamp: str) -> None:
-        fio_plot = FioPlot(None)
+        fio_plot = FioPlot()
 
         for rw_dir in sorted(local_suite_root.iterdir()):
             if not rw_dir.is_dir():
@@ -230,21 +229,13 @@ def _normalize_timing(duration_sec: int, workloads_count: int, timing: FioTiming
     )
 
 
-def _fio_prefix(rw: str, iodepth: int, numjobs: int) -> str:
-    return f"{rw}-iodepth-{iodepth}-numjobs-{numjobs}"
-
-
 def _plan_cases(
     duration_sec: int,
     workloads: list[FioWorkload],
     timing: FioTiming,
-    remote_suite_root: Path,
+    suite_root: Path,
 ) -> list[FioCase]:
-    combos = [
-        (wl, qd, nj)
-        for wl in workloads
-        for (qd, nj) in product(timing.grid.iodepths, timing.grid.numjobs)
-    ]
+    combos = list(product(workloads, timing.grid.iodepths, timing.grid.numjobs))
     if not combos:
         err_msg = "No fio cases planned"
         raise RuntimeError(err_msg)
@@ -283,14 +274,14 @@ def _plan_cases(
 
     cases: list[FioCase] = []
     for (wl, qd, nj), rt in zip(combos, runtimes, strict=True):
-        out_dir = remote_suite_root / wl.rw / f"bs_{wl.bs}"
+        out_dir = suite_root / wl.rw / f"bs_{wl.bs}"
         cases.append(
             FioCase(
                 workload=wl,
                 iodepth=qd,
                 numjobs=nj,
                 runtime_sec=rt,
-                remote_out_dir=out_dir,
+                out_dir=out_dir,
             )
         )
     return cases
@@ -315,22 +306,18 @@ def _remote_tar(client: SSHClient, src_dir: Path, dst_tgz: Path) -> None:
 def _local_extract(tgz: Path, out_dir: Path) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     with tarfile.open(tgz, "r:gz") as tf:
-        _safe_extract(tf, out_dir)
+        base = out_dir.resolve()
+        for member in tf.getmembers():
+            target = (out_dir / member.name).resolve()
+            target_str = str(target)
 
+            if target == base:
+                continue
+            if not target_str.startswith(str(base) + os.sep):
+                err_msg = f"Unsafe tar member path: {member.name}"
+                raise RuntimeError(err_msg)
 
-def _safe_extract(tf: tarfile.TarFile, out_dir: Path) -> None:
-    base = out_dir.resolve()
-    for member in tf.getmembers():
-        target = (out_dir / member.name).resolve()
-        target_str = str(target)
-
-        if target == base:
-            continue
-        if not target_str.startswith(str(base) + os.sep):
-            err_msg = f"Unsafe tar member path: {member.name}"
-            raise RuntimeError(err_msg)
-
-        tf.extract(member, path=out_dir)
+            tf.extract(member, path=out_dir)
 
 
 def _run_fio_plot(fio_plot: FioPlot, dataset_dir: Path, rw: str, title: str) -> None:
