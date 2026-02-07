@@ -8,19 +8,16 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from itertools import product
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
-from imgtests.exec.loaders.fio import Fio, FioPlot
+from imgtests.exec.loaders.fio import Fio, FioPlot, IOPattern
+from imgtests.suites.duration import EIGHT_HOURS_SEC, HOUR_SEC, TEN_MIN_SEC, TWO_MIN_SEC
 
 if TYPE_CHECKING:
     from imgtests.exec.exec import SSHClient
 
 logger = logging.getLogger(__name__)
 
-_DURATION_SHORT_SEC = 120
-_DURATION_MEDIUM_SEC = 600
-_HOUR_SEC = 3600
-_EIGHT_HOURS_SEC = 8 * _HOUR_SEC
 _DIFF_GUARD_MAX = 1_000_000
 
 _DEFAULT_REMOTE_TMP_ROOT = Path(tempfile.gettempdir()) / "imgtests-fio"
@@ -29,7 +26,7 @@ _DEFAULT_REMOTE_TMP_ROOT = Path(tempfile.gettempdir()) / "imgtests-fio"
 @dataclass(frozen=True)
 class FioWorkload:
     name: str
-    rw: str
+    rw: IOPattern
     bs: str
     weight: float
 
@@ -122,7 +119,7 @@ class FioSuite:
             base = case.remote_out_dir / prefix
             out_json = case.remote_out_dir / f"{prefix}.json"
 
-            extra: dict[str, object] = {
+            extra: dict[str, Any] = {
                 "directory": str(remote_testfiles_dir),
                 "direct": self.cfg.direct,
                 "bs": case.workload.bs,
@@ -190,31 +187,31 @@ class FioSuite:
 
 
 def _timing(duration_sec: int) -> FioTiming:
-    if duration_sec <= _DURATION_SHORT_SEC:
+    if duration_sec <= TWO_MIN_SEC:
         return FioTiming(FioGrid((1,), (1,)), 5, 1000, 0)
-    if duration_sec <= _DURATION_MEDIUM_SEC:
+    if duration_sec <= TEN_MIN_SEC:
         return FioTiming(FioGrid((1, 4, 16), (1, 2)), 10, 1000, 0)
-    if duration_sec <= _HOUR_SEC:
+    if duration_sec <= HOUR_SEC:
         return FioTiming(FioGrid((1, 2, 4, 8, 16, 32), (1, 2, 4)), 20, 2000, 5)
-    if duration_sec <= _EIGHT_HOURS_SEC:
+    if duration_sec <= EIGHT_HOURS_SEC:
         return FioTiming(FioGrid((1, 2, 4, 8, 16, 32), (1, 2, 4, 8)), 45, 5000, 10)
     return FioTiming(FioGrid((1, 2, 4, 8, 16, 32), (1, 2, 4, 8)), 60, 5000, 15)
 
 
 def _shrink_grid(duration_sec: int, workloads_count: int, min_runtime_sec: int) -> FioGrid:
-    iodepth_candidates = [
+    iodepth_candidates = (
         (1,),
         (1, 4),
         (1, 4, 16),
         (1, 2, 4, 8, 16),
         (1, 2, 4, 8, 16, 32),
-    ]
-    numjobs_candidates = [
+    )
+    numjobs_candidates = (
         (1,),
         (1, 2),
         (1, 2, 4),
         (1, 2, 4, 8),
-    ]
+    )
 
     best: FioGrid | None = None
     for iods in iodepth_candidates:
