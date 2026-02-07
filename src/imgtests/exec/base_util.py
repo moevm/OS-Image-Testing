@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from pathlib import Path
 from typing import Any
 
 from imgtests.exec.exec import ExecResult, SSHClient, common_run_command, which
@@ -29,11 +30,11 @@ class BaseTestUtil(ABC):
         self.use_sudo = use_sudo
         self.path = which(self.name, ssh_client)
 
-    def __call__(self, cmd: list[str] | None = None, **kwargs: dict[str, Any]) -> ExecResult:
+    def __call__(self, cmd: list[str | Path] | None = None, **kwargs: dict[str, Any]) -> ExecResult:
         """Executes the utility with the provided command.
 
         Args:
-            cmd (list[str] | None): Command arguments to pass to the utility.
+            cmd (list[str | Path] | None): Command arguments to pass to the utility.
             **kwargs (dict[str, Any]): Command arguments in the free form with values.
 
         Raises:
@@ -52,7 +53,7 @@ class BaseTestUtil(ABC):
             if k in cmd:
                 err_msg = f"Argument '{k}' is already set."
                 raise ValueError(err_msg)
-        final_cmd = [str(self.path), *cmd, *kwargs_to_cmd_args(**kwargs)]
+        final_cmd = [str(self.path), *(str(arg) for arg in cmd), *kwargs_to_cmd_args(**kwargs)]
         if self.use_sudo:
             final_cmd = ["sudo", *final_cmd]
         return common_run_command(final_cmd, self.ssh_client)

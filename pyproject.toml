@@ -21,6 +21,9 @@ dependencies = [
     "deepdiff~=8.6.1",
     "sqlalchemy~=2.0.46",
     "psycopg[binary]~=3.3.2",
+    "fio-plot~=1.1.15",
+    "matplotlib~=3.10.8",
+    "setuptools~=81.0.0",
 ]
 
 [dependency-groups]
