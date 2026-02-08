@@ -9,10 +9,10 @@ from imgtests.exec.loaders.kirk import Kirk
 from imgtests.exec.loaders.perf import Perf
 from imgtests.exec.loaders.pts import PhoronixTestSuite
 from imgtests.exec.loaders.stress_ng import StressNg
-from imgtests.exec.observers.rpm import RPM
 from imgtests.exec.observers.uname import Uname, UnameInfo
 from imgtests.exec.observers.zcat import Zcat
 from imgtests.exec.osinfo import get_os_release
+from imgtests.exec.pkgmgrs.rpm import RPM
 from imgtests.types import Version
 
 
