@@ -1,147 +1,148 @@
 services:
-  imgtests-yocto:
-    build:
-      dockerfile: docker/image_builder.dockerfile
-      args:
-        USER: ${USER}
-        GROUP: ${GROUP}
-        PASSWORD: ${PASSWORD}
-        POKY_DIR: ${POKY_DIR}
-    user: ${USER}:${GROUP}
-    image: ${DOCKER_TAG}
-    command: ${POKY_DIR}/cmd_yocto.sh
-    volumes:
-      - ${DOCKER_BUILD_VOLUME}:${BUILD_DIR}
-      - ${DOCKER_DOWNLOADS_VOLUME}:${POKY_DIR}/downloads
-      - ${DOCKER_SSTATE_VOLUME}:${POKY_DIR}/sstate-cache
-      - ${HOST_CONF_PATH}/local.conf:${BUILD_DIR}/conf/local.conf
-      - ${HOST_CONF_PATH}/packages.conf:${BUILD_DIR}/conf/packages.conf
-      - ${HOST_LAYERS_PATH}/meta-image-tests:${POKY_DIR}/meta-image-tests
-      - ${HOST_SCRIPTS_PATH}/add-layers.sh:${POKY_DIR}/add-layers.sh
-    environment:
-      BUILD_DIR: ${BUILD_DIR}
-      POKY_DIR: ${POKY_DIR}
-      OS_IMAGE: ${OS_IMAGE}
-      USER: ${USER}
-      GROUP: ${GROUP}
-    ports:
-      - ${SSH_QEMU_PORT}:${SSH_QEMU_PORT}
-    networks:
-      yocto-network:
-        ipv4_address: ${YOCTO_ADDRESS}
+    imgtests-yocto:
+        build:
+            dockerfile: docker/image_builder.dockerfile
+            args:
+                USER: ${USER}
+                GROUP: ${GROUP}
+                PASSWORD: ${PASSWORD}
+                POKY_DIR: ${POKY_DIR}
+        user: ${USER}:${GROUP}
+        image: ${DOCKER_TAG}
+        command: ${POKY_DIR}/cmd_yocto.sh
+        volumes:
+            - ${DOCKER_BUILD_VOLUME}:${BUILD_DIR}
+            - ${DOCKER_DOWNLOADS_VOLUME}:${POKY_DIR}/downloads
+            - ${DOCKER_SSTATE_VOLUME}:${POKY_DIR}/sstate-cache
+            - ${HOST_CONF_PATH}/local.conf:${BUILD_DIR}/conf/local.conf
+            - ${HOST_CONF_PATH}/packages.conf:${BUILD_DIR}/conf/packages.conf
+            - ${HOST_LAYERS_PATH}/meta-image-tests:${POKY_DIR}/meta-image-tests
+            - ${HOST_SCRIPTS_PATH}/add-layers.sh:${POKY_DIR}/add-layers.sh
+        environment:
+            BUILD_DIR: ${BUILD_DIR}
+            POKY_DIR: ${POKY_DIR}
+            OS_IMAGE: ${OS_IMAGE}
+            USER: ${USER}
+            GROUP: ${GROUP}
+        ports:
+            - ${SSH_QEMU_PORT}:${SSH_QEMU_PORT}
+        networks:
+            yocto-network:
+                ipv4_address: ${YOCTO_ADDRESS}
 
-  imgtests-suse-156:
-    build:
-      dockerfile: docker/open-suse.dockerfile
-      args:
-        USER: ${USER}
-    image: ${DOCKER_SUSE_TAG}-156
-    command: ${SUSE_DIR}/scripts/suse-compose.sh 15.6
-    volumes:
-      - ${DOCKER_OPENSUSE_VOLUME}:${SUSE_DIR}
-      - ${HOST_SCRIPTS_PATH}/opensuse:${SUSE_DIR}/scripts:ro
-    environment:
-      S_USER: ${S_USER}
-      PASSWORD: ${PASSWORD}
-      SSH_SUSE_PORT: ${SSH_SUSE_PORT_156}
-    ports:
-      - ${SSH_SUSE_PORT_156}:${SSH_SUSE_PORT_156}
-    networks:
-      yocto-network:
-        ipv4_address: ${SUSE_ADDRESS_156}
+    imgtests-suse-156:
+        build:
+            dockerfile: docker/open-suse.dockerfile
+            args:
+                USER: ${USER}
+        image: ${DOCKER_SUSE_TAG}-156
+        command: ${SUSE_DIR}/scripts/suse-compose.sh 15.6
+        volumes:
+            - ${DOCKER_OPENSUSE_VOLUME}:${SUSE_DIR}
+            - ${HOST_SCRIPTS_PATH}/opensuse:${SUSE_DIR}/scripts:ro
+        environment:
+            S_USER: ${S_USER}
+            PASSWORD: ${PASSWORD}
+            SSH_SUSE_PORT: ${SSH_SUSE_PORT_156}
+        ports:
+            - ${SSH_SUSE_PORT_156}:${SSH_SUSE_PORT_156}
+        networks:
+            yocto-network:
+                ipv4_address: ${SUSE_ADDRESS_156}
 
-  imgtests-analyzer:
-    build:
-      dockerfile: docker/python.dockerfile
-      args:
-        USER: ${USER}
-        GROUP: ${GROUP}
-    image: ${DOCKER_PYTHON_TAG}
-    command: python3 /home/${USER}/image/runner.py
-    volumes:
-      - ./tests/image:/home/${USER}/image
-      - ${HOST_SCRIPTS_PATH}/bencher/bencher-test.sh:/home/${USER}/bencher-test.sh
-      - ./database:/home/${USER}/database
-    environment:
-      POSTGRES_USER: ${USER}
-      POSTGRES_PASSWORD: ${PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_HOST: imgtests-postgres
-      PYTHONPATH: /home/${USER}/
-      SSH_YOCTO_USER: ${SSH_QEMU_USER}
-      SSH_YOCTO_PASS: ""
-      SSH_YOCTO_ADDR: ${YOCTO_ADDRESS}
-      SSH_YOCTO_PORT: ${SSH_QEMU_PORT}
-      SSH_SUSE_USER: ${S_USER}
-      SSH_SUSE_PASS: ${PASSWORD}
-      SSH_SUSE_PORT_156: ${SSH_SUSE_PORT_156}
-      SSH_SUSE_ADDR_156: ${SUSE_ADDRESS_156}
-      SSH_POSTGRES_PORT: ${SSH_POSTGRES_PORT}
-    networks:
-      yocto-network:
-        ipv4_address: ${PYTHON_ADDRESS}
-    depends_on:
-      - imgtests-postgres
+    imgtests-analyzer:
+        build:
+            dockerfile: docker/python.dockerfile
+            args:
+                USER: ${USER}
+                GROUP: ${GROUP}
+        image: ${DOCKER_PYTHON_TAG}
+        command: python3 /home/${USER}/image/runner.py
+        volumes:
+            - ./tests/image:/home/${USER}/image
+            - ${HOST_SCRIPTS_PATH}/bencher/bencher-test.sh:/home/${USER}/bencher-test.sh
+            - ./database:/home/${USER}/database
+        environment:
+            POSTGRES_USER: ${USER}
+            POSTGRES_PASSWORD: ${PASSWORD}
+            POSTGRES_DB: ${POSTGRES_DB}
+            POSTGRES_HOST: imgtests-postgres
+            PYTHONPATH: /home/${USER}/
+            PYTHON_ADDRESS: ${PYTHON_ADDRESS}
+            SSH_YOCTO_USER: ${SSH_QEMU_USER}
+            SSH_YOCTO_PASS: ""
+            SSH_YOCTO_ADDR: ${YOCTO_ADDRESS}
+            SSH_YOCTO_PORT: ${SSH_QEMU_PORT}
+            SSH_SUSE_USER: ${S_USER}
+            SSH_SUSE_PASS: ${PASSWORD}
+            SSH_SUSE_PORT_156: ${SSH_SUSE_PORT_156}
+            SSH_SUSE_ADDR_156: ${SUSE_ADDRESS_156}
+            SSH_POSTGRES_PORT: ${SSH_POSTGRES_PORT}
+        networks:
+            yocto-network:
+                ipv4_address: ${PYTHON_ADDRESS}
+        depends_on:
+            - imgtests-postgres
 
-  imgtests-postgres:
-    image: postgres:17.7
-    environment:
-      POSTGRES_USER: ${USER}
-      POSTGRES_PASSWORD: ${PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
-    ports:
-      - ${SSH_POSTGRES_PORT}:${SSH_POSTGRES_PORT}
-    networks:
-      yocto-network:
-        ipv4_address: ${POSTGRES_ADDRESS}
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${USER} -d ${POSTGRES_DB}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
+    imgtests-postgres:
+        image: postgres:17.7
+        environment:
+            POSTGRES_USER: ${USER}
+            POSTGRES_PASSWORD: ${PASSWORD}
+            POSTGRES_DB: ${POSTGRES_DB}
+        ports:
+            - ${SSH_POSTGRES_PORT}:${SSH_POSTGRES_PORT}
+        networks:
+            yocto-network:
+                ipv4_address: ${POSTGRES_ADDRESS}
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U ${USER} -d ${POSTGRES_DB}"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+        restart: unless-stopped
 
-  imgtests-bencher-api:
-    image: ghcr.io/bencherdev/bencher-api:v0.5.9
-    ports:
-      - ${BENCHER_API_PORT}:${BENCHER_API_PORT}
-    volumes:
-      - ${BENCHER_API_CONF_VOLUME}:/etc/bencher
-      - ${BENCHER_API_DB_VOLUME}:/var/lib/bencher/data
-    networks:
-      yocto-network:
-        ipv4_address: ${BENCHER_API_ADDRESS}
+    imgtests-bencher-api:
+        image: ghcr.io/bencherdev/bencher-api:v0.5.9
+        ports:
+            - ${BENCHER_API_PORT}:${BENCHER_API_PORT}
+        volumes:
+            - ${BENCHER_API_CONF_VOLUME}:/etc/bencher
+            - ${BENCHER_API_DB_VOLUME}:/var/lib/bencher/data
+        networks:
+            yocto-network:
+                ipv4_address: ${BENCHER_API_ADDRESS}
 
-  imgtests-bencher-console:
-    image: ghcr.io/bencherdev/bencher-console:v0.5.9
-    ports:
-      - ${BENCHER_CLI_PORT}:${BENCHER_CLI_PORT}
-    environment:
-      - INTERNAL_API_URL=${BENCHER_API_ADDRESS}:${BENCHER_API_PORT}
-    depends_on:
-      - imgtests-bencher-api
-    networks:
-      yocto-network:
-        ipv4_address: ${BENCHER_CLI_ADDRESS}
+    imgtests-bencher-console:
+        image: ghcr.io/bencherdev/bencher-console:v0.5.9
+        ports:
+            - ${BENCHER_CLI_PORT}:${BENCHER_CLI_PORT}
+        environment:
+            - INTERNAL_API_URL=${BENCHER_API_ADDRESS}:${BENCHER_API_PORT}
+        depends_on:
+            - imgtests-bencher-api
+        networks:
+            yocto-network:
+                ipv4_address: ${BENCHER_CLI_ADDRESS}
 
 volumes:
-  imgtests-yocto-build:
-    external: true
-  imgtests-yocto-downloads:
-    external: true
-  imgtests-yocto-sstate:
-    external: true
-  imgtests-bencher-conf:
-    external: true
-  imgtests-bencher-database:
-    external: true
-  imgtests-open-suse-files:
-    external: true
+    imgtests-yocto-build:
+        external: true
+    imgtests-yocto-downloads:
+        external: true
+    imgtests-yocto-sstate:
+        external: true
+    imgtests-bencher-conf:
+        external: true
+    imgtests-bencher-database:
+        external: true
+    imgtests-open-suse-files:
+        external: true
 
 networks:
-  yocto-network:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: ${SUBNET}
-          gateway: ${GATEWAY}
+    yocto-network:
+        driver: bridge
+        ipam:
+            config:
+                - subnet: ${SUBNET}
+                  gateway: ${GATEWAY}
