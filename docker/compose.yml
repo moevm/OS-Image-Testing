@@ -81,7 +81,8 @@ services:
       yocto-network:
         ipv4_address: ${PYTHON_ADDRESS}
     depends_on:
-      - imgtests-postgres
+      imgtests-postgres:
+        condition: service_healthy
 
   imgtests-postgres:
     image: postgres:17.7
