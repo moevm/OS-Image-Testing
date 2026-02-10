@@ -1,0 +1,16 @@
+global:
+  scrape_interval: 5s
+
+scrape_configs:
+- job_name: yocto-node
+  static_configs:
+  - targets:
+    - 10.5.0.10:9100
+- job_name: suse-155-node
+  static_configs:
+  - targets:
+    - 10.5.0.12:9155
+- job_name: suse-156-node
+  static_configs:
+  - targets:
+    - 10.5.0.13:9166

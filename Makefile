@@ -17,6 +17,12 @@ DOCKER_SSTATE_VOLUME       := ${DOCKER_PREFIX}-yocto-sstate
 DOCKER_OPENSUSE_VOLUME     := ${DOCKER_PREFIX}-open-suse-files
 BENCHER_API_CONF_VOLUME    := ${DOCKER_PREFIX}-bencher-conf
 BENCHER_API_DB_VOLUME      := ${DOCKER_PREFIX}-bencher-database
+VMETRICS_DATA_VOLUME	   := ${DOCKER_PREFIX}-vmetrics-data
+
+# VictoriaMetrics-docker-network
+YOCTO_NE_PORT		   	   := 9100
+SUSE_155_NE_PORT		   := 9155
+SUSE_156_NE_PORT		   := 9166
 
 # Paths
 POKY_DIR                   := /home/${USER}/poky
@@ -38,6 +44,7 @@ SUSE_ADDRESS_156           := 10.5.0.13
 BENCHER_API_ADDRESS        := 10.5.0.14
 BENCHER_CLI_ADDRESS        := 10.5.0.15
 POSTGRES_ADDRESS           := 10.5.0.20
+VMETRICS_ADDRESS 		   := 10.5.0.25
 SUBNET                     := 10.5.0.0/24
 GATEWAY                    := 10.5.0.1
 SSH_QEMU_PORT              ?= 2222
@@ -46,6 +53,7 @@ SSH_SUSE_PORT_156          := 1616
 BENCHER_API_PORT           := 61016
 BENCHER_CLI_PORT           := 3000
 SSH_POSTGRES_PORT          := 5432
+VMETRICS_PORT			   := 8438
 
 SSH_QEMU_USER              ?= root
 
@@ -102,7 +110,7 @@ docker-compose-up: ensure-volumes
 
 .PHONY: ensure-volumes
 ensure-volumes: docker
-	@for volume in ${DOCKER_OPENSUSE_VOLUME} ${BENCHER_API_CONF_VOLUME} ${BENCHER_API_DB_VOLUME}; do \
+	@for volume in ${DOCKER_OPENSUSE_VOLUME} ${BENCHER_API_CONF_VOLUME} ${BENCHER_API_DB_VOLUME} ${VMETRICS_DATA_VOLUME}; do \
 		if ! docker volume inspect $$volume > /dev/null 2>&1; then \
 			docker volume create $$volume; \
 		fi \
