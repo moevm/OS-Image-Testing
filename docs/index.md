@@ -22,6 +22,7 @@
 - [Управление ресурсами](./methodology/resource-management.md)
 - [Микробенчмаркинг](./methodology/microbenchmarking.md)
 - [Анализ тактов](./methodology/cycle-analysis.md)
+- [Эмуляция сбоев](./methodology/failure_emulation.md)
 
 ## 3. Утилиты
 

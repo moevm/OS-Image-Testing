@@ -3,7 +3,7 @@ name = "imgtests"
 version = "0.0.1"
 description = "Library for the testing Linux based operating systems."
 readme = "README.md"
-requires-python = "~=3.13.11"
+requires-python = "~=3.13.12"
 classifiers = [
     "Intended Audience :: Science/Research",
     "Intended Audience :: Developers",
@@ -21,6 +21,9 @@ dependencies = [
     "deepdiff~=8.6.1",
     "sqlalchemy~=2.0.46",
     "psycopg[binary]~=3.3.2",
+    "fio-plot~=1.1.15",
+    "matplotlib~=3.10.8",
+    "setuptools~=81.0.0",
 ]
 
 [dependency-groups]

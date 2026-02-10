@@ -1,7 +1,9 @@
-FROM python:3.13.11-slim-trixie
+FROM python:3.13.12-slim-trixie
 
 ARG USER
 ARG GROUP
+
+ENV PATH="/home/${USER}/.local/bin:${PATH}"
 
 RUN apt update && \
     apt install -y \
