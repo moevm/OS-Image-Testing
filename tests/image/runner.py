@@ -82,7 +82,7 @@ def suse_install_dependencies(client: SSHClient) -> None:
 
 
 def run_tests(executor: ThreadPoolExecutor, client: SSHClient) -> None:
-    test_iperf3(client)
+    test_iperf3(executor, client)
     test_pts_system(executor, client)
     run_stress_ng_tests(executor, client)
     run_chaosblade_tests(executor, client)

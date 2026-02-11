@@ -1,8 +1,5 @@
 import logging
-import os
-from threading import Thread
-
-import iperf3
+from concurrent.futures import ThreadPoolExecutor
 
 from imgtests.exec.exec import SSHClient
 from imgtests.exec.loaders import Iperf3
@@ -10,19 +7,20 @@ from imgtests.exec.loaders import Iperf3
 logger = logging.getLogger(__name__)
 
 
-def run_server():
-    server = iperf3.Server()
-    server.one_off = True
-    server.run()
-
-
-def test_iperf3(client: SSHClient | None):
-    iperf3_client = Iperf3(client)
-    server_thread = Thread(target=run_server)
-    server_thread.start()
-    address = os.getenv("PYTHON_ADDRESS")
-    ret = iperf3_client(["-c", address, "-t", "30", "-i", "5"])
-    if ret.returncode:
-        logger.error("Error occured while launching iperf3 server")
-        return
-    logger.info(ret.stdout)
+def test_iperf3(executor: ThreadPoolExecutor, client: SSHClient | None) -> None:
+    """Test remote network with server and client on the remote."""
+    iperf3 = Iperf3(client)
+    for udp in (False, True):
+        server_future = executor.submit(iperf3.run, server=True, one_off=True, version4=True)
+        # TODO: save result to the database  # noqa: FIX002, TD002, TD003
+        ret = iperf3.run(
+            client="localhost",
+            time=30,
+            udp=udp,
+            version4=True,
+        )
+        if ret.returncode:
+            logger.error("Error occurred while launching iperf3 client.")
+            server_future.result(timeout=5)
+            return
+        server_future.result(timeout=5)
