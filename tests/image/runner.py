@@ -12,6 +12,7 @@ import paramiko.ssh_exception
 from image.endurance.syscalls import test_ltp_syscalls, test_syscalls_all_stress_ng
 from image.performance.cpu import run_chaosblade_tests, run_stress_ng_tests
 from image.performance.ipc import test_sched
+from image.performance.network import test_iperf3
 from image.performance.system import test_pts_system
 
 if TYPE_CHECKING:
@@ -81,6 +82,7 @@ def suse_install_dependencies(client: SSHClient) -> None:
 
 
 def run_tests(executor: ThreadPoolExecutor, client: SSHClient) -> None:
+    test_iperf3(executor, client)
     test_pts_system(executor, client)
     run_stress_ng_tests(executor, client)
     run_chaosblade_tests(executor, client)

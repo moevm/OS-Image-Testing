@@ -60,10 +60,14 @@ def run_command(cmd: Sequence[str], input_: str | None = None) -> ExecResult:
 
     result = ExecResult(
         cmd=tuple(cmd),
-        stdout=result.stdout,
-        stderr=result.stderr,
+        stdout=result.stdout.strip(),
+        stderr=result.stderr.strip(),
         returncode=result.returncode,
     )
+    if result.returncode:
+        logger.error("Command '%s' completed with errors on the local.", " ".join(result.cmd))
+        if result.stderr:
+            logger.error(result.stderr)
     logger.debug("Command '%s' completed with code %d.", " ".join(cmd), result.returncode)
     return result
 

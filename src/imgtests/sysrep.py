@@ -3,12 +3,7 @@ from typing import Any, NamedTuple
 from deepdiff import DeepDiff
 
 from imgtests.exec.exec import SSHClient
-from imgtests.exec.loaders import Fwts
-from imgtests.exec.loaders.fio import Fio
-from imgtests.exec.loaders.kirk import Kirk
-from imgtests.exec.loaders.perf import Perf
-from imgtests.exec.loaders.pts import PhoronixTestSuite
-from imgtests.exec.loaders.stress_ng import StressNg
+from imgtests.exec.loaders import Fio, Fwts, Iperf3, Kirk, Perf, PhoronixTestSuite, StressNg
 from imgtests.exec.observers.uname import Uname, UnameInfo
 from imgtests.exec.observers.zcat import Zcat
 from imgtests.exec.osinfo import get_os_release
@@ -31,6 +26,7 @@ class ToolsVersions(NamedTuple):
     kirk_ver: Version
     perf_ver: Version
     pts_ver: Version
+    iperf3_ver: Version
 
 
 class SystemInfo(NamedTuple):
@@ -74,6 +70,7 @@ def get_system_info(
             Kirk(ssh_client).version() or Version(""),
             Perf(ssh_client).version() or Version(""),
             PhoronixTestSuite(ssh_client).version() or Version(""),
+            Iperf3(ssh_client).version() or Version(""),
         ),
     )
 
