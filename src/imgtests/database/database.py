@@ -17,7 +17,7 @@ from imgtests.sysrep import SystemInfo
 logger = logging.getLogger(__name__)
 
 
-class Database:
+class ImgtestsDatabase:
     def __init__(self, database: str = "postgres") -> None:
         if database == "postgres":
             self.initialize_postgres()

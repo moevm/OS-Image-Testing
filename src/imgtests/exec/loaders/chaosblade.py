@@ -184,7 +184,7 @@ class Chaosblade(GenericUtil):
         self._validate_memory_flags_compatibility(mode, rate_mbps, include_buffer_cache)
 
         # Build command
-        ram_args = []
+        ram_args: list[str] = []
         if mode == "ram":
             ram_args.extend(create_opt("include-buffer-cache", include_buffer_cache))
             ram_args.extend(create_opt("rate", rate_mbps))
@@ -284,7 +284,7 @@ class Chaosblade(GenericUtil):
         )
 
         # Build command
-        action_args = []
+        action_args: list[str] = []
         if action == "fill":
             action_args.extend(create_opt("percent", percent))
             action_args.extend(create_opt("reserve", reserve_mb))
@@ -424,7 +424,7 @@ class Chaosblade(GenericUtil):
         )
 
         # Build command
-        action_args = []
+        action_args: list[str] = []
         if action in ["delay", "reorder"]:
             action_args.extend(create_opt("time", time_ms))
         if action == "delay":
@@ -593,7 +593,7 @@ class Chaosblade(GenericUtil):
             raise ValueError(err_msg)
 
         if action == "drop":
-            params = [source_ip, source_port, destination_port]
+            params: list[str | None | int] = [source_ip, source_port, destination_port]
             if all(p is None for p in params):
                 err_msg = "For drop, need at least one: source_ip, source_port, destination_port"
                 raise ValueError(err_msg)
