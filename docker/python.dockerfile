@@ -9,7 +9,8 @@ RUN apt update && \
     apt install -y \
     openssh-client \
     curl \
-    sudo
+    sudo \
+    iperf3
 
 RUN groupadd -g 510 ${GROUP} && \
     useradd -rm -d /home/${USER} -s /bin/bash -g ${GROUP} -u 1010 -G sudo ${USER} && \
