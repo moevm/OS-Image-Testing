@@ -39,12 +39,16 @@ class NodeExporter(GenericUtil):
             "cd .. "
         )
 
-        install_res = common_run_command(("sudo", "bash", "-lc", f"'{install_script}'"), self.ssh_client)
+        install_res = common_run_command(
+            ("sudo", "bash", "-lc", f"'{install_script}'"), 
+            self.ssh_client
+        )
         if install_res.returncode:
             return install_res
 
         # create daemon if don't exist
-        if self.check_exporter().returncode == 4:
+        no_daemon_code = 4
+        if self.check_exporter().returncode == no_daemon_code:
             if collect_flags is None:
                 collect_flags = []
 
@@ -64,7 +68,10 @@ class NodeExporter(GenericUtil):
                 "WantedBy=multi-user.target"
             ]
             for line in service_text:
-                serv_res = common_run_command(["sudo", "echo", line, " >> ", "node_exporter.service"], self.ssh_client)
+                serv_res = common_run_command(
+                    ["sudo", "echo", line, " >> ", "node_exporter.service"], 
+                    self.ssh_client
+                )
                 if serv_res.returncode:
                     return serv_res
 
@@ -77,9 +84,11 @@ class NodeExporter(GenericUtil):
                 "systemctl daemon-reload; "
                 f"systemctl disable {pkg}"
             )
+            return common_run_command(
+                ("sudo", "bash", "-lc", f"'{systemd_script}'"), 
+                self.ssh_client
+            )
 
-            return common_run_command(("sudo", "bash", "-lc", f"'{systemd_script}'"), self.ssh_client)
-        
         else:
             return install_res
 
