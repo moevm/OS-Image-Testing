@@ -41,7 +41,7 @@ class ImgtestsDatabase:
             error_message = "Database session not initialized."
             raise RuntimeError(error_message)
 
-    def insert_from_system_info(self, sys_info: SystemInfo) -> None:
+    def insert_from_system_info(self, sys_info: SystemInfo) -> ConfigurationBase:
         db_os = str(sys_info.os_info)
         db_cinfo = str(sys_info.uname_info)
         db_pkgs: dict[str, str] = {}
@@ -58,7 +58,7 @@ class ImgtestsDatabase:
                     idx = line.find("=")
                     to_dict_tuple = (line[0:idx], line[idx + 1 :])
                     db_kconf[line[0:idx]] = line[idx + 1 :]
-        self.insert_configuration(db_os, db_pkgs, db_cinfo, db_kconf)
+        return self.insert_configuration(db_os, db_pkgs, db_cinfo, db_kconf)
 
     def insert_configuration(
         self,
@@ -66,7 +66,7 @@ class ImgtestsDatabase:
         packages: dict[str, Any] | None = None,
         core_info: str | None = None,
         core_config: dict[str, Any] | None = None,
-    ) -> None:
+    ) -> ConfigurationBase:
         configuration_object = ConfigurationBase(
             os=os,
             packages=packages,
@@ -78,6 +78,8 @@ class ImgtestsDatabase:
         with self.session() as session:
             session.add(configuration_object)
             session.commit()
+            session.refresh(configuration_object)
+        return configuration_object
 
     def insert_experiment(
         self,
@@ -86,7 +88,7 @@ class ImgtestsDatabase:
         experiment_type: str | None = None,
         started_at: datetime | None = None,
         ended_at: datetime | None = None,
-    ) -> None:
+    ) -> ExperimentBase:
         if started_at is None:
             started_at = datetime.now(ZoneInfo("UTC"))
         if ended_at is None:
@@ -104,6 +106,8 @@ class ImgtestsDatabase:
         with self.session() as session:
             session.add(experiment_object)
             session.commit()
+            session.refresh(experiment_object)
+        return experiment_object
 
     def insert_loader(  # noqa: PLR0913
         self,
@@ -113,7 +117,7 @@ class ImgtestsDatabase:
         description: str | None = None,
         started_at: datetime | None = None,
         ended_at: datetime | None = None,
-    ) -> None:
+    ) -> LoaderBase:
         if started_at is None:
             started_at = datetime.now(ZoneInfo("UTC"))
         if ended_at is None:
@@ -132,6 +136,8 @@ class ImgtestsDatabase:
         with self.session() as session:
             session.add(loader_object)
             session.commit()
+            session.refresh(loader_object)
+        return loader_object
 
     def insert_observer(  # noqa: PLR0913
         self,
@@ -141,7 +147,7 @@ class ImgtestsDatabase:
         description: str | None = None,
         started_at: datetime | None = None,
         ended_at: datetime | None = None,
-    ) -> None:
+    ) -> ObserverBase:
         if started_at is None:
             started_at = datetime.now(ZoneInfo("UTC"))
         if ended_at is None:
@@ -160,11 +166,20 @@ class ImgtestsDatabase:
         with self.session() as session:
             session.add(observer_object)
             session.commit()
+            session.refresh(observer_object)
+        return observer_object
 
-    def return_table(self, table_name: str):
+    def return_table(self, table_name: str) -> list[Any]:
+        available_tables = {"configurations", "experiments", "loaders", "observers"}
+        if table_name not in available_tables:
+            err_msg = f"Table name not in list of valid tables. Available: {available_tables}."
+            raise ValueError(err_msg)
+
         self._check_session()
         with self.session() as session:
-            models = {
+            models: dict[
+                str, type[ConfigurationBase | ExperimentBase | LoaderBase | ObserverBase]
+            ] = {
                 "configurations": ConfigurationBase,
                 "experiments": ExperimentBase,
                 "loaders": LoaderBase,
