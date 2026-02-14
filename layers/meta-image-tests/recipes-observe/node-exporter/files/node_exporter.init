@@ -1,0 +1,42 @@
+#!/bin/sh
+
+DAEMON=/usr/local/bin/node_exporter
+NAME=node_exporter
+DESC="Prometheus Node Exporter"
+PIDFILE=/var/run/$NAME.pid
+
+test -f $DAEMON || exit 0
+
+case "$1" in
+  start)
+    echo -n "Starting $DESC: "
+    start-stop-daemon --start --quiet --background --make-pidfile --pidfile $PIDFILE --exec $DAEMON
+    echo "$NAME."
+    ;;
+  stop)
+    echo -n "Stopping $DESC: "
+    start-stop-daemon --stop --quiet --pidfile $PIDFILE --name $(basename $DAEMON)
+    echo "$NAME."
+    ;;
+  restart|force-reload)
+    $0 stop
+    sleep 1
+    $0 start
+    ;;
+  status)
+    if [ -f $PIDFILE ]; then
+        if ps | grep -q $(cat $PIDFILE); then
+            echo "$NAME is running."
+            exit 0
+        fi
+    fi
+    echo "$NAME is not running."
+    exit 1
+    ;;
+  *)
+    echo "Usage: $0 {start|stop|restart|status}"
+    exit 1
+    ;;
+esac
+
+exit 0

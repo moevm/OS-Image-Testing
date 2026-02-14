@@ -24,7 +24,9 @@ services:
       OS_IMAGE: ${OS_IMAGE}
       USER: ${USER}
       GROUP: ${GROUP}
+      YOCTO_NE_PORT: ${YOCTO_NE_PORT}
     ports:
+      - ${YOCTO_NE_PORT}:${YOCTO_NE_PORT}
       - ${SSH_QEMU_PORT}:${SSH_QEMU_PORT}
     networks:
       yocto-network:
