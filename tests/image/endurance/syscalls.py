@@ -1,4 +1,5 @@
 import logging
+from concurrent.futures import ThreadPoolExecutor
 
 from imgtests.exec.exec import SSHClient
 from imgtests.exec.loaders import Kirk, StressNg
@@ -6,7 +7,7 @@ from imgtests.exec.loaders import Kirk, StressNg
 logger = logging.getLogger(__name__)
 
 
-def test_ltp_syscalls(client: SSHClient | None) -> None:
+def test_ltp_syscalls(_: ThreadPoolExecutor, client: SSHClient | None) -> None:
     kirk = Kirk(client)
     available_suites = kirk.list_suites()
     logger.info("Available LTP suites %s", available_suites)
@@ -16,7 +17,7 @@ def test_ltp_syscalls(client: SSHClient | None) -> None:
     kirk.run(["syscalls"])
 
 
-def test_syscalls_all_stress_ng(client: SSHClient) -> None:
+def test_syscalls_all_stress_ng(_: ThreadPoolExecutor, client: SSHClient) -> None:
     stress_ng = StressNg(client)
     result, (metrics, summary) = stress_ng.run(
         timeout_sec=60,

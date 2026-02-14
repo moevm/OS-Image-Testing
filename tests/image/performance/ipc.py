@@ -1,4 +1,5 @@
 import logging
+from concurrent.futures import ThreadPoolExecutor
 
 from imgtests.exec.exec import SSHClient
 from imgtests.exec.loaders import Perf
@@ -6,7 +7,7 @@ from imgtests.exec.loaders import Perf
 logger = logging.getLogger(__name__)
 
 
-def test_sched(client: SSHClient | None) -> None:
+def test_sched(_: ThreadPoolExecutor, client: SSHClient | None) -> None:
     perf = Perf(client)
     for benchmark, args in zip(
         ["messaging", "messaging", "pipe"], [[], ["--thread"], []], strict=True
