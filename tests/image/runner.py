@@ -9,7 +9,7 @@ from image.performance.network import test_iperf3
 from image.performance.system import test_pts_system
 from imgtests.exec.exec import wait_remote
 from imgtests.logger import set_handlers
-from imgtests.runner import TestConfig, TestRunner
+from imgtests.runner import TestSpec, TestsRunner, TestsRunnerConfig
 
 logger = logging.getLogger()
 set_handlers(logger, Path("processing.log"))
@@ -31,18 +31,47 @@ suse_156_conf = (
 
 def main() -> None:
     client = wait_remote(*yocto_conf) or sys.exit(1)
-    runner = TestRunner(
+    runner = TestsRunner(
         client,
-        TestConfig(
+        TestsRunnerConfig(
+            description="Test suite for all subsystems.",
             tests=(
-                test_iperf3,
-                test_pts_system,
-                test_stress_ng_cpu,
-                test_chaosblade_cpu,
-                test_syscalls_all_stress_ng,
-                test_ltp_syscalls,
-                test_sched,
-            )
+                TestSpec(
+                    description="Load local network with iperf3.",
+                    subsystems=("network",),
+                    test_func=test_iperf3,
+                ),
+                TestSpec(
+                    description="Load CPU with stress-ng.",
+                    subsystems=("system",),
+                    test_func=test_stress_ng_cpu,
+                ),
+                TestSpec(
+                    description="Load CPU with chaosblade.",
+                    subsystems=("system",),
+                    test_func=test_chaosblade_cpu,
+                ),
+                TestSpec(
+                    description="Test syscalls performance.",
+                    subsystems=("syscalls",),
+                    test_func=test_syscalls_all_stress_ng,
+                ),
+                TestSpec(
+                    description="Test syscalls with LTP.",
+                    subsystems=("syscalls",),
+                    test_func=test_ltp_syscalls,
+                ),
+                TestSpec(
+                    description="Benchmark sheduler and IPC mechanisms.",
+                    subsystems=("IPC",),
+                    test_func=test_sched,
+                ),
+                TestSpec(
+                    description="Load system with PTS.",
+                    subsystems=("system",),
+                    test_func=test_pts_system,
+                ),
+            ),
         ),
         logger,
     )

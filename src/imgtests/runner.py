@@ -1,8 +1,10 @@
 import logging
 from collections.abc import Callable, Iterable
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 from threading import Event, Thread
-from typing import TYPE_CHECKING, NamedTuple
+from typing import TYPE_CHECKING, Literal, NamedTuple
+from zoneinfo import ZoneInfo
 
 import paramiko
 import paramiko.ssh_exception
@@ -14,16 +16,27 @@ if TYPE_CHECKING:
 from imgtests.exec.exec import SSHClient
 from imgtests.sysrep import get_system_info
 
+Subsystem = Literal["file", "syscalls", "IPC", "network", "memory", "system"]
+
+
+class TestSpec(NamedTuple):
+    description: str
+    subsystems: tuple[Subsystem, ...]
+    test_func: Callable[[ThreadPoolExecutor, SSHClient], None]
+
 
 # Time to run, subsystems, stages (install, ..., run, cleanup, results, etc), etc
-class TestConfig(NamedTuple):
-    tests: Iterable[Callable[[ThreadPoolExecutor, SSHClient], None]]
+class TestsRunnerConfig(NamedTuple):
+    description: str
+    tests: Iterable[TestSpec]
 
 
-class TestRunner:
+class TestsRunner:
     __slots__ = ("__client", "__database", "__executor", "__test_config", "logger")
 
-    def __init__(self, client: SSHClient, test_config: TestConfig, logger: logging.Logger) -> None:
+    def __init__(
+        self, client: SSHClient, test_config: TestsRunnerConfig, logger: logging.Logger
+    ) -> None:
         self.__executor = ThreadPoolExecutor()
         self.__client = client
         self.__database = ImgtestsDatabase()
@@ -33,14 +46,19 @@ class TestRunner:
     def run(self) -> None:
         test_completed_event = Event()
         result = get_system_info(self.__client)
-        self.__database.insert_from_system_info(result)
+        configuration_record = self.__database.insert_from_system_info(result)
+        self.__database.insert_experiment(
+            config_id=configuration_record.config_id,
+            description=self.__test_config.description,
+            started_at=datetime.now(tz=ZoneInfo("UTC")),
+        )
         for test in self.__test_config.tests:
             self.__client.reconnect()
             is_alive_cycle = Thread(target=self.__is_remote_alive, args=(test_completed_event,))
             is_alive_cycle.start()
-            self.logger.info("Starting '%s' tests.", test.__name__)
-            test(self.__executor, self.__client)
-            self.logger.info("'%s' tests finished.", test.__name__)
+            self.logger.info("Starting '%s' test: '%s'.", test.test_func.__name__, test.description)
+            test.test_func(self.__executor, self.__client)
+            self.logger.info("'%s' test finished.", test.test_func.__name__)
             test_completed_event.set()
             is_alive_cycle.join(10)
             test_completed_event.clear()
