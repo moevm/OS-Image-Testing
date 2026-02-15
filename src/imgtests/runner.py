@@ -25,10 +25,11 @@ class TestSpec(NamedTuple):
     test_func: Callable[[ThreadPoolExecutor, SSHClient], None]
 
 
-# Time to run, subsystems, stages (install, ..., run, cleanup, results, etc), etc
+# Time to run, subsystems, stages (plan, risk analysis, run, cleanup, results, etc), etc
 class TestsRunnerConfig(NamedTuple):
     description: str
     tests: Iterable[TestSpec]
+    install_dependencies: bool = False
 
 
 class TestsRunner:
@@ -45,6 +46,8 @@ class TestsRunner:
 
     def run(self) -> None:
         test_completed_event = Event()
+        if self.__test_config.install_dependencies:
+            self.install_dependencies()
         result = get_system_info(self.__client)
         configuration_record = self.__database.insert_from_system_info(result)
         self.__database.insert_experiment(
@@ -65,7 +68,7 @@ class TestsRunner:
         self.logger.info("All tests completed successfully.")
         self.__client.close()
 
-    def install_dependencies(self, client: SSHClient | None) -> None:
+    def install_dependencies(self) -> None:
         from imgtests.exec.loaders import (  # noqa: PLC0415
             Chaosblade,
             Fio,
@@ -76,8 +79,9 @@ class TestsRunner:
             StressNg,
         )
 
+        self.logger.info("Installing dependencies. This may take a while.")
         for tool in (Chaosblade, Fio, FioPlot, Kirk, Perf, StressNg, PhoronixTestSuite):
-            tool_instance: BaseTestUtil = tool(client)
+            tool_instance: BaseTestUtil = tool(self.__client)
             try:
                 tool_instance.install()
             except NotImplementedError:
@@ -85,10 +89,11 @@ class TestsRunner:
                     "Failed to install dependencies for the '%s'.", tool_instance.name
                 )
                 continue
-            tool_instance = tool(client)
+            tool_instance = tool(self.__client)
             self.logger.info(
                 "Installed '%s' with version '%s'.", tool_instance.name, tool_instance.version()
             )
+        self.logger.info("Dependencies installed successfully.")
 
     def __is_remote_alive(self, test_completed_event: Event) -> None:
         while not test_completed_event.wait(5.0):
