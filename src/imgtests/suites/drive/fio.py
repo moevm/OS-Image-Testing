@@ -10,7 +10,7 @@ from itertools import product
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from imgtests.exec.loaders.fio import Fio, FioPlot, IOPattern
+from imgtests.exec.loaders.fio import Direct, Fio, FioPlot, IOEngine, IOPattern
 from imgtests.exec.user_commands import MkDir, Rm
 from imgtests.suites.duration import EIGHT_HOURS_SEC, HOUR_SEC, TEN_MIN_SEC, TWO_MIN_SEC
 
@@ -61,8 +61,8 @@ class FioSuiteConfig:
     results_dir: Path
     workloads: tuple[FioWorkload, ...]
     size: str = "100MB"
-    direct: int = 1
-    ioengine: str = "libaio"
+    direct: Direct = 1
+    ioengine: IOEngine = "libaio"
 
 
 class FioSuite:
@@ -112,8 +112,6 @@ class FioSuite:
             out_json = case.out_dir / f"{prefix}.json"
 
             extra: dict[str, Any] = {
-                "directory": testfiles_dir,
-                "direct": self.cfg.direct,
                 "bs": case.workload.bs,
                 "iodepth": case.iodepth,
                 "group_reporting": True,
@@ -136,6 +134,8 @@ class FioSuite:
                 size=self.cfg.size,
                 readwrite=case.workload.rw,
                 ioengine=self.cfg.ioengine,
+                direct=self.cfg.direct,
+                directory=testfiles_dir,
                 **extra,
             )
             if res.returncode:

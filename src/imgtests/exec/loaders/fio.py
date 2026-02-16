@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Any, Literal
 
 from imgtests.exec.base_util import GenericUtil
@@ -9,6 +10,19 @@ from imgtests.exec.utils import create_opt
 IOPattern = Literal[
     "read", "write", "trim", "randread", "randwrite", "randtrim", "readwrite", "randrw", "trimwrite"
 ]
+# fmt: off
+IOEngine = Literal[
+    "sync", "psync", "vsync", "pvsync", "pvsync2", "io_uring",
+    "io_uring_cmd", "libaio", "posixaio", "solarisaio", "windowsaio",
+    "mmap", "splice", "sg", "libzbc", "null", "net", "netsplice",
+    "cpuio", "rdma", "falloc", "ftruncate", "e4defrag", "rados",
+    "rbd", "http", "gfapi", "gfapi_async", "libhdfs", "mtd",
+    "dev-dax", "external", "filecreate", "filestat", "filedelete",
+    "libpmem", "ime_psync", "ime_psyncv", "ime_aio", "libiscsi",
+    "nbd", "libcufio", "dfs", "nfs", "exec", "xnvme", "libblkio",
+]
+# fmt: on
+Direct = Literal[1] | None
 
 
 class Fio(PkgMgrMixin, GenericUtil):
@@ -17,6 +31,10 @@ class Fio(PkgMgrMixin, GenericUtil):
 
     def install(self) -> ExecResult:
         """Install fio via the system package manager."""
+        if self.path:
+            return ExecResult(
+                cmd=(), stderr=f"{self.name} already has been installed.", returncode=0
+            )
         return self._install_packages(["fio"])
 
     def ioengines(self) -> tuple[str, ...] | None:
@@ -39,7 +57,9 @@ class Fio(PkgMgrMixin, GenericUtil):
         filename: str | None = None,
         size: str | None = None,
         readwrite: IOPattern | None = None,
-        ioengine: str | None = None,
+        ioengine: IOEngine | None = None,
+        direct: Direct = None,
+        directory: Path | None = None,
         **kwargs: dict[str, Any],
     ) -> ExecResult:
         """Runs the fio util with provided options.
@@ -51,7 +71,9 @@ class Fio(PkgMgrMixin, GenericUtil):
             filename (str | None): Output filename or block device.
             size (str | None): The total size of file I/O for each thread of this job.
             readwrite (IOPattern | None): Type of I/O pattern.
-            ioengine (int | None): How the job issues I/O.
+            ioengine (IOEngine| None): How the job issues I/O.
+            direct (Direct): Use non-buffered I/O (when set) or not.
+            directory (Path | None): Directory for saving test files.
             **kwargs (dict[str, Any]): Command arguments in the free form with values.
 
         Raises:
@@ -74,6 +96,8 @@ class Fio(PkgMgrMixin, GenericUtil):
                 *create_opt("readwrite", readwrite),
                 *create_opt("output-format", "json"),
                 *create_opt("ioengine", ioengine),
+                *create_opt("direct", direct),
+                *create_opt("directory", directory),
             ],
             **kwargs,
         )

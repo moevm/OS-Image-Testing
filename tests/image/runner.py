@@ -4,6 +4,7 @@ from pathlib import Path
 
 from image.endurance.syscalls import test_ltp_syscalls, test_syscalls_all_stress_ng
 from image.performance.cpu import test_chaosblade_cpu, test_stress_ng_cpu
+from image.performance.fio_disks import test_fio_disks_scaling
 from image.performance.ipc import test_sched
 from image.performance.network import test_iperf3
 from image.performance.system import test_pts_system
@@ -42,6 +43,16 @@ def main() -> None:
         TestsRunnerConfig(
             description="Test suite for all subsystems.",
             tests=(
+                TestSpec(
+                    description="Load drives with fio.",
+                    subsystems=("file",),
+                    test_func=lambda executor, client: test_fio_disks_scaling(
+                        executor,
+                        client,
+                        10,
+                        Path().home(),
+                    ),
+                ),
                 TestSpec(
                     description="Load local network with iperf3.",
                     subsystems=("network",),
