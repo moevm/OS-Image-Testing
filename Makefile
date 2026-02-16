@@ -51,7 +51,7 @@ SSH_QEMU_PORT              ?= 2222
 SSH_SUSE_PORT_156          := 1616
 BENCHER_API_PORT           := 61016
 BENCHER_CLI_PORT           := 3000
-SSH_POSTGRES_PORT          := 5454
+SSH_POSTGRES_PORT          := 5432
 VMETRICS_PORT			   := 8438
 
 SSH_QEMU_USER              ?= root
