@@ -20,8 +20,8 @@ BENCHER_API_DB_VOLUME      := ${DOCKER_PREFIX}-bencher-database
 VMETRICS_DATA_VOLUME	   := ${DOCKER_PREFIX}-vmetrics-data
 
 # VictoriaMetrics-docker-network
+DEFAULT_NE_PORT		       := 9100
 YOCTO_NE_PORT		   	   := 9100
-SUSE_155_NE_PORT		   := 9155
 SUSE_156_NE_PORT		   := 9166
 
 # Paths
@@ -46,11 +46,12 @@ POSTGRES_ADDRESS           := 10.5.0.20
 VMETRICS_ADDRESS 		   := 10.5.0.25
 SUBNET                     := 10.5.0.0/24
 GATEWAY                    := 10.5.0.1
+SSH_TO_QEMU_PORT		   := 22
 SSH_QEMU_PORT              ?= 2222
 SSH_SUSE_PORT_156          := 1616
 BENCHER_API_PORT           := 61016
 BENCHER_CLI_PORT           := 3000
-SSH_POSTGRES_PORT          := 5432
+SSH_POSTGRES_PORT          := 5454
 VMETRICS_PORT			   := 8438
 
 SSH_QEMU_USER              ?= root

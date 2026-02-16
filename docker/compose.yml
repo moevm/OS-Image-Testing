@@ -25,6 +25,7 @@ services:
       USER: ${USER}
       GROUP: ${GROUP}
       YOCTO_NE_PORT: ${YOCTO_NE_PORT}
+      DEFAULT_NE_PORT: ${DEFAULT_NE_PORT}
     ports:
       - ${YOCTO_NE_PORT}:${YOCTO_NE_PORT}
       - ${SSH_QEMU_PORT}:${SSH_QEMU_PORT}
@@ -45,8 +46,10 @@ services:
     environment:
       S_USER: ${S_USER}
       PASSWORD: ${PASSWORD}
+      SSH_QEMU_PORT: ${SSH_TO_QEMU_PORT}
       SSH_SUSE_PORT: ${SSH_SUSE_PORT_156}
       SUSE_NE_PORT: ${SUSE_156_NE_PORT}
+      DEFAULT_NE_PORT: ${DEFAULT_NE_PORT}
     ports:
       - ${SSH_SUSE_PORT_156}:${SSH_SUSE_PORT_156}
     networks:

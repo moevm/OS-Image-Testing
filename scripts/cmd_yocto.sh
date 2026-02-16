@@ -5,5 +5,5 @@ set -e
 cd "${POKY_DIR}"
 ./add-layers.sh
 bitbake "${OS_IMAGE}"
-QB_SLIRP_OPT="-netdev user,id=net0,hostfwd=tcp::8080-:80,hostfwd=tcp::2222-:22" \
+QB_SLIRP_OPT="-netdev user,id=net0,hostfwd=tcp::8080-:80,hostfwd=tcp::2222-:22,hostfwd=tcp::"${YOCTO_NE_PORT}"-:"${DEFAULT_NE_PORT}"" \
     runqemu qemux86-64 slirp nographic

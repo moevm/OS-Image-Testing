@@ -10,4 +10,3 @@ from .perf import PerfBenchMetrics as PerfBenchMetrics
 from .pts import PhoronixTestSuite as PhoronixTestSuite
 from .pts import setup_pts as setup_pts
 from .stress_ng import StressNg as StressNg
-from .node_exporter import NodeExporter as NodeExporter

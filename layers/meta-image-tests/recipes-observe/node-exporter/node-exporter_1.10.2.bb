@@ -18,10 +18,10 @@ INITSCRIPT_PARAMS = "stop 20 0 1 6 ."
 
 do_install() {
     install -d ${D}/usr/local/bin
-    install -m 0755 ${S}/node_exporter ${D}/usr/local/bin/
+    install -m 0744 ${S}/node_exporter ${D}/usr/local/bin/
 
     install -d ${D}${sysconfdir}/init.d
-    install -m 0755 ${UNPACKDIR}/node_exporter.init ${D}${sysconfdir}/init.d/${INITSCRIPT_NAME}
+    install -m 0744 ${UNPACKDIR}/node_exporter.init ${D}${sysconfdir}/init.d/${INITSCRIPT_NAME}
 }
 
 FILES:${PN} += "/usr/local/bin/node_exporter"
