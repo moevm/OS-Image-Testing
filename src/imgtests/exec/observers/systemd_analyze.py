@@ -18,7 +18,8 @@ class SystemdAnalyze(GenericUtil):
         super().__init__("systemd-analyze", ssh_client)
     
     def boot_time(self) -> BootTimeInfo:
-        raw = self(["time"]).stdout().strip()
+        mins_and_secs = 2
+        raw = self(["time"]).stdout.strip()
         raw = raw.replace("=", "+").replace("Startup finished in ", "").replace(" ", "")
         ret_args = raw.split("+")
 
@@ -33,14 +34,14 @@ class SystemdAnalyze(GenericUtil):
         }
 
         # parse time signatures
-        for el in ret_args:
-            key = el[el.find("(") + 1:-1] + "_time"
+        for line in ret_args:
+            key = line[line.find("(") + 1:-1] + "_time"
             # separate total time key from the others
-            if (el.find("(") == -1):
+            if (line.find("(") == -1):
                 key = "total_time"
-            el = el[:el.find("(")].replace("s", "").replace("min", "|").split('|')
+            el = line[:line.find("(")].replace("s", "").replace("min", "|").split('|')
 
-            if len(el) == 2:
+            if len(el) == mins_and_secs:
                 res[key] = int(el[0]) * 60 + float(el[1])
             else:
                 res[key] = float(el[0])
@@ -48,16 +49,17 @@ class SystemdAnalyze(GenericUtil):
         return BootTimeInfo(**res)
 
     def slow_load_services(self) -> dict[str, float]:
+        mins_and_secs = 2
         res: dict[str, float] = {}
-        tmp = self(['']).stdout.split('\n')[3:]
+        tmp = self(['critical-chain']).stdout.split('\n')[3:]
 
-        for el in tmp:
-            el = el.strip().replace('└─', '')
+        for line in tmp:
+            el = line.strip().replace('└─', '')
             # check if service and it is slow
             if "service" in el and el.find('+') >= 0 and el[-2:] != "ms":
                 service = el.split()[0]
                 el = el[el.find('+') + 1:].replace("s", "").replace("min", "|").split('|')
-                if len(el) == 2:
+                if len(el) == mins_and_secs:
                     res[service] = int(el[0]) * 60 + float(el[1])
                 else:
                     res[service] = float(el[0])
