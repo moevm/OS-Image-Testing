@@ -15,12 +15,14 @@ class PerfBenchMetrics(NamedTuple):
     total_time: float
     usecs_per_op: float
     ops_per_sec: int
+    gb_per_sec: float
 
 
 TOTAL_TIME_PATTERN: Final = re.compile(r"\s*Total time:\s*([\d.]+)")
-USECS_PER_OP_PATTERN: Final = re.compile(r"\s*([\d.]+)\s*usecs/op")
+USECS_PER_OP_PATTERN: Final = re.compile(r"^\s*([\d,.\s]+)\s*usecs/op")
 OPS_PER_SEC_PATTERN: Final = re.compile(r"\s*(\d+)\s*ops/sec")
-BENCHMARK_NAME_PATTERN: Final = re.compile(r"\s*# Running\s*(.*?)\s*benchmark...")
+BENCHMARK_NAME_PATTERN: Final = re.compile(r"# Running '(.*?)' benchmark")
+GB_PER_SEC_PATTERN: Final = re.compile(r"^\s*([\d,.\s]+)\s*GB/sec")
 
 
 class Perf(PkgMgrMixin, GenericUtil):
@@ -85,6 +87,7 @@ class Perf(PkgMgrMixin, GenericUtil):
                 time_match = None
                 usecs_match = None
                 ops_match = None
+                gb_match = None
                 i += 1
                 while i < len(lines) and not lines[i].startswith("# Running"):
                     current_line = lines[i].strip()
@@ -94,14 +97,16 @@ class Perf(PkgMgrMixin, GenericUtil):
                         usecs_match = USECS_PER_OP_PATTERN.search(current_line)
                     elif "ops/sec" in current_line:
                         ops_match = OPS_PER_SEC_PATTERN.search(current_line)
+                    elif "GB/sec" in current_line:
+                        gb_match = GB_PER_SEC_PATTERN.search(current_line)
                     i += 1
                 if time_match:
-                    total_time = float(time_match.group(1))
+                    total_time = float(time_match.group(1).replace(",", "."))
                 else:
                     logger.warning("Failed to parse total time line")
                     total_time = -1
                 if usecs_match:
-                    usecs_per_op = float(usecs_match.group(1))
+                    usecs_per_op = float(usecs_match.group(1).replace(",", "."))
                 else:
                     logger.warning("Failed to parse usecs/op line")
                     usecs_per_op = -1
@@ -110,8 +115,15 @@ class Perf(PkgMgrMixin, GenericUtil):
                 else:
                     logger.warning("Failed to parse ops/sec line")
                     ops_per_sec = -1
+                if gb_match:
+                    gb_per_sec = float(gb_match.group(1).replace(",", "."))
+                else:
+                    logger.warning("Failed to parse GB/sec line")
+                    gb_per_sec = -1
                 results.append(
-                    PerfBenchMetrics(benchmark_name, total_time, usecs_per_op, ops_per_sec)
+                    PerfBenchMetrics(
+                        benchmark_name, total_time, usecs_per_op, ops_per_sec, gb_per_sec
+                    )
                 )
             else:
                 i += 1
