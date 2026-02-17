@@ -52,18 +52,4 @@ docker logs os-image-testing-imgtests-analyzer-1
 
 Note: To create an image with all the packages specified in conf/packages.conf, you will need at least 200 GB of free disk space. If your memory is running low, consider removing unnecessary packages.
 
-#### 2.2 Manual initialization through Docker [**DEPRECATED**]
-
-Builds Docker image and initializes the volumes, then starts the process of building the OS image.
-
-```bash
-make docker-init-volumes
-```
-
-Runs QEMU in an assembled docker image.
-
-```bash
-make docker-run-image
-```
-
-To add a new utility, you need to update the local.conf and write the appropriate recipe, then add the paths to the recipe and dependent files for all called containers in the `Makefile`.
+To add a new utility, you need to update the [packages.conf](conf/packages.conf), [local.conf](conf/local.conf) and write the appropriate [recipe](layers/meta-image-tests/), then add the paths to the recipe and dependent files for all called containers in the `Makefile`.
