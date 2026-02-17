@@ -1,16 +1,22 @@
 import logging
-from concurrent.futures import ThreadPoolExecutor
+import tempfile
+from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from concurrent.futures import ThreadPoolExecutor
+
+    from imgtests.exec.exec import SSHClient
 
 import numpy as np
 
-from imgtests.exec.exec import SSHClient
 from imgtests.exec.observers.time import Time
 from imgtests.exec.user_commands import Dd, Rm
 
 logger = logging.getLogger(__name__)
 
 
-def test_all_tools(executor: ThreadPoolExecutor, client: SSHClient | None, iterations: int):
+def test_all_tools(executor: ThreadPoolExecutor, client: SSHClient | None, iterations: int):  # noqa: PLR0915
     samples = test_net_utils(executor, client, iterations)
     for tool in samples:
         real, user, system = [], [], []
@@ -181,14 +187,15 @@ def test_all_tools(executor: ThreadPoolExecutor, client: SSHClient | None, itera
         )
 
 
-def test_utils_for_files(
+def test_utils_for_files(  # noqa: PLR0912, C901
     _: ThreadPoolExecutor, client: SSHClient | None, iterations: int
 ) -> dict[str, list[str]]:
     logger.info("Testing standard utilities for working with files...")
     time = Time(client)
     dd = Dd(client)
-    filename1 = "/tmp/test_file1"
-    filename2 = "/tmp/test_file2"
+    tmpdir = Path(tempfile.gettempdir())
+    filename1 = tmpdir / "test_file1"
+    filename2 = tmpdir / "test_file2"
     ret = dd(
         [
             "if=/dev/urandom",
@@ -248,7 +255,7 @@ def test_utils_for_files(
         "tar",
     ]
     results = [[] for tool in tools]
-    for i in range(iterations):
+    for _i in range(iterations):
         for tool in tools:
             cmd = tool
             if tool in {"head", "tail"}:
@@ -262,13 +269,13 @@ def test_utils_for_files(
             elif tool == "diff":
                 cmd = f"{tool} -u {filename1} {filename2} > diff.patch"
             elif tool == "cp":
-                cmd = " ".join([tool, filename1, f"{filename1}.copy"])
+                cmd = " ".join([tool, str(filename1), f"{filename1}.copy"])
             elif tool == "patch":
                 cmd = f"{tool} {filename1}.copy < diff.patch"
             elif tool == "mv":
                 cmd = " ".join([tool, f"{filename1}.copy", f"{filename1}.new"])
             elif tool == "ln":
-                cmd = " ".join([tool, filename1, f"{filename1}.hardlink"])
+                cmd = " ".join([tool, str(filename1), f"{filename1}.hardlink"])
             elif tool == "rm":
                 cmd = " ".join([tool, f"{filename1}.new", f"{filename1}.hardlink"])
             elif tool == "chmod":
@@ -291,7 +298,7 @@ def test_net_utils(
     time = Time(client)
     tools = ["ping", "netstat"]
     results = [[] for tool in tools]
-    for i in range(iterations):
+    for _i in range(iterations):
         for tool in tools:
             cmd = tool
             if tool == "ping":
@@ -317,8 +324,9 @@ def test_utils_for_dirs(
         "rmdir",
     ]
     results = [[] for tool in tools]
-    path = "/tmp/" + "/".join(str(i) for i in range(1, 51))
-    for i in range(iterations):
+    tmpdir = Path(tempfile.gettempdir())
+    path = tmpdir / "/".join(str(i) for i in range(1, 51))
+    for _i in range(iterations):
         for tool in tools:
             cmd = tool
             if tool in {"mkdir", "rmdir"}:
@@ -329,7 +337,7 @@ def test_utils_for_dirs(
                 for j in range(1, 101):
                     dd(["if=/dev/urandom", f"of=/tmp/file{j}", "bs=10", "count=1", "2>/dev/null"])
                 cmd = f"{tool} /tmp"
-                rm(["/tmp/file*"])
+                rm([str(tmpdir / "/file*")])
             elif tool == "realpath":
                 cmd = f"{tool} {path}"
             ret = time(["-f", "'%e %U %S'", cmd, ">", "/dev/null"])
@@ -358,7 +366,7 @@ def test_other_tools(
     ]
     results = [[] for tool in tools]
     process = "init"
-    for i in range(iterations):
+    for _i in range(iterations):
         for tool in tools:
             cmd = tool
             if tool == "ps":
