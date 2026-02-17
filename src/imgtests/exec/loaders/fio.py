@@ -1,3 +1,5 @@
+import json
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
 from imgtests.exec.base_util import GenericUtil
@@ -7,8 +9,6 @@ from imgtests.exec.pkgmgrs.pip3 import Pip3
 from imgtests.exec.utils import create_opt
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from imgtests.types import Version
 
 IOPattern = Literal[
@@ -105,6 +105,51 @@ class Fio(PkgMgrMixin, GenericUtil):
             ],
             **kwargs,
         )
+
+    def json_to_bmf(self, json_file: Path) -> dict[str, Any]:  # noqa: PLR0912, C901
+        with Path.open(json_file) as f:
+            data = json.load(f)
+        result = {}
+        for job in data.get("jobs", []):
+            name = job["jobname"]
+            for op in ["read", "write"]:
+                if op in job:
+                    d = job[op]
+                    metrics = {}
+                    for m in [
+                        "io_bytes",
+                        "io_kbytes",
+                        "bw_bytes",
+                        "bw",
+                        "runtime",
+                        "total_ios",
+                        "iops",
+                    ]:
+                        if m in d:
+                            metrics[m] = {"value": d[m]}
+                    for m in ["bw", "iops"]:
+                        if f"{m}_mean" in d and f"{m}_min" in d and f"{m}_max" in d:
+                            metrics[f"{m}_mean"] = {
+                                "value": d[f"{m}_mean"],
+                                "lower_value": d[f"{m}_min"],
+                                "upper_value": d[f"{m}_max"],
+                            }
+                    for lat in ["slat_ns", "clat_ns", "lat_ns"]:
+                        if lat in d and all(k in d[lat] for k in ["mean", "min", "max"]):
+                            metrics[lat] = {
+                                "value": d[lat]["mean"],
+                                "lower_value": d[lat]["min"],
+                                "upper_value": d[lat]["max"],
+                            }
+                            if metrics:
+                                result[f"{name}_{op}"] = metrics
+            cpu = {}
+            for m in ["usr_cpu", "sys_cpu", "ctx"]:
+                if m in job:
+                    cpu[m] = {"value": job[m]}
+            if cpu:
+                result[f"{name}_cpu"] = cpu
+        return result
 
 
 class FioPlot(PkgMgrMixin, GenericUtil):
