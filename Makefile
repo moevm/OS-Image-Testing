@@ -67,7 +67,7 @@ docker-compose-up: ensure-volumes
 
 .PHONY: docker-compose-down
 docker-compose-down:
-	docker-compose --file docker/compose.yml --project-directory ./ down
+	docker compose --file docker/compose.yml --project-directory ./ down
 
 .PHONY: ensure-volumes
 ensure-volumes: docker
