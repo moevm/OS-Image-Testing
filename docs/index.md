@@ -23,6 +23,7 @@
 - [Микробенчмаркинг](./methodology/microbenchmarking.md)
 - [Анализ тактов](./methodology/cycle-analysis.md)
 - [Эмуляция сбоев](./methodology/failure_emulation.md)
+- [Инструменты тестирования](./methodology/testing-tools.md)
 
 ## 3. Утилиты
 
