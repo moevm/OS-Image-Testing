@@ -23,10 +23,10 @@ from imgtests.exec.observers.systemd_analyze import SystemdAnalyze
             "+ 1min 54.925s (userspace) = 2min 39.567s \n"
             "graphical.target reached after 1min 54.873s in userspace.",
             {
-                "firmware": 15.476,
-                "loader": 20.245,
-                "kernel": 8.919,
-                "userspace": 114.925,
+                "firmware_time": 15.476,
+                "loader_time": 20.245,
+                "kernel_time": 8.919,
+                "userspace_time": 114.925,
                 "total_time": 159.567,
             },
         ),
