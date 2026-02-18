@@ -1,9 +1,9 @@
-from imgtests.types import Distro
-from imgtests.exec.pkgmgrs.zypper import Zypper
-from imgtests.exec.osinfo import get_os_release
-from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
 from imgtests.exec.base_util import GenericUtil
-from imgtests.exec.exec import SSHClient
+from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
+from imgtests.exec.osinfo import get_os_release
+from imgtests.exec.pkgmgrs.zypper import Zypper
+from imgtests.types import Distro
+
 
 class NodeExporter(GenericUtil):
     def __init__(self, ssh_client: SSHClient | None = None) -> None:
@@ -40,8 +40,7 @@ class NodeExporter(GenericUtil):
         )
 
         install_res = common_run_command(
-            ("sudo", "bash", "-lc", f"'{install_script}'"), 
-            self.ssh_client
+            ("sudo", "bash", "-lc", f"'{install_script}'"), self.ssh_client
         )
         if install_res.returncode:
             return install_res
@@ -65,12 +64,11 @@ class NodeExporter(GenericUtil):
                 "ExecStart=/usr/local/bin/node_exporter" + " ".join(collect_flags),
                 "",
                 "[Install]",
-                "WantedBy=multi-user.target"
+                "WantedBy=multi-user.target",
             ]
             for line in service_text:
                 serv_res = common_run_command(
-                    ["sudo", "echo", line, " >> ", "node_exporter.service"], 
-                    self.ssh_client
+                    ["sudo", "echo", line, " >> ", "node_exporter.service"], self.ssh_client
                 )
                 if serv_res.returncode:
                     return serv_res
@@ -85,24 +83,22 @@ class NodeExporter(GenericUtil):
                 f"systemctl disable {pkg}"
             )
             return common_run_command(
-                ("sudo", "bash", "-lc", f"'{systemd_script}'"), 
-                self.ssh_client
+                ("sudo", "bash", "-lc", f"'{systemd_script}'"), self.ssh_client
             )
 
-        else:
-            return install_res
+        return install_res
 
     def start_exporter(self) -> ExecResult:
-        if (self.service == "service"):
+        if self.service == "service":
             return common_run_command(("sudo", self.service, self.name, "restart"), self.ssh_client)
         return common_run_command(("sudo", self.service, "restart", self.name), self.ssh_client)
 
     def stop_exporter(self) -> ExecResult:
-        if (self.service == "service"):
+        if self.service == "service":
             return common_run_command(("sudo", self.service, self.name, "stop"), self.ssh_client)
         return common_run_command(("sudo", self.service, "stop", self.name), self.ssh_client)
 
     def check_exporter(self) -> ExecResult:
-        if (self.service == "service"):
+        if self.service == "service":
             return common_run_command(("sudo", self.service, self.name, "status"), self.ssh_client)
         return common_run_command(("sudo", self.service, "status", self.name), self.ssh_client)
