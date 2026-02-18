@@ -45,4 +45,4 @@ from imgtests.exec.observers.systemd_analyze import SystemdAnalyze
 )
 def test_parse_time(raw_line: str, result: dict[str, float]):
     sa = SystemdAnalyze()
-    assert SystemdAnalyze._parse_time(raw_line) == result
+    assert sa._parse_time(raw_line) == result
