@@ -1,34 +1,34 @@
 from typing import NamedTuple
-from imgtests.exec.exec import SSHClient
+
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import SSHClient
 
 
 class BootTimeInfo(NamedTuple):
-    firmware_time:  float
-    loader_time:    float
-    initrd_time:    float
-    kernel_time:    float
+    firmware_time: float
+    loader_time: float
+    initrd_time: float
+    kernel_time: float
     userspace_time: float
-    total_time:     float
+    total_time: float
 
 
 class SlowService(NamedTuple):
-    service_name:   str
-    slow_time_s:    float
+    service_name: str
+    slow_time_s: float
 
 
 class SystemdAnalyze(GenericUtil):
     def __init__(self, ssh_client: SSHClient | None = None) -> None:
         super().__init__("systemd-analyze", ssh_client)
-    
+
     @staticmethod
     def _parse_time(line: str) -> dict[str, float]:
-        """
-        Method to parse systemd-analyze time stdout line to a dict.
+        """Method to parse systemd-analyze time stdout line to a dict.
 
         stdout line example:
-            'Startup finished in 2.871s (firmware) + 2.349s (loader) + 2.640s (kernel) + 8.371s (userspace) = 16.231s 
+            'Startup finished in 2.871s \
+             (firmware) + 2.349s (loader) + 2.640s (kernel) + 8.371s (userspace) = 16.231s
              graphical.target reached after 8.346s in userspace.'
 
         Attributes:
@@ -37,7 +37,7 @@ class SystemdAnalyze(GenericUtil):
         mins_and_secs = 2
         parts_line = line.replace("=", "+").replace("Startup finished in ", "").replace(" ", "")
         parts = parts_line.split("+")
-        res  = {}
+        res = {}
         # part time cases:
         # 1 - <M>min<S>.<Ms>s(<part name>)
         # 2 - <S>.<Ms>s(<part name>)
@@ -45,16 +45,16 @@ class SystemdAnalyze(GenericUtil):
         # total time has no (<part name>)
         for part in parts:
             bracket_idx = part.find("(")
-            key = line[bracket_idx + 1:-1] + "_time"
+            key = line[bracket_idx + 1 : -1] + "_time"
             # separate total time key from the others
             if bracket_idx == -1:
                 key = "total_time"
             part_time = line[:bracket_idx]
             # case 3
-            if part_time[-2:] == 'ms':
+            if part_time[-2:] == "ms":
                 res[key] = float(part_time[:-2]) / 1000
             else:
-                marks = part_time[:bracket_idx].replace("s", "").replace("min", "|").split('|')
+                marks = part_time[:bracket_idx].replace("s", "").replace("min", "|").split("|")
                 # case 1
                 if len(marks) == mins_and_secs:
                     res[key] = int(marks[0]) * 60 + float(marks[1])
@@ -67,12 +67,12 @@ class SystemdAnalyze(GenericUtil):
         raw = self(["time"]).stdout.strip()
         # prefill configuration to avoid system missconfiguration
         res: dict[str, float] = {
-            "firmware_time":  -1.0,
-            "loader_time":    -1.0,
-            "initrd_time":    -1.0,
-            "kernel_time":    -1.0,
+            "firmware_time": -1.0,
+            "loader_time": -1.0,
+            "initrd_time": -1.0,
+            "kernel_time": -1.0,
             "userspace_time": -1.0,
-            "total_time":     -1.0
+            "total_time": -1.0,
         }
         # fill result dict with _parse_time result
         times = self._parse_time(raw)
@@ -83,20 +83,17 @@ class SystemdAnalyze(GenericUtil):
     def slow_load_services(self) -> tuple[SlowService, ...]:
         mins_and_secs = 2
         res: list[SlowService] = []
-        tmp = self(['critical-chain']).stdout.split('\n')[3:]
+        tmp = self(["critical-chain"]).stdout.split("\n")[3:]
         for line in tmp:
-            tmp_line = line.strip().replace('└─', '')
+            tmp_line = line.strip().replace("└─", "")
             plus_idx = tmp_line.find("+")
             # check if it is service and it is slow
             if ".service" in tmp_line and plus_idx != -1 and tmp_line[-2:] != "ms":
                 service = tmp_line.split()[0]
-                marks = tmp_line[plus_idx + 1:].replace("s", "").replace("min", "|").split('|')
+                marks = tmp_line[plus_idx + 1 :].replace("s", "").replace("min", "|").split("|")
                 if len(marks) == mins_and_secs:
                     slow_time = int(marks[0]) * 60 + float(marks[1])
                 else:
                     slow_time = float(marks[0])
-                res.append(SlowService(
-                    service_name = service,
-                    slow_time_s = slow_time
-                ))
+                res.append(SlowService(service_name=service, slow_time_s=slow_time))
         return tuple(res)
