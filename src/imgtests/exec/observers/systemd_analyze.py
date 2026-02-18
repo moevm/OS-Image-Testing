@@ -25,8 +25,8 @@ class SystemdAnalyze(GenericUtil):
     @staticmethod
     def _parse_time(line: str) -> dict[str, float]:
         """
-        Method to parse systemd-analyze time stdout line to a dict
-        
+        Method to parse systemd-analyze time stdout line to a dict.
+
         stdout line example:
             'Startup finished in 2.871s (firmware) + 2.349s (loader) + 2.640s (kernel) + 8.371s (userspace) = 16.231s 
              graphical.target reached after 8.346s in userspace.'
@@ -34,6 +34,7 @@ class SystemdAnalyze(GenericUtil):
         Attributes:
             line (str): systemd-analyze time stdout line.
         """
+        mins_and_secs = 2
         parts_line = line.replace("=", "+").replace("Startup finished in ", "").replace(" ", "")
         parts = parts_line.split("+")
         res  = {}
@@ -63,7 +64,6 @@ class SystemdAnalyze(GenericUtil):
         return res
 
     def time(self) -> BootTimeInfo:
-        mins_and_secs = 2
         raw = self(["time"]).stdout.strip()
         # prefill configuration to avoid system missconfiguration
         res: dict[str, float] = {
@@ -76,7 +76,7 @@ class SystemdAnalyze(GenericUtil):
         }
         # fill result dict with _parse_time result
         times = self._parse_time(raw)
-        for pair in time.items():
+        for pair in times.items():
             res[pair[0]] = pair[1]
         return BootTimeInfo(**res)
 
