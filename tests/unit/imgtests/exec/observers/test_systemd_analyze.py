@@ -1,4 +1,5 @@
 import pytest
+
 from imgtests.exec.observers.systemd_analyze import SystemdAnalyze
 
 
@@ -14,7 +15,7 @@ from imgtests.exec.observers.systemd_analyze import SystemdAnalyze
                 "initrd_time": 41.054,
                 "userspace_time": 87.366,
                 "total_time": 134.464,
-            }
+            },
         ),
         (
             "Startup finished in "
@@ -27,7 +28,7 @@ from imgtests.exec.observers.systemd_analyze import SystemdAnalyze
                 "kernel": 8.919,
                 "userspace": 114.925,
                 "total_time": 159.567,
-            }
+            },
         ),
         (
             "Startup finished in "
@@ -38,9 +39,10 @@ from imgtests.exec.observers.systemd_analyze import SystemdAnalyze
                 "initrd_time": 30.906,
                 "userspace_time": 156.845,
                 "total_time": 195.747,
-            }
+            },
         ),
-    ]
+    ],
 )
 def test_parse_time(raw_line: str, result: dict[str, float]):
+    sa = SystemdAnalyze()
     assert SystemdAnalyze._parse_time(raw_line) == result
