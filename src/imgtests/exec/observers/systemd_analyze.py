@@ -36,8 +36,9 @@ class SystemdAnalyze(GenericUtil):
         """
         mins_and_secs = 2
         parts_line = line.replace("=", "+").replace("Startup finished in ", "").replace(" ", "")
-        parts = parts_line.split("+")
+        parts = parts_line.split("\n")[0].split("+")
         res = {}
+
         # part time cases:
         # 1 - <M>min<S>.<Ms>s(<part name>)
         # 2 - <S>.<Ms>s(<part name>)
@@ -45,11 +46,13 @@ class SystemdAnalyze(GenericUtil):
         # total time has no (<part name>)
         for part in parts:
             bracket_idx = part.find("(")
-            key = line[bracket_idx + 1 : -1] + "_time"
+            key = part[bracket_idx + 1 : -1] + "_time"
             # separate total time key from the others
             if bracket_idx == -1:
                 key = "total_time"
-            part_time = line[:bracket_idx]
+                part_time = part
+            else:
+                part_time = part[:bracket_idx]
             # case 3
             if part_time[-2:] == "ms":
                 res[key] = float(part_time[:-2]) / 1000
@@ -61,10 +64,12 @@ class SystemdAnalyze(GenericUtil):
                 # case 2
                 else:
                     res[key] = float(marks[0])
+
         return res
 
     def time(self) -> BootTimeInfo:
         raw = self(["time"]).stdout.strip()
+
         # prefill configuration to avoid system missconfiguration
         res: dict[str, float] = {
             "firmware_time": -1.0,
@@ -74,16 +79,19 @@ class SystemdAnalyze(GenericUtil):
             "userspace_time": -1.0,
             "total_time": -1.0,
         }
+
         # fill result dict with _parse_time result
         times = self._parse_time(raw)
         for pair in times.items():
             res[pair[0]] = pair[1]
+
         return BootTimeInfo(**res)
 
     def slow_load_services(self) -> tuple[SlowService, ...]:
         mins_and_secs = 2
         res: list[SlowService] = []
         tmp = self(["critical-chain"]).stdout.split("\n")[3:]
+
         for line in tmp:
             tmp_line = line.strip().replace("└─", "")
             plus_idx = tmp_line.find("+")
@@ -96,4 +104,5 @@ class SystemdAnalyze(GenericUtil):
                 else:
                     slow_time = float(marks[0])
                 res.append(SlowService(service_name=service, slow_time_s=slow_time))
+
         return tuple(res)
