@@ -44,4 +44,4 @@ from imgtests.exec.observers.systemd_analyze import SystemdAnalyze
     ],
 )
 def test_parse_time(raw_line: str, result: dict[str, float]):
-    assert SystemdAnalyze._parse_time(raw_line) == result   # noqa: SLF001
+    assert SystemdAnalyze._parse_time(raw_line) == result  # noqa: SLF001
