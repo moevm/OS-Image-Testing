@@ -1,5 +1,3 @@
-import logging
-from collections.abc import Callable, Iterable
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from threading import Event, Thread
@@ -10,11 +8,14 @@ import paramiko
 import paramiko.ssh_exception
 
 from imgtests.database.database import ImgtestsDatabase
+from imgtests.sysrep import get_system_info
 
 if TYPE_CHECKING:
+    import logging
+    from collections.abc import Callable, Iterable
+
     from imgtests.exec.base_util import BaseTestUtil
-from imgtests.exec.exec import SSHClient
-from imgtests.sysrep import get_system_info
+    from imgtests.exec.exec import SSHClient
 
 Subsystem = Literal["file", "syscalls", "IPC", "network", "memory", "system"]
 

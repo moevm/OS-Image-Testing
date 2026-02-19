@@ -1,8 +1,10 @@
-import logging
 import sys
-from typing import NoReturn
+from typing import TYPE_CHECKING, NoReturn
 
 from imgtests.environment import env_var_to_type
+
+if TYPE_CHECKING:
+    import logging
 
 
 def env_var_to_type_or_exit[T](variable: str, val_type: type[T], logger: logging.Logger) -> T:

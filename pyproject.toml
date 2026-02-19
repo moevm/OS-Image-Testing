@@ -3,12 +3,12 @@ name = "imgtests"
 version = "0.0.1"
 description = "Library for the testing Linux based operating systems."
 readme = "README.md"
-requires-python = "~=3.13.12"
+requires-python = "~=3.14.3"
 classifiers = [
     "Intended Audience :: Science/Research",
     "Intended Audience :: Developers",
     "Programming Language :: Python",
-    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Operating System :: POSIX",
     "Operating System :: Unix",
 ]

@@ -1,15 +1,12 @@
-from datetime import datetime
-from typing import TYPE_CHECKING
+from datetime import datetime  # noqa: TC003
 
 from sqlalchemy import DateTime, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from imgtests.database.models.base import Base
-from imgtests.database.models.loader import LoaderBase
-from imgtests.database.models.observer import ObserverBase
-
-if TYPE_CHECKING:
-    from imgtests.database.models.configuration import ConfigurationBase
+from imgtests.database.models.configuration import ConfigurationBase  # noqa: TC001
+from imgtests.database.models.loader import LoaderBase  # noqa: TC001
+from imgtests.database.models.observer import ObserverBase  # noqa: TC001
 
 
 class ExperimentBase(Base):
@@ -21,7 +18,7 @@ class ExperimentBase(Base):
     type: Mapped[str | None] = mapped_column(String(20))
     started_at: Mapped[datetime | None] = mapped_column(DateTime)
     ended_at: Mapped[datetime | None] = mapped_column(DateTime)
-    configuration: Mapped["ConfigurationBase"] = relationship(
+    configuration: Mapped[ConfigurationBase] = relationship(
         "ConfigurationBase", back_populates="experiments"
     )
     loaders: Mapped[list[LoaderBase]] = relationship("LoaderBase", back_populates="experiment")

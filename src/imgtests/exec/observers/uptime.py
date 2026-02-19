@@ -1,11 +1,13 @@
 import logging
 import re
 from datetime import datetime
-from typing import Literal, NamedTuple, overload
+from typing import TYPE_CHECKING, Literal, NamedTuple, overload
 
 from imgtests.exec.base_util import GenericUtil
-from imgtests.exec.exec import ExecResult, SSHClient
 from imgtests.exec.utils import create_opt
+
+if TYPE_CHECKING:
+    from imgtests.exec.exec import ExecResult, SSHClient
 
 logger = logging.getLogger(__name__)
 

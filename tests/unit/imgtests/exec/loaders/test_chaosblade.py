@@ -1,7 +1,11 @@
+from typing import TYPE_CHECKING
+
 import pytest
 
-from imgtests.exec.exec import ExecResult
 from imgtests.exec.loaders.chaosblade import Chaosblade, ChaosResponse
+
+if TYPE_CHECKING:
+    from imgtests.exec.exec import ExecResult
 
 
 @pytest.mark.parametrize(

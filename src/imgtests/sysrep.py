@@ -1,14 +1,16 @@
-from typing import Any, NamedTuple
+from typing import TYPE_CHECKING, Any, NamedTuple
 
 from deepdiff import DeepDiff
 
-from imgtests.exec.exec import SSHClient
 from imgtests.exec.loaders import Fio, Fwts, Iperf3, Kirk, Perf, PhoronixTestSuite, StressNg
 from imgtests.exec.observers.uname import Uname, UnameInfo
 from imgtests.exec.observers.zcat import Zcat
 from imgtests.exec.osinfo import get_os_release
 from imgtests.exec.pkgmgrs.rpm import RPM
 from imgtests.types import Version
+
+if TYPE_CHECKING:
+    from imgtests.exec.exec import SSHClient
 
 
 class OsInfo(NamedTuple):

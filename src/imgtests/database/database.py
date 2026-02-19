@@ -1,7 +1,7 @@
 import logging
 import os
 from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import create_engine
@@ -12,7 +12,9 @@ from imgtests.database.models.configuration import ConfigurationBase
 from imgtests.database.models.experiment import ExperimentBase
 from imgtests.database.models.loader import LoaderBase
 from imgtests.database.models.observer import ObserverBase
-from imgtests.sysrep import SystemInfo
+
+if TYPE_CHECKING:
+    from imgtests.sysrep import SystemInfo
 
 logger = logging.getLogger(__name__)
 

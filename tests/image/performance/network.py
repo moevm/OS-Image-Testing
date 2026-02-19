@@ -1,9 +1,13 @@
 import logging
-from concurrent.futures import ThreadPoolExecutor
 from time import sleep
+from typing import TYPE_CHECKING
 
-from imgtests.exec.exec import SSHClient
 from imgtests.exec.loaders import Iperf3
+
+if TYPE_CHECKING:
+    from concurrent.futures import ThreadPoolExecutor
+
+    from imgtests.exec.exec import SSHClient
 
 logger = logging.getLogger(__name__)
 

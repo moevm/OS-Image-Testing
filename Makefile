@@ -61,42 +61,13 @@ docker: init-submodule
 		--build-arg POKY_DIR="${POKY_DIR}" \
 		--file docker/image_builder.dockerfile .
 
-.PHONY: docker-init-volumes
-docker-init-volumes: ensure-volumes
-	docker run -it --rm \
-		--env BUILD_DIR=${BUILD_DIR} \
-		--env POKY_DIR=${POKY_DIR} \
-		--env USER=${USER} \
-		--env GROUP=${GROUP} \
-		--volume ${DOCKER_BUILD_VOLUME}:${BUILD_DIR} \
-		--volume ${DOCKER_DOWNLOADS_VOLUME}:${POKY_DIR}/downloads \
-		--volume ${DOCKER_SSTATE_VOLUME}:${POKY_DIR}/sstate-cache \
-		--volume "${HOST_CONF_PATH}/local.conf:${BUILD_DIR}/conf/local.conf" \
-		--volume "${HOST_CONF_PATH}/packages.conf:${BUILD_DIR}/conf/packages.conf" \
-		--volume "${HOST_LAYERS_PATH}/meta-image-tests:${POKY_DIR}/meta-image-tests" \
-		--volume "${HOST_SCRIPTS_PATH}/add-layers.sh:${POKY_DIR}/add-layers.sh" \
-		${DOCKER_TAG} \
-		bash -c "cd .. && ./add-layers.sh && bitbake ${OS_IMAGE}"
-
-.PHONY: docker-run-image
-docker-run-image: docker-init-volumes
-	docker run -it --rm \
-		--env BUILD_DIR=${BUILD_DIR} \
-		--env POKY_DIR=${POKY_DIR} \
-		--env USER=${USER} \
-		--env GROUP=${GROUP} \
-		--volume ${DOCKER_BUILD_VOLUME}:${BUILD_DIR} \
-		--volume ${DOCKER_DOWNLOADS_VOLUME}:${POKY_DIR}/downloads \
-		--volume ${DOCKER_SSTATE_VOLUME}:${POKY_DIR}/sstate-cache \
-		--volume "${HOST_CONF_PATH}/local.conf:${BUILD_DIR}/conf/local.conf" \
-		--volume "${HOST_CONF_PATH}/packages.conf:${BUILD_DIR}/conf/packages.conf" \
-		--volume "${HOST_LAYERS_PATH}/meta-image-tests:${POKY_DIR}/meta-image-tests" \
-		${DOCKER_TAG} \
-		runqemu qemux86-64 slirp nographic
-
 .PHONY: docker-compose-up
 docker-compose-up: ensure-volumes
 	docker compose --file docker/compose.yml --project-directory ./ up --detach --build
+
+.PHONY: docker-compose-down
+docker-compose-down:
+	docker compose --file docker/compose.yml --project-directory ./ down
 
 .PHONY: ensure-volumes
 ensure-volumes: docker
@@ -140,9 +111,8 @@ help:
 	@echo "  make [targets] [arguments]"
 	@echo
 	@echo "  docker                             Builds a docker image;"
-	@echo "  docker-init-volumes                Initializes docker volumes;"
-	@echo "  docker-run-image                   Runs builded Yocto image from builded docker image;"
 	@echo "  docker-compose-up                  Run tests stand with analysis container and target containers;"
+	@echo "  docker-compose-down                Stop all containers;"
 	@echo -n "  ${PACKAGE_MGR}"
 	@echo     "                                 Updates the project's Python environment with the '${PACKAGE_MGR}';"
 	@echo "  ensure-volumes                     Creates volumes if missing and changes ownership;"
