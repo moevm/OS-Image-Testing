@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime  # noqa: TC003
 from typing import TYPE_CHECKING
 
 from sqlalchemy import JSON, DateTime, ForeignKey, String
@@ -20,7 +20,7 @@ class LoaderBase(Base):
     description: Mapped[str | None] = mapped_column(String(100))
     started_at: Mapped[datetime | None] = mapped_column(DateTime)
     ended_at: Mapped[datetime | None] = mapped_column(DateTime)
-    experiment: Mapped["ExperimentBase"] = relationship("ExperimentBase", back_populates="loaders")
+    experiment: Mapped["ExperimentBase"] = relationship("ExperimentBase", back_populates="loaders")  # noqa: UP037
 
     def __repr__(self) -> str:
         return (

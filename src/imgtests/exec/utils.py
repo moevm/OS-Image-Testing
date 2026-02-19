@@ -1,9 +1,11 @@
-import re
 from enum import Enum
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from imgtests.constant import VER_PATTERN
 from imgtests.types import Version
+
+if TYPE_CHECKING:
+    import re
 
 
 def create_opt(key: str, value: Any | None) -> list[str]:

@@ -1,9 +1,11 @@
 import logging
 import sys
-from pathlib import Path
-from typing import Literal, Self, TextIO
+from typing import TYPE_CHECKING, Literal, Self, TextIO
 
 from pythonjsonlogger.json import JsonFormatter
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class StreamFormatter(logging.Formatter):

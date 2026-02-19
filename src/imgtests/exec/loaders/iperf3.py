@@ -1,8 +1,10 @@
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from imgtests.exec.base_util import GenericUtil
-from imgtests.exec.exec import ExecResult, SSHClient
 from imgtests.exec.utils import add_flag, create_opt
+
+if TYPE_CHECKING:
+    from imgtests.exec.exec import ExecResult, SSHClient
 
 
 class Iperf3(GenericUtil):

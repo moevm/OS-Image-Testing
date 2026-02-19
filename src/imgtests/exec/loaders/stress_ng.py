@@ -1,10 +1,12 @@
 import logging
 import re
-from typing import Any, Final, NamedTuple
+from typing import TYPE_CHECKING, Any, Final, NamedTuple
 
 from imgtests.exec.base_util import GenericUtil
-from imgtests.exec.exec import ExecResult, SSHClient
 from imgtests.exec.utils import add_flag, create_opt
+
+if TYPE_CHECKING:
+    from imgtests.exec.exec import ExecResult, SSHClient
 
 logger = logging.getLogger(__name__)
 

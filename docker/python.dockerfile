@@ -1,4 +1,4 @@
-FROM python:3.13.12-slim-trixie
+FROM python:3.14.3-slim-trixie
 
 ARG USER
 ARG GROUP
