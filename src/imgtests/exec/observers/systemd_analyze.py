@@ -1,7 +1,9 @@
-from typing import NamedTuple
+from typing import TYPE_CHECKING, NamedTuple
 
 from imgtests.exec.base_util import GenericUtil
-from imgtests.exec.exec import SSHClient
+
+if TYPE_CHECKING:
+    from imgtests.exec.exec import SSHClient
 
 
 class BootTimeInfo(NamedTuple):
@@ -22,55 +24,10 @@ class SystemdAnalyze(GenericUtil):
     def __init__(self, ssh_client: SSHClient | None = None) -> None:
         super().__init__("systemd-analyze", ssh_client)
 
-    @staticmethod
-    def _parse_time(line: str) -> dict[str, float]:
-        """Method to parse systemd-analyze time stdout line to a dict.
-
-        stdout line example:
-            'Startup finished in 2.871s \
-             (firmware) + 2.349s (loader) + 2.640s (kernel) + 8.371s (userspace) = 16.231s
-             graphical.target reached after 8.346s in userspace.'
-
-        Attributes:
-            line (str): systemd-analyze time stdout line.
-        """
-        mins_and_secs = 2
-        parts_line = line.replace("=", "+").replace("Startup finished in ", "").replace(" ", "")
-        parts = parts_line.split("\n")[0].split("+")
-        res = {}
-
-        # part time cases:
-        # 1 - <M>min<S>.<Ms>s(<part name>)
-        # 2 - <S>.<Ms>s(<part name>)
-        # 3 - <Ms>ms(<part name>)
-        # total time has no (<part name>)
-        for part in parts:
-            bracket_idx = part.find("(")
-            key = part[bracket_idx + 1 : -1] + "_time"
-            # separate total time key from the others
-            if bracket_idx == -1:
-                key = "total_time"
-                part_time = part
-            else:
-                part_time = part[:bracket_idx]
-            # case 3
-            if part_time[-2:] == "ms":
-                res[key] = float(part_time[:-2]) / 1000
-            else:
-                marks = part_time[:bracket_idx].replace("s", "").replace("min", "|").split("|")
-                # case 1
-                if len(marks) == mins_and_secs:
-                    res[key] = int(marks[0]) * 60 + float(marks[1])
-                # case 2
-                else:
-                    res[key] = float(marks[0])
-
-        return res
-
     def time(self) -> BootTimeInfo:
         raw = self(["time"]).stdout.strip()
 
-        # prefill configuration to avoid system missconfiguration
+        # prefill configuration to avoid system misconfiguration
         res: dict[str, float] = {
             "firmware_time": -1.0,
             "loader_time": -1.0,
@@ -105,4 +62,49 @@ class SystemdAnalyze(GenericUtil):
                     slow_time = float(marks[0])
                 res.append(SlowService(service_name=service, slow_time_s=slow_time))
 
-        return tuple(res)
+        return tuple(sorted(res, key=lambda slow_service: slow_service.slow_time_s))
+
+    @staticmethod
+    def _parse_time(line: str) -> dict[str, float]:
+        """Method to parse systemd-analyze time stdout line to a dict.
+
+        stdout line example:
+            'Startup finished in 2.871s \
+             (firmware) + 2.349s (loader) + 2.640s (kernel) + 8.371s (userspace) = 16.231s
+             graphical.target reached after 8.346s in userspace.'
+
+        Attributes:
+            line (str): systemd-analyze time stdout line.
+        """
+        mins_and_secs = 2
+        parts_line = line.replace("=", "+").replace("Startup finished in ", "").replace(" ", "")
+        parts = parts_line.split("\n")[0].split("+")
+        res: dict[str, float] = {}
+
+        # part time cases:
+        # 1 - <M>min<S>.<Ms>s(<part name>)
+        # 2 - <S>.<Ms>s(<part name>)
+        # 3 - <Ms>ms(<part name>)
+        # total time has no (<part name>)
+        for part in parts:
+            bracket_idx = part.find("(")
+            key = part[bracket_idx + 1 : -1] + "_time"
+            # separate total time key from the others
+            if bracket_idx == -1:
+                key = "total_time"
+                part_time = part
+            else:
+                part_time = part[:bracket_idx]
+            # case 3
+            if part_time[-2:] == "ms":
+                res[key] = float(part_time[:-2]) / 1000
+            else:
+                marks = part_time[:bracket_idx].replace("s", "").replace("min", "|").split("|")
+                # case 1
+                if len(marks) == mins_and_secs:
+                    res[key] = int(marks[0]) * 60 + float(marks[1])
+                # case 2
+                else:
+                    res[key] = float(marks[0])
+
+        return res
