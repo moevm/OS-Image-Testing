@@ -1,9 +1,12 @@
 import os
 import subprocess
+from typing import TYPE_CHECKING
 
 from django.http import HttpRequest, JsonResponse
-from django.http.response import HttpResponse
 from django.shortcuts import render
+
+if TYPE_CHECKING:
+    from django.http.response import HttpResponse
 
 
 def index(request: HttpRequest) -> HttpResponse:
