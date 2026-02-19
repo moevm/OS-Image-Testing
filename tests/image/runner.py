@@ -9,6 +9,7 @@ from image.performance.ipc import test_sched
 from image.performance.network import test_iperf3
 from image.performance.system import test_pts_system
 from imgtests.exec.exec import wait_remote
+from imgtests.exec.observers.systemd_analyze import SystemdAnalyze
 from imgtests.logger import set_handlers
 from imgtests.runner import TestSpec, TestsRunner, TestsRunnerConfig
 
@@ -34,7 +35,23 @@ def main() -> None:
     client = wait_remote(*yocto_conf) or sys.exit(1)
     suse_runner = TestsRunner(
         wait_remote(*suse_156_conf) or sys.exit(1),
-        TestsRunnerConfig(description="Empty test suite.", tests=()),
+        TestsRunnerConfig(
+            description="Empty test suite.",
+            tests=(
+                TestSpec(
+                    description="System load time.",
+                    subsystems=("system",),
+                    test_func=lambda _, client: logger.info(SystemdAnalyze(client).time()),
+                ),
+                TestSpec(
+                    description="System slow services.",
+                    subsystems=("system",),
+                    test_func=lambda _, client: logger.info(
+                        SystemdAnalyze(client).slow_load_services()
+                    ),
+                ),
+            ),
+        ),
         logger=logger,
     )
     suse_runner.run()
