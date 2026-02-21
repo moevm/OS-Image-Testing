@@ -1,8 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime
 from threading import Event, Thread
 from typing import TYPE_CHECKING, Literal, NamedTuple
-from zoneinfo import ZoneInfo
 
 import paramiko
 import paramiko.ssh_exception
@@ -51,10 +49,9 @@ class TestsRunner:
             self.install_dependencies()
         result = get_system_info(self.__client)
         configuration_record = self.__database.insert_from_system_info(result)
-        self.__database.insert_experiment(
+        experiment = self.__database.insert_experiment(
             config_id=configuration_record.config_id,
             description=self.__test_config.description,
-            started_at=datetime.now(tz=ZoneInfo("UTC")),
         )
         for test in self.__test_config.tests:
             self.__client.reconnect()
@@ -66,6 +63,7 @@ class TestsRunner:
             test_completed_event.set()
             is_alive_cycle.join(10)
             test_completed_event.clear()
+            self.__database.update_experiment_ended_at(experiment.experiment_id)
         self.logger.info("All tests completed successfully.")
         self.__client.close()
 

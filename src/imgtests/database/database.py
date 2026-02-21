@@ -1,7 +1,7 @@
 import logging
 import os
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal, get_args
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import create_engine
@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from imgtests.sysrep import SystemInfo
 
 logger = logging.getLogger(__name__)
+Table = Literal["configurations", "experiments", "loaders", "observers"]
 
 
 class ImgtestsDatabase:
@@ -171,8 +172,15 @@ class ImgtestsDatabase:
             session.refresh(observer_object)
         return observer_object
 
-    def return_table(self, table_name: str) -> list[Any]:
-        available_tables = {"configurations", "experiments", "loaders", "observers"}
+    def update_experiment_ended_at(self, experiment_id: int) -> None:
+        self._check_session()
+        with self.session() as session:
+            experiment = session.query(ExperimentBase).filter_by(experiment_id=experiment_id).one()
+            experiment.ended_at = datetime.now(tz=ZoneInfo("UTC"))
+            session.commit()
+
+    def return_table(self, table_name: Table) -> list[Any]:
+        available_tables = get_args(Table)
         if table_name not in available_tables:
             err_msg = f"Table name not in list of valid tables. Available: {available_tables}."
             raise ValueError(err_msg)
@@ -180,7 +188,7 @@ class ImgtestsDatabase:
         self._check_session()
         with self.session() as session:
             models: dict[
-                str, type[ConfigurationBase | ExperimentBase | LoaderBase | ObserverBase]
+                Table, type[ConfigurationBase | ExperimentBase | LoaderBase | ObserverBase]
             ] = {
                 "configurations": ConfigurationBase,
                 "experiments": ExperimentBase,
