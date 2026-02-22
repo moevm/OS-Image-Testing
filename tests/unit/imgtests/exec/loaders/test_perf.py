@@ -31,7 +31,8 @@ from imgtests.exec.loaders.perf import Perf, PerfBenchMetrics
             """,
             (
                 PerfBenchMetrics(
-                    benchmark="sched/messaging", total_time=0.464, usecs_per_op=-1, ops_per_sec=-1
+                    benchmark="sched/messaging",
+                    total_time=0.464,
                 ),
                 PerfBenchMetrics(
                     benchmark="sched/pipe",
@@ -124,7 +125,7 @@ from imgtests.exec.loaders.perf import Perf, PerfBenchMetrics
                     benchmark="mem/memcpy",
                     gb_per_sec_default=6.180775,
                     gb_per_sec_unrolled=1.337757,
-                    gb_per_sec_movsq_based=37.025629,
+                    gb_per_sec_movsq_based=7.025629,
                 ),
             ),
         ),
