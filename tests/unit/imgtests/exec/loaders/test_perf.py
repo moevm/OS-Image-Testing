@@ -103,11 +103,63 @@ from imgtests.exec.loaders.perf import Perf, PerfBenchMetrics
                 ),
             ),
         ),
+        (
+            """perf bench mem memcpy
+            # Running 'mem/memcpy' benchmark:
+            # function 'default' (Default memcpy() provided by glibc)
+            # Copying 1MB bytes ...
+
+                6,180775 GB/sec
+            # function 'x86-64-unrolled' (unrolled memcpy() in arch/x86/lib/memcpy_64.S)
+            # Copying 1MB bytes ...
+
+                1,337757 GB/sec
+            # function 'x86-64-movsq' (movsq-based memcpy() in arch/x86/lib/memcpy_64.S)
+            # Copying 1MB bytes ...
+
+                7,025629 GB/sec
+            """,
+            (
+                PerfBenchMetrics(
+                    benchmark="mem/memcpy",
+                    gb_per_sec_default=6.180775,
+                    gb_per_sec_unrolled=1.337757,
+                    gb_per_sec_movsq_based=37.025629,
+                ),
+            ),
+        ),
+        (
+            """
+            # Running 'mem/memset' benchmark:
+            # function 'default' (Default memset() provided by glibc)
+            # Copying 1MB bytes ...
+
+                21,229620 GB/sec
+            # function 'x86-64-unrolled' (unrolled memset() in arch/x86/lib/memset_64.S)
+            # Copying 1MB bytes ...
+
+                21,701389 GB/sec
+            # function 'x86-64-stosq' (movsq-based memset() in arch/x86/lib/memset_64.S)
+            # Copying 1MB bytes ...
+
+                30,517578 GB/sec
+            """,
+            (
+                PerfBenchMetrics(
+                    benchmark="mem/memset",
+                    gb_per_sec_default=21.229620,
+                    gb_per_sec_unrolled=21.701389,
+                    gb_per_sec_movsq_based=30.517578,
+                ),
+            ),
+        ),
         ("", ()),
     ],
     ids=[
         "'perf sched all' parsing",
         "'perf syscall all' parsing",
+        "'perf mem memcpy' parsing",
+        "'perf mem memset' parsing",
         "Empty output",
     ],
 )
