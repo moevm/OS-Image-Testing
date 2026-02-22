@@ -1,8 +1,12 @@
 import logging
-from typing import Any, Literal, get_args
+from typing import TYPE_CHECKING, Any, Literal, get_args
 
 from imgtests.exec.loaders.perf import Perf
 from imgtests.exec.loaders.pts import PhoronixTestSuite
+
+if TYPE_CHECKING:
+    from imgtests.database.database import ImgtestsDatabase
+    from imgtests.exec.exec import SSHClient
 
 TOOLS_CONFIG = {
     "PTS": {
@@ -15,10 +19,12 @@ TOOLS_CONFIG = {
             "disk": [
                 "pts/hdparm-read",
             ],
-            "network": ["pts/network-loopback"],
-            "mem": ["pts/tinymembench"],
-            "ipc": [],
-            "syscalls": [],
+            "network": [
+                "pts/network-loopback",
+            ],
+            "mem": [
+                "pts/tinymembench",
+            ],
             "system": [
                 "pts/ctx-clock",
                 "pts/appleseed",
@@ -29,20 +35,20 @@ TOOLS_CONFIG = {
         "class": Perf,
         "run": "bench",
         "target": {
-            "cpu": [],
-            "disk": [],
-            "network": [],
-            "mem": ["mem"],
+            "mem": [
+                "mem",
+            ],
             "ipc": [
                 "sched",
             ],
-            "syscalls": ["syscall"],
-            "system": [],
+            "syscalls": [
+                "syscall",
+            ],
         },
     },
 }
 
-Target = Literal[
+Subsystem = Literal[
     "cpu",
     "disk",
     "mem",
@@ -54,15 +60,17 @@ Target = Literal[
 
 
 class JointBench:
-    def __init__(self):
+    def __init__(self, database: ImgtestsDatabase, ssh_client: SSHClient | None = None):
+        self.ssh_client = ssh_client
         self.logger = logging.getLogger()
+        self.__database = database
         self.tools = {}
         for tool_name, config in TOOLS_CONFIG.items():
-            self.tools[tool_name] = config["class"]()
+            self.tools[tool_name] = config["class"](self.ssh_client)
 
-    def run(self, target: Target):
-        if target not in get_args(Target):
-            err_msg = f"Invalid action '{target}'. Expected one of {get_args(Target)}."
+    def run(self, target: Subsystem):
+        if target not in get_args(Subsystem):
+            err_msg = f"Invalid action '{target}'. Expected one of {get_args(Subsystem)}."
             raise ValueError(err_msg)
 
         for tool_name, config in TOOLS_CONFIG.items():
@@ -77,5 +85,4 @@ class JointBench:
                     self.save(metrics)
 
     def save(self, json_metrics: dict[str, Any]):
-        # log
         pass
