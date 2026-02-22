@@ -20,6 +20,15 @@ logger = logging.getLogger(__name__)
 Table = Literal["configurations", "experiments", "loaders", "observers"]
 
 
+def _clip_db_str(value: str | None, limit: int = 200) -> str | None:
+    if value is None:
+        return None
+    s = str(value)
+    if len(s) <= limit:
+        return s
+    return s[: limit - 3] + "..."
+
+
 class ImgtestsDatabase:
     def __init__(self, database: str = "postgres") -> None:
         if database == "postgres":
@@ -99,8 +108,8 @@ class ImgtestsDatabase:
 
         experiment_object = ExperimentBase(
             config_id=config_id,
-            description=description,
-            type=experiment_type,
+            description=_clip_db_str(description),
+            type=_clip_db_str(experiment_type),
             started_at=started_at,
             ended_at=ended_at,
         )
@@ -128,9 +137,9 @@ class ImgtestsDatabase:
 
         loader_object = LoaderBase(
             experiment_id=experiment_id,
-            command=command,
+            command=_clip_db_str(command) or "",
             result=result,
-            description=description,
+            description=_clip_db_str(description),
             started_at=started_at,
             ended_at=ended_at,
         )
@@ -158,9 +167,9 @@ class ImgtestsDatabase:
 
         observer_object = ObserverBase(
             experiment_id=experiment_id,
-            command=command,
+            command=_clip_db_str(command) or "",
             result=result,
-            description=description,
+            description=_clip_db_str(description),
             started_at=started_at,
             ended_at=ended_at,
         )
@@ -172,11 +181,18 @@ class ImgtestsDatabase:
             session.refresh(observer_object)
         return observer_object
 
-    def update_experiment_ended_at(self, experiment_id: int) -> None:
+    def update_experiment_ended_at(
+        self,
+        experiment_id: int,
+        ended_at: datetime | None = None,
+    ) -> None:
+        if ended_at is None:
+            ended_at = datetime.now(tz=ZoneInfo("UTC"))
+
         self._check_session()
         with self.session() as session:
             experiment = session.query(ExperimentBase).filter_by(experiment_id=experiment_id).one()
-            experiment.ended_at = datetime.now(tz=ZoneInfo("UTC"))
+            experiment.ended_at = ended_at
             session.commit()
 
     def return_table(self, table_name: Table) -> list[Any]:
