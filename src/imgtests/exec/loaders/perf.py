@@ -54,7 +54,7 @@ class Perf(PkgMgrMixin, GenericUtil):
         add_opts: list[str] | None = None,
         format_: Literal["default", "simple"] = "simple",
         repeat: int = 1,
-    ) -> ExecResult:
+    ) -> tuple[ExecResult, tuple[PerfBenchMetrics, ...]]:
         """Runs benchmark suites.
 
         Args:
@@ -70,7 +70,7 @@ class Perf(PkgMgrMixin, GenericUtil):
         if add_opts is None:
             add_opts = []
 
-        return self(
+        result = self(
             [
                 "bench",
                 *create_opt("format", format_),
@@ -80,6 +80,8 @@ class Perf(PkgMgrMixin, GenericUtil):
                 *add_opts,
             ]
         )
+
+        return result, self.parse_bench(result.stdout.strip())
 
     @staticmethod
     def parse_bench(result: str) -> tuple[PerfBenchMetrics, ...]:  # noqa: PLR0912 PLR0915 C901
