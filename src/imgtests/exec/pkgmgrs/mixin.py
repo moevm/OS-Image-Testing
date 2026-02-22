@@ -1,8 +1,11 @@
-from collections.abc import Iterable
+from typing import TYPE_CHECKING
 
 from imgtests.exec.exec import ExecResult
 from imgtests.exec.osinfo import get_os_release
 from imgtests.exec.pkgmgrs.zypper import Zypper
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
 
 
 class PkgMgrMixin:

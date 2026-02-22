@@ -1,11 +1,13 @@
-from pathlib import Path
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult, SSHClient
 from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
 from imgtests.exec.pkgmgrs.pip3 import Pip3
 from imgtests.exec.utils import create_opt
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 IOPattern = Literal[
     "read", "write", "trim", "randread", "randwrite", "randtrim", "readwrite", "randrw", "trimwrite"

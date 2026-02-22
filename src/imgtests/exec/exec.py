@@ -1,14 +1,16 @@
 import logging
 import subprocess
-from collections.abc import Iterable, Sequence
 from pathlib import Path
 from time import sleep
-from typing import NamedTuple
+from typing import TYPE_CHECKING, NamedTuple
 
 import paramiko
 import paramiko.ssh_exception
 
 from imgtests.environment import env_var_to_type
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Sequence
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +23,7 @@ class ExecResult(NamedTuple):
 
 
 def common_run_command(
-    cmd: Sequence[str], ssh_client: "SSHClient | None" = None, input_: str | None = None
+    cmd: Sequence[str], ssh_client: SSHClient | None = None, input_: str | None = None
 ) -> ExecResult:
     """Executes a command locally or over SSH, depending on the provided client.
 
@@ -123,7 +125,7 @@ class SSHClient:
     @classmethod
     def build_from_env(
         cls, address_env: str, user_env: str, password_env: str, port_env: str
-    ) -> "SSHClient":
+    ) -> SSHClient:
         return SSHClient(
             env_var_to_type(address_env, str),
             env_var_to_type(user_env, str),

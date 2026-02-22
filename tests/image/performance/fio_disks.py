@@ -1,9 +1,14 @@
 import logging
-from concurrent.futures import ThreadPoolExecutor
-from pathlib import Path
+from typing import TYPE_CHECKING
 
-from imgtests.exec.exec import SSHClient
 from imgtests.suites.drive.fio import FioSuite, FioSuiteConfig, FioWorkload
+
+if TYPE_CHECKING:
+    from concurrent.futures import ThreadPoolExecutor
+    from pathlib import Path
+
+    from imgtests.exec.exec import SSHClient
+
 
 logger = logging.getLogger(__name__)
 

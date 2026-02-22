@@ -1,8 +1,6 @@
 import os
 from pathlib import Path
-from typing import TypeVar, cast
-
-T = TypeVar("T")
+from typing import cast
 
 
 def env_var_to_type[T](variable: str, val_type: type[T]) -> T:

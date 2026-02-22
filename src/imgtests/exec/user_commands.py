@@ -1,5 +1,9 @@
+from typing import TYPE_CHECKING
+
 from imgtests.exec.base_util import GenericUtil
-from imgtests.exec.exec import SSHClient
+
+if TYPE_CHECKING:
+    from imgtests.exec.exec import SSHClient
 
 
 class MkDir(GenericUtil):

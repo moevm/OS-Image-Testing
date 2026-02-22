@@ -17,7 +17,7 @@ class ConfigurationBase(Base):
     packages: Mapped[dict[str, str]] = mapped_column(JSON)
     core_info: Mapped[str] = mapped_column(String(300))
     core_config: Mapped[dict[str, str]] = mapped_column(JSON)
-    experiments: Mapped[list["ExperimentBase"]] = relationship(
+    experiments: Mapped[list["ExperimentBase"]] = relationship(  # noqa: UP037
         "ExperimentBase", back_populates="configuration"
     )
 
