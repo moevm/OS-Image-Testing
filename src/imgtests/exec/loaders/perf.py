@@ -23,7 +23,7 @@ class PerfBenchMetrics(NamedTuple):
 TOTAL_TIME_PATTERN: Final = re.compile(r"\s*Total time:\s*([\d.]+)")
 USECS_PER_OP_PATTERN: Final = re.compile(r"^\s*([\d,.\s]+)\s*usecs/op")
 OPS_PER_SEC_PATTERN: Final = re.compile(r"\s*(\d+)\s*ops/sec")
-BENCHMARK_NAME_PATTERN: Final = re.compile(r"# Running '(.*?)' benchmark")
+BENCHMARK_NAME_PATTERN: Final = re.compile(r"# Running (?:')?(.*?)(?:')? benchmark")
 GB_PER_SEC_PATTERN: Final = re.compile(r"^\s*([\d,.\s]+)\s*GB/sec")
 FUNCTION_PATTERNS: Final = {
     "default": re.compile(r"# function.*Default"),
