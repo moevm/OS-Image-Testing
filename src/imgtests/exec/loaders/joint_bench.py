@@ -22,7 +22,7 @@ TOOLS_CONFIG = {
             "network": [
                 "pts/network-loopback",
             ],
-            "mem": [
+            "memory": [
                 "pts/tinymembench",
             ],
             "system": [
@@ -35,7 +35,7 @@ TOOLS_CONFIG = {
         "class": Perf,
         "run": "bench",
         "target": {
-            "mem": [
+            "memory": [
                 "mem",
             ],
             "ipc": [
@@ -51,10 +51,10 @@ TOOLS_CONFIG = {
 Subsystem = Literal[
     "cpu",
     "disk",
-    "mem",
+    "memory",
     "network",
     "ipc",
-    "syscall",
+    "syscalls",
     "system",
 ]
 
