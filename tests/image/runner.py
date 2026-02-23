@@ -32,7 +32,6 @@ suse_156_conf = (
 
 
 def main() -> None:
-    client = wait_remote(*yocto_conf) or sys.exit(1)
     suse_runner = TestsRunner(
         wait_remote(*suse_156_conf) or sys.exit(1),
         TestsRunnerConfig(
@@ -51,12 +50,13 @@ def main() -> None:
                     ),
                 ),
             ),
+            experiment_type="performance",
         ),
         logger=logger,
     )
     suse_runner.run()
     yocto_runner = TestsRunner(
-        client,
+        wait_remote(*yocto_conf) or sys.exit(1),
         TestsRunnerConfig(
             description="Test suite for all subsystems.",
             tests=(
@@ -106,6 +106,7 @@ def main() -> None:
                     test_func=test_pts_system,
                 ),
             ),
+            experiment_type="all",
         ),
         logger,
     )

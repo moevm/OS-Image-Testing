@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     import logging
     from collections.abc import Callable, Iterable
 
+    from imgtests.database.database import ExperimentType
     from imgtests.exec.base_util import BaseTestUtil
     from imgtests.exec.exec import SSHClient
 
@@ -28,6 +29,7 @@ class TestSpec(NamedTuple):
 class TestsRunnerConfig(NamedTuple):
     description: str
     tests: Iterable[TestSpec]
+    experiment_type: ExperimentType
     install_dependencies: bool = False
 
 
@@ -52,6 +54,7 @@ class TestsRunner:
         experiment = self.__database.insert_experiment(
             config_id=configuration_record.config_id,
             description=self.__test_config.description,
+            experiment_type=self.__test_config.experiment_type,
         )
         for test in self.__test_config.tests:
             self.__client.reconnect()
