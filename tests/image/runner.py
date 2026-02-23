@@ -11,11 +11,7 @@ from image.performance.system import test_pts_system
 from imgtests.exec.exec import wait_remote
 from imgtests.exec.observers.systemd_analyze import SystemdAnalyze
 from imgtests.logger import set_handlers
-from imgtests.runner import TestSpec, TestsRunner, TestsRunnerConfig
-
-logger = logging.getLogger()
-set_handlers(logger, Path("processing.log"))
-
+from imgtests.runner import RunnableTest, TestsRunner, TestsRunnerConfig
 
 yocto_conf = (
     "SSH_YOCTO_ADDR",
@@ -32,37 +28,38 @@ suse_156_conf = (
 
 
 def main() -> None:
-    client = wait_remote(*yocto_conf) or sys.exit(1)
+    logger = logging.getLogger()
+    set_handlers(logger, Path("processing.log"))
     suse_runner = TestsRunner(
         wait_remote(*suse_156_conf) or sys.exit(1),
         TestsRunnerConfig(
             description="Empty test suite.",
             tests=(
-                TestSpec(
+                RunnableTest(
                     description="System load time.",
-                    subsystems=("system",),
+                    subsystems={"system"},
                     test_func=lambda _, client: logger.info(SystemdAnalyze(client).time()),
                 ),
-                TestSpec(
+                RunnableTest(
                     description="System slow services.",
-                    subsystems=("system",),
+                    subsystems={"system"},
                     test_func=lambda _, client: logger.info(
                         SystemdAnalyze(client).slow_load_services()
                     ),
                 ),
             ),
+            experiment_type="performance",
         ),
-        logger=logger,
     )
     suse_runner.run()
     yocto_runner = TestsRunner(
-        client,
+        wait_remote(*yocto_conf) or sys.exit(1),
         TestsRunnerConfig(
             description="Test suite for all subsystems.",
             tests=(
-                TestSpec(
+                RunnableTest(
                     description="Load drives with fio.",
-                    subsystems=("file",),
+                    subsystems={"file"},
                     test_func=lambda executor, client: test_fio_disks_scaling(
                         executor,
                         client,
@@ -70,44 +67,44 @@ def main() -> None:
                         Path().home(),
                     ),
                 ),
-                TestSpec(
+                RunnableTest(
                     description="Load local network with iperf3.",
-                    subsystems=("network",),
+                    subsystems={"network"},
                     test_func=test_iperf3,
                 ),
-                TestSpec(
+                RunnableTest(
                     description="Load CPU with stress-ng.",
-                    subsystems=("system",),
+                    subsystems={"system"},
                     test_func=test_stress_ng_cpu,
                 ),
-                TestSpec(
+                RunnableTest(
                     description="Load CPU with chaosblade.",
-                    subsystems=("system",),
+                    subsystems={"system"},
                     test_func=test_chaosblade_cpu,
                 ),
-                TestSpec(
+                RunnableTest(
                     description="Test syscalls performance.",
-                    subsystems=("syscalls",),
+                    subsystems={"syscalls"},
                     test_func=test_syscalls_all_stress_ng,
                 ),
-                TestSpec(
+                RunnableTest(
                     description="Test syscalls with LTP.",
-                    subsystems=("syscalls",),
+                    subsystems={"syscalls"},
                     test_func=test_ltp_syscalls,
                 ),
-                TestSpec(
+                RunnableTest(
                     description="Benchmark sheduler and IPC mechanisms.",
-                    subsystems=("IPC",),
+                    subsystems={"IPC"},
                     test_func=test_sched,
                 ),
-                TestSpec(
+                RunnableTest(
                     description="Load system with PTS.",
-                    subsystems=("system",),
+                    subsystems={"system"},
                     test_func=test_pts_system,
                 ),
             ),
+            experiment_type="all",
         ),
-        logger,
     )
     yocto_runner.run()
 

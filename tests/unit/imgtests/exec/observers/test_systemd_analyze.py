@@ -41,6 +41,17 @@ from imgtests.exec.observers.systemd_analyze import SystemdAnalyze
                 "total_time": 195.747,
             },
         ),
+        (
+            "Startup finished in "
+            "3.737s (kernel) + 27.704s (initrd) + 1min 693ms (userspace) = 1min 32.134s \n"
+            "graphical.target reached after 54.769s in userspace.",
+            {
+                "kernel_time": 3.737,
+                "initrd_time": 27.704,
+                "userspace_time": 60.693,
+                "total_time": 92.134,
+            },
+        ),
     ],
 )
 def test_parse_time(raw_line: str, result: dict[str, float]):
