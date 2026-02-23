@@ -14,20 +14,20 @@ TOOLS_CONFIG = {
         "run": "run",
         "target": {
             "cpu": [
-                "pts/core-latency",
+                {"test_name": "pts/core-latency", "run_count": 1},
             ],
             "disk": [
-                "pts/hdparm-read",
+                {"test_name": "pts/hdparm-read", "run_count": 1},
             ],
             "network": [
-                "pts/network-loopback",
+                {"test_name": "pts/network-loopback", "run_count": 1},
             ],
             "memory": [
-                "pts/tinymembench",
+                {"test_name": "pts/tinymembench", "run_count": 1},
             ],
             "system": [
-                "pts/ctx-clock",
-                "pts/appleseed",
+                {"test_name": "pts/ctx-clock", "run_count": 1},
+                {"test_name": "pts/appleseed", "run_count": 1},
             ],
         },
     },
@@ -36,13 +36,13 @@ TOOLS_CONFIG = {
         "run": "bench",
         "target": {
             "memory": [
-                "mem",
+                {"collection": "mem"},
             ],
             "ipc": [
-                "sched",
+                {"collection": "sched"},
             ],
             "syscalls": [
-                "syscall",
+                {"collection": "syscall"},
             ],
         },
     },
@@ -80,8 +80,8 @@ class JointBench:
             if tests:
                 for test in tests:
                     run_method = getattr(tool_instance, config["run"])
-                    _, metrics = run_method(test)
-                    self.logger.log("Run '%s' test '%s'", tool_name, test)
+                    _, metrics = run_method(**test)
+                    self.logger.info("Run '%s' test '%s'", tool_name, test)
                     self.save(metrics)
 
     def save(self, json_metrics: dict[str, Any]):
