@@ -1,4 +1,5 @@
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from imgtests.exec.exec import SSHClient
 from imgtests.exec.base_util import GenericUtil
@@ -30,6 +31,7 @@ class Mdadm(GenericUtil):
 class Lsblk(GenericUtil):
     def __init__(self, ssh_client: SSHClient | None = None) -> None:
         super().__init__("lsblk", ssh_client)
+
 
 class SystemService(GenericUtil):
     def __init__(self, name: str, ssh_client: SSHClient | None = None) -> None:

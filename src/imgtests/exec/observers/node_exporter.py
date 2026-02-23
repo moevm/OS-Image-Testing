@@ -1,7 +1,7 @@
-from imgtests.exec.user_commands import SystemService
 from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
 from imgtests.exec.osinfo import get_os_release
 from imgtests.exec.pkgmgrs.zypper import Zypper
+from imgtests.exec.user_commands import SystemService
 from imgtests.types import Distro
 
 
