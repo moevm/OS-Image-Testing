@@ -1,11 +1,12 @@
 from typing import TYPE_CHECKING, Any
 
+from imgtests.exec.exec import ExecResult
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
 from imgtests.exec.utils import add_flag, create_opt
 
 if TYPE_CHECKING:
-    from imgtests.exec.exec import ExecResult, SSHClient
+    from imgtests.exec.exec import SSHClient
 
 
 class Iperf3(PkgMgrMixin, GenericUtil):

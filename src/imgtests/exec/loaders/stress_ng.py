@@ -2,12 +2,13 @@ import logging
 import re
 from typing import TYPE_CHECKING, Any, Final, NamedTuple
 
+from imgtests.exec.exec import ExecResult
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
 from imgtests.exec.utils import add_flag, create_opt
 
 if TYPE_CHECKING:
-    from imgtests.exec.exec import ExecResult, SSHClient
+    from imgtests.exec.exec import SSHClient
 
 logger = logging.getLogger(__name__)
 
