@@ -52,7 +52,7 @@ class Perf(PkgMgrMixin, GenericUtil):
         collection: str = "all",
         benchmark: str = "all",
         add_opts: list[str] | None = None,
-        format_: Literal["default", "simple"] = "simple",
+        format_: Literal["default", "simple"] = "default",
         repeat: int = 1,
     ) -> tuple[ExecResult, tuple[PerfBenchMetrics, ...]]:
         """Runs benchmark suites.
