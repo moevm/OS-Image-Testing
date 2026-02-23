@@ -119,11 +119,17 @@ class StressNg(GenericUtil):
         hdd_opts: str | None = None,
         sock: int | None = None,
         sock_ops: int | None = None,
+        netdev: int | None = None,
+        udp_flood: int | None = None,
         iomix: int | None = None,
         iomix_bytes: str | None = None,
         syscall: int | None = None,
         syscall_method: str = "all",
         syscall_ops: str | None = None,
+        mq: int | None = None,
+        pipe: int | None = None,
+        sem: int | None = None,
+        shm: int | None = None,
         verify: bool = True,
         **kwargs: dict[str, Any],
     ) -> tuple[ExecResult, tuple[list[StressNGMetrics], StressNGSummary | None]]:
@@ -146,6 +152,10 @@ class StressNg(GenericUtil):
             sock (int | None): Count of the socket stressors. When set to 0 got count of logical
               processors.
             sock_ops (int | None): Number of socket operations per stressor.
+            netdev (int | None): Count of the netdev stressors. When set to 0 got count of logical
+              processors.
+            udp_flood (int | None): Count of the udp stressors. When set to 0 got count of logical
+              processors.
             iomix (int | None): Count of the I/O stressors. When set to 0 got count of logical
               processors.
             iomix_bytes (str | None): Utilized memory as value or percent of all available memory.
@@ -153,6 +163,14 @@ class StressNg(GenericUtil):
               processors.
             syscall_method (str): Stress syscall method.
             syscall_ops (str | None): Additional ops argument for syscall stressor.
+            mq (int | None): Count of the message queue stressors. When set to 0 got count of
+              logical processors.
+            pipe (int | None): Count of the pipe stressors. When set to 0 got count of logical
+              processors.
+            sem (int | None): Count of the semaphore stressors. When set to 0 got count of logical
+              processors.
+            shm (int | None): Count of the shared memory stressors. When set to 0 got count of
+              logical processors.
             verify (bool): Verify results if can.
             **kwargs (dict[str, Any]): Command arguments in the free form with values.
 
@@ -162,21 +180,28 @@ class StressNg(GenericUtil):
         Returns:
             tuple[ExecResult, list[StressNGMetrics]]: Result of stress test work and parsed metrics.
         """
+        params = {
+            "cpu": cpu,
+            "vm": vm,
+            "hdd": hdd,
+            "sock": sock,
+            "netdev": netdev,
+            "udp-flood": udp_flood,
+            "iomix": iomix,
+            "syscall": syscall,
+            "mq": mq,
+            "pipe": pipe,
+            "sem": sem,
+            "shm": shm,
+        }
         if timeout_sec < 0:
             err_msg = f"Invalid timeout '{timeout_sec}'. Expected more or equal 0."
             raise ValueError(err_msg)
-        if cpu is not None and cpu < 0:
-            err_msg = f"Invalid CPU count '{cpu}'. Expected more or equal 0."
-            raise ValueError(err_msg)
-        if vm is not None and vm < 0:
-            err_msg = f"Invalid vm count '{vm}'. Expected more or equal 0."
-            raise ValueError(err_msg)
-        if iomix is not None and iomix < 0:
-            err_msg = f"Invalid iomix count '{iomix}'. Expected more or equal 0."
-            raise ValueError(err_msg)
-        if syscall is not None and syscall < 0:
-            err_msg = f"Invalid syscall count '{syscall}'. Expected more or equal 0."
-            raise ValueError(err_msg)
+
+        for name, variable in params.items():
+            if variable is not None and variable < 0:
+                err_msg = f"Invalid {name} count '{variable}'. Expected more or equal 0."
+                raise ValueError(err_msg)
         opts = [
             *create_opt("timeout", timeout_sec),
             *create_opt("cpu", cpu),
@@ -189,11 +214,17 @@ class StressNg(GenericUtil):
             *create_opt("hdd-opts", hdd_opts),
             *create_opt("sock", sock),
             *create_opt("sock-ops", sock_ops),
+            *create_opt("netdev", netdev),
+            *create_opt("udp-flood", udp_flood),
             *create_opt("iomix", iomix),
             *create_opt("iomix-bytes", iomix_bytes),
             *create_opt("syscall", syscall),
             *create_opt("syscall-method", syscall_method),
             *create_opt("syscall-ops", syscall_ops),
+            *create_opt("mq", mq),
+            *create_opt("pipe", pipe),
+            *create_opt("sem", sem),
+            *create_opt("shm", shm),
             *create_opt("verify", verify),
             *add_flag("metrics"),
         ]
