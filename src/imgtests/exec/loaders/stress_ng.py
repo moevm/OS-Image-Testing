@@ -2,6 +2,7 @@ import logging
 import re
 from typing import TYPE_CHECKING, Any, Final, NamedTuple
 
+from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.utils import add_flag, create_opt
 
@@ -61,9 +62,17 @@ METRICS_RE: Final = re.compile(
 )
 
 
-class StressNg(GenericUtil):
+class StressNg(PkgMgrMixin, GenericUtil):
     def __init__(self, ssh_client: SSHClient | None = None) -> None:
         super().__init__("stress-ng", ssh_client)
+
+    def install(self) -> ExecResult:
+        """Install stress-ng via the system package manager."""
+        if self.path:
+            return ExecResult(
+                cmd=(), stderr=f"{self.name} already has been installed.", returncode=0
+            )
+        return self._install_packages(["stress-ng"])
 
     def cpu_methods(self) -> tuple[str, ...] | None:
         result = self(["--cpu-method", "_which_"])

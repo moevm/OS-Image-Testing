@@ -2,6 +2,7 @@ import json
 import logging
 from typing import TYPE_CHECKING, Any
 
+from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult, SSHClient, common_run_command, pipeline
 from imgtests.exec.utils import extract_version
@@ -12,9 +13,17 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class PhoronixTestSuite(GenericUtil):
+class PhoronixTestSuite(PkgMgrMixin, GenericUtil):
     def __init__(self, ssh_client: SSHClient | None = None) -> None:
         super().__init__("phoronix-test-suite", ssh_client)
+
+    def install(self) -> ExecResult:
+        """Install phoronix-test-suite via the system package manager."""
+        if self.path:
+            return ExecResult(
+                cmd=(), stderr=f"{self.name} already has been installed.", returncode=0
+            )
+        return self._install_packages(["phoronix-test-suite"])
 
     def version(self) -> Version | None:
         result = self(["version"])
