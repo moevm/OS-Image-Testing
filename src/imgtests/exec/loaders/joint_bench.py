@@ -6,7 +6,7 @@ from imgtests.exec.loaders.pts import PhoronixTestSuite
 
 if TYPE_CHECKING:
     from imgtests.database.database import ImgtestsDatabase
-    from imgtests.exec.exec import ExecResult, SSHClient
+    from imgtests.exec.exec import SSHClient
 
 TOOLS_CONFIG = {
     "PTS": {
@@ -84,17 +84,14 @@ class JointBench:
                     self.logger.info("Run '%s' test '%s'", tool_name, test)
                     tool_result, metrics = run_method(**test)
 
-                    m_json = {metrics}  # need to be added: metrics to json
-                    result.append(self._prepare_to_save(m_json, tool_result))
+                    metrics_json = {metrics}  # need to be added: metrics to json
+                    result.append(
+                        {
+                            "result": metrics_json,
+                            "command": " ".join(tool_result.cmd),
+                        }
+                    )
         return result
-
-    def _prepare_to_save(
-        self, json_metrics: dict[str, Any], tool_result: ExecResult
-    ) -> dict[str, Any]:
-        return {
-            "result": json_metrics,
-            "command": " ".join(tool_result.cmd),
-        }
 
     def save(self, db: ImgtestsDatabase, result: list[dict[str, Any]], experiment_id: int):
         for tool_result in result:
