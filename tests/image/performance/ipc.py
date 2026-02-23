@@ -17,10 +17,10 @@ def test_sched(_: ThreadPoolExecutor, client: SSHClient | None) -> None:
     for benchmark, args in zip(
         ["messaging", "messaging", "pipe"], [[], ["--thread"], []], strict=True
     ):
-        result = perf.bench("sched", benchmark, args)
+        _, m = perf.bench("sched", benchmark, args)
         logger.info(
             "Total time: %s. For the benchmark '%s' with args %s.",
-            result.stdout,
+            m[0].total_time,
             benchmark,
             str(args),
         )
