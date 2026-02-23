@@ -6,7 +6,7 @@ from imgtests.exec.loaders.pts import PhoronixTestSuite
 
 if TYPE_CHECKING:
     from imgtests.database.database import ImgtestsDatabase
-    from imgtests.exec.exec import SSHClient
+    from imgtests.exec.exec import ExecResult, SSHClient
 
 TOOLS_CONFIG = {
     "PTS": {
@@ -60,18 +60,19 @@ Subsystem = Literal[
 
 
 class JointBench:
-    def __init__(self, database: ImgtestsDatabase, ssh_client: SSHClient | None = None):
+    def __init__(self, ssh_client: SSHClient | None = None):
         self.ssh_client = ssh_client
         self.logger = logging.getLogger()
-        self.__database = database
         self.tools = {}
         for tool_name, config in TOOLS_CONFIG.items():
             self.tools[tool_name] = config["class"](self.ssh_client)
 
-    def run(self, target: Subsystem):
+    def run(self, target: Subsystem) -> list[dict[str, Any]]:
         if target not in get_args(Subsystem):
             err_msg = f"Invalid action '{target}'. Expected one of {get_args(Subsystem)}."
             raise ValueError(err_msg)
+
+        result = []
 
         for tool_name, config in TOOLS_CONFIG.items():
             tool_instance = self.tools[tool_name]
@@ -80,9 +81,24 @@ class JointBench:
             if tests:
                 for test in tests:
                     run_method = getattr(tool_instance, config["run"])
-                    _, metrics = run_method(**test)
                     self.logger.info("Run '%s' test '%s'", tool_name, test)
-                    self.save(metrics)
+                    tool_result, metrics = run_method(**test)
 
-    def save(self, json_metrics: dict[str, Any]):
-        pass
+                    m_json = {metrics}  # need to be added: metrics to json
+                    result.append(self._prepare_to_save(m_json, tool_result))
+        return result
+
+    def _prepare_to_save(
+        self, json_metrics: dict[str, Any], tool_result: ExecResult
+    ) -> dict[str, Any]:
+        return {
+            "result": json_metrics,
+            "command": " ".join(tool_result.cmd),
+        }
+
+    def save(self, db: ImgtestsDatabase, result: list[dict[str, Any]], experiment_id: int):
+        for tool_result in result:
+            db.insert_loader(
+                experiment_id=experiment_id,
+                **tool_result,
+            )
