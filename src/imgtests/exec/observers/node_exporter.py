@@ -1,11 +1,11 @@
-from imgtests.exec.base_util import GenericUtil
+from imgtests.exec.user_commands import SystemService
 from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
 from imgtests.exec.osinfo import get_os_release
 from imgtests.exec.pkgmgrs.zypper import Zypper
 from imgtests.types import Distro
 
 
-class NodeExporter(GenericUtil):
+class NodeExporter(SystemService):
     def __init__(self, ssh_client: SSHClient | None = None) -> None:
         super().__init__("node_exporter", ssh_client)
 
