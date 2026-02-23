@@ -21,7 +21,9 @@ tests = [
 ]
 
 
-def test_general_consecutive_stress_ng(executor: ThreadPoolExecutor, client: SSHClient | None) -> None:
+def test_general_consecutive_stress_ng(
+    executor: ThreadPoolExecutor, client: SSHClient | None
+) -> None:
     stress_ng = StressNg(client)
 
     for params in tests:
