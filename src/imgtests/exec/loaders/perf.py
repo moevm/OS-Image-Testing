@@ -29,6 +29,10 @@ class Perf(PkgMgrMixin, GenericUtil):
 
     def install(self) -> ExecResult:
         """Install perf via the system package manager."""
+        if self.path:
+            return ExecResult(
+                cmd=(), stderr=f"{self.name} already has been installed.", returncode=0
+            )
         return self._install_packages(["perf"])
 
     def stat(self, cmd: list[str]) -> ExecResult:

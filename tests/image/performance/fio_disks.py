@@ -1,8 +1,14 @@
 import logging
-from pathlib import Path
+from typing import TYPE_CHECKING
 
-from imgtests.exec.exec import SSHClient
 from imgtests.suites.drive.fio import FioSuite, FioSuiteConfig, FioWorkload
+
+if TYPE_CHECKING:
+    from concurrent.futures import ThreadPoolExecutor
+    from pathlib import Path
+
+    from imgtests.exec.exec import SSHClient
+
 
 logger = logging.getLogger(__name__)
 
@@ -30,23 +36,27 @@ NIGHTLY_WORKLOADS: tuple[FioWorkload, ...] = (
 )
 
 
-def test_fio_disks_scaling(remote: SSHClient | None, duration_sec: int, results_dir: Path) -> None:
+def test_fio_disks_scaling(
+    _: ThreadPoolExecutor, client: SSHClient | None, duration_sec: int, results_dir: Path
+) -> None:
     cfg = FioSuiteConfig(
         suite="scaling",
         duration_sec=duration_sec,
         results_dir=results_dir / "fio",
         workloads=SCALING_WORKLOADS,
     )
-    out = FioSuite(remote, cfg).run()
+    out = FioSuite(client, cfg).run()
     logger.info("FIO scaling PASSED: %s", out)
 
 
-def test_fio_disks_nightly(remote: SSHClient | None, duration_sec: int, results_dir: Path) -> None:
+def test_fio_disks_nightly(
+    _: ThreadPoolExecutor, client: SSHClient | None, duration_sec: int, results_dir: Path
+) -> None:
     cfg = FioSuiteConfig(
         suite="nightly",
         duration_sec=duration_sec,
         results_dir=results_dir / "fio",
         workloads=NIGHTLY_WORKLOADS,
     )
-    out = FioSuite(remote, cfg).run()
+    out = FioSuite(client, cfg).run()
     logger.info("FIO nightly PASSED: %s", out)

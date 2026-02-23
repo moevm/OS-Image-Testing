@@ -1,13 +1,16 @@
 import logging
 import shlex
-from collections.abc import Iterable
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
 from imgtests.exec.osinfo import get_os_release
 from imgtests.exec.pkgmgrs.zypper import Zypper
 from imgtests.types import Distro
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +23,11 @@ class Kirk(GenericUtil):
 
     def install(self) -> ExecResult:
         """Install kirk from the official Git repository and expose it in PATH."""
+        if self.path:
+            return ExecResult(
+                cmd=(), stderr=f"{self.name} already has been installed.", returncode=0
+            )
+
         os_id = get_os_release(self.ssh_client).id
         if os_id and os_id == Distro.OPEN_SUSE_LEAP.value:
             zypper = Zypper(ssh_client=self.ssh_client, use_sudo=True)

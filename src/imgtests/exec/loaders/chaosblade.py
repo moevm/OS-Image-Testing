@@ -49,6 +49,11 @@ class Chaosblade(GenericUtil):
         Returns:
             ExecResult: Result of the installation.
         """
+        if self.path:
+            return ExecResult(
+                cmd=(), stderr=f"{self.name} already has been installed.", returncode=0
+            )
+
         os_id = get_os_release(self.ssh_client).id
         if os_id and os_id == Distro.OPEN_SUSE_LEAP.value:
             zypper = Zypper(ssh_client=self.ssh_client, use_sudo=True)

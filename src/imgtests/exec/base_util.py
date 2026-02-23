@@ -1,10 +1,13 @@
 from abc import ABC, abstractmethod
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from imgtests.exec.exec import ExecResult, SSHClient, common_run_command, which
 from imgtests.exec.utils import extract_version, kwargs_to_cmd_args
-from imgtests.types import Version
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from imgtests.types import Version
 
 
 class BaseTestUtil(ABC):

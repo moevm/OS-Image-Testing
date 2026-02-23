@@ -1,7 +1,10 @@
 import logging
+from typing import TYPE_CHECKING
 
-from imgtests.exec.exec import SSHClient
 from imgtests.exec.loaders import Perf
+
+if TYPE_CHECKING:
+    from imgtests.exec.exec import SSHClient
 
 logger = logging.getLogger(__name__)
 

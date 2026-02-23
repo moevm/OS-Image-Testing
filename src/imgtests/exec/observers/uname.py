@@ -1,8 +1,10 @@
-from typing import NamedTuple
+from typing import TYPE_CHECKING, NamedTuple
 
 from imgtests.exec.base_util import GenericUtil
-from imgtests.exec.exec import SSHClient
 from imgtests.types import Version
+
+if TYPE_CHECKING:
+    from imgtests.exec.exec import SSHClient
 
 
 class UnameInfo(NamedTuple):

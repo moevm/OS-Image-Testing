@@ -116,6 +116,7 @@ services:
       POSTGRES_USER: ${USER}
       POSTGRES_PASSWORD: ${PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
+      PGPORT: ${SSH_POSTGRES_PORT}
     ports:
       - ${SSH_POSTGRES_PORT}:${SSH_POSTGRES_PORT}
     networks:

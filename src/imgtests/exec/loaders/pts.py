@@ -1,11 +1,13 @@
 import json
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult, SSHClient, common_run_command, pipeline
 from imgtests.exec.utils import extract_version
-from imgtests.types import Version
+
+if TYPE_CHECKING:
+    from imgtests.types import Version
 
 logger = logging.getLogger(__name__)
 

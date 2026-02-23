@@ -32,6 +32,7 @@
   - [Bencher](./utilities/benchmarking/general/bencher.md)
   - [Chaosblade](./utilities/benchmarking/general/chaosblade.md)
   - [Phoronix Test Suite](./utilities/benchmarking/general/phoronix-test-suite.md)
+  - [Инструменты тестирования](./utilities/benchmarking/general/testing-tools.md)
 - 3.1.2 Хранилища
   - [Vdbench](./utilities/benchmarking/storage/vdbench.md)
   - [SQLIOSim](./utilities/benchmarking/storage/sqliosim.md)

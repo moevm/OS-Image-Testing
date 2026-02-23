@@ -1,5 +1,8 @@
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from imgtests.exec.exec import SSHClient
 from imgtests.exec.base_util import GenericUtil
-from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
+from imgtests.exec.exec import ExecResult, common_run_command
 from imgtests.exec.osinfo import get_os_release
 from imgtests.types import Distro
 
