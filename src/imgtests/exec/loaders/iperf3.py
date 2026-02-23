@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING, Any
 
-from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
 from imgtests.exec.base_util import GenericUtil
+from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
 from imgtests.exec.utils import add_flag, create_opt
 
 if TYPE_CHECKING:

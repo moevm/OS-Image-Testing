@@ -2,9 +2,9 @@ import json
 import logging
 from typing import TYPE_CHECKING, Any
 
-from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult, SSHClient, common_run_command, pipeline
+from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
 from imgtests.exec.utils import extract_version
 
 if TYPE_CHECKING:
