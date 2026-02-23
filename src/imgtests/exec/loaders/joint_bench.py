@@ -84,7 +84,7 @@ class JointBench:
                     self.logger.info("Run '%s' test '%s'", tool_name, test)
                     tool_result, metrics = run_method(**test)
 
-                    metrics_json = {metrics}  # need to be added: metrics to json
+                    metrics_json = tool_instance.serialize_metrics(metrics)
                     result.append(
                         {
                             "result": metrics_json,

@@ -74,6 +74,19 @@ class BaseTestUtil(ABC):
         not_implemented_message = f"The '{self.name}' install logic is not implemented."
         raise NotImplementedError(not_implemented_message)
 
+    def serialize_metrics(self) -> str:
+        """Serializes the metrics provided by the utility.
+
+        Raises:
+            NotImplementedError: If the serialization logic is not implemented
+                for the specific utility.
+
+        Returns:
+            str: JSON string.
+        """
+        not_implemented_message = f"The '{self.name}' serialization logic is not implemented."
+        raise NotImplementedError(not_implemented_message)
+
     @abstractmethod
     def version(self) -> Version | None:
         """Returns the utility version.
