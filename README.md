@@ -59,17 +59,3 @@ docker logs os-image-testing-imgtests-analyzer-1
 Note: To create an image with all the packages specified in conf/packages.conf, you will need at least 200 GB of free disk space. If your memory is running low, consider removing unnecessary packages.
 
 To add a new utility, you need to update the [packages.conf](conf/packages.conf), [local.conf](conf/local.conf) and write the appropriate [recipe](layers/meta-image-tests/).
-
-### 3. Makefile commands overview
-
-Runs pre-commit checks on all code. Checks include: `ruff`, `spellcheck` and other hooks.
-
-```bash
-make pre-commit-check
-```
-
-Runs all pytest unit tests in the `tests/unit` and `tests/misc` directories.
-
-```bash
-make unit-test
-```
