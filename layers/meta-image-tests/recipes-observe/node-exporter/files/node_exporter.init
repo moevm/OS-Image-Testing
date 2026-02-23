@@ -3,7 +3,7 @@
 DAEMON=/usr/local/bin/node_exporter
 NAME=node_exporter
 DESC="Prometheus Node Exporter"
-PIDFILE=/var/run/$NAME.pid
+PIDFILE=/run/$NAME.pid
 
 test -f $DAEMON || exit 0
 

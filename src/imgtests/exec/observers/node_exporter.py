@@ -7,12 +7,6 @@ from imgtests.types import Distro
 
 class NodeExporter(GenericUtil):
     def __init__(self, ssh_client: SSHClient | None = None) -> None:
-        # service -- Yocto
-        # systemctl -- opensuse
-        self.service = "service"
-        os_id = get_os_release(ssh_client).id
-        if os_id and os_id == Distro.OPEN_SUSE_LEAP.value:
-            self.service = "systemctl"
         super().__init__("node_exporter", ssh_client)
 
     def install(self, collect_flags: list[str] | None = None) -> ExecResult:
@@ -87,18 +81,3 @@ class NodeExporter(GenericUtil):
             )
 
         return install_res
-
-    def start_exporter(self) -> ExecResult:
-        if self.service == "service":
-            return common_run_command(("sudo", self.service, self.name, "restart"), self.ssh_client)
-        return common_run_command(("sudo", self.service, "restart", self.name), self.ssh_client)
-
-    def stop_exporter(self) -> ExecResult:
-        if self.service == "service":
-            return common_run_command(("sudo", self.service, self.name, "stop"), self.ssh_client)
-        return common_run_command(("sudo", self.service, "stop", self.name), self.ssh_client)
-
-    def check_exporter(self) -> ExecResult:
-        if self.service == "service":
-            return common_run_command(("sudo", self.service, self.name, "status"), self.ssh_client)
-        return common_run_command(("sudo", self.service, "status", self.name), self.ssh_client)
