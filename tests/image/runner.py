@@ -7,6 +7,10 @@ from image.performance.cpu import test_chaosblade_cpu, test_stress_ng_cpu
 from image.performance.fio_disks import test_fio_disks_scaling
 from image.performance.ipc import test_sched
 from image.performance.network import test_iperf3
+from image.performance.stress_ng_general import (
+    test_general_consecutive_stress_ng,
+    test_general_parallel_stress_ng,
+)
 from image.performance.system import test_pts_system
 from imgtests.exec.exec import wait_remote
 from imgtests.exec.observers.systemd_analyze import SystemdAnalyze
@@ -89,6 +93,16 @@ def main() -> None:
                     description="Test syscalls performance.",
                     subsystems=("syscalls",),
                     test_func=test_syscalls_all_stress_ng,
+                ),
+                TestSpec(
+                    description="Test stress-ng full consecutive load on subsystems.",
+                    subsystems=("cpu, vm, hdd, network, syscalls, IPC"),
+                    test_func=test_general_consecutive_stress_ng,
+                ),
+                TestSpec(
+                    description="Test stress-ng full parallel load on subsystems.",
+                    subsystems=("cpu, vm, hdd, network, syscalls, IPC"),
+                    test_func=test_general_parallel_stress_ng,
                 ),
                 TestSpec(
                     description="Test syscalls with LTP.",
