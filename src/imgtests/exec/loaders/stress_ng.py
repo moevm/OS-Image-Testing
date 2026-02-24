@@ -161,7 +161,8 @@ class StressNg(GenericUtil):
             vm_bytes (str | None): Utilized memory as value or percent of all available memory.
             mmap (int | None): Count of the memory mapping stressors. When set to 0 got count
               of logical processors.
-            mmap_bytes (str | None): Utilized memory mapping as value or percent of all available memory.
+            mmap_bytes (str | None): Utilized memory mapping as value or percent of all available
+              memory.
             cache (int | None): Count of the cache stressors. When set to 0 got count of logical
               processors.
             cache_ops (int | None): Number of cache operations per stressor.
@@ -172,11 +173,11 @@ class StressNg(GenericUtil):
             sock (int | None): Count of the socket stressors. When set to 0 got count of logical
               processors.
             sock_ops (int | None): Number of socket operations per stressor.
-            netdev (int | None): Count of the network device stressors. When set to 0 got count of logical
-              processors.
+            netdev (int | None): Count of the network device stressors. When set to 0 got count of
+              logical processors.
             netdev_ops (int | None): Number of netword device operations per stressor.
-            upd_flood (int | None): Count of the udp flood stressors. When set to 0 got count of logical
-              processors.
+            udp_flood (int | None): Count of the udp flood stressors. When set to 0 got count of
+              logical processors.
             udp_flood_ops (int | None): Number of udp flood operations per stressor.
             iomix (int | None): Count of the I/O stressors. When set to 0 got count of logical
               processors.
@@ -191,8 +192,8 @@ class StressNg(GenericUtil):
             brk (int | None): Count of the break() stressors. When set to 0 got count of logical
               processors.
             brk_ops (int | None): Number of break() operations per stressor.
-            mq (int | None): Count of the message queue stressors. When set to 0 got count of logical
-              processors.
+            mq (int | None): Count of the message queue stressors. When set to 0 got count of
+              logical processors.
             mq_ops (int | None): Number of message queue operations per stressor.
             pipe (int | None): Count of the pipe stressors. When set to 0 got count of logical
               processors.
@@ -200,8 +201,8 @@ class StressNg(GenericUtil):
             sem (int | None): Count of the semaphore stressors. When set to 0 got count of logical
               processors.
             sem_ops (int | None): Number of semaphore operations per stressor.
-            shm (int | None): Count of the shared memory stressors. When set to 0 got count of logical
-              processors.
+            shm (int | None): Count of the shared memory stressors. When set to 0 got count of
+              logical processors.
             shm_ops (int | None): Number of shared memory operations per stressor.
             verify (bool): Verify results if can.
             **kwargs (dict[str, Any]): Command arguments in the free form with values.
