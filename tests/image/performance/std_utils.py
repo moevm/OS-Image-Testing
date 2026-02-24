@@ -16,7 +16,8 @@ from imgtests.exec.user_commands import Dd, Rm
 logger = logging.getLogger(__name__)
 
 
-def test_all_tools(executor: ThreadPoolExecutor, client: SSHClient | None, iterations: int):  # noqa: PLR0915
+def test_all_tools(executor: ThreadPoolExecutor, client: SSHClient | None):  # noqa: PLR0915
+    iterations = 10
     samples = test_net_utils(executor, client, iterations)
     for tool in samples:
         real, user, system = [], [], []
@@ -302,7 +303,7 @@ def test_net_utils(
         for tool in tools:
             cmd = tool
             if tool == "ping":
-                cmd = f"{tool} -c 5 8.8.8.8"
+                cmd = f"{tool} -c 5 localhost"
             ret = time(["-f", "'%e %U %S'", cmd])
             results[tools.index(tool)].append(ret.stderr)
     return dict(zip(tools, results, strict=True))
