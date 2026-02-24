@@ -1,3 +1,5 @@
+import json
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from imgtests.exec.base_util import GenericUtil
@@ -78,3 +80,25 @@ class Iperf3(PkgMgrMixin, GenericUtil):
                 cmd=(), stderr=f"{self.name} already has been installed.", returncode=0
             )
         return self._install_packages(["iperf"])
+
+    def json_to_bmf(self, json_file: Path) -> dict[str, Any]:
+        with Path.open(json_file) as f:
+            data = json.load(f)
+
+        result = {}
+        if "end" in data and "sum_sent" in data["end"]:
+            sum_sent = data["end"]["sum_sent"]
+            result["sum"] = {
+                "seconds": {"value": sum_sent["seconds"]},
+                "bytes": {"value": sum_sent["bytes"]},
+                "bits_per_second": {"value": sum_sent["bits_per_second"]},
+            }
+
+        if "end" in data and "cpu_utilization_percent" in data["end"]:
+            cpu = data["end"]["cpu_utilization_percent"]
+            result["cpu_utilization_percent"] = {
+                "host_total": {"value": cpu["host_total"]},
+                "host_user": {"value": cpu["host_user"]},
+                "host_system": {"value": cpu["host_system"]},
+            }
+        return result
