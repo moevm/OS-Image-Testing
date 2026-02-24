@@ -12,7 +12,6 @@
 - [ChaosEngineering](./methodology/ChaosEngineering.md)
 - [Performance тестирование](./methodology/performance-methodology.md)
 - [Сравнительная матрица](./methodology/matrix.md)
-- [Обзор инструментов для создания программной модели компонентов ОС](./methodology/os-component-models.md)
 - [Метод инструментов](./methodology/instrumental-method.md)
 - [Метод USE](./methodology/use-method.md)
 - [Метод определения характеристик потребления памяти](./methodology/memory-consumption-characteristics.md)
@@ -54,6 +53,7 @@
 - [Инструменты для performance тестирования](./utilities/tools-collections/performance-testing-tools.md)
 - [Endurance тестирование подсистем](./utilities/tools-collections/endurance-subsystem-testing.md)
 - [Список утилит endurance тестирования](./utilities/tools-collections/endurance-utilities-list.md)
+- [Обзор инструментов для создания программной модели компонентов ОС](./utilities/tools-collections/os-component-models.md)
 
 ### 3.5 Визуализация
 
