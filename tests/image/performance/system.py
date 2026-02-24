@@ -18,9 +18,9 @@ def test_pts_system(executor: ThreadPoolExecutor, client: SSHClient | None) -> N
     future.result()
 
     future = executor.submit(pts.run, test_name="pts/ctx-clock", run_count=1)
-    result = future.result()
+    _, result = future.result()
     logger.info(result)
 
     future = executor.submit(pts.run, test_name="pts/appleseed", run_count=1)
-    result = future.result()
+    _, result = future.result()
     logger.info(result)

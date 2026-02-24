@@ -223,7 +223,7 @@ class PhoronixTestSuite(GenericUtil):
 
         return PhoronixTestSuite.format_test_results(metrics)
 
-    def run(self, test_name: str, run_count: int) -> str:
+    def run(self, test_name: str, run_count: int) -> tuple[ExecResult, str]:
         """Runs a given test and parses results.
 
         Args:
@@ -231,16 +231,20 @@ class PhoronixTestSuite(GenericUtil):
             run_count (int): Amount of iterations of given test.
 
         Returns:
-            Formatted readable output.
+            Returns:
+            tuple[ExecResult, str]: Result of test and parsed metrics.
         """
-        self.run_test(test_name=test_name, run_count=run_count)
+        result = self.run_test(test_name=test_name, run_count=run_count)
 
         try:
             json_data = self.get_result_json()
         except ValueError as e:
             return f"Error while processing results: {e}"
+        return result, self.parse_metrics(json_data)
 
-        return self.parse_metrics(json_data)
+    @staticmethod
+    def serialize_metrics() -> str:
+        pass
 
 
 def setup_pts(ssh_client: SSHClient | None = None) -> None:
