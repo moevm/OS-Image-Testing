@@ -225,6 +225,7 @@ class StressNg(GenericUtil):
             "iomix": iomix,
             "syscall": syscall,
             "fork": fork,
+            "brk": brk,
             "mq": mq,
             "pipe": pipe,
             "sem": sem,
