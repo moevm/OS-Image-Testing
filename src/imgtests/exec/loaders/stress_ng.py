@@ -476,3 +476,31 @@ class StressNg(PkgMgrMixin, GenericUtil):
         except IndexError:
             return None
         return tuple(methods.strip().split())
+
+    def stress_ng_metrics_to_bmf(self, metrics: StressNGMetrics) -> dict[str, Any]:
+        result = {
+            "StressNGMetrics": {
+                "stressor": {"value": metrics.stressor},
+                "bogo_ops": {"value": metrics.bogo_ops},
+                "real_time_secs": {"value": metrics.real_time_secs},
+                "usr_time_secs": {"value": metrics.usr_time_secs},
+                "sys_time_secs": {"value": metrics.sys_time_secs},
+                "bogo_ops_s_real_time": {"value": metrics.bogo_ops_s_real_time},
+                "bogo_ops_s_usr_sys_time": {"value": metrics.bogo_ops_s_usr_sys_time},
+                "cpu_used_per_instance": {"value": metrics.cpu_used_per_instance},
+            }
+        }
+
+        if metrics.rss_max_kb is not None:
+            result["StressNGMetrics"]["rss_max_kb"] = {"value": metrics.rss_max_kb}
+
+        if metrics.top10_slowest:
+            result["top10_slowest"] = {}
+            for syscall in metrics.top10_slowest:
+                result["top10_slowest"][syscall.name] = {
+                    "value": syscall.avg_ns,
+                    "lower_value": syscall.min_ns,
+                    "upper_value": syscall.max_ns,
+                }
+
+        return result
