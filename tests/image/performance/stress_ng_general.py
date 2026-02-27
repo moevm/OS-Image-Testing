@@ -19,8 +19,29 @@ tests = [
     {"mq": 4, "pipe": 4, "sem": 4, "shm": 4},
 ]
 
+class StressNgLoadTest(AbstractRunnableTimeLimitedTest):
+    def combine_params(self, test_combination: list) -> dict:
+        """Combines params from list of dictionaries into single dictionary
 
-class StressNgConsecutiveLoadTest(AbstractRunnableTimeLimitedTest):
+        Args:
+            test_combination (list): List of test scenarios.
+
+        Returns:
+            dict: Single dictionary with all test params.
+        """
+        test_params = {}
+        for params in test_combination:
+            test_params.update(params)
+        return test_params
+
+    def run_test(self, stress_ng: StressNg, executor: ThreadPoolExecutor, timeout: int, params: dict) -> None:
+        future = executor.submit(stress_ng.run, timeout_sec=timeout, **params)
+        result = future.result()
+        _, metrics = result
+        self.logger.info(metrics)
+
+
+class StressNgConsecutiveLoadTest(StressNgLoadTest):
     def __init__(self, timeout: int) -> None:
         super().__init__(
             "Test stress-ng full consecutive load on subsystems.",
@@ -32,13 +53,9 @@ class StressNgConsecutiveLoadTest(AbstractRunnableTimeLimitedTest):
         stress_ng = StressNg(client)
 
         for params in tests:
-            future = executor.submit(stress_ng.run, timeout_sec=timeout, **params)
-            result = future.result()
-            _, metrics = result
-            self.logger.info(metrics)
+            self.run_test(stress_ng, executor, timeout, params)
 
-
-class StressNgCombineLoadTest(AbstractRunnableTimeLimitedTest):
+class StressNgCombineLoadTest(StressNgLoadTest):
     def __init__(self, timeout: int) -> None:
         super().__init__(
             "Test stress-ng full combine load on subsystems.",
@@ -51,18 +68,11 @@ class StressNgCombineLoadTest(AbstractRunnableTimeLimitedTest):
 
         for r in range(2, len(tests)):
             for test_combination in combinations(tests, r):
-                test_params = {}
-
-                for params in test_combination:
-                    test_params.update(params)
-
-                future = executor.submit(stress_ng.run, timeout_sec=timeout, **test_params)
-                result = future.result()
-                _, metrics = result
-                self.logger.info(metrics)
+                test_params = self.combine_params(test_combination)
+                self.run_test(stress_ng, executor, timeout, test_params)
 
 
-class StressNgParallelLoadTest(AbstractRunnableTimeLimitedTest):
+class StressNgParallelLoadTest(StressNgLoadTest):
     def __init__(self, timeout: int) -> None:
         super().__init__(
             "Test stress-ng full parallel load on subsystems.",
@@ -73,12 +83,5 @@ class StressNgParallelLoadTest(AbstractRunnableTimeLimitedTest):
     def _run(self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int) -> None:
         stress_ng = StressNg(client)
 
-        test_params = {}
-
-        for params in tests:
-            test_params.update(params)
-
-        future = executor.submit(stress_ng.run, timeout_sec=timeout, **test_params)
-        result = future.result()
-        _, metrics = result
-        self.logger.info(metrics)
+        test_params = self.combine_params(tests)
+        self.run_test(stress_ng, executor, timeout, test_params)
