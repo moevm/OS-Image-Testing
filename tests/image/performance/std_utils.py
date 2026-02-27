@@ -16,8 +16,7 @@ from imgtests.exec.user_commands import Dd, Rm
 logger = logging.getLogger(__name__)
 
 
-def test_all_tools(executor: ThreadPoolExecutor, client: SSHClient | None):  # noqa: PLR0915
-    iterations = 10
+def test_all_tools(executor: ThreadPoolExecutor, client: SSHClient | None, iterations: int) -> None:  # noqa: PLR0915
     samples = test_net_utils(executor, client, iterations)
     for tool in samples:
         real, user, system = [], [], []
