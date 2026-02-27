@@ -19,9 +19,10 @@ tests = [
     {"mq": 4, "pipe": 4, "sem": 4, "shm": 4},
 ]
 
+
 class StressNgLoadTest(AbstractRunnableTimeLimitedTest):
     def combine_params(self, test_combination: list) -> dict:
-        """Combines params from list of dictionaries into single dictionary
+        """Combines params from list of dictionaries into single dictionary.
 
         Args:
             test_combination (list): List of test scenarios.
@@ -34,7 +35,9 @@ class StressNgLoadTest(AbstractRunnableTimeLimitedTest):
             test_params.update(params)
         return test_params
 
-    def run_test(self, stress_ng: StressNg, executor: ThreadPoolExecutor, timeout: int, params: dict) -> None:
+    def run_test(
+        self, stress_ng: StressNg, executor: ThreadPoolExecutor, timeout: int, params: dict
+    ) -> None:
         future = executor.submit(stress_ng.run, timeout_sec=timeout, **params)
         result = future.result()
         _, metrics = result
@@ -54,6 +57,7 @@ class StressNgConsecutiveLoadTest(StressNgLoadTest):
 
         for params in tests:
             self.run_test(stress_ng, executor, timeout, params)
+
 
 class StressNgCombineLoadTest(StressNgLoadTest):
     def __init__(self, timeout: int) -> None:
