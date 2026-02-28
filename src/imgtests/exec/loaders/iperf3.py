@@ -77,5 +77,4 @@ class Iperf3(PkgMgrMixin, GenericUtil):
             return ExecResult(
                 cmd=(), stderr=f"{self.name} already has been installed.", returncode=0
             )
-        # on suse zypper install iperf installs iperf3
         return self._install_packages(["iperf"])
