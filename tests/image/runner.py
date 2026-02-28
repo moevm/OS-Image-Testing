@@ -75,6 +75,7 @@ def main() -> None:
                 POSIXUtilsTest(10),
             ),
             experiment_type="performance",
+            install_dependencies=True,
         ),
     )
     suse_runner.run()

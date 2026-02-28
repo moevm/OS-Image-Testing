@@ -1,6 +1,8 @@
 from typing import TYPE_CHECKING, NamedTuple
 
 from imgtests.exec.base_util import GenericUtil
+from imgtests.exec.exec import ExecResult
+from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
 
 if TYPE_CHECKING:
     from imgtests.exec.exec import SSHClient
@@ -12,7 +14,7 @@ class Times(NamedTuple):
     system: float
 
 
-class Time(GenericUtil):
+class Time(PkgMgrMixin, GenericUtil):
     def __init__(self, ssh_client: SSHClient | None = None) -> None:
         super().__init__("time", ssh_client)
 
@@ -25,3 +27,11 @@ class Time(GenericUtil):
             return Times(float(raw_time[0]), float(raw_time[1]), float(raw_time[2]))
         except (ValueError, IndexError):
             return None
+
+    def install(self) -> ExecResult:
+        """Install time via the system package manager."""
+        if self.path:
+            return ExecResult(
+                cmd=(), stderr=f"{self.name} already has been installed.", returncode=0
+            )
+        return self._install_packages(["time"])
