@@ -1,4 +1,5 @@
 import tempfile
+from concurrent.futures import as_completed
 from pathlib import Path
 from typing import TYPE_CHECKING, NamedTuple
 
@@ -39,16 +40,19 @@ class POSIXUtilsTest(AbstractRunnableManyTimesTest):
         iterations: int,
     ) -> None:
         final_results: ToolsTimes = {}
-        net_results = self.test_net_utils(executor, client, iterations)
-        files_results = self.test_utils_for_files(client, iterations)
-        dirs_results = self.test_utils_for_dirs(client, iterations)
-        other_results = self.test_other_tools(client, iterations)
-        final_results.update(net_results)
-        final_results.update(files_results)
-        final_results.update(dirs_results)
-        final_results.update(other_results)
+        futures: list[Future[ToolsTimes]] = [
+            executor.submit(func, client, iterations)
+            for func in [
+                self.test_net_utils,
+                self.test_utils_for_files,
+                self.test_utils_for_dirs,
+                self.test_other_tools,
+            ]
+        ]
+        for future in as_completed(futures):
+            final_results.update(future.result())
 
-    def test_utils_for_files(  # noqa: PLR0912, C901
+    def test_utils_for_files(  # noqa: PLR0912, C901, PLR0915
         self, client: SSHClient | None, iterations: int
     ) -> ToolsTimes:
         time = Time(client)
@@ -61,10 +65,16 @@ class POSIXUtilsTest(AbstractRunnableManyTimesTest):
                 "if=/dev/urandom",
                 "bs=1M",
                 "count=50",
-                f"of={filename1}",
+                f"of={filename1}.tmp",
             ]
         )
-        common_run_command(["strings", str(filename1), ">", str(filename1)], client)
+        if ret.returncode:
+            self.logger.error("Test file wasn't created correctly")
+            return {}
+        ret = common_run_command(
+            ["tr", "-dc", "'[:print:]'", "<", f"{filename1}.tmp", ">", str(filename1)],
+            client,
+        )
         if ret.returncode:
             self.logger.error("Test file wasn't created correctly")
             return {}
@@ -73,13 +83,20 @@ class POSIXUtilsTest(AbstractRunnableManyTimesTest):
                 "if=/dev/urandom",
                 "bs=1M",
                 "count=50",
-                f"of={filename2}",
+                f"of={filename2}.tmp",
             ]
         )
-        common_run_command(["strings", str(filename2), ">", str(filename2)], client)
         if ret.returncode:
             self.logger.error("Test file wasn't created correctly")
             return {}
+        ret = common_run_command(
+            ["tr", "-dc", "'[:print:]'", "<", f"{filename2}.tmp", ">", str(filename2)],
+            client,
+        )
+        if ret.returncode:
+            self.logger.error("Test file wasn't created correctly")
+            return {}
+        common_run_command(["rm", "-f", f"{filename1}.tmp", f"{filename2}.tmp"], client)
         tools = [
             "cat",
             "head",
@@ -107,14 +124,16 @@ class POSIXUtilsTest(AbstractRunnableManyTimesTest):
         results: ToolsTimes = {}
         for tool in tools:
             cmd = tool
-            if tool in {"head", "tail"}:
-                cmd = f"{tool} -n 1000 {filename1}"
+            if tool in {"cat", "wc", "od", "sort", "uniq"}:
+                cmd = f"cat {filename1} {filename2} > /dev/null"
+            elif tool in {"head", "tail"}:
+                cmd = f"{tool} -n 1000 {filename1} {filename2} > /dev/null"
             elif tool == "grep":
-                cmd = f"{tool} test {filename1}"
+                cmd = f"{tool} test {filename1} {filename2} || exit 0 > /dev/null"
             elif tool == "paste":
-                cmd = f"{tool} {filename2} {filename1}"
+                cmd = f"{tool} {filename2} {filename1} > /dev/null"
             elif tool == "tr":
-                cmd = f"{tool} 'a-z' 'A-Z' < {filename1}"
+                cmd = f"{tool} 'a-z' 'A-Z' < {filename1} > /dev/null"
             elif tool == "diff":
                 cmd = f"{tool} -u {filename1} {filename2} > diff.patch"
             elif tool == "cp":
@@ -132,29 +151,22 @@ class POSIXUtilsTest(AbstractRunnableManyTimesTest):
             elif tool in {"chown", "chgrp"}:
                 cmd = f"{tool} root {filename1}"
             elif tool == "tar":
-                cmd = f"{tool} cf {filename1}.tar {filename1}"
+                cmd = f"{tool} -cf {filename1}.tar {filename1}"
             elif tool in {"md5sum", "sha256sum"}:
-                cmd = f"dd if=/dev/zero bs=1M count=1024 | {tool}"
+                cmd = f"{tool} {filename1} {filename2}"
             results[tool] = time_cmd_many(time, cmd, iterations)
             self.logger.info("Results for %s: %s", tool, time_cmd_many(time, cmd, iterations))
         return results
 
-    def test_net_utils(
-        self, executor: ThreadPoolExecutor, client: SSHClient | None, iterations: int
-    ) -> ToolsTimes:
+    def test_net_utils(self, client: SSHClient | None, iterations: int) -> ToolsTimes:
         time = Time(client)
         tools = ["netstat", "lsof", "ping"]
         results: ToolsTimes = {}
-        futures: list[Future[ToolTimes | None]] = []
         for tool in tools:
             cmd = tool
             if tool == "ping":
                 cmd = f"{tool} -c 20 localhost"
-            futures.append(executor.submit(time_cmd_many, time, cmd, iterations))
-        for i, future in enumerate(futures):
-            tool = tools[i]
-            result = future.result()
-            results[tool] = result
+            results[tool] = time_cmd_many(time, cmd, iterations)
             self.logger.info("Results for %s: %s", tool, results[tool])
         return results
 
@@ -181,7 +193,7 @@ class POSIXUtilsTest(AbstractRunnableManyTimesTest):
                 cmd = f"{tool} /tmp -type d -name '40'"
             elif tool == "ls":
                 for j in range(1, 101):
-                    dd(["if=/dev/urandom", f"of=/tmp/file{j}", "bs=10", "count=1", "2>/dev/null"])
+                    dd(["if=/dev/urandom", f"of=/tmp/file{j}", "bs=10", "count=1"])
                 cmd = f"{tool} /tmp"
                 rm([str(tmpdir / "/file*")])
             elif tool == "realpath":
