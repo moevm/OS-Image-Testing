@@ -1,13 +1,15 @@
 from typing import TYPE_CHECKING, Any
 
 from imgtests.exec.base_util import GenericUtil
+from imgtests.exec.exec import ExecResult
+from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
 from imgtests.exec.utils import add_flag, create_opt
 
 if TYPE_CHECKING:
-    from imgtests.exec.exec import ExecResult, SSHClient
+    from imgtests.exec.exec import SSHClient
 
 
-class Iperf3(GenericUtil):
+class Iperf3(PkgMgrMixin, GenericUtil):
     def __init__(self, ssh_client: SSHClient | None = None) -> None:
         super().__init__("iperf3", ssh_client)
 
@@ -68,3 +70,11 @@ class Iperf3(GenericUtil):
             opts,
             **kwargs,
         )
+
+    def install(self) -> ExecResult:
+        """Install iperf3 via the system package manager."""
+        if self.path:
+            return ExecResult(
+                cmd=(), stderr=f"{self.name} already has been installed.", returncode=0
+            )
+        return self._install_packages(["iperf"])

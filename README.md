@@ -12,9 +12,9 @@ Repository structure:
 | [layers](layers)  | Layers content                           |
 | [scripts](scripts)| Shell scripts                            |
 | [src](src)        | Source code and core development files   |
-| [tests](tests)    | Image tests                              |
+| [tests](tests)    | Image and unit tests                     |
 
-## Building and testing Yocto image via Docker Сompose
+## Building and testing Yocto image via Docker Compose
 
 ### 1. Clone the repository
 
@@ -32,17 +32,23 @@ make help
 
 ### 2. Base initialization of Docker volumes and subsequent image building
 
-#### 2.1 Initialization through Docker Compose and SSH
-
-After initializing both Docker image and volumes, starts two containers:
-
-- Yocto container is used for running tests after building the Yocto image. Building the image requires a significant amount of time and resources.
-
-- Python container is used for sending test input and receiving test output from the Yocto container through SSH. It starts after the building processes are complete and the image has been booted.
-
 ```bash
 make docker-compose-up
 ```
+
+After initializing both Docker image and volumes, starts the following containers:
+
+- Python container is used for sending test input and receiving test output from the Yocto and Suse containers through SSH. It starts after the building processes are complete and the image has been booted. Communicates with other containers also via SSH.
+
+- Yocto container (port:2222) is used for running tests after building the Yocto image. Building the image requires a significant amount of time and resources.
+
+- Suse-156 container (port:1616) is another system for running tests, that also builds through QEMU.
+
+- Postgres container (port:5432) contains the project database, which includes configurations, experiment results, information about system loaders and observers.
+
+- Bencher-API container (port:61016) is used as a bencher server. It contains the separate database and processes all requests, that can be seen in the container logs.
+
+- Bencher-console container (port:3000) shows active bencher web sessions used for viewing graphics and stats on tested systems, as well as the test results.
 
 Results can be obtained from the Python container logs after all the tests are finished:
 
@@ -52,4 +58,4 @@ docker logs os-image-testing-imgtests-analyzer-1
 
 Note: To create an image with all the packages specified in conf/packages.conf, you will need at least 200 GB of free disk space. If your memory is running low, consider removing unnecessary packages.
 
-To add a new utility, you need to update the [packages.conf](conf/packages.conf), [local.conf](conf/local.conf) and write the appropriate [recipe](layers/meta-image-tests/), then add the paths to the recipe and dependent files for all called containers in the `Makefile`.
+To add a new utility, you need to update the [packages.conf](conf/packages.conf), [local.conf](conf/local.conf) and write the appropriate [recipe](layers/meta-image-tests/).

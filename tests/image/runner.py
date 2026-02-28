@@ -1,20 +1,25 @@
 import logging
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-from image.endurance.syscalls import test_ltp_syscalls, test_syscalls_all_stress_ng
-from image.performance.cpu import test_chaosblade_cpu, test_stress_ng_cpu
-from image.performance.fio_disks import test_fio_disks_scaling
-from image.performance.ipc import test_sched
-from image.performance.network import test_iperf3
-from image.performance.system import test_pts_system
-from imgtests.exec.exec import wait_remote
+from image.endurance.syscalls import (
+    LTPSyscallsTest,
+    StressNgAllSyscallsTest,
+)
+from image.performance.cpu import ChaosbladeCPUTest, StressNgCpuTest
+from image.performance.fio_disks import FioDisksNightly, FioDisksScalingTest
+from image.performance.ipc import SchedPerformanceTest
+from image.performance.network import Iperf3LocalTest
+from image.performance.std_utils import POSIXUtilsTest
+from image.performance.system import PTSSystemTest
+from imgtests.exec.exec import SSHClient, wait_remote
 from imgtests.exec.observers.systemd_analyze import SystemdAnalyze
 from imgtests.logger import set_handlers
-from imgtests.runner import TestSpec, TestsRunner, TestsRunnerConfig
+from imgtests.runner import AbstractRunnableManyTimesTest, TestsRunner, TestsRunnerConfig
 
-logger = logging.getLogger()
-set_handlers(logger, Path("processing.log"))
+if TYPE_CHECKING:
+    from concurrent.futures import ThreadPoolExecutor
 
 
 yocto_conf = (
@@ -31,28 +36,47 @@ suse_156_conf = (
 )
 
 
+class SystemLoadTimeTest(AbstractRunnableManyTimesTest):
+    def __init__(self) -> None:
+        super().__init__("System load time.", {"system"})
+
+    def _run(
+        self,
+        executor: ThreadPoolExecutor,  # noqa: ARG002
+        client: SSHClient | None,
+        iterations: int,  # noqa: ARG002
+    ) -> None:
+        self.logger.info(SystemdAnalyze(client).time())
+
+
+class SystemSlowServicesTest(AbstractRunnableManyTimesTest):
+    def __init__(self) -> None:
+        super().__init__("System slow services.", {"system"})
+
+    def _run(
+        self,
+        executor: ThreadPoolExecutor,  # noqa: ARG002
+        client: SSHClient | None,
+        iterations: int,  # noqa: ARG002
+    ) -> None:
+        self.logger.info(SystemdAnalyze(client).slow_load_services())
+
+
 def main() -> None:
+    logger = logging.getLogger()
+    set_handlers(logger, Path("processing.log"))
     suse_runner = TestsRunner(
         wait_remote(*suse_156_conf) or sys.exit(1),
         TestsRunnerConfig(
             description="Empty test suite.",
             tests=(
-                TestSpec(
-                    description="System load time.",
-                    subsystems=("system",),
-                    test_func=lambda _, client: logger.info(SystemdAnalyze(client).time()),
-                ),
-                TestSpec(
-                    description="System slow services.",
-                    subsystems=("system",),
-                    test_func=lambda _, client: logger.info(
-                        SystemdAnalyze(client).slow_load_services()
-                    ),
-                ),
+                SystemLoadTimeTest(),
+                SystemSlowServicesTest(),
+                POSIXUtilsTest(10),
             ),
             experiment_type="performance",
+            install_dependencies=True,
         ),
-        logger=logger,
     )
     suse_runner.run()
     yocto_runner = TestsRunner(
@@ -60,55 +84,19 @@ def main() -> None:
         TestsRunnerConfig(
             description="Test suite for all subsystems.",
             tests=(
-                TestSpec(
-                    description="Load drives with fio.",
-                    subsystems=("file",),
-                    test_func=lambda executor, client: test_fio_disks_scaling(
-                        executor,
-                        client,
-                        10,
-                        Path().home(),
-                    ),
-                ),
-                TestSpec(
-                    description="Load local network with iperf3.",
-                    subsystems=("network",),
-                    test_func=test_iperf3,
-                ),
-                TestSpec(
-                    description="Load CPU with stress-ng.",
-                    subsystems=("system",),
-                    test_func=test_stress_ng_cpu,
-                ),
-                TestSpec(
-                    description="Load CPU with chaosblade.",
-                    subsystems=("system",),
-                    test_func=test_chaosblade_cpu,
-                ),
-                TestSpec(
-                    description="Test syscalls performance.",
-                    subsystems=("syscalls",),
-                    test_func=test_syscalls_all_stress_ng,
-                ),
-                TestSpec(
-                    description="Test syscalls with LTP.",
-                    subsystems=("syscalls",),
-                    test_func=test_ltp_syscalls,
-                ),
-                TestSpec(
-                    description="Benchmark sheduler and IPC mechanisms.",
-                    subsystems=("IPC",),
-                    test_func=test_sched,
-                ),
-                TestSpec(
-                    description="Load system with PTS.",
-                    subsystems=("system",),
-                    test_func=test_pts_system,
-                ),
+                POSIXUtilsTest(10),
+                FioDisksScalingTest(10),
+                FioDisksNightly(10),
+                Iperf3LocalTest(30),
+                StressNgCpuTest(60),
+                ChaosbladeCPUTest(60),
+                LTPSyscallsTest(),
+                StressNgAllSyscallsTest(60),
+                SchedPerformanceTest(3),
+                PTSSystemTest(2),
             ),
             experiment_type="all",
         ),
-        logger,
     )
     yocto_runner.run()
 
