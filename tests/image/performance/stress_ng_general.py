@@ -48,7 +48,7 @@ class StressNgConsecutiveLoadTest(StressNgLoadTest):
     def __init__(self, timeout: int) -> None:
         super().__init__(
             "Test stress-ng full consecutive load on subsystems.",
-            {"cpu, vm, hdd, network, syscalls, IPC"},
+            {"memory", "file", "IPC", "syscalls", "network", "system"},
             timeout,
         )
 
@@ -63,7 +63,7 @@ class StressNgCombineLoadTest(StressNgLoadTest):
     def __init__(self, timeout: int) -> None:
         super().__init__(
             "Test stress-ng full combine load on subsystems.",
-            {"cpu, vm, hdd, network, syscalls, IPC"},
+            {"memory", "file", "IPC", "syscalls", "network", "system"},
             timeout,
         )
 
@@ -80,7 +80,7 @@ class StressNgParallelLoadTest(StressNgLoadTest):
     def __init__(self, timeout: int) -> None:
         super().__init__(
             "Test stress-ng full parallel load on subsystems.",
-            {"cpu, vm, hdd, network, syscalls, IPC"},
+            {"memory", "file", "IPC", "syscalls", "network", "system"},
             timeout,
         )
 
