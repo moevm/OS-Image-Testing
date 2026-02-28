@@ -1,4 +1,5 @@
 import logging
+from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor
 from threading import Event, Thread
 from typing import TYPE_CHECKING, Any, Literal, NamedTuple
@@ -11,7 +12,7 @@ from imgtests.database.database import ImgtestsDatabase
 from imgtests.sysrep import get_system_info
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable
+    from collections.abc import Iterable
 
     from imgtests.database.database import ExperimentType
     from imgtests.exec.base_util import BaseTestUtil
@@ -20,17 +21,16 @@ if TYPE_CHECKING:
 Subsystem = Literal["file", "syscalls", "IPC", "network", "memory", "system"]
 
 
-class RunnableTest:
-    __slots__ = ("description", "iterations", "subsystems", "test_func")
+class AbstractRunnableManyTimesTest(ABC):
+    __slots__ = ("description", "iterations", "logger", "subsystems")
 
     def __init__(
         self,
         description: str,
         subsystems: set[Subsystem],
-        test_func: Callable[[ThreadPoolExecutor, SSHClient], None],
         iterations: int = 1,
     ) -> None:
-        """Construct a RunnableTest instance.
+        """Construct a AbstractRunnableManyTimesTest instance.
 
         Initializes the runnable test with description, target subsystems,
         execution logic, and repetition parameters.
@@ -38,31 +38,83 @@ class RunnableTest:
         Args:
             description: Test description.
             subsystems: Covered subsystems with the test.
-            test_func: Test implementation.
             iterations: Count of test iterations to run. Defaults to 1.
+
+        Raises:
+            ValueError: If iterations is less than 1.
         """
+        if iterations < 1:
+            err_msg = "Iterations must be at least 1."
+            raise ValueError(err_msg)
+
         self.description = description
         self.subsystems = subsystems
-        self.test_func = test_func
         self.iterations = iterations
+        self.logger = logging.getLogger(f"{LIB_NAME}.runnable_test")
 
-    def __call__(self, executor: ThreadPoolExecutor, client: SSHClient) -> Any:
-        logger = logging.getLogger(f"{LIB_NAME}.runnable_test")
-        logger.info(
-            "Starting '%s' test '%d' times: '%s'.",
-            self.test_func.__name__,
-            self.iterations,
-            self.description,
-        )
-        for _ in range(self.iterations):
-            self.test_func(executor, client)
-        logger.info("'%s' test finished.", self.test_func.__name__)
+    def __call__(self, executor: ThreadPoolExecutor, client: SSHClient | None = None) -> Any:
+        self.logger.info("Starting '%s' test '%d' times.", self.description, self.iterations)
+        self._run(executor, client, self.iterations)
+        self.logger.info("'%s' test finished.", self.description)
+
+    @abstractmethod
+    def _run(
+        self,
+        executor: ThreadPoolExecutor,
+        client: SSHClient | None,
+        iterations: int,
+    ) -> None: ...
+
+
+class AbstractRunnableTimeLimitedTest(ABC):
+    __slots__ = ("description", "logger", "subsystems", "timeout")
+
+    def __init__(
+        self,
+        description: str,
+        subsystems: set[Subsystem],
+        timeout: int,
+    ) -> None:
+        """Construct a AbstractRunnableTimeLimitedTest instance.
+
+        Initializes the runnable test with description, target subsystems,
+        execution logic, and time to run.
+
+        Args:
+            description: Test description.
+            subsystems: Covered subsystems with the test.
+            timeout: Test time to run if needed.
+
+        Raises:
+            ValueError: If timeout is negative.
+        """
+        if timeout < 0:
+            err_msg = "Timeout must be positive."
+            raise ValueError(err_msg)
+
+        self.description = description
+        self.subsystems = subsystems
+        self.timeout = timeout
+        self.logger = logging.getLogger(f"{LIB_NAME}.runnable_test")
+
+    def __call__(self, executor: ThreadPoolExecutor, client: SSHClient | None = None) -> Any:
+        self.logger.info("Starting '%s' test with '%d' timeout.", self.description, self.timeout)
+        self._run(executor, client, self.timeout)
+        self.logger.info("'%s' test finished.", self.description)
+
+    @abstractmethod
+    def _run(
+        self,
+        executor: ThreadPoolExecutor,
+        client: SSHClient | None,
+        timeout: int,
+    ) -> None: ...
 
 
 # Time to run, subsystems, stages (plan, risk analysis, run, cleanup, results, etc), etc
 class TestsRunnerConfig(NamedTuple):
     description: str
-    tests: Iterable[RunnableTest]
+    tests: Iterable[AbstractRunnableManyTimesTest | AbstractRunnableTimeLimitedTest]
     experiment_type: ExperimentType
     install_dependencies: bool = False
 
@@ -110,9 +162,10 @@ class TestsRunner:
             PhoronixTestSuite,
             StressNg,
         )
+        from imgtests.exec.observers.time import Time  # noqa: PLC0415
 
         self.logger.info("Installing dependencies. This may take a while.")
-        for tool in (Chaosblade, Fio, FioPlot, Kirk, Perf, StressNg, PhoronixTestSuite):
+        for tool in (Chaosblade, Fio, FioPlot, Kirk, Perf, StressNg, PhoronixTestSuite, Time):
             tool_instance: BaseTestUtil = tool(self.__client)
             try:
                 tool_instance.install()
