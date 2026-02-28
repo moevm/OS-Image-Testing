@@ -91,6 +91,10 @@ class BaseTestUtil(ABC):
         not_implemented_message = "The serialization logic is not implemented."
         raise NotImplementedError(not_implemented_message)
 
+    def prepare(self) -> None:
+        """Prepare before running the utility, if necessary."""
+        return
+
     @abstractmethod
     def version(self) -> Version | None:
         """Returns the utility version.

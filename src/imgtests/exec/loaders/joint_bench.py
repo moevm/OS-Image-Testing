@@ -83,7 +83,6 @@ class JointBench:
                     run_method = getattr(tool_instance, config["run"])
                     self.logger.info("Run '%s' test '%s'", tool_name, test)
                     tool_result, metrics = run_method(**test)
-
                     metrics_json = tool_instance.serialize_metrics(metrics)
                     result.append(
                         {
@@ -99,3 +98,9 @@ class JointBench:
                 experiment_id=experiment_id,
                 **tool_result,
             )
+
+    def prepare(self):
+        for tool_name in TOOLS_CONFIG:
+            tool_instance = self.tools[tool_name]
+            self.logger.info("Preparing %s", tool_name)
+            tool_instance.prepare()
