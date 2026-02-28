@@ -124,16 +124,36 @@ class StressNg(PkgMgrMixin, GenericUtil):
         vm: int | None = None,
         vm_method: str = "all",
         vm_bytes: str | None = None,
+        mmap: int | None = None,
+        mmap_bytes: str | None = None,
+        cache: int | None = None,
+        cache_ops: int | None = None,
         hdd: int | None = None,
         hdd_bytes: str | None = None,
         hdd_opts: str | None = None,
         sock: int | None = None,
         sock_ops: int | None = None,
+        netdev: int | None = None,
+        netdev_ops: int | None = None,
+        udp_flood: int | None = None,
+        udp_flood_ops: int | None = None,
         iomix: int | None = None,
         iomix_bytes: str | None = None,
         syscall: int | None = None,
         syscall_method: str = "all",
-        syscall_ops: str | None = None,
+        syscall_ops: int | None = None,
+        fork: int | None = None,
+        fork_ops: int | None = None,
+        brk: int | None = None,
+        brk_ops: int | None = None,
+        mq: int | None = None,
+        mq_ops: int | None = None,
+        pipe: int | None = None,
+        pipe_ops: int | None = None,
+        sem: int | None = None,
+        sem_ops: int | None = None,
+        shm: int | None = None,
+        shm_ops: int | None = None,
         verify: bool = True,
         **kwargs: dict[str, Any],
     ) -> tuple[ExecResult, tuple[list[StressNGMetrics], StressNGSummary | None]]:
@@ -149,6 +169,13 @@ class StressNg(PkgMgrMixin, GenericUtil):
               of logical processors.
             vm_method (str): Stress virtual memory method.
             vm_bytes (str | None): Utilized memory as value or percent of all available memory.
+            mmap (int | None): Count of the memory mapping stressors. When set to 0 got count
+              of logical processors.
+            mmap_bytes (str | None): Utilized memory mapping as value or percent of all available
+              memory.
+            cache (int | None): Count of the cache stressors. When set to 0 got count of logical
+              processors.
+            cache_ops (int | None): Number of cache operations per stressor.
             hdd (int | None): Count of the HDD stressors. When set to 0 got count of logical
               processors.
             hdd_bytes (str | None): Utilized disk space as value or percent of all available disk.
@@ -156,13 +183,37 @@ class StressNg(PkgMgrMixin, GenericUtil):
             sock (int | None): Count of the socket stressors. When set to 0 got count of logical
               processors.
             sock_ops (int | None): Number of socket operations per stressor.
+            netdev (int | None): Count of the network device stressors. When set to 0 got count of
+              logical processors.
+            netdev_ops (int | None): Number of netword device operations per stressor.
+            udp_flood (int | None): Count of the udp flood stressors. When set to 0 got count of
+              logical processors.
+            udp_flood_ops (int | None): Number of udp flood operations per stressor.
             iomix (int | None): Count of the I/O stressors. When set to 0 got count of logical
               processors.
             iomix_bytes (str | None): Utilized memory as value or percent of all available memory.
             syscall (int | None): Count of the syscall stressors. When set to 0 got count of logical
               processors.
             syscall_method (str): Stress syscall method.
-            syscall_ops (str | None): Additional ops argument for syscall stressor.
+            syscall_ops (int | None): Number of syscall operations per stressor.
+            fork (int | None): Count of the fork() stressors. When set to 0 got count of logical
+              processors.
+            fork_ops (int | None): Number of fork() operations per stressor.
+            brk (int | None): Count of the break() stressors. When set to 0 got count of logical
+              processors.
+            brk_ops (int | None): Number of break() operations per stressor.
+            mq (int | None): Count of the message queue stressors. When set to 0 got count of
+              logical processors.
+            mq_ops (int | None): Number of message queue operations per stressor.
+            pipe (int | None): Count of the pipe stressors. When set to 0 got count of logical
+              processors.
+            pipe_ops (int | None): Number of pipe operations per stressor.
+            sem (int | None): Count of the semaphore stressors. When set to 0 got count of logical
+              processors.
+            sem_ops (int | None): Number of semaphore operations per stressor.
+            shm (int | None): Count of the shared memory stressors. When set to 0 got count of
+              logical processors.
+            shm_ops (int | None): Number of shared memory operations per stressor.
             verify (bool): Verify results if can.
             **kwargs (dict[str, Any]): Command arguments in the free form with values.
 
@@ -172,21 +223,32 @@ class StressNg(PkgMgrMixin, GenericUtil):
         Returns:
             tuple[ExecResult, list[StressNGMetrics]]: Result of stress test work and parsed metrics.
         """
+        params = {
+            "cpu": cpu,
+            "vm": vm,
+            "mmap": mmap,
+            "cache": cache,
+            "hdd": hdd,
+            "sock": sock,
+            "netdev": netdev,
+            "udp-flood": udp_flood,
+            "iomix": iomix,
+            "syscall": syscall,
+            "fork": fork,
+            "brk": brk,
+            "mq": mq,
+            "pipe": pipe,
+            "sem": sem,
+            "shm": shm,
+        }
         if timeout_sec < 0:
             err_msg = f"Invalid timeout '{timeout_sec}'. Expected more or equal 0."
             raise ValueError(err_msg)
-        if cpu is not None and cpu < 0:
-            err_msg = f"Invalid CPU count '{cpu}'. Expected more or equal 0."
-            raise ValueError(err_msg)
-        if vm is not None and vm < 0:
-            err_msg = f"Invalid vm count '{vm}'. Expected more or equal 0."
-            raise ValueError(err_msg)
-        if iomix is not None and iomix < 0:
-            err_msg = f"Invalid iomix count '{iomix}'. Expected more or equal 0."
-            raise ValueError(err_msg)
-        if syscall is not None and syscall < 0:
-            err_msg = f"Invalid syscall count '{syscall}'. Expected more or equal 0."
-            raise ValueError(err_msg)
+
+        for name, variable in params.items():
+            if variable is not None and variable < 0:
+                err_msg = f"Invalid {name} count '{variable}'. Expected more or equal 0."
+                raise ValueError(err_msg)
         opts = [
             *create_opt("timeout", timeout_sec),
             *create_opt("cpu", cpu),
@@ -194,16 +256,36 @@ class StressNg(PkgMgrMixin, GenericUtil):
             *create_opt("vm", vm),
             *create_opt("vm-method", vm_method),
             *create_opt("vm-bytes", vm_bytes),
+            *create_opt("mmap", mmap),
+            *create_opt("mmap-bytes", mmap_bytes),
+            *create_opt("cache", cache),
+            *create_opt("cache-ops", cache_ops),
             *create_opt("hdd", hdd),
             *create_opt("hdd-bytes", hdd_bytes),
             *create_opt("hdd-opts", hdd_opts),
             *create_opt("sock", sock),
             *create_opt("sock-ops", sock_ops),
+            *create_opt("netdev", netdev),
+            *create_opt("netdev-ops", netdev_ops),
+            *create_opt("udp-flood", udp_flood),
+            *create_opt("udp-flood-ops", udp_flood_ops),
             *create_opt("iomix", iomix),
             *create_opt("iomix-bytes", iomix_bytes),
             *create_opt("syscall", syscall),
             *create_opt("syscall-method", syscall_method),
             *create_opt("syscall-ops", syscall_ops),
+            *create_opt("fork", fork),
+            *create_opt("fork-ops", fork_ops),
+            *create_opt("brk", brk),
+            *create_opt("brk-ops", brk_ops),
+            *create_opt("mq", mq),
+            *create_opt("mq-ops", mq_ops),
+            *create_opt("pipe", pipe),
+            *create_opt("pipe-ops", pipe_ops),
+            *create_opt("sem", sem),
+            *create_opt("sem-ops", sem_ops),
+            *create_opt("shm", shm),
+            *create_opt("shm-ops", shm_ops),
             *create_opt("verify", verify),
             *add_flag("metrics"),
         ]
