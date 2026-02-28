@@ -6,7 +6,7 @@ from imgtests.exec.exec import common_run_command
 from imgtests.runner import AbstractRunnableManyTimesTest
 
 if TYPE_CHECKING:
-    from concurrent.futures import ThreadPoolExecutor
+    from concurrent.futures import Future, ThreadPoolExecutor
 
     from imgtests.exec.exec import SSHClient
 
@@ -25,7 +25,7 @@ class ToolTimes(NamedTuple):
 
 
 Tool = str
-ToolsTimes = dict[str, ToolTimes]
+ToolsTimes = dict[str, ToolTimes | None]
 
 
 class POSIXUtilsTest(AbstractRunnableManyTimesTest):
@@ -34,12 +34,12 @@ class POSIXUtilsTest(AbstractRunnableManyTimesTest):
 
     def _run(
         self,
-        executor: ThreadPoolExecutor,  # noqa: ARG002
+        executor: ThreadPoolExecutor,
         client: SSHClient | None,
         iterations: int,
     ) -> None:
         final_results: ToolsTimes = {}
-        net_results = self.test_net_utils(client, iterations)
+        net_results = self.test_net_utils(executor, client, iterations)
         files_results = self.test_utils_for_files(client, iterations)
         dirs_results = self.test_utils_for_dirs(client, iterations)
         other_results = self.test_other_tools(client, iterations)
@@ -139,15 +139,22 @@ class POSIXUtilsTest(AbstractRunnableManyTimesTest):
             self.logger.info("Results for %s: %s", tool, time_cmd_many(time, cmd, iterations))
         return results
 
-    def test_net_utils(self, client: SSHClient | None, iterations: int) -> ToolsTimes:
+    def test_net_utils(
+        self, executor: ThreadPoolExecutor, client: SSHClient | None, iterations: int
+    ) -> ToolsTimes:
         time = Time(client)
-        tools = ["ping", "netstat", "lsof"]
+        tools = ["netstat", "lsof", "ping"]
         results: ToolsTimes = {}
+        futures: list[Future[ToolTimes | None]] = []
         for tool in tools:
             cmd = tool
             if tool == "ping":
-                cmd = f"{tool} -c 100 localhost"
-            results[tool] = time_cmd_many(time, cmd, iterations)
+                cmd = f"{tool} -c 20 localhost"
+            futures.append(executor.submit(time_cmd_many, time, cmd, iterations))
+        for i, future in enumerate(futures):
+            tool = tools[i]
+            result = future.result()
+            results[tool] = result
             self.logger.info("Results for %s: %s", tool, results[tool])
         return results
 
