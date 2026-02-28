@@ -11,7 +11,7 @@ from image.performance.cpu import ChaosbladeCPUTest, StressNgCpuTest
 from image.performance.fio_disks import FioDisksNightly, FioDisksScalingTest
 from image.performance.ipc import SchedPerformanceTest
 from image.performance.network import Iperf3LocalTest
-from image.performance.std_utils import test_all_tools
+from image.performance.std_utils import POSIXUtilsTest
 from image.performance.system import PTSSystemTest
 from imgtests.exec.exec import SSHClient, wait_remote
 from imgtests.exec.observers.systemd_analyze import SystemdAnalyze
@@ -62,19 +62,6 @@ class SystemSlowServicesTest(AbstractRunnableManyTimesTest):
         self.logger.info(SystemdAnalyze(client).slow_load_services())
 
 
-class POSIXUtilsTest(AbstractRunnableManyTimesTest):
-    def __init__(self, iterations: int = 1) -> None:
-        super().__init__("Tests standard utilities performance.", {"system"}, iterations)
-
-    def _run(
-        self,
-        executor: ThreadPoolExecutor,
-        client: SSHClient | None,
-        iterations: int,
-    ) -> None:
-        test_all_tools(executor, client, iterations)
-
-
 def main() -> None:
     logger = logging.getLogger()
     set_handlers(logger, Path("processing.log"))
@@ -85,6 +72,7 @@ def main() -> None:
             tests=(
                 SystemLoadTimeTest(),
                 SystemSlowServicesTest(),
+                POSIXUtilsTest(10),
             ),
             experiment_type="performance",
         ),

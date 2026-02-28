@@ -1,7 +1,9 @@
-import logging
 import tempfile
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, NamedTuple
+
+from imgtests.exec.exec import common_run_command
+from imgtests.runner import AbstractRunnableManyTimesTest
 
 if TYPE_CHECKING:
     from concurrent.futures import ThreadPoolExecutor
@@ -9,253 +11,100 @@ if TYPE_CHECKING:
     from imgtests.exec.exec import SSHClient
 
 import numpy as np
+import numpy.typing as npt
 
-from imgtests.exec.observers.time import Time
+from imgtests.exec.observers.time import Time, Times
 from imgtests.exec.user_commands import Dd, Rm
 
-logger = logging.getLogger(__name__)
+
+class ToolTimes(NamedTuple):
+    mean: npt.NDArray[np.float64]
+    median: npt.NDArray[np.float64]
+    std: npt.NDArray[np.float64]
+    var: npt.NDArray[np.float64]
 
 
-def test_all_tools(executor: ThreadPoolExecutor, client: SSHClient | None, iterations: int) -> None:  # noqa: PLR0915
-    samples = test_net_utils(executor, client, iterations)
-    for tool in samples:
-        real, user, system = [], [], []
-        for result in samples[tool]:
-            parts = list(map(float, result.split()))
-            real.append(parts[0])
-            user.append(parts[1])
-            system.append(parts[2])
-        r_mean = np.mean(real)
-        r_median = np.median(real)
-        r_std = np.std(real)
-        r_var = np.var(real)
-        u_mean = np.mean(user)
-        u_median = np.median(user)
-        u_std = np.std(user)
-        u_var = np.var(user)
-        s_mean = np.mean(system)
-        s_median = np.median(system)
-        s_std = np.std(system)
-        s_var = np.var(system)
-        logger.info(
-            "Results for %s: \
-            real time: %s, mean = %f, median = %f, variance = %f, standard deviation = %f\n \
-            user time: %s, mean = %f, median = %f, variance = %f, standard deviation = %f\n \
-            system time: %s, mean = %f, median = %f, variance = %f, standard deviation = %f",
-            tool,
-            real,
-            r_mean,
-            r_median,
-            r_var,
-            r_std,
-            user,
-            u_mean,
-            u_median,
-            u_var,
-            u_std,
-            system,
-            s_mean,
-            s_median,
-            s_var,
-            s_std,
-        )
-    samples = test_utils_for_files(executor, client, iterations)
-    for tool in samples:
-        real, user, system = [], [], []
-        for result in samples[tool]:
-            parts = result.split()
-            real.append(parts[0])
-            user.append(parts[1])
-            system.append(parts[2])
-        r_mean = np.mean(real)
-        r_median = np.median(real)
-        r_std = np.std(real)
-        r_var = np.var(real)
-        u_mean = np.mean(user)
-        u_median = np.median(user)
-        u_std = np.std(user)
-        u_var = np.var(user)
-        s_mean = np.mean(system)
-        s_median = np.median(system)
-        s_std = np.std(system)
-        s_var = np.var(system)
-        logger.info(
-            "Results for %s: \
-            real time: %s, mean = %f, median = %f, variance = %f, standard deviation = %f\n \
-            user time: %s, mean = %f, median = %f, variance = %f, standard deviation = %f\n \
-            system time: %s, mean = %f, median = %f, variance = %f, standard deviation = %f",
-            tool,
-            real,
-            r_mean,
-            r_median,
-            r_var,
-            r_std,
-            user,
-            u_mean,
-            u_median,
-            u_var,
-            u_std,
-            system,
-            s_mean,
-            s_median,
-            s_var,
-            s_std,
-        )
-    samples = test_utils_for_dirs(executor, client, iterations)
-    for tool in samples:
-        real, user, system = [], [], []
-        for result in samples[tool]:
-            parts = result.split()
-            real.append(parts[0])
-            user.append(parts[1])
-            system.append(parts[2])
-        r_mean = np.mean(real)
-        r_median = np.median(real)
-        r_std = np.std(real)
-        r_var = np.var(real)
-        u_mean = np.mean(user)
-        u_median = np.median(user)
-        u_std = np.std(user)
-        u_var = np.var(user)
-        s_mean = np.mean(system)
-        s_median = np.median(system)
-        s_std = np.std(system)
-        s_var = np.var(system)
-        logger.info(
-            "Results for %s: \
-            real time: %s, mean = %f, median = %f, variance = %f, standard deviation = %f\n \
-            user time: %s, mean = %f, median = %f, variance = %f, standard deviation = %f\n \
-            system time: %s, mean = %f, median = %f, variance = %f, standard deviation = %f",
-            tool,
-            real,
-            r_mean,
-            r_median,
-            r_var,
-            r_std,
-            user,
-            u_mean,
-            u_median,
-            u_var,
-            u_std,
-            system,
-            s_mean,
-            s_median,
-            s_var,
-            s_std,
-        )
-    samples = test_other_tools(executor, client, iterations)
-    for tool in samples:
-        real, user, system = [], [], []
-        for result in samples[tool]:
-            parts = result.split()
-            real.append(parts[0])
-            user.append(parts[1])
-            system.append(parts[2])
-        r_mean = np.mean(real)
-        r_median = np.median(real)
-        r_std = np.std(real)
-        r_var = np.var(real)
-        u_mean = np.mean(user)
-        u_median = np.median(user)
-        u_std = np.std(user)
-        u_var = np.var(user)
-        s_mean = np.mean(system)
-        s_median = np.median(system)
-        s_std = np.std(system)
-        s_var = np.var(system)
-        logger.info(
-            "Results for %s:\n \
-            real time: %s, mean = %f, median = %f, variance = %f, standard deviation = %f\n \
-            user time: %s, mean = %f, median = %f, variance = %f, standard deviation = %f\n \
-            system time: %s, mean = %f, median = %f, variance = %f, standard deviation = %f",
-            tool,
-            real,
-            r_mean,
-            r_median,
-            r_var,
-            r_std,
-            user,
-            u_mean,
-            u_median,
-            u_var,
-            u_std,
-            system,
-            s_mean,
-            s_median,
-            s_var,
-            s_std,
-        )
+Tool = str
+ToolsTimes = dict[str, ToolTimes]
 
 
-def test_utils_for_files(  # noqa: PLR0912, C901
-    _: ThreadPoolExecutor, client: SSHClient | None, iterations: int
-) -> dict[str, list[str]]:
-    logger.info("Testing standard utilities for working with files...")
-    time = Time(client)
-    dd = Dd(client)
-    tmpdir = Path(tempfile.gettempdir())
-    filename1 = tmpdir / "test_file1"
-    filename2 = tmpdir / "test_file2"
-    ret = dd(
-        [
-            "if=/dev/urandom",
-            "bs=1M",
-            "count=10",
-            "|",
+class POSIXUtilsTest(AbstractRunnableManyTimesTest):
+    def __init__(self, iterations: int = 1) -> None:
+        super().__init__("Tests standard utilities performance.", {"system"}, iterations)
+
+    def _run(
+        self,
+        executor: ThreadPoolExecutor,  # noqa: ARG002
+        client: SSHClient | None,
+        iterations: int,
+    ) -> None:
+        final_results: ToolsTimes = {}
+        net_results = self.test_net_utils(client, iterations)
+        files_results = self.test_utils_for_files(client, iterations)
+        dirs_results = self.test_utils_for_dirs(client, iterations)
+        other_results = self.test_other_tools(client, iterations)
+        final_results.update(net_results)
+        final_results.update(files_results)
+        final_results.update(dirs_results)
+        final_results.update(other_results)
+
+    def test_utils_for_files(  # noqa: PLR0912, C901
+        self, client: SSHClient | None, iterations: int
+    ) -> ToolsTimes:
+        time = Time(client)
+        dd = Dd(client)
+        tmpdir = Path(tempfile.gettempdir())
+        filename1 = tmpdir / "test_file1"
+        filename2 = tmpdir / "test_file2"
+        ret = dd(
+            [
+                "if=/dev/urandom",
+                "bs=1M",
+                "count=50",
+                f"of={filename1}",
+            ]
+        )
+        common_run_command(["strings", str(filename1), ">", str(filename1)], client)
+        if ret.returncode:
+            self.logger.error("Test file wasn't created correctly")
+            return {}
+        ret = dd(
+            [
+                "if=/dev/urandom",
+                "bs=1M",
+                "count=50",
+                f"of={filename2}",
+            ]
+        )
+        common_run_command(["strings", str(filename2), ">", str(filename2)], client)
+        if ret.returncode:
+            self.logger.error("Test file wasn't created correctly")
+            return {}
+        tools = [
+            "cat",
+            "head",
+            "tail",
+            "wc",
+            "od",
+            "md5sum",
+            "sha256sum",
+            "sort",
+            "uniq",
+            "grep",
+            "paste",
             "tr",
-            "-dc",
-            "'[:print:]'",
-            ">",
-            filename1,
-            "2>/dev/null",
+            "diff",
+            "patch",
+            "cp",
+            "rm",
+            "mv",
+            "ln",
+            "chmod",
+            "chown",
+            "chgrp",
+            "tar",
         ]
-    )
-    if ret.returncode:
-        logger.error("Test file wasn't created correctly")
-        return {}
-    ret = dd(
-        [
-            "if=/dev/urandom",
-            "bs=1M",
-            "count=10",
-            "|",
-            "tr",
-            "-dc",
-            "'[:print:]'",
-            ">",
-            filename2,
-            "2>/dev/null",
-        ]
-    )
-    if ret.returncode:
-        logger.error("Test file wasn't created correctly")
-        return {}
-    tools = [
-        "cat",
-        "head",
-        "tail",
-        "wc",
-        "od",
-        "md5sum",
-        "sha256sum",
-        "sort",
-        "uniq",
-        "grep",
-        "paste",
-        "tr",
-        "diff",
-        "patch",
-        "cp",
-        "rm",
-        "mv",
-        "ln",
-        "chmod",
-        "chown",
-        "chgrp",
-        "tar",
-    ]
-    results = [[] for tool in tools]
-    for _i in range(iterations):
+        results: ToolsTimes = {}
         for tool in tools:
             cmd = tool
             if tool in {"head", "tail"}:
@@ -286,47 +135,37 @@ def test_utils_for_files(  # noqa: PLR0912, C901
                 cmd = f"{tool} cf {filename1}.tar {filename1}"
             elif tool in {"md5sum", "sha256sum"}:
                 cmd = f"dd if=/dev/zero bs=1M count=1024 | {tool}"
-            ret = time(["-f", "'%e %U %S'", cmd, ">", "/dev/null"])
-            results[tools.index(tool)].append(ret.stderr)
-    return dict(zip(tools, results, strict=True))
+            results[tool] = time_cmd_many(time, cmd, iterations)
+            self.logger.info("Results for %s: %s", tool, time_cmd_many(time, cmd, iterations))
+        return results
 
-
-def test_net_utils(
-    _: ThreadPoolExecutor, client: SSHClient | None, iterations: int
-) -> dict[str, list[str]]:
-    logger.info("Testing standard network utilities...")
-    time = Time(client)
-    tools = ["ping", "netstat"]
-    results = [[] for tool in tools]
-    for _i in range(iterations):
+    def test_net_utils(self, client: SSHClient | None, iterations: int) -> ToolsTimes:
+        time = Time(client)
+        tools = ["ping", "netstat", "lsof"]
+        results: ToolsTimes = {}
         for tool in tools:
             cmd = tool
             if tool == "ping":
-                cmd = f"{tool} -c 5 localhost"
-            ret = time(["-f", "'%e %U %S'", cmd])
-            results[tools.index(tool)].append(ret.stderr)
-    return dict(zip(tools, results, strict=True))
+                cmd = f"{tool} -c 100 localhost"
+            results[tool] = time_cmd_many(time, cmd, iterations)
+            self.logger.info("Results for %s: %s", tool, results[tool])
+        return results
 
-
-def test_utils_for_dirs(
-    _: ThreadPoolExecutor, client: SSHClient | None, iterations: int
-) -> dict[str, list[str]]:
-    logger.info("Testing standard utilities for working with directories...")
-    time = Time(client)
-    dd = Dd(client)
-    rm = Rm(client)
-    tools = [
-        "mkdir",
-        "find",
-        "ls",
-        "du",
-        "realpath",
-        "rmdir",
-    ]
-    results = [[] for tool in tools]
-    tmpdir = Path(tempfile.gettempdir())
-    path = tmpdir / "/".join(str(i) for i in range(1, 51))
-    for _i in range(iterations):
+    def test_utils_for_dirs(self, client: SSHClient | None, iterations: int) -> ToolsTimes:
+        time = Time(client)
+        dd = Dd(client)
+        rm = Rm(client)
+        tools = [
+            "mkdir",
+            "find",
+            "ls",
+            "du",
+            "realpath",
+            "rmdir",
+        ]
+        results: ToolsTimes = {}
+        tmpdir = Path(tempfile.gettempdir())
+        path = tmpdir / "/".join(str(i) for i in range(1, 51))
         for tool in tools:
             cmd = tool
             if tool in {"mkdir", "rmdir"}:
@@ -340,33 +179,28 @@ def test_utils_for_dirs(
                 rm([str(tmpdir / "/file*")])
             elif tool == "realpath":
                 cmd = f"{tool} {path}"
-            ret = time(["-f", "'%e %U %S'", cmd, ">", "/dev/null"])
-            results[tools.index(tool)].append(ret.stderr)
-    return dict(zip(tools, results, strict=True))
+            results[tool] = time_cmd_many(time, cmd, iterations)
+            self.logger.info("Results for %s: %s", tool, results[tool])
+        return results
 
-
-def test_other_tools(
-    _: ThreadPoolExecutor, client: SSHClient | None, iterations: int
-) -> dict[str, list[str]]:
-    logger.info("Testing other utilities...")
-    time = Time(client)
-    tools = [
-        "ps",
-        "pgrep",
-        "echo",
-        "printf",
-        "id",
-        "who",
-        "whoami",
-        "hostname",
-        "uname",
-        "date",
-        "uptime",
-        "df",
-    ]
-    results = [[] for tool in tools]
-    process = "init"
-    for _i in range(iterations):
+    def test_other_tools(self, client: SSHClient | None, iterations: int) -> ToolsTimes:
+        time = Time(client)
+        tools = [
+            "ps",
+            "pgrep",
+            "echo",
+            "printf",
+            "id",
+            "who",
+            "whoami",
+            "hostname",
+            "uname",
+            "date",
+            "uptime",
+            "df",
+        ]
+        results: ToolsTimes = {}
+        process = "init"
         for tool in tools:
             cmd = tool
             if tool == "ps":
@@ -376,6 +210,23 @@ def test_other_tools(
             elif tool in {"echo", "hello"}:
                 string = "a" * 1000
                 cmd = f"{tool} {string}"
-            ret = time(["-f", "'%e %U %S'", cmd, ">", "/dev/null"])
-            results[tools.index(tool)].append(ret.stderr)
-    return dict(zip(tools, results, strict=True))
+            results[tool] = time_cmd_many(time, cmd, iterations)
+            self.logger.info("Results for %s: %s", tool, results[tool])
+        return results
+
+
+def time_cmd_many(
+    time: Time,
+    tool: str,
+    iterations: int,
+) -> ToolTimes | None:
+    result: list[Times] = []
+    for _ in range(iterations):
+        times = time.run(tool)
+        if times is None:
+            return None
+        result.append(times)
+    array = np.array(result, dtype=np.float64)
+    return ToolTimes(
+        array.mean(axis=0), np.median(array, axis=0), array.std(axis=0), array.var(axis=0)
+    )
