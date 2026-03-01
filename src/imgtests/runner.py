@@ -144,10 +144,7 @@ class TestsRunner:
             self.__client.reconnect()
             is_alive_cycle = Thread(target=self.__is_remote_alive, args=(test_completed_event,))
             is_alive_cycle.start()
-            is_alive_cycle.join(5)  # make sure that client is up
-            self.logger.info("Starting '%s' test: '%s'.", test.test_func.__name__, test.description)
-            test.test_func(self.__executor, self.__client)
-            self.logger.info("'%s' test finished.", test.test_func.__name__)
+            test(self.__executor, self.__client)
             test_completed_event.set()
             is_alive_cycle.join(10)
             test_completed_event.clear()
