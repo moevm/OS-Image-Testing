@@ -129,7 +129,7 @@ class POSIXUtilsTest(AbstractRunnableManyTimesTest):
             elif tool in {"head", "tail"}:
                 cmd = f"{tool} -n 1000 {filename1} {filename2} > /dev/null"
             elif tool == "grep":
-                cmd = f"{tool} test {filename1} {filename2} || exit 0 > /dev/null"
+                cmd = f"{tool} test {filename1} {filename2} > /dev/null || exit 0"
             elif tool == "paste":
                 cmd = f"{tool} {filename2} {filename1} > /dev/null"
             elif tool == "tr":
