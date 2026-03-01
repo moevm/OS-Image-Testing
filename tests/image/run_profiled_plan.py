@@ -1,13 +1,17 @@
+# tests/image/run_profiled_plan.py
 from __future__ import annotations
 
 import logging
 import os
 import sys
-from contextlib import suppress
+from contextlib import contextmanager, suppress
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
 
 import paramiko.ssh_exception
 
@@ -184,24 +188,29 @@ def run_one(
     return failures, report_path
 
 
-def main() -> None:
-    client = None
-
+@contextmanager
+def _safe_close_client(client: Any) -> Iterator[Any]:
     try:
-        subsystems = parse_subsystems(
-            os.getenv("PLAN_SUBSYSTEMS", "cpu,memory,disk,network,syscall")
-        )
-        results_root = Path(os.getenv("PLAN_RESULTS_DIR", "results/profiled"))
-        run_matrix = parse_bool_env("PLAN_RUN_MATRIX", default=False)
+        yield client
+    finally:
+        with suppress(Exception):
+            client.close()
 
-        raw_pattern = os.getenv("PLAN_PATTERN")
-        pattern = parse_pattern(raw_pattern)
 
-        client = wait_remote(*yocto_conf)
-        if client is None:
-            logger.error("Failed to connect to Yocto host via SSH.")
-            sys.exit(1)
+def _run_main() -> int:
+    subsystems = parse_subsystems(os.getenv("PLAN_SUBSYSTEMS", "cpu,memory,disk,network,syscall"))
+    results_root = Path(os.getenv("PLAN_RESULTS_DIR", "results/profiled"))
+    run_matrix = parse_bool_env("PLAN_RUN_MATRIX", default=False)
 
+    raw_pattern = os.getenv("PLAN_PATTERN")
+    pattern = parse_pattern(raw_pattern)
+
+    client = wait_remote(*yocto_conf)
+    if client is None:
+        logger.error("Failed to connect to Yocto host via SSH.")
+        return 1
+
+    with _safe_close_client(client):
         db = ImgtestsDatabase()
 
         total_failures = 0
@@ -250,21 +259,23 @@ def main() -> None:
         if last_report is not None:
             logger.info("[PROFILED] Last report path: %s", last_report)
 
-        sys.exit(1 if total_failures else 0)
+        return 1 if total_failures else 0
 
+
+def main() -> None:
+    try:
+        exit_code = _run_main()
     except ValueError:
         logger.exception("Invalid config")
-        sys.exit(2)
+        exit_code = 2
     except paramiko.ssh_exception.SSHException:
         logger.exception("SSH error during profiled execution.")
-        sys.exit(1)
+        exit_code = 1
     except Exception:
         logger.exception("Unexpected error during profiled execution.")
-        sys.exit(1)
-    finally:
-        if client is not None:
-            with suppress(Exception):
-                client.close()
+        exit_code = 1
+
+    sys.exit(exit_code)
 
 
 if __name__ == "__main__":

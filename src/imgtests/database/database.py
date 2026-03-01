@@ -21,15 +21,6 @@ Table = Literal["configurations", "experiments", "loaders", "observers"]
 ExperimentType = Literal["performance", "endurance", "all"]
 
 
-def _clip_db_str(value: str | None, limit: int = 200) -> str | None:
-    if value is None:
-        return None
-    s = str(value)
-    if len(s) <= limit:
-        return s
-    return s[: limit - 3] + "..."
-
-
 class ImgtestsDatabase:
     def __init__(self, database: str = "postgres") -> None:
         if database == "postgres":
@@ -138,9 +129,9 @@ class ImgtestsDatabase:
 
         loader_object = LoaderBase(
             experiment_id=experiment_id,
-            command=_clip_db_str(command) or "",
+            command=_clip_db_str(command),
             result=result,
-            description=_clip_db_str(description),
+            description=_clip_db_str(description) if description is not None else None,
             started_at=started_at,
             ended_at=ended_at,
         )
@@ -168,9 +159,9 @@ class ImgtestsDatabase:
 
         observer_object = ObserverBase(
             experiment_id=experiment_id,
-            command=_clip_db_str(command) or "",
+            command=_clip_db_str(command),
             result=result,
-            description=_clip_db_str(description),
+            description=_clip_db_str(description) if description is not None else None,
             started_at=started_at,
             ended_at=ended_at,
         )
@@ -216,3 +207,10 @@ class ImgtestsDatabase:
                 logger.error("Table '%s' doesn't exist.", table_name)
 
             return session.query(models[table_name]).all()
+
+
+def _clip_db_str(value: str, limit: int = 200) -> str:
+    s = str(value)
+    if len(s) <= limit:
+        return s
+    return s[: limit - 3] + "..."
