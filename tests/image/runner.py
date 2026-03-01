@@ -1,6 +1,7 @@
 import logging
 import sys
 from pathlib import Path
+from time import sleep
 from typing import TYPE_CHECKING
 
 from image.endurance.syscalls import (
@@ -46,7 +47,19 @@ class SystemLoadTimeTest(AbstractRunnableManyTimesTest):
         client: SSHClient | None,
         iterations: int,  # noqa: ARG002
     ) -> None:
-        self.logger.info(SystemdAnalyze(client).time())
+        result = SystemdAnalyze(client).time()
+        sleep_time_sec = 10
+        wait_timeout_sec = 600
+        while result.total_time < 0 and wait_timeout_sec > 0:
+            self.logger.info(
+                "Waiting for system to be ready to analyze boot time, %d seconds left.",
+                wait_timeout_sec,
+            )
+            sleep(sleep_time_sec)
+            wait_timeout_sec -= sleep_time_sec
+            result = SystemdAnalyze(client).time()
+        if result.total_time < 0:
+            self.logger.error("Failed to get boot time, system might not be ready.")
 
 
 class SystemSlowServicesTest(AbstractRunnableManyTimesTest):
