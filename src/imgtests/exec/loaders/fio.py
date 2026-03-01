@@ -9,6 +9,8 @@ from imgtests.exec.utils import create_opt
 if TYPE_CHECKING:
     from pathlib import Path
 
+    from imgtests.types import Version
+
 IOPattern = Literal[
     "read", "write", "trim", "randread", "randwrite", "randtrim", "readwrite", "randrw", "trimwrite"
 ]
@@ -116,3 +118,11 @@ class FioPlot(PkgMgrMixin, GenericUtil):
             return result
 
         return pip3(["install", "fio-plot"])
+
+    def version(self) -> Version | None:
+        pip3 = Pip3(self.ssh_client)
+        installed_packages = pip3.freeze()
+        for package in installed_packages:
+            if package.name == self.name:
+                return package.version
+        return None

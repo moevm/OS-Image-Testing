@@ -18,6 +18,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 Table = Literal["configurations", "experiments", "loaders", "observers"]
+ExperimentType = Literal["performance", "endurance", "all"]
 
 
 def _clip_db_str(value: str | None, limit: int = 200) -> str | None:
@@ -96,8 +97,8 @@ class ImgtestsDatabase:
     def insert_experiment(
         self,
         config_id: int,
-        description: str | None = None,
-        experiment_type: str | None = None,
+        description: str,
+        experiment_type: ExperimentType,
         started_at: datetime | None = None,
         ended_at: datetime | None = None,
     ) -> ExperimentBase:

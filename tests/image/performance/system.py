@@ -1,7 +1,7 @@
-import logging
 from typing import TYPE_CHECKING
 
 from imgtests.exec.loaders import PhoronixTestSuite, setup_pts
+from imgtests.runner import AbstractRunnableManyTimesTest
 
 if TYPE_CHECKING:
     from concurrent.futures import ThreadPoolExecutor
@@ -9,18 +9,19 @@ if TYPE_CHECKING:
     from imgtests.exec.exec import SSHClient
 
 
-logger = logging.getLogger(__name__)
+class PTSSystemTest(AbstractRunnableManyTimesTest):
+    def __init__(self, iterations: int = 1) -> None:
+        super().__init__("Load system with PTS.", {"system"}, iterations)
 
+    def _run(self, executor: ThreadPoolExecutor, client: SSHClient | None, iterations: int) -> None:
+        pts = PhoronixTestSuite(client)
+        future = executor.submit(setup_pts, client)
+        future.result()
 
-def test_pts_system(executor: ThreadPoolExecutor, client: SSHClient | None) -> None:
-    pts = PhoronixTestSuite(client)
-    future = executor.submit(setup_pts, client)
-    future.result()
+        future = executor.submit(pts.run, test_name="pts/ctx-clock", run_count=iterations)
+        result = future.result()
+        self.logger.info(result)
 
-    future = executor.submit(pts.run, test_name="pts/ctx-clock", run_count=1)
-    result = future.result()
-    logger.info(result)
-
-    future = executor.submit(pts.run, test_name="pts/appleseed", run_count=1)
-    result = future.result()
-    logger.info(result)
+        future = executor.submit(pts.run, test_name="pts/appleseed", run_count=iterations)
+        result = future.result()
+        self.logger.info(result)

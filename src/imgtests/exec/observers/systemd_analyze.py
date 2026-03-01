@@ -76,15 +76,15 @@ class SystemdAnalyze(GenericUtil):
         Attributes:
             line (str): systemd-analyze time stdout line.
         """
-        mins_and_secs = 2
         parts_line = line.replace("=", "+").replace("Startup finished in ", "").replace(" ", "")
         parts = parts_line.split("\n")[0].split("+")
         res: dict[str, float] = {}
 
         # part time cases:
         # 1 - <M>min<S>.<Ms>s(<part name>)
-        # 2 - <S>.<Ms>s(<part name>)
-        # 3 - <Ms>ms(<part name>)
+        # 2 - <M>min<Ms>ms(<part name>)
+        # 3 - <S>.<Ms>s(<part name>)
+        # 4 - <Ms>ms(<part name>)
         # total time has no (<part name>)
         for part in parts:
             bracket_idx = part.find("(")
@@ -95,16 +95,19 @@ class SystemdAnalyze(GenericUtil):
                 part_time = part
             else:
                 part_time = part[:bracket_idx]
-            # case 3
-            if part_time[-2:] == "ms":
+            # case 2
+            if part_time[-2:] == "ms" and "min" in part_time:
+                minutes, milliseconds = part_time[:-2].split("min")
+                res[key] = int(minutes) * 60 + float(milliseconds) / 1000
+            # case 4
+            elif part_time[-2:] == "ms":
                 res[key] = float(part_time[:-2]) / 1000
+            # case 1
+            elif "min" in part_time:
+                minutes, seconds = part_time[:-1].split("min")
+                res[key] = int(minutes) * 60 + float(seconds)
+            # case 3
             else:
-                marks = part_time[:bracket_idx].replace("s", "").replace("min", "|").split("|")
-                # case 1
-                if len(marks) == mins_and_secs:
-                    res[key] = int(marks[0]) * 60 + float(marks[1])
-                # case 2
-                else:
-                    res[key] = float(marks[0])
+                res[key] = float(part_time[:-1])
 
         return res
