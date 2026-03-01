@@ -1,4 +1,3 @@
-# tests/image/run_profiled_plan.py
 from __future__ import annotations
 
 import logging
