@@ -19,9 +19,9 @@ class PTSSystemTest(AbstractRunnableManyTimesTest):
         future.result()
 
         future = executor.submit(pts.run, test_name="pts/ctx-clock", run_count=iterations)
-        result = future.result()
+        _, result = future.result()
         self.logger.info(PhoronixTestSuite.parse_metrics(result))
 
         future = executor.submit(pts.run, test_name="pts/appleseed", run_count=iterations)
-        result = future.result()
+        _, result = future.result()
         self.logger.info(PhoronixTestSuite.parse_metrics(result))
