@@ -189,6 +189,10 @@ def which(util: str, ssh_client: SSHClient | None = None) -> Path | None:
     call_func = run_command if ssh_client is None else ssh_client
     result = call_func(["which", util])
     if result.returncode:
+        # if which can't find path but tool is installed
+        result = call_func(["type", "-p", util])
+        if not result.returncode:
+            return Path(util)
         return None
     return Path(result.stdout.strip())
 
