@@ -12,12 +12,12 @@ from image.performance.cpu import ChaosbladeCPUTest, StressNgCpuTest
 from image.performance.fio_disks import FioDisksNightly, FioDisksScalingTest
 from image.performance.ipc import SchedPerformanceTest
 from image.performance.network import Iperf3LocalTest
+from image.performance.std_utils import POSIXUtilsTest
 from image.performance.stress_ng_general import (
     StressNgCombineLoadTest,
     StressNgConsecutiveLoadTest,
     StressNgParallelLoadTest,
 )
-from image.performance.std_utils import POSIXUtilsTest
 from image.performance.system import PTSSystemTest
 from imgtests.exec.exec import SSHClient, wait_remote
 from imgtests.exec.observers.systemd_analyze import SystemdAnalyze
