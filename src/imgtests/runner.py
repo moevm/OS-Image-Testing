@@ -9,6 +9,7 @@ import paramiko.ssh_exception
 
 from imgtests.constant import LIB_NAME
 from imgtests.database.database import ImgtestsDatabase
+from imgtests.exec.observers.systemctl import Systemctl
 from imgtests.sysrep import get_system_info
 
 if TYPE_CHECKING:
@@ -135,6 +136,7 @@ class TestsRunner:
             self.install_dependencies()
         result = get_system_info(self.__client)
         configuration_record = self.__database.insert_from_system_info(result)
+        self.systemctl_get_info()
         experiment = self.__database.insert_experiment(
             config_id=configuration_record.config_id,
             description=self.__test_config.description,
@@ -179,6 +181,13 @@ class TestsRunner:
                 "Installed '%s' with version '%s'.", tool_instance.name, tool_instance.version()
             )
         self.logger.info("Dependencies installed successfully.")
+
+    def systemctl_get_info(self) -> None:
+        systemctl = Systemctl(self.__client)
+        failed = systemctl.get_failed_services()
+        self.logger.info("Failed services: %s", ", ".join(failed))
+        running = systemctl.get_running_services()
+        self.logger.info("Running services: %s", ", ".join(running))
 
     def __is_remote_alive(self, test_completed_event: Event) -> None:
         while not test_completed_event.wait(5.0):
