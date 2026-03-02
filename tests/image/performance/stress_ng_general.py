@@ -39,9 +39,15 @@ class StressNgLoadTest(AbstractRunnableTimeLimitedTest):
         self, stress_ng: StressNg, executor: ThreadPoolExecutor, timeout: int, params: dict
     ) -> None:
         future = executor.submit(stress_ng.run, timeout_sec=timeout, **params)
-        result = future.result()
-        _, metrics = result
-        self.logger.info(metrics)
+        result, (metrics, summary) = future.result()
+
+        if result.returncode:
+            self.logger.error("stress-ng test FAILED")
+
+        if metrics:
+            self.logger.info(metrics)
+        if summary:
+            self.logger.info(summary)
 
 
 class StressNgConsecutiveLoadTest(StressNgLoadTest):
