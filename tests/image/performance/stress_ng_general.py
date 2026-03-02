@@ -11,10 +11,10 @@ if TYPE_CHECKING:
 
 
 tests = [
-    {"cpu": 0, "cpu-method": "matrixprod"},
-    {"vm": 3, "vm-bytes": "2G", "mmap": 3, "mmap-bytes": "2G"},
-    {"hdd": 0, "hdd-bytes": "2G"},
-    {"sock": 2, "netdev": 2, "udp-flood": 2},
+    {"cpu": 0, "cpu_method": "matrixprod"},
+    {"vm": 3, "vm_bytes": "2G", "mmap": 3, "mmap_bytes": "2G"},
+    {"hdd": 0, "hdd_bytes": "2G"},
+    {"sock": 2, "netdev": 2, "udp_flood": 2},
     {"syscall": 0},
     {"mq": 4, "pipe": 4, "sem": 4, "shm": 4},
 ]
