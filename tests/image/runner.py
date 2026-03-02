@@ -1,6 +1,7 @@
 import logging
 import sys
 from pathlib import Path
+from time import sleep
 from typing import TYPE_CHECKING
 
 from image.endurance.syscalls import (
@@ -16,6 +17,7 @@ from image.performance.stress_ng_general import (
     StressNgConsecutiveLoadTest,
     StressNgParallelLoadTest,
 )
+from image.performance.std_utils import POSIXUtilsTest
 from image.performance.system import PTSSystemTest
 from imgtests.exec.exec import SSHClient, wait_remote
 from imgtests.exec.observers.systemd_analyze import SystemdAnalyze
@@ -50,7 +52,19 @@ class SystemLoadTimeTest(AbstractRunnableManyTimesTest):
         client: SSHClient | None,
         iterations: int,  # noqa: ARG002
     ) -> None:
-        self.logger.info(SystemdAnalyze(client).time())
+        result = SystemdAnalyze(client).time()
+        sleep_time_sec = 10
+        wait_timeout_sec = 600
+        while result.total_time < 0 and wait_timeout_sec > 0:
+            self.logger.info(
+                "Waiting for system to be ready to analyze boot time, %d seconds left.",
+                wait_timeout_sec,
+            )
+            sleep(sleep_time_sec)
+            wait_timeout_sec -= sleep_time_sec
+            result = SystemdAnalyze(client).time()
+        if result.total_time < 0:
+            self.logger.error("Failed to get boot time, system might not be ready.")
 
 
 class SystemSlowServicesTest(AbstractRunnableManyTimesTest):
@@ -76,8 +90,10 @@ def main() -> None:
             tests=(
                 SystemLoadTimeTest(),
                 SystemSlowServicesTest(),
+                POSIXUtilsTest(10),
             ),
             experiment_type="performance",
+            install_dependencies=True,
         ),
     )
     suse_runner.run()
@@ -86,6 +102,7 @@ def main() -> None:
         TestsRunnerConfig(
             description="Test suite for all subsystems.",
             tests=(
+                POSIXUtilsTest(10),
                 FioDisksScalingTest(10),
                 FioDisksNightly(10),
                 Iperf3LocalTest(30),

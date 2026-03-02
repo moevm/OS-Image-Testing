@@ -25,7 +25,8 @@ class SystemdAnalyze(GenericUtil):
         super().__init__("systemd-analyze", ssh_client)
 
     def time(self) -> BootTimeInfo:
-        raw = self(["time"]).stdout.strip()
+        cmd = self(["time"])
+        raw = cmd.stdout.strip()
 
         # prefill configuration to avoid system misconfiguration
         res: dict[str, float] = {
@@ -36,6 +37,9 @@ class SystemdAnalyze(GenericUtil):
             "userspace_time": -1.0,
             "total_time": -1.0,
         }
+
+        if cmd.returncode:
+            return BootTimeInfo(**res)
 
         # fill result dict with _parse_time result
         times = self._parse_time(raw)
