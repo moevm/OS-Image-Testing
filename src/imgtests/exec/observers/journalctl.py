@@ -15,8 +15,9 @@ class Journalctl(GenericUtil):
     def __init__(self, ssh_client: SSHClient | None = None) -> None:
         super().__init__("journalctl", ssh_client)
 
-    def by_priority(self, lower_bound: int | str, 
-                    upper_bound: int | str | None = None) -> JournalctlResult:
+    def by_priority(
+        self, lower_bound: int | str, upper_bound: int | str | None = None
+    ) -> JournalctlResult:
         # journalctl -p a..b -> returns logs by priority from `a` to `b`
         # a, b - int or str according to man page
         if upper_bound is None:
@@ -36,10 +37,10 @@ class Journalctl(GenericUtil):
     def by_grep(self, target: str):
         records = self(["-b", "-g", f"{target}"])
 
-        return JournalctlResult(len(records), records)        
+        return JournalctlResult(len(records), records)
 
     def systemd_only(self):
         return self.by_grep("systemd")
-    
+
     def oom_records(self):
         return self.by_grep("OOM")
