@@ -1,3 +1,5 @@
+import re
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from imgtests.exec.base_util import BaseTestUtil
@@ -5,6 +7,10 @@ from imgtests.exec.utils import extract_version
 
 if TYPE_CHECKING:
     from imgtests.exec.exec import ExecResult, SSHClient
+
+PGSCAN_LINE_PATTERN = re.compile(
+    r"^(\d{2}:\d{2}:\d{2})\s+[\d,]+\s+[\d,]+\s+[\d,]+\s+[\d,]+\s+[\d,]+\s+([\d,]+)\s+([\d,]+)"
+)
 
 
 class Sar(BaseTestUtil):
@@ -17,7 +23,10 @@ class Sar(BaseTestUtil):
             return None
         return extract_version(result.stdout.strip())
 
-    def run(self, interval: int | None = None, count: int | None = None) -> ExecResult:
+    def run(
+        self, interval: int | None = None, count: int | None = None
+    ) -> tuple[ExecResult, float]:
+        # validation
         if interval is None and count is not None:
             err_msg = "If interval is None, count should be set None."
             raise ValueError(err_msg)
@@ -45,4 +54,38 @@ class Sar(BaseTestUtil):
             if interval != 0 and count is not None:
                 opts.append(count)
 
-        return self(opts)
+        result = self(opts)
+
+        return result, self.extract_pgscan_time(result.stdout)
+
+    @staticmethod
+    def extract_pgscan_time(metrics: str) -> float:
+        lines = metrics.strip().split("\n")
+
+        start = None
+        duration = 0
+        for line in lines:
+            m = PGSCAN_LINE_PATTERN.match(line)
+            if not m:
+                continue
+
+            timestamp_str, pgscank_str, pgscand_str = m.groups()
+            pgscank = float(pgscank_str.replace(",", "."))
+            pgscand = float(pgscand_str.replace(",", "."))
+            timestamp = datetime.strptime(timestamp_str, "%H:%M:%S").replace(tzinfo=UTC)
+
+            if pgscand > 0 or pgscank > 0:
+                if start is None:
+                    start = timestamp
+            elif start is not None:
+                duration += (timestamp - start).total_seconds()
+                start = None
+
+        if start is not None:
+            for line in reversed(lines):
+                m = PGSCAN_LINE_PATTERN.match(line)
+                if m:
+                    timestamp = datetime.strptime(m.group(1), "%H:%M:%S").replace(tzinfo=UTC)
+                    duration += (timestamp - start).total_seconds()
+                    break
+        return duration
