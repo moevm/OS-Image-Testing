@@ -83,41 +83,36 @@ class SystemSlowServicesTest(AbstractRunnableManyTimesTest):
 def main() -> None:
     logger = logging.getLogger()
     set_handlers(logger, Path("processing.log"))
+    all_subsystems_suite = TestsRunnerConfig(
+        description="Test suite for all subsystems.",
+        tests=(
+            SystemLoadTimeTest(),
+            SystemSlowServicesTest(),
+            POSIXUtilsTest(10),
+            FioDisksScalingTest(10),
+            FioDisksNightly(10),
+            Iperf3LocalTest(30),
+            StressNgPerformanceCpuTest(60),
+            ChaosbladeCPUTest(60),
+            LTPSyscallsTest(),
+            StressNgEnduranceSyscallsTest(60),
+            SchedPerformanceTest(3),
+            PTSSystemTest(2),
+            StressNgConsecutiveLoadTest(30),
+            StressNgCombineLoadTest(10),
+            StressNgParallelLoadTest(30),
+        ),
+        experiment_type="all",
+        install_dependencies=True,
+    )
     suse_runner = TestsRunner(
         wait_remote(*suse_156_conf) or sys.exit(1),
-        TestsRunnerConfig(
-            description="Empty test suite.",
-            tests=(
-                SystemLoadTimeTest(),
-                SystemSlowServicesTest(),
-                POSIXUtilsTest(10),
-            ),
-            experiment_type="performance",
-            install_dependencies=True,
-        ),
+        all_subsystems_suite,
     )
     suse_runner.run()
     yocto_runner = TestsRunner(
         wait_remote(*yocto_conf) or sys.exit(1),
-        TestsRunnerConfig(
-            description="Test suite for all subsystems.",
-            tests=(
-                POSIXUtilsTest(10),
-                FioDisksScalingTest(10),
-                FioDisksNightly(10),
-                Iperf3LocalTest(30),
-                StressNgPerformanceCpuTest(60),
-                ChaosbladeCPUTest(60),
-                LTPSyscallsTest(),
-                StressNgEnduranceSyscallsTest(60),
-                SchedPerformanceTest(3),
-                PTSSystemTest(2),
-                StressNgConsecutiveLoadTest(30),
-                StressNgCombineLoadTest(10),
-                StressNgParallelLoadTest(30),
-            ),
-            experiment_type="all",
-        ),
+        all_subsystems_suite,
     )
     yocto_runner.run()
 

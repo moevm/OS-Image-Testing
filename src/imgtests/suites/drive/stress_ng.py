@@ -1,10 +1,11 @@
 from typing import TYPE_CHECKING
 
-from imgtests.exec.loaders import StressNg
 from imgtests.runner import AbstractRunnableTimeLimitedTest
 
 if TYPE_CHECKING:
     from concurrent.futures import ThreadPoolExecutor
+
+    from imgtests.exec.loaders import StressNg
 
 
 class StressNgTest(AbstractRunnableTimeLimitedTest):
