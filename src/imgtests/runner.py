@@ -136,7 +136,6 @@ class TestsRunner:
             self.install_dependencies()
         result = get_system_info(self.__client)
         configuration_record = self.__database.insert_from_system_info(result)
-        self.systemctl_get_info()
         experiment = self.__database.insert_experiment(
             config_id=configuration_record.config_id,
             description=self.__test_config.description,
@@ -151,6 +150,8 @@ class TestsRunner:
             is_alive_cycle.join(10)
             test_completed_event.clear()
             self.__database.update_experiment_ended_at(experiment.experiment_id)
+        systemctl = Systemctl(self.__client)
+        self.logger.info("Failed services: %s", systemctl.get_failed_services())
         self.logger.info("All tests completed successfully.")
         self.__client.close()
 
@@ -181,13 +182,6 @@ class TestsRunner:
                 "Installed '%s' with version '%s'.", tool_instance.name, tool_instance.version()
             )
         self.logger.info("Dependencies installed successfully.")
-
-    def systemctl_get_info(self) -> None:
-        systemctl = Systemctl(self.__client)
-        failed = systemctl.get_failed_services()
-        self.logger.info("Failed services: %s", ", ".join(failed))
-        running = systemctl.get_running_services()
-        self.logger.info("Running services: %s", ", ".join(running))
 
     def __is_remote_alive(self, test_completed_event: Event) -> None:
         while not test_completed_event.wait(5.0):
