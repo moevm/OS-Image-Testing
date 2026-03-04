@@ -1,7 +1,8 @@
 from typing import TYPE_CHECKING
 
 from imgtests.exec.loaders import Kirk, StressNg
-from imgtests.runner import AbstractRunnableManyTimesTest, AbstractRunnableTimeLimitedTest
+from imgtests.runner import AbstractRunnableManyTimesTest
+from imgtests.suites.drive.stress_ng import StressNgTest
 
 if TYPE_CHECKING:
     from concurrent.futures import ThreadPoolExecutor
@@ -27,24 +28,15 @@ class LTPSyscallsTest(AbstractRunnableManyTimesTest):
         kirk.run(["syscalls"])
 
 
-class StressNgAllSyscallsTest(AbstractRunnableTimeLimitedTest):
+class StressNgEnduranceSyscallsTest(StressNgTest):
     def __init__(self, timeout: int) -> None:
-        super().__init__("Test syscalls performance with stress-ng.", {"syscalls"}, timeout)
-
-    def _run(
-        self,
-        executor: ThreadPoolExecutor,  # noqa: ARG002
-        client: SSHClient | None,
-        timeout: int,
-    ) -> None:
-        stress_ng = StressNg(client)
-        result, (metrics, summary) = stress_ng.run(
-            timeout_sec=timeout,
-            syscall=0,
-            syscall_method="all",
+        super().__init__(
+            "Stress-ng endurance syscalls test.",
+            {"syscalls"},
+            timeout,
         )
-        if result.returncode:
-            self.logger.error("stress-ng syscalls failed")
-        else:
-            self.logger.info(summary)
-            self.logger.info(metrics)
+
+    def _run(self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int) -> None:
+        stress_ng = StressNg(client)
+        params = {"syscall": 0, "syscall_method": "all"}
+        self.run_test(stress_ng, executor, timeout, params)

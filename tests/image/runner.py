@@ -6,9 +6,9 @@ from typing import TYPE_CHECKING
 
 from image.endurance.syscalls import (
     LTPSyscallsTest,
-    StressNgAllSyscallsTest,
+    StressNgEnduranceSyscallsTest,
 )
-from image.performance.cpu import ChaosbladeCPUTest, StressNgCpuTest
+from image.performance.cpu import ChaosbladeCPUTest, StressNgPerformanceCpuTest
 from image.performance.fio_disks import FioDisksNightly, FioDisksScalingTest
 from image.performance.ipc import SchedPerformanceTest
 from image.performance.network import Iperf3LocalTest
@@ -106,10 +106,10 @@ def main() -> None:
                 FioDisksScalingTest(10),
                 FioDisksNightly(10),
                 Iperf3LocalTest(30),
-                StressNgCpuTest(60),
+                StressNgPerformanceCpuTest(60),
                 ChaosbladeCPUTest(60),
                 LTPSyscallsTest(),
-                StressNgAllSyscallsTest(60),
+                StressNgEnduranceSyscallsTest(60),
                 SchedPerformanceTest(3),
                 PTSSystemTest(2),
                 StressNgConsecutiveLoadTest(30),

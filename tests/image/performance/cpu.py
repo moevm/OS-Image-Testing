@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING
 
 from imgtests.exec.loaders import Chaosblade, StressNg
 from imgtests.runner import AbstractRunnableTimeLimitedTest
+from imgtests.suites.drive.stress_ng import StressNgTest
 
 if TYPE_CHECKING:
     from concurrent.futures import ThreadPoolExecutor
@@ -9,16 +10,18 @@ if TYPE_CHECKING:
     from imgtests.exec.exec import SSHClient
 
 
-class StressNgCpuTest(AbstractRunnableTimeLimitedTest):
+class StressNgPerformanceCpuTest(StressNgTest):
     def __init__(self, timeout: int) -> None:
-        super().__init__("Load CPU with stress-ng.", {"system"}, timeout)
+        super().__init__(
+            "Stress-ng performance CPU test.",
+            {"system"},
+            timeout,
+        )
 
     def _run(self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int) -> None:
         stress_ng = StressNg(client)
-        future = executor.submit(stress_ng.run, timeout_sec=timeout, cpu=0)
-        result = future.result()
-        _, metrics = result
-        self.logger.info(metrics)
+        params = {"cpu": 0}
+        self.run_test(stress_ng, executor, timeout, params)
 
 
 class ChaosbladeCPUTest(AbstractRunnableTimeLimitedTest):
