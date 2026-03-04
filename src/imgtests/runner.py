@@ -9,6 +9,7 @@ import paramiko.ssh_exception
 
 from imgtests.constant import LIB_NAME
 from imgtests.database.database import ImgtestsDatabase
+from imgtests.exec.observers.systemctl import Systemctl
 from imgtests.sysrep import get_system_info
 
 if TYPE_CHECKING:
@@ -149,6 +150,8 @@ class TestsRunner:
             is_alive_cycle.join(10)
             test_completed_event.clear()
             self.__database.update_experiment_ended_at(experiment.experiment_id)
+        systemctl = Systemctl(self.__client)
+        self.logger.info("Failed services: %s", systemctl.get_failed_services())
         self.logger.info("All tests completed successfully.")
         self.__client.close()
 

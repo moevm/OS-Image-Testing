@@ -1,6 +1,7 @@
 import logging
 import sys
 from pathlib import Path
+from time import sleep
 from typing import TYPE_CHECKING
 
 from image.endurance.syscalls import (
@@ -46,7 +47,19 @@ class SystemLoadTimeTest(AbstractRunnableManyTimesTest):
         client: SSHClient | None,
         iterations: int,  # noqa: ARG002
     ) -> None:
-        self.logger.info(SystemdAnalyze(client).time())
+        result = SystemdAnalyze(client).time()
+        sleep_time_sec = 10
+        wait_timeout_sec = 600
+        while result.total_time < 0 and wait_timeout_sec > 0:
+            self.logger.info(
+                "Waiting for system to be ready to analyze boot time, %d seconds left.",
+                wait_timeout_sec,
+            )
+            sleep(sleep_time_sec)
+            wait_timeout_sec -= sleep_time_sec
+            result = SystemdAnalyze(client).time()
+        if result.total_time < 0:
+            self.logger.error("Failed to get boot time, system might not be ready.")
 
 
 class SystemSlowServicesTest(AbstractRunnableManyTimesTest):
@@ -65,38 +78,33 @@ class SystemSlowServicesTest(AbstractRunnableManyTimesTest):
 def main() -> None:
     logger = logging.getLogger()
     set_handlers(logger, Path("processing.log"))
+    all_subsystems_suite = TestsRunnerConfig(
+        description="Test suite for all subsystems.",
+        tests=(
+            SystemLoadTimeTest(),
+            SystemSlowServicesTest(),
+            POSIXUtilsTest(10),
+            FioDisksScalingTest(10),
+            FioDisksNightly(10),
+            Iperf3LocalTest(30),
+            StressNgCpuTest(60),
+            ChaosbladeCPUTest(60),
+            LTPSyscallsTest(),
+            StressNgAllSyscallsTest(60),
+            SchedPerformanceTest(3),
+            PTSSystemTest(2),
+        ),
+        experiment_type="all",
+        install_dependencies=True,
+    )
     suse_runner = TestsRunner(
         wait_remote(*suse_156_conf) or sys.exit(1),
-        TestsRunnerConfig(
-            description="Empty test suite.",
-            tests=(
-                SystemLoadTimeTest(),
-                SystemSlowServicesTest(),
-                POSIXUtilsTest(10),
-            ),
-            experiment_type="performance",
-            install_dependencies=True,
-        ),
+        all_subsystems_suite,
     )
     suse_runner.run()
     yocto_runner = TestsRunner(
         wait_remote(*yocto_conf) or sys.exit(1),
-        TestsRunnerConfig(
-            description="Test suite for all subsystems.",
-            tests=(
-                POSIXUtilsTest(10),
-                FioDisksScalingTest(10),
-                FioDisksNightly(10),
-                Iperf3LocalTest(30),
-                StressNgCpuTest(60),
-                ChaosbladeCPUTest(60),
-                LTPSyscallsTest(),
-                StressNgAllSyscallsTest(60),
-                SchedPerformanceTest(3),
-                PTSSystemTest(2),
-            ),
-            experiment_type="all",
-        ),
+        all_subsystems_suite,
     )
     yocto_runner.run()
 
