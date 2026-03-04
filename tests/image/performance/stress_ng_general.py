@@ -2,7 +2,7 @@ from itertools import combinations
 from typing import TYPE_CHECKING
 
 from imgtests.exec.loaders import StressNg
-from imgtests.runner import AbstractRunnableTimeLimitedTest
+from imgtests.suites.drive.stress_ng import StressNgTest
 
 if TYPE_CHECKING:
     from concurrent.futures import ThreadPoolExecutor
@@ -20,37 +20,7 @@ tests = [
 ]
 
 
-class StressNgLoadTest(AbstractRunnableTimeLimitedTest):
-    def combine_params(self, test_combination: list) -> dict:
-        """Combines params from list of dictionaries into single dictionary.
-
-        Args:
-            test_combination (list): List of test scenarios.
-
-        Returns:
-            dict: Single dictionary with all test params.
-        """
-        test_params = {}
-        for params in test_combination:
-            test_params.update(params)
-        return test_params
-
-    def run_test(
-        self, stress_ng: StressNg, executor: ThreadPoolExecutor, timeout: int, params: dict
-    ) -> None:
-        future = executor.submit(stress_ng.run, timeout_sec=timeout, **params)
-        result, (metrics, summary) = future.result()
-
-        if result.returncode:
-            self.logger.error("stress-ng test FAILED")
-
-        if metrics:
-            self.logger.info(metrics)
-        if summary:
-            self.logger.info(summary)
-
-
-class StressNgConsecutiveLoadTest(StressNgLoadTest):
+class StressNgConsecutiveLoadTest(StressNgTest):
     def __init__(self, timeout: int) -> None:
         super().__init__(
             "Test stress-ng full consecutive load on subsystems.",
@@ -65,7 +35,7 @@ class StressNgConsecutiveLoadTest(StressNgLoadTest):
             self.run_test(stress_ng, executor, timeout, params)
 
 
-class StressNgCombineLoadTest(StressNgLoadTest):
+class StressNgCombineLoadTest(StressNgTest):
     def __init__(self, timeout: int) -> None:
         super().__init__(
             "Test stress-ng full combine load on subsystems.",
@@ -82,7 +52,7 @@ class StressNgCombineLoadTest(StressNgLoadTest):
                 self.run_test(stress_ng, executor, timeout, test_params)
 
 
-class StressNgParallelLoadTest(StressNgLoadTest):
+class StressNgParallelLoadTest(StressNgTest):
     def __init__(self, timeout: int) -> None:
         super().__init__(
             "Test stress-ng full parallel load on subsystems.",
