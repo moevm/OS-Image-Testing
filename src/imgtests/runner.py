@@ -9,6 +9,7 @@ import paramiko.ssh_exception
 
 from imgtests.constant import LIB_NAME
 from imgtests.database.database import ImgtestsDatabase
+from imgtests.exec.observers.journalctl import Journalctl
 from imgtests.exec.observers.systemctl import Systemctl
 from imgtests.sysrep import get_system_info
 
@@ -152,6 +153,12 @@ class TestsRunner:
             self.__database.update_experiment_ended_at(experiment.experiment_id)
         systemctl = Systemctl(self.__client)
         self.logger.info("Failed services: %s", systemctl.get_failed_services())
+        journalctl = Journalctl(self.__client)
+        self.logger.info("OOM records %d", len(journalctl.oom_records(since=experiment.started_at)))
+        self.logger.info(
+            "systemd errors records %d",
+            len(journalctl.systemd_only_records(since=experiment.started_at, priority="err")),
+        )
         self.logger.info("All tests completed successfully.")
         self.__client.close()
 
