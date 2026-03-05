@@ -2,7 +2,6 @@ from datetime import datetime
 from typing import TYPE_CHECKING, NamedTuple
 
 from imgtests.exec.base_util import GenericUtil
-from imgtests.exec.exec import common_run_command
 
 if TYPE_CHECKING:
     from imgtests.exec.exec import SSHClient
@@ -15,7 +14,16 @@ class JournalctlResult(NamedTuple):
 
 class Journalctl(GenericUtil):
     def __init__(self, ssh_client: SSHClient | None = None) -> None:
-        super().__init__("journalctl", ssh_client)
+        super().__init__("journalctl", ssh_client, use_sudo=True)
+
+    @staticmethod
+    def _validate_time(line: str) -> bool:
+        journalctl_format = "%Y-%m-%d %H:%M:%S"
+        try:
+            datetime.strptime(line, journalctl_format).astimezone()
+        except ValueError:
+            return False
+        return True
 
     def by_priority(
         self, lower_bound: int | str, upper_bound: int | str | None = None
@@ -25,38 +33,45 @@ class Journalctl(GenericUtil):
         if upper_bound is None:
             upper_bound = lower_bound
 
-        records = common_run_command(
-            ("sudo", self.name, "-b", "-p", f"{lower_bound}..{upper_bound}"), self.ssh_client
-        ).stdout.split("\n")
+        records = self(["-b", "-p", f"{lower_bound}..{upper_bound}"]).stdout.split("\n")
 
         return JournalctlResult(len(records), records)
 
     def by_priority_higher(self, lower_bound: int) -> JournalctlResult:
         # journalctl -p a -> returns logs by priority from `a` and higher
         # a - int or str according to man page
-        records = common_run_command(
-            ("sudo", self.name, "-b", "-p", f"{lower_bound}"), self.ssh_client
-        ).stdout.split("\n")
+        records = self(["-b", "-p", f"{lower_bound}"]).stdout.split("\n")
 
         return JournalctlResult(len(records), records)
 
-    def by_grep(self, target: str):
-        records = common_run_command(
-            ("sudo", self.name, "-b", "-g", f"{target}"), self.ssh_client
-        ).stdout.split("\n")
+    def by_grep(self, target: str) -> JournalctlResult:
+        records = self(["-b", "-g", f"{target}"]).stdout.split("\n")
 
         return JournalctlResult(len(records), records)
 
-    def systemd_only(self):
+    def systemd_only(self) -> JournalctlResult:
         return self.by_grep("systemd")
 
-    def oom_records(self):
+    def oom_records(self) -> JournalctlResult:
         return self.by_grep("OOM")
 
+    def from_time_period(self, since: str, until: str | None = None) -> JournalctlResult | None:
+        if not self._validate_time(since):
+            return None
+
+        if until is not None and not self._validate_time(until):
+            return None
+        
+        cmd = ["-S", f'"{since}"']
+        if until is not None:
+            cmd.append("-U")
+            cmd.append(f'"{until}"')
+        records = self([*cmd]).stdout.split("\n")
+
+        return JournalctlResult(len(records), records)
+
     def records_per_second(self) -> float:
-        records = common_run_command(
-            ("sudo", self.name, "-b", "-o", "short-full"), self.ssh_client
-        ).stdout.split("\n")
+        records = self(["-b", "-o", "short-full"]).stdout.split("\n")
 
         start = " ".join([records[0].split()[1], records[0].split()[2]])
         end = " ".join([records[-1].split()[1], records[-1].split()[2]])
