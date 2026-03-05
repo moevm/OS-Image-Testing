@@ -61,7 +61,7 @@ class Journalctl(GenericUtil):
 
         if until is not None and not self._validate_time(until):
             return None
-        
+
         cmd = ["-S", f'"{since}"']
         if until is not None:
             cmd.append("-U")
