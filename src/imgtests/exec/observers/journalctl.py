@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, get_args
 
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.utils import create_opt
@@ -10,18 +10,21 @@ if TYPE_CHECKING:
 
 SyslogLevel = Literal["emerg", "alert", "crit", "err", "warning", "notice", "info", "debug"]
 CaseSensitive = Literal["yes", "no"]
+AlternativeDate = Literal["yesterday", "today", "tomorrow"]
 
 
 class Journalctl(GenericUtil):
     def __init__(self, ssh_client: SSHClient | None = None, use_sudo: bool = False) -> None:
         super().__init__("journalctl", ssh_client, use_sudo=use_sudo)
 
-    def run(
+    def run(  # noqa: PLR0913
         self,
         boot: bool = False,
         priority: SyslogLevel | str | None = None,
         grep: str | None = None,
         case_sensitive: CaseSensitive = "yes",
+        since: str | AlternativeDate | None = None,
+        until: str | AlternativeDate | None = None,
         **kwargs: dict[str, Any],
     ) -> ExecResult:
         """Runs journalctl with provided arguments.
@@ -33,8 +36,15 @@ class Journalctl(GenericUtil):
             grep(str): Filter output to entries where the message field matches the specified
               pattern.
             case_sensitive(CaseSensitive): Make pattern matching case sensitive or case insensitive.
+            since(str): Show entries from start date.
+            until(str): Show entries to until date.
             **kwargs (dict[str, Any]): Command arguments in the free form with values.
         """
+        if since is not None:
+            self._check_journalctl_date_format(since)
+        if until is not None:
+            self._check_journalctl_date_format(until)
+
         return self(
             [
                 *create_opt("boot", boot),
@@ -60,19 +70,6 @@ class Journalctl(GenericUtil):
     def oom_records(self) -> list[str]:
         return self.run(grep="Out of memory|OOM", case_sensitive="no").stdout.split("\n")
 
-    def from_time_period(self, since: str, until: str | None = None) -> list[str] | None:
-        if not self._is_valid_time(since):
-            return None
-
-        if until is not None and not self._is_valid_time(until):
-            return None
-
-        cmd = ["-S", f'"{since}"']
-        if until is not None:
-            cmd.append("-U")
-            cmd.append(f'"{until}"')
-        return self([*cmd]).stdout.split("\n")
-
     def records_per_second(self) -> float:
         records = self(["--boot", "-o", "short-full"]).stdout.split("\n")
 
@@ -91,10 +88,8 @@ class Journalctl(GenericUtil):
         return -1
 
     @staticmethod
-    def _is_valid_time(line: str) -> bool:
+    def _check_journalctl_date_format(date: str) -> None:
+        if date in get_args(AlternativeDate):
+            return
         journalctl_format = "%Y-%m-%d %H:%M:%S"
-        try:
-            datetime.strptime(line, journalctl_format).astimezone()
-        except ValueError:
-            return False
-        return True
+        datetime.strptime(date, journalctl_format).astimezone()
