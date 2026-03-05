@@ -6,6 +6,8 @@ from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.utils import create_opt
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from imgtests.exec.exec import ExecResult, SSHClient
 
 
@@ -50,21 +52,22 @@ class Journalctl(GenericUtil):
         if until is not None:
             self._check_journalctl_date_format(until)
 
-        return self(
-            [
-                *create_opt("boot", boot),
-                *create_opt("priority", priority),
-                *create_opt("grep", grep),
-                *create_opt("case-sensitive", case_sensitive),
-                *create_opt("since", since),
-                *create_opt("until", until),
-                *create_opt("output", output),
-            ],
-            **kwargs,
-        )
+        opts: list[str | Path] = [
+            *create_opt("boot", boot),
+            *create_opt("priority", priority),
+            *create_opt("grep", grep),
+            *create_opt("case-sensitive", case_sensitive, use_equals=True),
+            *create_opt("output", output),
+        ]
+        if since:
+            opts.extend(create_opt("since", f"'{since}'"))
+        if until:
+            opts.extend(create_opt("until", f"'{until}'"))
+
+        return self(opts, **kwargs)
 
     systemd_only_records = partialmethod(run, grep="systemd", case_sensitive="no")
-    oom_records = partialmethod(run, grep="Out of memory|OOM", case_sensitive="no")
+    oom_records = partialmethod(run, grep="'Out of memory|OOM'", case_sensitive="no")
 
     def by_priority_range(
         self, lower_bound: int | str, upper_bound: int | str | None = None
