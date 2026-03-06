@@ -19,7 +19,7 @@ SYSTEMD_SERVICE:${PN} = "node_exporter.service"
 do_install() {
     install -d ${D}/usr/local/bin
     install -m 0755 ${S}/node_exporter ${D}/usr/local/bin/
- 
+
     install -d ${D}/${systemd_unitdir}/system
     install -m 0744 ${UNPACKDIR}/node_exporter.service ${D}/${systemd_unitdir}/system
 }
