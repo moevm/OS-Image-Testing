@@ -155,35 +155,19 @@ class TestsRunner:
         self.logger.info("Failed services: %s", systemctl.get_failed_services())
         journalctl = Journalctl(self.__client, use_sudo=True)
         oom_records = journalctl.oom_records(
-            since=experiment.started_at.strftime(journalctl.DATE_FORMAT)
+            since=experiment.started_at.strftime(journalctl.DATE_FORMAT),
+            until=experiment.ended_at.strftime(journalctl.DATE_FORMAT),
         )
-        if not oom_records.returncode:
-            self.logger.info(
-                "OOM records %d",
-                len(
-                    list(
-                        filter(
-                            lambda record: "-- no entries --" in record.lower(),
-                            oom_records.stdout.splitlines(),
-                        )
-                    )
-                ),
-            )
+        self.logger.info("OOM records %d", journalctl._calc_records_cnt(oom_records.stdout))  # noqa: SLF001
         systemd_err_records = journalctl.systemd_only_records(
-            since=experiment.started_at.strftime(journalctl.DATE_FORMAT), priority="err"
+            since=experiment.started_at.strftime(journalctl.DATE_FORMAT),
+            until=experiment.ended_at.strftime(journalctl.DATE_FORMAT),
+            priority="err",
         )
-        if not systemd_err_records.returncode:
-            self.logger.info(
-                "systemd errors records %d",
-                len(
-                    list(
-                        filter(
-                            lambda record: "-- no entries --" in record.lower(),
-                            systemd_err_records.stdout.splitlines(),
-                        )
-                    )
-                ),
-            )
+        self.logger.info(
+            "systemd errors records %d",
+            journalctl._calc_records_cnt(systemd_err_records.stdout),  # noqa: SLF001
+        )
         self.logger.info("All tests completed successfully.")
         self.__client.close()
 
