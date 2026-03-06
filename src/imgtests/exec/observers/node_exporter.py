@@ -6,8 +6,8 @@ from imgtests.types import Distro
 
 
 class NodeExporter(SystemService):
-    def __init__(self, ssh_client: SSHClient | None = None) -> None:
-        super().__init__("node_exporter", ssh_client)
+    def __init__(self, ssh_client: SSHClient | None = None, use_sudo: bool = True) -> None:
+        super().__init__("node_exporter", ssh_client, use_sudo=use_sudo)
 
     def install(self, collect_flags: list[str] | None = None) -> ExecResult:
         # install package itself

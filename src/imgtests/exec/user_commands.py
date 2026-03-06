@@ -3,8 +3,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from imgtests.exec.exec import SSHClient
 from imgtests.exec.base_util import GenericUtil
-from imgtests.exec.exec import ExecResult, common_run_command
-from imgtests.exec.osinfo import get_os_release
+from imgtests.exec.exec import ExecResult
 from imgtests.types import Distro
 
 
@@ -34,26 +33,16 @@ class Lsblk(GenericUtil):
 
 
 class SystemService(GenericUtil):
-    def __init__(self, name: str, ssh_client: SSHClient | None = None) -> None:
-        # service -- Yocto
-        # systemctl -- opensuse
-        self.service = "service"
-        os_id = get_os_release(ssh_client).id
-        if os_id and os_id == Distro.OPEN_SUSE_LEAP.value:
-            self.service = "systemctl"
-        super().__init__(name, ssh_client)
+    def __init__(self, name: str, ssh_client: SSHClient | None = None, use_sudo: bool = True) -> None:
+        self.service = name
+        super().__init__("systemctl", ssh_client, use_sudo=use_sudo)
 
     def start_service(self) -> ExecResult:
-        if self.service == "service":
-            return common_run_command(("sudo", self.service, self.name, "restart"), self.ssh_client)
-        return common_run_command(("sudo", self.service, "restart", self.name), self.ssh_client)
+        return self(["restart", self.service])
 
     def stop_service(self) -> ExecResult:
-        if self.service == "service":
-            return common_run_command(("sudo", self.service, self.name, "stop"), self.ssh_client)
-        return common_run_command(("sudo", self.service, "stop", self.name), self.ssh_client)
+
+        return self(["stop", self.service])
 
     def check_service(self) -> ExecResult:
-        if self.service == "service":
-            return common_run_command(("sudo", self.service, self.name, "status"), self.ssh_client)
-        return common_run_command(("sudo", self.service, "status", self.name), self.ssh_client)
+        return self(["status", self.service])
