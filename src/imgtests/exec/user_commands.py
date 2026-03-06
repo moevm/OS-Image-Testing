@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from imgtests.exec.exec import SSHClient, ExecResult
+    from imgtests.exec.exec import ExecResult, SSHClient
 from imgtests.exec.base_util import GenericUtil
 
 
