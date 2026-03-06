@@ -1,11 +1,12 @@
 import logging
+from pathlib import Path
 from typing import TYPE_CHECKING
 
+from imgtests.runner import AbstractRunnableTimeLimitedTest
 from imgtests.suites.drive.fio import FioSuite, FioSuiteConfig, FioWorkload
 
 if TYPE_CHECKING:
     from concurrent.futures import ThreadPoolExecutor
-    from pathlib import Path
 
     from imgtests.exec.exec import SSHClient
 
@@ -36,27 +37,45 @@ NIGHTLY_WORKLOADS: tuple[FioWorkload, ...] = (
 )
 
 
-def test_fio_disks_scaling(
-    _: ThreadPoolExecutor, client: SSHClient | None, duration_sec: int, results_dir: Path
-) -> None:
-    cfg = FioSuiteConfig(
-        suite="scaling",
-        duration_sec=duration_sec,
-        results_dir=results_dir / "fio",
-        workloads=SCALING_WORKLOADS,
-    )
-    out = FioSuite(client, cfg).run()
-    logger.info("FIO scaling PASSED: %s", out)
+class FioDisksScalingTest(AbstractRunnableTimeLimitedTest):
+    """Test that runs fio on a disk with scaling workloads."""
+
+    def __init__(self, timeout: int) -> None:
+        super().__init__("Scaling load drives with fio.", {"file"}, timeout=timeout)
+
+    def _run(
+        self,
+        executor: ThreadPoolExecutor,  # noqa: ARG002
+        client: SSHClient | None,
+        timeout: int,
+    ) -> None:
+        cfg = FioSuiteConfig(
+            suite="scaling",
+            duration_sec=timeout,
+            results_dir=Path().home() / "fio",
+            workloads=SCALING_WORKLOADS,
+        )
+        out = FioSuite(client, cfg).run()
+        self.logger.info("FIO scaling PASSED: %s", out)
 
 
-def test_fio_disks_nightly(
-    _: ThreadPoolExecutor, client: SSHClient | None, duration_sec: int, results_dir: Path
-) -> None:
-    cfg = FioSuiteConfig(
-        suite="nightly",
-        duration_sec=duration_sec,
-        results_dir=results_dir / "fio",
-        workloads=NIGHTLY_WORKLOADS,
-    )
-    out = FioSuite(client, cfg).run()
-    logger.info("FIO nightly PASSED: %s", out)
+class FioDisksNightly(AbstractRunnableTimeLimitedTest):
+    """Tests that run fio on a disk with nightly workloads."""
+
+    def __init__(self, timeout: int) -> None:
+        super().__init__("Nightly load drives with fio.", {"file"}, timeout)
+
+    def _run(
+        self,
+        executor: ThreadPoolExecutor,  # noqa: ARG002
+        client: SSHClient | None,
+        timeout: int,
+    ) -> None:
+        cfg = FioSuiteConfig(
+            suite="nightly",
+            duration_sec=timeout,
+            results_dir=Path().home() / "fio",
+            workloads=NIGHTLY_WORKLOADS,
+        )
+        out = FioSuite(client, cfg).run()
+        logger.info("FIO nightly PASSED: %s", out)
