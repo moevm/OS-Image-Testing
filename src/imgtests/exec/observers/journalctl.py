@@ -97,6 +97,13 @@ class Journalctl(GenericUtil):
         return -1
 
     @staticmethod
+    def _calc_records_cnt(raw: str) -> int:
+        records = raw.strip().splitlines()
+        if len(records) == 1 and "-- no entries --" in records[0]:
+            return 0
+        return len(records)
+
+    @staticmethod
     def _check_journalctl_date_format(date: str) -> None:
         if date in get_args(AlternativeDate):
             return
