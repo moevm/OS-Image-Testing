@@ -1,13 +1,26 @@
+from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
+from imgtests.exec.observers.systemctl import Systemctl
 from imgtests.exec.osinfo import get_os_release
 from imgtests.exec.pkgmgrs.zypper import Zypper
-from imgtests.exec.user_commands import Systemctl
 from imgtests.types import Distro
 
 
-class NodeExporter(Systemctl):
+class NodeExporter(GenericUtil):
     def __init__(self, ssh_client: SSHClient | None = None, use_sudo: bool = True) -> None:
         super().__init__("node_exporter", ssh_client, use_sudo=use_sudo)
+
+    def start(self) -> ExecResult:
+        return Systemctl(self.ssh_client).start(self.name)
+
+    def restart(self) -> ExecResult:
+        return Systemctl(self.ssh_client).restart(self.name)
+
+    def stop(self) -> ExecResult:
+        return Systemctl(self.ssh_client).stop(self.name)
+
+    def status(self) -> ExecResult:
+        return Systemctl(self.ssh_client).status(self.name)
 
     def install(self, collect_flags: list[str] | None = None) -> ExecResult:
         # install package itself
@@ -56,6 +69,7 @@ class NodeExporter(Systemctl):
                 "Group=nodeuser",
                 "Type=simple",
                 "ExecStart=/usr/local/bin/node_exporter" + " ".join(collect_flags),
+                "Restart=on-failure",
                 "",
                 "[Install]",
                 "WantedBy=multi-user.target",
@@ -74,7 +88,7 @@ class NodeExporter(Systemctl):
                 "groupadd nodeuser; "
                 f"chown nodeuser:nodeuser /usr/local/bin/{pkg}; "
                 "systemctl daemon-reload; "
-                f"systemctl disable {pkg}"
+                f"systemctl enable {pkg}"
             )
             return common_run_command(
                 ("sudo", "bash", "-lc", f"'{systemd_script}'"), self.ssh_client

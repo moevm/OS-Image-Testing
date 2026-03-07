@@ -13,7 +13,7 @@ S = "${WORKDIR}/node_exporter-${PV}.linux-amd64"
 
 inherit systemd
 
-SYSTEMD_AUTO_ENABLE = "disable"
+SYSTEMD_AUTO_ENABLE = "enable"
 SYSTEMD_SERVICE:${PN} = "node_exporter.service"
 
 do_install() {
