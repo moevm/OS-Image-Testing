@@ -29,7 +29,6 @@ services:
       SSH_QEMU_PORT: ${SSH_QEMU_PORT}
       SSH_TO_QEMU_PORT: ${SSH_TO_QEMU_PORT}
     ports:
-      - ${YOCTO_NE_PORT}:${YOCTO_NE_PORT}
       - ${SSH_QEMU_PORT}:${SSH_QEMU_PORT}
     networks:
       yocto-network:

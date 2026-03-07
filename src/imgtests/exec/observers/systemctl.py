@@ -22,6 +22,12 @@ class Systemctl(GenericUtil):
     def status(self, service: str) -> ExecResult:
         return self(["status", service])
 
+    def enable(self, service: str) -> ExecResult:
+        return self(["enable", service])
+
+    def daemon_reload(self) -> ExecResult:
+        return self(["daemon-reload"])
+
     def get_failed_services(self) -> set[str]:
         result = self(["--failed", "--no-legend"])
         if result.returncode:

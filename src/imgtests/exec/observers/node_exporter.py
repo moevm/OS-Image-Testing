@@ -22,7 +22,10 @@ class NodeExporter(GenericUtil):
     def status(self) -> ExecResult:
         return Systemctl(self.ssh_client).status(self.name)
 
-    def install(self, collect_flags: list[str] | None = None) -> ExecResult:
+    def enable(self) -> ExecResult:
+        return Systemctl(self.ssh_client).enable(self.name)
+
+    def install(self, collect_flags: list[str] | None = None) -> ExecResult:  # noqa: PLR0911
         # install package itself
         version = "1.10.2"
         arch = "linux-amd64"
@@ -87,11 +90,16 @@ class NodeExporter(GenericUtil):
                 "useradd --no-create-home --shell /bin/false nodeuser; "
                 "groupadd nodeuser; "
                 f"chown nodeuser:nodeuser /usr/local/bin/{pkg}; "
-                "systemctl daemon-reload; "
-                f"systemctl enable {pkg}"
             )
-            return common_run_command(
+            result = common_run_command(
                 ("sudo", "bash", "-lc", f"'{systemd_script}'"), self.ssh_client
             )
+            if result.returncode:
+                return result
+            for cmd in [Systemctl(self.ssh_client).daemon_reload, self.enable, self.start]:
+                result = cmd()
+                if result.returncode:
+                    return result
+            return result
 
         return install_res
