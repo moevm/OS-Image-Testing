@@ -26,6 +26,10 @@ class NodeExporter(GenericUtil):
         return Systemctl(self.ssh_client).enable(self.name)
 
     def install(self, collect_flags: list[str] | None = None) -> ExecResult:  # noqa: PLR0911
+        if self.path:
+            return ExecResult(
+                cmd=(), stderr=f"{self.name} already has been installed.", returncode=0
+            )
         # install package itself
         version = "1.10.2"
         arch = "linux-amd64"
