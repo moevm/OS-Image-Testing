@@ -20,4 +20,4 @@ class StressNgEnduranceDisksTest(StressNgTest):
     def _run(self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int) -> None:
         stress_ng = StressNg(client)
         params = {"hdd": 1, "hdd_bytes": "100M", "hdd_opts": "sync"}
-        self.run_test(stress_ng, executor, timeout, params)
+        self.run_test(stress_ng=stress_ng, executor=executor, timeout=timeout, **params)

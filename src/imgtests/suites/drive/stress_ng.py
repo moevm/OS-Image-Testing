@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from imgtests.runner import AbstractRunnableTimeLimitedTest
 
@@ -9,24 +9,14 @@ if TYPE_CHECKING:
 
 
 class StressNgTest(AbstractRunnableTimeLimitedTest):
-    def combine_params(self, test_combination: list) -> dict:
-        """Combines params from list of dictionaries into single dictionary.
-
-        Args:
-            test_combination (list): List of test scenarios.
-
-        Returns:
-            dict: Single dictionary with all test params.
-        """
-        test_params = {}
-        for params in test_combination:
-            test_params.update(params)
-        return test_params
-
     def run_test(
-        self, stress_ng: StressNg, executor: ThreadPoolExecutor, timeout: int, params: dict
+        self,
+        stress_ng: StressNg,
+        executor: ThreadPoolExecutor,
+        timeout: int,
+        **kwargs: dict[str, Any],
     ) -> None:
-        future = executor.submit(stress_ng.run, timeout_sec=timeout, **params)
+        future = executor.submit(stress_ng.run, timeout_sec=timeout, **kwargs)
         result, (metrics, summary) = future.result()
 
         if result.returncode:

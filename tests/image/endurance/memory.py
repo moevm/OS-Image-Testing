@@ -20,4 +20,4 @@ class StressNgEnduranceMemoryTest(StressNgTest):
     def _run(self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int) -> None:
         stress_ng = StressNg(client)
         params = {"vm": 2, "vm_bytes": "16M"}
-        self.run_test(stress_ng, executor, timeout, params)
+        self.run_test(stress_ng=stress_ng, executor=executor, timeout=timeout, **params)
