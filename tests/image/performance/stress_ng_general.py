@@ -64,7 +64,9 @@ class StressNgCombineLoadTest(StressNgTest):
         for r in range(2, len(tests)):
             for test_combination in combinations(tests, r):
                 test_params = combine_params(test_combination)
-                self.run_test(stress_ng=stress_ng, executor=executor, timeout=timeout, **test_params)
+                self.run_test(
+                    stress_ng=stress_ng, executor=executor, timeout=timeout, **test_params
+                )
 
 
 class StressNgParallelLoadTest(StressNgTest):

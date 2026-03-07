@@ -35,7 +35,7 @@ class WgetEnduranceNetworkTest(AbstractRunnableTimeLimitedTest):
         super().__init__("Load CPU 70% with chaosblade.", {"network"}, timeout)
 
     def _run(self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int) -> None:
-        def run_test():
+        def run_test() -> None:
             if common_run_command(
                 ["echo", "nameserver", _DNS_SERVER, ">>", "/etc/resolv.conf"], client
             ).returncode:
@@ -49,5 +49,6 @@ class WgetEnduranceNetworkTest(AbstractRunnableTimeLimitedTest):
                 self.logger.error("NETWORK endurance test FAILED")
                 return
             self.logger.info("NETWORK endurance test PASSED")
+
         future = executor.submit(run_test)
         future.result()
