@@ -30,18 +30,18 @@ class Lsblk(GenericUtil):
         super().__init__("lsblk", ssh_client)
 
 
-class SystemService(GenericUtil):
+class Systemctl(GenericUtil):
     def __init__(
         self, name: str, ssh_client: SSHClient | None = None, use_sudo: bool = True
     ) -> None:
         self.service = name
         super().__init__("systemctl", ssh_client, use_sudo=use_sudo)
 
-    def start_service(self) -> ExecResult:
+    def restart(self) -> ExecResult:
         return self(["restart", self.service])
 
-    def stop_service(self) -> ExecResult:
+    def stop(self) -> ExecResult:
         return self(["stop", self.service])
 
-    def check_service(self) -> ExecResult:
+    def status(self) -> ExecResult:
         return self(["status", self.service])

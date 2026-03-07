@@ -1,11 +1,11 @@
 from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
 from imgtests.exec.osinfo import get_os_release
 from imgtests.exec.pkgmgrs.zypper import Zypper
-from imgtests.exec.user_commands import SystemService
+from imgtests.exec.user_commands import Systemctl
 from imgtests.types import Distro
 
 
-class NodeExporter(SystemService):
+class NodeExporter(Systemctl):
     def __init__(self, ssh_client: SSHClient | None = None, use_sudo: bool = True) -> None:
         super().__init__("node_exporter", ssh_client, use_sudo=use_sudo)
 
@@ -41,7 +41,7 @@ class NodeExporter(SystemService):
 
         # create daemon if don't exist
         no_daemon_code = 4
-        if self.check_exporter().returncode == no_daemon_code:
+        if self.status().returncode == no_daemon_code:
             if collect_flags is None:
                 collect_flags = []
 
