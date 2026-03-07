@@ -24,6 +24,10 @@ services:
       OS_IMAGE: ${OS_IMAGE}
       USER: ${USER}
       GROUP: ${GROUP}
+      YOCTO_NE_PORT: ${YOCTO_NE_PORT}
+      DEFAULT_NE_PORT: ${DEFAULT_NE_PORT}
+      SSH_QEMU_PORT: ${SSH_QEMU_PORT}
+      SSH_TO_QEMU_PORT: ${SSH_TO_QEMU_PORT}
     ports:
       - ${SSH_QEMU_PORT}:${SSH_QEMU_PORT}
     networks:
@@ -43,7 +47,10 @@ services:
     environment:
       S_USER: ${S_USER}
       PASSWORD: ${PASSWORD}
+      SSH_QEMU_PORT: ${SSH_TO_QEMU_PORT}
       SSH_SUSE_PORT: ${SSH_SUSE_PORT_156}
+      SUSE_NE_PORT: ${SUSE_156_NE_PORT}
+      DEFAULT_NE_PORT: ${DEFAULT_NE_PORT}
     ports:
       - ${SSH_SUSE_PORT_156}:${SSH_SUSE_PORT_156}
     networks:
@@ -77,12 +84,30 @@ services:
       SSH_SUSE_PORT_156: ${SSH_SUSE_PORT_156}
       SSH_SUSE_ADDR_156: ${SUSE_ADDRESS_156}
       SSH_POSTGRES_PORT: ${SSH_POSTGRES_PORT}
+      VMETRICS_ADDRESS: ${VMETRICS_ADDRESS}
+      VMETRICS_PORT: ${VMETRICS_PORT}
     networks:
       yocto-network:
         ipv4_address: ${PYTHON_ADDRESS}
     depends_on:
       imgtests-postgres:
         condition: service_healthy
+
+  imgtests-vmetrics:
+    image: victoriametrics/victoria-metrics
+    ports:
+      - ${VMETRICS_PORT}:${VMETRICS_PORT}
+    volumes:
+      - ${VMETRICS_DATA_VOLUME}:/storage
+      - ${HOST_CONF_PATH}/vmetrics-conf.yml:/etc/prometheus/vmetrics-conf.yml
+    networks:
+      yocto-network:
+        ipv4_address: ${VMETRICS_ADDRESS}
+    command:
+      - "--storageDataPath=/storage"
+      - "--promscrape.config=/etc/prometheus/vmetrics-conf.yml"
+      - "--httpListenAddr=:${VMETRICS_PORT}"
+    restart: always
 
   imgtests-postgres:
     image: postgres:17.7
@@ -96,6 +121,7 @@ services:
     networks:
       yocto-network:
         ipv4_address: ${POSTGRES_ADDRESS}
+    command: -p ${SSH_POSTGRES_PORT}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${USER} -d ${POSTGRES_DB} -p ${SSH_POSTGRES_PORT}"]
       interval: 10s
@@ -138,6 +164,8 @@ volumes:
   imgtests-bencher-database:
     external: true
   imgtests-open-suse-files:
+    external: true
+  imgtests-vmetrics-data:
     external: true
 
 networks:
