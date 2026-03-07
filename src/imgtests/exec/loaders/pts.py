@@ -252,18 +252,17 @@ class PhoronixTestSuite(PkgMgrMixin, GenericUtil):
         return self.parse_metrics(json_data)
 
 
-def setup_pts(ssh_client: SSHClient | None = None) -> None:
+def setup_pts(ssh_client: SSHClient | None = None) -> ExecResult:
     """Prepares PTS for running tests.
 
     Sets up Google DNS server and turns off interactive questions in the future tests.
     """
     result = common_run_command(
-        cmd=["echo", "'nameserver 8.8.8.8'", ">", "/etc/resolv.conf"],
+        cmd=["sudo", "echo", "'nameserver 8.8.8.8'", ">", "/etc/resolv.conf"],
         ssh_client=ssh_client,
     )
     if result.returncode:
-        logger.error("PTS setup failed: '%s'", result.stderr)
-        return
+        return result
 
     common_run_command(
         cmd=["phoronix-test-suite", "openbenchmarking-refresh"],
@@ -274,6 +273,6 @@ def setup_pts(ssh_client: SSHClient | None = None) -> None:
     commands = [["echo", "-e", f'"{setup_answers}"'], ["phoronix-test-suite", "batch-setup"]]
     for result in pipeline(cmds=commands, ssh_client=ssh_client, pass_output=True):
         if result.returncode:
-            logger.error("PTS setup failed: '%s'", result.stderr)
-            return
+            return result
     logger.info("PTS setup successful")
+    return result
