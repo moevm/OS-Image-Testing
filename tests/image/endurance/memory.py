@@ -1,29 +1,28 @@
-import logging
 from typing import TYPE_CHECKING
 
 from imgtests.exec.loaders import StressNg
+from imgtests.suites.general.stress_ng import StressNgTest
 
 if TYPE_CHECKING:
+    from concurrent.futures import ThreadPoolExecutor
+
     from imgtests.exec.exec import SSHClient
 
 
-logger = logging.getLogger(__name__)
+class StressNgEnduranceMemoryTest(StressNgTest):
+    def __init__(self, timeout: int) -> None:
+        super().__init__(
+            "Stress-ng endurance memory test.",
+            {"memory"},
+            timeout,
+        )
 
-
-def test_endurance_memory_stress_ng(client: SSHClient | None) -> None:
-    stress_ng = StressNg(client)
-    result, (metrics, summary) = stress_ng.run(
-        timeout_sec=10,
-        vm=2,
-        vm_bytes="16M",
-    )
-
-    if result.returncode:
-        logger.error("MEMORY endurance test FAILED")
-    else:
-        logger.info("MEMORY endurance test PASSED")
-
-    if summary:
-        logger.info(summary)
-    if metrics:
-        logger.info(metrics)
+    def _run(self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int) -> None:
+        stress_ng = StressNg(client)
+        self.run_test(
+            stress_ng=stress_ng,
+            executor=executor,
+            timeout=timeout,
+            vm=2,
+            vm_bytes="16M",
+        )
