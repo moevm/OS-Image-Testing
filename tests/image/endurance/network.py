@@ -26,8 +26,13 @@ class StressNgEnduranceNetworkTest(StressNgTest):
 
     def _run(self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int) -> None:
         stress_ng = StressNg(client)
-        params = {"sock": 2, "sock_ops": 2}
-        self.run_test(stress_ng=stress_ng, executor=executor, timeout=timeout, **params)
+        self.run_test(
+            stress_ng=stress_ng,
+            executor=executor,
+            timeout=timeout,
+            sock=2,
+            sock_ops=2,
+        )
 
 
 class WgetEnduranceNetworkTest(AbstractRunnableTimeLimitedTest):

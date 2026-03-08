@@ -19,5 +19,4 @@ class StressNgEnduranceCpuTest(StressNgTest):
 
     def _run(self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int) -> None:
         stress_ng = StressNg(client)
-        params = {"cpu": 0}
-        self.run_test(stress_ng=stress_ng, executor=executor, timeout=timeout, **params)
+        self.run_test(stress_ng=stress_ng, executor=executor, timeout=timeout, cpu=0)
