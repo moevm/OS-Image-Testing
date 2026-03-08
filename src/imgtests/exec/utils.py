@@ -8,14 +8,16 @@ if TYPE_CHECKING:
     import re
 
 
-def create_opt(key: str, value: Any | None) -> list[str]:
+def create_opt(key: str, value: Any | None, use_equals: bool = False) -> list[str]:
     if value is None:
         return []
     if isinstance(value, bool):
         return [f"--{key}"] if value else []
-    if isinstance(value, Enum):
-        return [f"--{key}", str(value.value)]
-    return [f"--{key}", str(value)]
+    value_str = str(value.value) if isinstance(value, Enum) else str(value)
+
+    if use_equals:
+        return [f"--{key}={value_str}"]
+    return [f"--{key}", value_str]
 
 
 def add_flag(key: str) -> list[str]:
