@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
+from imgtests.database.database import UtilityMetricRecord, UtilityResultRecord
 from imgtests.exec.loaders.fio import Fio
 from imgtests.exec.loaders.stress_ng import StressNg
 from imgtests.sysrep import get_system_info
@@ -339,46 +340,8 @@ class PlanExecutor:
             stage_ended_at = datetime.now(UTC)
 
             for task_run in task_runs:
-                full_cmd = " ".join(task_run.command) if task_run.command else ""
-                subsystem_value = getattr(
-                    task_run.task.subsystem,
-                    "value",
-                    str(task_run.task.subsystem),
-                )
-
-                self.db.insert_loader(
-                    experiment_id=experiment_id,
-                    command=full_cmd,
-                    result={
-                        "stage_name": stage.name,
-                        "subsystem": subsystem_value,
-                        "tool": task_run.task.tool,
-                        "returncode": task_run.returncode,
-                        "command_full": full_cmd,
-                        "stdout": _truncate(task_run.stdout),
-                        "stderr": _truncate(task_run.stderr),
-                        "summary": task_run.summary,
-                    },
-                    description=f"Task result for stage={stage.name}",
-                    started_at=task_run.started_at,
-                    ended_at=task_run.ended_at,
-                )
-
-                for sample in task_run.metrics:
-                    collected_metrics.append(sample)
-                    self.db.insert_observer(
-                        experiment_id=experiment_id,
-                        command=f"{task_run.task.tool}:{sample.metric_name}",
-                        result={
-                            "stage_name": sample.stage_name,
-                            "subsystem": sample.subsystem,
-                            "metric_name": sample.metric_name,
-                            "value": sample.value,
-                        },
-                        description="Observed numeric metric",
-                        started_at=task_run.started_at,
-                        ended_at=task_run.ended_at,
-                    )
+                self._insert_task_run(experiment_id, stage.name, task_run)
+                collected_metrics.extend(task_run.metrics)
 
             stage_runs.append(
                 StageRunResult(
@@ -455,6 +418,56 @@ class PlanExecutor:
                     )
 
         return [results_by_idx[i] for i in range(len(stage.tasks))]
+
+    def _insert_task_run(
+        self,
+        experiment_id: int,
+        stage_name: str,
+        task_run: TaskRunResult,
+    ) -> None:
+        subsystem_value = getattr(task_run.task.subsystem, "value", str(task_run.task.subsystem))
+        command = task_run.command if task_run.command else (task_run.task.tool,)
+
+        metrics = tuple(
+            UtilityMetricRecord(
+                metric_name=sample.metric_name,
+                value=sample.value,
+                context={
+                    "stage_name": sample.stage_name,
+                    "subsystem": sample.subsystem,
+                    "tool": task_run.task.tool,
+                },
+                description="Observed numeric metric",
+                command=command,
+            )
+            for sample in task_run.metrics
+        )
+
+        self.db.insert_utility_result(
+            UtilityResultRecord(
+                experiment_id=experiment_id,
+                utility=task_run.task.tool,
+                command=command,
+                result={
+                    "stage_name": stage_name,
+                    "subsystem": subsystem_value,
+                    "tool": task_run.task.tool,
+                    "returncode": task_run.returncode,
+                    "stdout": _truncate(task_run.stdout),
+                    "stderr": _truncate(task_run.stderr),
+                    "summary": task_run.summary,
+                },
+                description=f"Task result for stage={stage_name}",
+                started_at=task_run.started_at,
+                ended_at=task_run.ended_at,
+                context={
+                    "stage_name": stage_name,
+                    "subsystem": subsystem_value,
+                    "tool": task_run.task.tool,
+                },
+                metrics=metrics,
+            )
+        )
 
     def _run_task(self, stage: PlanStage, task: LoadTask) -> TaskRunResult:
         tool = (task.tool or "").strip().lower().replace("_", "-")
