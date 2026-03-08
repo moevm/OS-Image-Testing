@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Final
 from imgtests.exec.exec import SSHClient, common_run_command
 from imgtests.exec.loaders import StressNg
 from imgtests.runner import AbstractRunnableTimeLimitedTest
-from imgtests.suites.drive.stress_ng import StressNgTest
+from imgtests.suites.general.stress_ng import StressNgTest
 
 if TYPE_CHECKING:
     from concurrent.futures import ThreadPoolExecutor

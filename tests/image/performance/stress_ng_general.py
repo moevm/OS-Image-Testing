@@ -2,7 +2,7 @@ from itertools import combinations
 from typing import TYPE_CHECKING, Any
 
 from imgtests.exec.loaders import StressNg
-from imgtests.suites.drive.stress_ng import StressNgTest
+from imgtests.suites.general.stress_ng import StressNgTest
 
 if TYPE_CHECKING:
     from concurrent.futures import ThreadPoolExecutor

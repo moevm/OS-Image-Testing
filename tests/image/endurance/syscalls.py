@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING
 
 from imgtests.exec.loaders import Kirk, StressNg
 from imgtests.runner import AbstractRunnableManyTimesTest
-from imgtests.suites.drive.stress_ng import StressNgTest
+from imgtests.suites.general.stress_ng import StressNgTest
 
 if TYPE_CHECKING:
     from concurrent.futures import ThreadPoolExecutor
