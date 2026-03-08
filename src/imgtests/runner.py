@@ -9,6 +9,7 @@ import paramiko.ssh_exception
 
 from imgtests.constant import LIB_NAME
 from imgtests.database.database import ImgtestsDatabase
+from imgtests.exec.observers.journalctl import Journalctl
 from imgtests.exec.observers.systemctl import Systemctl
 from imgtests.sysrep import get_system_info
 
@@ -152,6 +153,21 @@ class TestsRunner:
             self.__database.update_experiment_ended_at(experiment.experiment_id)
         systemctl = Systemctl(self.__client)
         self.logger.info("Failed services: %s", systemctl.get_failed_services())
+        journalctl = Journalctl(self.__client, use_sudo=True)
+        oom_records = journalctl.oom_records(
+            since=experiment.started_at.strftime(journalctl.DATE_FORMAT),
+            until=experiment.ended_at.strftime(journalctl.DATE_FORMAT),
+        )
+        self.logger.info("OOM records %d", journalctl._calc_records_cnt(oom_records.stdout))  # noqa: SLF001
+        systemd_err_records = journalctl.systemd_only_records(
+            since=experiment.started_at.strftime(journalctl.DATE_FORMAT),
+            until=experiment.ended_at.strftime(journalctl.DATE_FORMAT),
+            priority="err",
+        )
+        self.logger.info(
+            "systemd errors records %d",
+            journalctl._calc_records_cnt(systemd_err_records.stdout),  # noqa: SLF001
+        )
         self.logger.info("All tests completed successfully.")
         self.__client.close()
 
@@ -165,10 +181,20 @@ class TestsRunner:
             PhoronixTestSuite,
             StressNg,
         )
-        from imgtests.exec.observers.time import Time  # noqa: PLC0415
+        from imgtests.exec.observers import NodeExporter, Time  # noqa: PLC0415
 
         self.logger.info("Installing dependencies. This may take a while.")
-        for tool in (Chaosblade, Fio, FioPlot, Kirk, Perf, StressNg, PhoronixTestSuite, Time):
+        for tool in (
+            Chaosblade,
+            Fio,
+            FioPlot,
+            Kirk,
+            Perf,
+            StressNg,
+            PhoronixTestSuite,
+            Time,
+            NodeExporter,
+        ):
             tool_instance: BaseTestUtil = tool(self.__client)
             try:
                 tool_instance.install()

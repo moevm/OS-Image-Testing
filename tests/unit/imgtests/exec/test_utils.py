@@ -13,20 +13,20 @@ class TEnum(Enum):
 
 
 @pytest.mark.parametrize(
-    ("key", "value", "expected"),
+    ("key", "value", "use_equals", "expected"),
     [
-        ("", None, []),
-        ("flag", True, ["--flag"]),
-        ("flag", False, []),
-        ("str", "text", ["--str", "text"]),
-        ("int", 42, ["--int", "42"]),
-        ("float", 3.14, ["--float", "3.14"]),
-        ("enumval1", TEnum.VALUE1, ["--enumval1", "value1"]),
-        ("enumval2", TEnum.VALUE2, ["--enumval2", "2"]),
+        ("", None, False, []),
+        ("flag", True, False, ["--flag"]),
+        ("flag", False, False, []),
+        ("str", "text", True, ["--str=text"]),
+        ("int", 42, True, ["--int=42"]),
+        ("float", 3.14, False, ["--float", "3.14"]),
+        ("enumval1", TEnum.VALUE1, True, ["--enumval1=value1"]),
+        ("enumval2", TEnum.VALUE2, False, ["--enumval2", "2"]),
     ],
 )
-def test_create_opt(key: str, value: Any | None, expected: list[str]) -> None:
-    result = create_opt(key, value)
+def test_create_opt(key: str, value: Any | None, expected: list[str], use_equals: bool) -> None:
+    result = create_opt(key, value, use_equals=use_equals)
     assert result == expected
 
 
