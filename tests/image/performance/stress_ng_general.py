@@ -1,5 +1,5 @@
 from itertools import combinations
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from imgtests.exec.loaders import StressNg
 from imgtests.suites.drive.stress_ng import StressNgTest
@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from imgtests.exec.exec import SSHClient
 
 
-tests = [
+tests: list[dict[str, Any]] = [
     {"cpu": 0, "cpu_method": "matrixprod"},
     {"vm": 3, "vm_bytes": "2G", "mmap": 3, "mmap_bytes": "2G"},
     {"hdd": 0, "hdd_bytes": "2G"},
@@ -20,7 +20,7 @@ tests = [
 ]
 
 
-def combine_params(test_combination: list) -> dict:
+def combine_params(test_combination: list[dict[str, Any]]) -> dict[str, Any]:
     """Combines params from list of dictionaries into single dictionary.
 
     Args:
@@ -29,7 +29,7 @@ def combine_params(test_combination: list) -> dict:
     Returns:
         dict: Single dictionary with all test params.
     """
-    test_params = {}
+    test_params: dict[str, Any] = {}
     for params in test_combination:
         test_params.update(params)
     return test_params
