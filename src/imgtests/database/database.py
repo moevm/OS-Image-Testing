@@ -100,8 +100,8 @@ class ImgtestsDatabase:
 
         experiment_object = ExperimentBase(
             config_id=config_id,
-            description=_clip_db_str(description),
-            type=_clip_db_str(experiment_type),
+            description=description,
+            type=experiment_type,
             started_at=started_at,
             ended_at=ended_at,
         )
@@ -129,9 +129,9 @@ class ImgtestsDatabase:
 
         loader_object = LoaderBase(
             experiment_id=experiment_id,
-            command=_clip_db_str(command),
+            command=command,
             result=result,
-            description=_clip_db_str(description) if description is not None else None,
+            description=description if description is not None else None,
             started_at=started_at,
             ended_at=ended_at,
         )
@@ -159,9 +159,9 @@ class ImgtestsDatabase:
 
         observer_object = ObserverBase(
             experiment_id=experiment_id,
-            command=_clip_db_str(command),
+            command=command,
             result=result,
-            description=_clip_db_str(description) if description is not None else None,
+            description=description if description is not None else None,
             started_at=started_at,
             ended_at=ended_at,
         )
@@ -207,10 +207,3 @@ class ImgtestsDatabase:
                 logger.error("Table '%s' doesn't exist.", table_name)
 
             return session.query(models[table_name]).all()
-
-
-def _clip_db_str(value: str, limit: int = 200) -> str:
-    s = str(value)
-    if len(s) <= limit:
-        return s
-    return s[: limit - 3] + "..."
