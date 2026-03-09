@@ -16,7 +16,6 @@ PGSCAN_LINE_PATTERN = re.compile(
     r"^(\d{2}:\d{2}:\d{2})\s+[\d,]+\s+[\d,]+\s+[\d,]+\s+[\d,]+\s+[\d,]+\s+([\d,]+)\s+([\d,]+)"
 )
 
-logger = logging.getLogger(__name__)
 
 class Sar(PkgMgrMixin, BaseTestUtil):
     def __init__(self, ssh_client: SSHClient | None = None) -> None:
@@ -38,7 +37,20 @@ class Sar(PkgMgrMixin, BaseTestUtil):
 
     def run(
         self, interval: int | None = None, count: int | None = None
-    ) -> tuple[ExecResult, float]:
+    ) -> tuple[ExecResult, int]:
+        """Run sar -B with parameters.
+
+        Args:
+            interval (int | None): Measurement time interval
+            count (int | None): Number of measurements
+        
+        Returns:
+            tuple[ExecResult, int]: Result of sar and parsed pgscan time
+
+        Raises:
+            ValueError: When invalid parameters provided or repeated.
+        """
+
         # validation
         if interval is None and count is not None:
             err_msg = "If interval is None, count should be set None."
@@ -73,6 +85,14 @@ class Sar(PkgMgrMixin, BaseTestUtil):
 
     @staticmethod
     def extract_pgscan_time(metrics: str) -> int:
+        """Parses pgcan time.
+
+        Args:
+            metrics (str): Metric string returned by sar
+
+        Returns:
+            int: pgscan time in seconds       
+        """
         lines = metrics.strip().split("\n")
 
         start = None
@@ -104,17 +124,26 @@ class Sar(PkgMgrMixin, BaseTestUtil):
         return duration
     
     def prepare(self) -> None:
-    # Включаем таймеры sysstat
-        for unit in ["sysstat_collect.timer", "sysstat_summary.timer"]:
-            result = common_run_command(["sudo systemctl", "enable", "--now", unit], self.ssh_client)
-            if result.returncode:
-                logger.warning("Failed to enable %s: %s", unit, result.stderr)
-            else:
-                logger.info("Enabled %s", unit)
+        """Starts automatic collection of metrics. Is required to use the utility without parameters interval and count"""
+        os_id = get_os_release(getattr(self, "ssh_client", None)).id    
+        if os_id and "opensuse" in os_id:
+            common_run_command([
+                "sudo", "sed", "-i",
+                's/ENABLED="false"/ENABLED="true"/',
+                "/etc/sysstat/sysstat"
+            ], self.ssh_client)
+            common_run_command(["sudo", "systemctl", "enable", "--now", "sysstat_collect.timer"], self.ssh_client)
+            common_run_command(["sudo", "systemctl", "enable", "--now", "sysstat_summary.timer"], self.ssh_client)
+        else:
+            common_run_command([
+                "sudo", "sed", "-i",
+                's/ENABLED="false"/ENABLED="true"/',
+                "/etc/sysconfig/sysstat"
+            ], self.ssh_client)
+            common_run_command(["sudo", "systemctl", "restart", "sysstat"], self.ssh_client)
+            common_run_command(["sudo", "systemctl", "enable", "sysstat"], self.ssh_client)
 
-        # Проверяем список таймеров
-        result = common_run_command(["systemctl", "list-timers", "--all"], self.ssh_client)
-        logger.info("Timers:\n%s", result.stdout)
-
-        logger.info("Sysstat prepared: historical data collection should now be enabled")
-
+            common_run_command(["echo '*/10 * * * * root /usr/libexec/sa/sa1 1 1' | sudo tee /etc/cron.d/sysstat"],self.ssh_client)
+            common_run_command(["echo '23:59 * * * * root /usr/libexec/sa/sa2 -A' | sudo tee -a /etc/cron.d/sysstat"],self.ssh_client)
+            common_run_command(["sudo systemctl restart crond"],self.ssh_client)
+            common_run_command(["sudo systemctl enable crond"], self.ssh_client)
