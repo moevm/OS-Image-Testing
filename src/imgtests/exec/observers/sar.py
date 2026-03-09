@@ -1,19 +1,23 @@
 import re
+import logging
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
-from imgtests.exec.base_util import BaseTestUtil
+from imgtests.exec.base_util import BaseTestUtil, common_run_command
 from imgtests.exec.utils import extract_version
+from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
+from imgtests.exec.exec import ExecResult
 
 if TYPE_CHECKING:
-    from imgtests.exec.exec import ExecResult, SSHClient
+    from imgtests.exec.exec import SSHClient
 
 PGSCAN_LINE_PATTERN = re.compile(
     r"^(\d{2}:\d{2}:\d{2})\s+[\d,]+\s+[\d,]+\s+[\d,]+\s+[\d,]+\s+[\d,]+\s+([\d,]+)\s+([\d,]+)"
 )
 
+logger = logging.getLogger(__name__)
 
-class Sar(BaseTestUtil):
+class Sar(PkgMgrMixin, BaseTestUtil):
     def __init__(self, ssh_client: SSHClient | None = None) -> None:
         super().__init__("sar", ssh_client)
 
@@ -22,6 +26,14 @@ class Sar(BaseTestUtil):
         if result.returncode:
             return None
         return extract_version(result.stdout.strip())
+    
+    def install(self) -> ExecResult:
+        """Install sysstat with sar via the system package manager."""
+        if self.path:
+            return ExecResult(
+                cmd=(), stderr=f"{self.name} already has been installed.", returncode=0
+            )
+        return self._install_packages(["sysstat"])
 
     def run(
         self, interval: int | None = None, count: int | None = None
@@ -59,7 +71,7 @@ class Sar(BaseTestUtil):
         return result, self.extract_pgscan_time(result.stdout)
 
     @staticmethod
-    def extract_pgscan_time(metrics: str) -> float:
+    def extract_pgscan_time(metrics: str) -> int:
         lines = metrics.strip().split("\n")
 
         start = None
