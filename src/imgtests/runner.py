@@ -1,8 +1,9 @@
 import logging
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor
+from enum import Enum
 from threading import Event, Thread
-from typing import TYPE_CHECKING, Any, Literal, NamedTuple
+from typing import TYPE_CHECKING, Any, NamedTuple
 
 import paramiko
 import paramiko.ssh_exception
@@ -20,7 +21,14 @@ if TYPE_CHECKING:
     from imgtests.exec.base_util import BaseTestUtil
     from imgtests.exec.exec import SSHClient
 
-Subsystem = Literal["file", "syscalls", "IPC", "network", "memory", "system"]
+
+class Subsystem(str, Enum):
+    FILE = "file"
+    IPC = "IPC"
+    MEMORY = "memory"
+    NETWORK = "network"
+    SYSCALLS = "syscalls"
+    SYSTEM = "system"
 
 
 class AbstractRunnableManyTimesTest(ABC):

@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING
 
 from imgtests.exec.loaders import Chaosblade, StressNg
-from imgtests.runner import AbstractRunnableTimeLimitedTest
+from imgtests.runner import AbstractRunnableTimeLimitedTest, Subsystem
 from imgtests.suites.general.stress_ng import StressNgTest
 
 if TYPE_CHECKING:
@@ -14,7 +14,7 @@ class StressNgPerformanceCpuTest(StressNgTest):
     def __init__(self, timeout: int) -> None:
         super().__init__(
             "Stress-ng performance CPU test.",
-            {"system"},
+            {Subsystem.SYSTEM},
             timeout,
         )
 
@@ -25,7 +25,7 @@ class StressNgPerformanceCpuTest(StressNgTest):
 
 class ChaosbladeCPUTest(AbstractRunnableTimeLimitedTest):
     def __init__(self, timeout: int) -> None:
-        super().__init__("Load CPU 70% with chaosblade.", {"system"}, timeout)
+        super().__init__("Load CPU 70% with chaosblade.", {Subsystem.SYSTEM}, timeout)
 
     def _run(self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int) -> None:
         chaos = Chaosblade(client)

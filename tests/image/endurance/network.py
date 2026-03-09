@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Final
 
 from imgtests.exec.exec import SSHClient, common_run_command
 from imgtests.exec.loaders import StressNg
-from imgtests.runner import AbstractRunnableTimeLimitedTest
+from imgtests.runner import AbstractRunnableTimeLimitedTest, Subsystem
 from imgtests.suites.general.stress_ng import StressNgTest
 
 if TYPE_CHECKING:
@@ -20,7 +20,7 @@ class StressNgEnduranceNetworkTest(StressNgTest):
     def __init__(self, timeout: int) -> None:
         super().__init__(
             "Stress-ng endurance network test.",
-            {"network"},
+            {Subsystem.NETWORK},
             timeout,
         )
 
@@ -37,7 +37,7 @@ class StressNgEnduranceNetworkTest(StressNgTest):
 
 class WgetEnduranceNetworkTest(AbstractRunnableTimeLimitedTest):
     def __init__(self, timeout: int) -> None:
-        super().__init__("Load CPU 70% with chaosblade.", {"network"}, timeout)
+        super().__init__("Load CPU 70% with chaosblade.", {Subsystem.NETWORK}, timeout)
 
     def _run(self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int) -> None:
         def run_test() -> None:

@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING
 
 from imgtests.exec.loaders import StressNg
+from imgtests.runner import Subsystem
 from imgtests.suites.general.stress_ng import StressNgTest
 
 if TYPE_CHECKING:
@@ -13,7 +14,7 @@ class StressNgEnduranceCpuTest(StressNgTest):
     def __init__(self, timeout: int) -> None:
         super().__init__(
             "Stress-ng endurance CPU test.",
-            {"system"},
+            {Subsystem.SYSTEM},
             timeout,
         )
 

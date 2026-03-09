@@ -2,6 +2,7 @@ from itertools import combinations
 from typing import TYPE_CHECKING, Any
 
 from imgtests.exec.loaders import StressNg
+from imgtests.runner import Subsystem
 from imgtests.suites.general.stress_ng import StressNgTest
 
 if TYPE_CHECKING:
@@ -39,7 +40,14 @@ class StressNgConsecutiveLoadTest(StressNgTest):
     def __init__(self, timeout: int) -> None:
         super().__init__(
             "Test stress-ng full consecutive load on subsystems.",
-            {"memory", "file", "IPC", "syscalls", "network", "system"},
+            {
+                Subsystem.MEMORY,
+                Subsystem.FILE,
+                Subsystem.IPC,
+                Subsystem.SYSCALLS,
+                Subsystem.NETWORK,
+                Subsystem.SYSTEM,
+            },
             timeout,
         )
 
@@ -54,7 +62,14 @@ class StressNgCombineLoadTest(StressNgTest):
     def __init__(self, timeout: int) -> None:
         super().__init__(
             "Test stress-ng full combine load on subsystems.",
-            {"memory", "file", "IPC", "syscalls", "network", "system"},
+            {
+                Subsystem.MEMORY,
+                Subsystem.FILE,
+                Subsystem.IPC,
+                Subsystem.SYSCALLS,
+                Subsystem.NETWORK,
+                Subsystem.SYSTEM,
+            },
             timeout,
         )
 
@@ -73,7 +88,14 @@ class StressNgParallelLoadTest(StressNgTest):
     def __init__(self, timeout: int) -> None:
         super().__init__(
             "Test stress-ng full parallel load on subsystems.",
-            {"memory", "file", "IPC", "syscalls", "network", "system"},
+            {
+                Subsystem.MEMORY,
+                Subsystem.FILE,
+                Subsystem.IPC,
+                Subsystem.SYSCALLS,
+                Subsystem.NETWORK,
+                Subsystem.SYSTEM,
+            },
             timeout,
         )
 

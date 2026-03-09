@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING
 
 from imgtests.exec.loaders import Kirk, StressNg
-from imgtests.runner import AbstractRunnableManyTimesTest
+from imgtests.runner import AbstractRunnableManyTimesTest, Subsystem
 from imgtests.suites.general.stress_ng import StressNgTest
 
 if TYPE_CHECKING:
@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 class LTPSyscallsTest(AbstractRunnableManyTimesTest):
     def __init__(self, iterations: int = 1) -> None:
-        super().__init__("Test syscalls with LTP.", {"syscalls"}, iterations)
+        super().__init__("Test syscalls with LTP.", {Subsystem.SYSCALLS}, iterations)
 
     def _run(
         self,
@@ -32,7 +32,7 @@ class StressNgEnduranceSyscallsTest(StressNgTest):
     def __init__(self, timeout: int) -> None:
         super().__init__(
             "Stress-ng endurance syscalls test.",
-            {"syscalls"},
+            {Subsystem.SYSCALLS},
             timeout,
         )
 
