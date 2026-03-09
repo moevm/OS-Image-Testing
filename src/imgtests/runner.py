@@ -39,7 +39,7 @@ class DefaultCleanupMixin:
             if result.returncode:
                 logger.warning("Failed to cleanup folder '%s'.", path)
             else:
-                logger.info("Cleaned up folder '%s'.")
+                logger.info("Cleaned up folder '%s'.", path)
 
 
 class AbstractRunnableManyTimesTest(ABC, DefaultCleanupMixin):
