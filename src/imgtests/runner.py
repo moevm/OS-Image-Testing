@@ -10,6 +10,7 @@ import paramiko.ssh_exception
 
 from imgtests.constant import LIB_NAME
 from imgtests.database.database import ImgtestsDatabase
+from imgtests.exec.exec import common_run_command
 from imgtests.exec.observers.journalctl import Journalctl
 from imgtests.exec.observers.systemctl import Systemctl
 from imgtests.sysrep import get_system_info
@@ -31,7 +32,17 @@ class Subsystem(str, Enum):
     SYSTEM = "system"
 
 
-class AbstractRunnableManyTimesTest(ABC):
+class DefaultCleanupMixin:
+    def cleanup(self, client: SSHClient | None, logger: logging.Logger) -> None:
+        for path in ("/tmp/*", "/var/tmp/*"):  # noqa: S108
+            result = common_run_command(["sudo", "rm", "-rf", path], client)
+            if result.returncode:
+                logger.warning("Failed to cleanup folder '%s'.", path)
+            else:
+                logger.info("Cleaned up folder '%s'.")
+
+
+class AbstractRunnableManyTimesTest(ABC, DefaultCleanupMixin):
     __slots__ = ("description", "iterations", "logger", "subsystems")
 
     def __init__(
@@ -76,7 +87,7 @@ class AbstractRunnableManyTimesTest(ABC):
     ) -> None: ...
 
 
-class AbstractRunnableTimeLimitedTest(ABC):
+class AbstractRunnableTimeLimitedTest(ABC, DefaultCleanupMixin):
     __slots__ = ("description", "logger", "subsystems", "timeout")
 
     def __init__(
@@ -132,7 +143,7 @@ class TestsRunnerConfig(NamedTuple):
 class TestsRunner:
     __slots__ = ("__client", "__database", "__executor", "__test_config", "logger")
 
-    def __init__(self, client: SSHClient, test_config: TestsRunnerConfig) -> None:
+    def __init__(self, client: SSHClient | None, test_config: TestsRunnerConfig) -> None:
         self.__executor = ThreadPoolExecutor()
         self.__client = client
         self.__database = ImgtestsDatabase()
@@ -151,10 +162,12 @@ class TestsRunner:
             experiment_type=self.__test_config.experiment_type,
         )
         for test in self.__test_config.tests:
-            self.__client.reconnect()
+            if self.__client is not None:
+                self.__client.reconnect()
             is_alive_cycle = Thread(target=self.__is_remote_alive, args=(test_completed_event,))
             is_alive_cycle.start()
             test(self.__executor, self.__client)
+            test.cleanup(self.__client, self.logger)
             test_completed_event.set()
             is_alive_cycle.join(10)
             test_completed_event.clear()
@@ -177,7 +190,8 @@ class TestsRunner:
             journalctl._calc_records_cnt(systemd_err_records.stdout),  # noqa: SLF001
         )
         self.logger.info("All tests completed successfully.")
-        self.__client.close()
+        if self.__client is not None:
+            self.__client.close()
 
     def install_dependencies(self) -> None:
         from imgtests.exec.loaders import (  # noqa: PLC0415
@@ -220,10 +234,11 @@ class TestsRunner:
     def __is_remote_alive(self, test_completed_event: Event) -> None:
         while not test_completed_event.wait(5.0):
             try:
-                self.__client(["echo", "test"])
+                common_run_command(["echo", "test"], self.__client)
             except paramiko.ssh_exception.SSHException:
                 break
         if not test_completed_event.is_set():
             self.logger.error("Remote node unavailable during test.")
-            self.__client.close()
+            if self.__client is not None:
+                self.__client.close()
             self.__executor.shutdown(cancel_futures=True)

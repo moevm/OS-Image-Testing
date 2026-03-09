@@ -5,6 +5,7 @@ from imgtests.exec.observers.systemd_analyze import SystemdAnalyze
 from imgtests.runner import AbstractRunnableManyTimesTest, Subsystem
 
 if TYPE_CHECKING:
+    import logging
     from concurrent.futures import ThreadPoolExecutor
 
     from imgtests.exec.exec import SSHClient
@@ -34,6 +35,9 @@ class SystemLoadTimeTest(AbstractRunnableManyTimesTest):
         if result.total_time < 0:
             self.logger.error("Failed to get boot time, system might not be ready.")
 
+    def cleanup(self, client: SSHClient | None, logger: logging.Logger) -> None:  # noqa: ARG002
+        logger.debug("Noting to cleanup for system load time test.")
+
 
 class SystemSlowServicesTest(AbstractRunnableManyTimesTest):
     def __init__(self) -> None:
@@ -46,3 +50,6 @@ class SystemSlowServicesTest(AbstractRunnableManyTimesTest):
         iterations: int,  # noqa: ARG002
     ) -> None:
         self.logger.info(SystemdAnalyze(client).slow_load_services())
+
+    def cleanup(self, client: SSHClient | None, logger: logging.Logger) -> None:  # noqa: ARG002
+        logger.debug("Noting to cleanup for system slow services test.")
