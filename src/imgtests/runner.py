@@ -163,9 +163,10 @@ class TestsRunner:
             StressNg,
         )
         from imgtests.exec.observers.time import Time  # noqa: PLC0415
+        from imgtests.exec.observers.sar import Sar  # noqa: PLC0415
 
         self.logger.info("Installing dependencies. This may take a while.")
-        for tool in (Chaosblade, Fio, FioPlot, Kirk, Perf, StressNg, PhoronixTestSuite, Time):
+        for tool in (Chaosblade, Fio, FioPlot, Kirk, Perf, StressNg, PhoronixTestSuite, Time, Sar):
             tool_instance: BaseTestUtil = tool(self.__client)
             try:
                 tool_instance.install()

@@ -14,6 +14,7 @@ from image.performance.ipc import SchedPerformanceTest
 from image.performance.network import Iperf3LocalTest
 from image.performance.std_utils import POSIXUtilsTest
 from image.performance.system import PTSSystemTest
+from image.performance.memory import SarWithStressNGTest
 from imgtests.exec.exec import SSHClient, wait_remote
 from imgtests.exec.observers.systemd_analyze import SystemdAnalyze
 from imgtests.logger import set_handlers
@@ -97,6 +98,7 @@ def main() -> None:
         TestsRunnerConfig(
             description="Test suite for all subsystems.",
             tests=(
+                SarWithStressNGTest(60),
                 POSIXUtilsTest(10),
                 FioDisksScalingTest(10),
                 FioDisksNightly(10),
