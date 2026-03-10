@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, NamedTuple
 
 from imgtests.exec.exec import common_run_command
-from imgtests.runner import AbstractRunnableManyTimesTest
+from imgtests.runner import AbstractRunnableManyTimesTest, Subsystem
 
 if TYPE_CHECKING:
     from concurrent.futures import Future, ThreadPoolExecutor
@@ -31,7 +31,7 @@ ToolsTimes = dict[str, ToolTimes | None]
 
 class POSIXUtilsTest(AbstractRunnableManyTimesTest):
     def __init__(self, iterations: int = 1) -> None:
-        super().__init__("Tests standard utilities performance.", {"system"}, iterations)
+        super().__init__("Tests standard utilities performance.", {Subsystem.SYSTEM}, iterations)
 
     def _run(
         self,
@@ -129,7 +129,7 @@ class POSIXUtilsTest(AbstractRunnableManyTimesTest):
             elif tool in {"head", "tail"}:
                 cmd = f"{tool} -n 1000 {filename1} {filename2} > /dev/null"
             elif tool == "grep":
-                cmd = f"{tool} test {filename1} {filename2} || exit 0 > /dev/null"
+                cmd = f"{tool} test {filename1} {filename2} > /dev/null || exit 0"
             elif tool == "paste":
                 cmd = f"{tool} {filename2} {filename1} > /dev/null"
             elif tool == "tr":

@@ -7,8 +7,8 @@ from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
 from imgtests.exec.osinfo import get_os_release
 from imgtests.exec.pkgmgrs.zypper import Zypper
-from imgtests.exec.utils import create_opt
-from imgtests.types import Distro
+from imgtests.exec.utils import create_opt, extract_version
+from imgtests.types import Distro, Version
 
 logger = logging.getLogger(__name__)
 
@@ -81,6 +81,12 @@ class Chaosblade(GenericUtil):
             "rm -rf $tmpdir"
         )
         return common_run_command(("sudo", "bash", "-lc", f"'{script}'"), self.ssh_client)
+
+    def version(self) -> Version | None:
+        result = self(["version"])
+        if result.returncode:
+            return None
+        return extract_version(result.stdout.strip())
 
     def check_env(self, experiment_type: str, action: str) -> tuple[ExecResult, ChaosResponse]:
         """Check if experiment supports specific experiment type and action.
