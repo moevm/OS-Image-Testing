@@ -30,3 +30,18 @@ class SchedPerformanceTest(AbstractRunnableManyTimesTest):
                 benchmark,
                 str(args),
             )
+
+
+def perf_bench_result_to_bmf(output: list[str], benchmarks: list[tuple[str, list[str]]]) -> dict:
+    result = {"sched": {}}
+
+    for i, (bench_name, args) in enumerate(benchmarks):
+        key = f"{bench_name} {' '.join(args)}" if args else bench_name
+        try:
+            value = float(output[i])
+        except ValueError:
+            value = 0.0
+
+        result["sched"][key] = {"value": value}
+
+    return result
