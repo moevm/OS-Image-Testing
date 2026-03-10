@@ -1,8 +1,7 @@
-from datetime import datetime
-
 import pytest
 
 from imgtests.exec.observers.sar import Sar
+
 
 @pytest.mark.parametrize(
     ("metrics", "result"),
@@ -29,13 +28,10 @@ from imgtests.exec.observers.sar import Sar
 00:23:18         0,00      0,00 370374,88      0,00 247441,38      0,00      0,00      0,00      0,00
 00:23:21         0,00 338572,97 253965,20      0,00 255652,36      0,00      0,00      0,00      0,00
 00:23:23         0,00      2,00 751649,50      0,00 627626,00      0,00      0,00      0,00      0,00
-Average:         1,06  88220,50 240045,57      0,02 232309,62      0,00     21,66     43,33    200,00""",
+Average:         1,06  88220,50 240045,57      0,02 232309,62      0,00     21,66     43,33    200,00""",  # noqa: E501
             3,
         ),
-        (
-            "",
-            0
-        )
+        ("", 0),
     ],
     ids=["sar not empty results", "empty results"],
 )

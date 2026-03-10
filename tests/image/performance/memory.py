@@ -1,15 +1,17 @@
-from concurrent.futures import ThreadPoolExecutor
 import logging
 from typing import TYPE_CHECKING
 
-from imgtests.runner import AbstractRunnableTimeLimitedTest, Subsystem
-from imgtests.exec.observers.sar import Sar
 from imgtests.exec.base_util import common_run_command
+from imgtests.exec.observers.sar import Sar
+from imgtests.runner import AbstractRunnableTimeLimitedTest, Subsystem
 
 if TYPE_CHECKING:
+    from concurrent.futures import ThreadPoolExecutor
+
     from imgtests.exec.exec import SSHClient
 
 logger = logging.getLogger(__name__)
+
 
 class SarWithStressNGTest(AbstractRunnableTimeLimitedTest):
     """Tests that run stress-ng with sar to measure pgscan time."""
@@ -27,6 +29,6 @@ class SarWithStressNGTest(AbstractRunnableTimeLimitedTest):
         sar.prepare()
 
         common_run_command([f"stress-ng --vm 4 --vm-bytes 95% --timeout {timeout} &"], client)
-        r, pgscan = sar.run(interval=1,count=timeout)
+        r, pgscan = sar.run(interval=1, count=timeout)
         logger.info(r)
         logger.info("pgscan = %s", pgscan)

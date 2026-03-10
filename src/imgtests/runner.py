@@ -203,8 +203,7 @@ class TestsRunner:
             PhoronixTestSuite,
             StressNg,
         )
-
-        from imgtests.exec.observers import NodeExporter, Time, Sar  # noqa: PLC0415
+        from imgtests.exec.observers import NodeExporter, Sar, Time  # noqa: PLC0415
 
         self.logger.info("Installing dependencies. This may take a while.")
         for tool in (
