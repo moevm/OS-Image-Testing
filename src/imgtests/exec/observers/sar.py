@@ -142,8 +142,8 @@ class Sar(PkgMgrMixin, BaseTestUtil):
             ], self.ssh_client)
             common_run_command(["sudo", "systemctl", "restart", "sysstat"], self.ssh_client)
             common_run_command(["sudo", "systemctl", "enable", "sysstat"], self.ssh_client)
-
-            common_run_command(["echo '*/10 * * * * root /usr/libexec/sa/sa1 1 1' | sudo tee /etc/cron.d/sysstat"],self.ssh_client)
-            common_run_command(["echo '23:59 * * * * root /usr/libexec/sa/sa2 -A' | sudo tee -a /etc/cron.d/sysstat"],self.ssh_client)
+            common_run_command([
+                "echo -e '*/10 * * * * root /usr/libexec/sa/sa1 1 1\n23:59 * * * * root /usr/libexec/sa/sa2 -A' | sudo tee /etc/cron.d/sysstat"
+            ], self.ssh_client)
             common_run_command(["sudo systemctl restart crond"],self.ssh_client)
             common_run_command(["sudo systemctl enable crond"], self.ssh_client)
