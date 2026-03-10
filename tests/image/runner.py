@@ -9,7 +9,12 @@ from image.endurance.syscalls import (
     StressNgEnduranceSyscallsTest,
 )
 from image.performance.cpu import ChaosbladeCPUTest, StressNgPerformanceCpuTest
-from image.performance.fio_disks import FioDisksNightly, FioDisksScalingTest
+from image.performance.fio_disks import (
+    FioDisksDMDelay,
+    FioDisksDMDust,
+    FioDisksNightly,
+    FioDisksScalingTest,
+)
 from image.performance.ipc import SchedPerformanceTest
 from image.performance.network import Iperf3LocalTest
 from image.performance.std_utils import POSIXUtilsTest
@@ -91,6 +96,8 @@ def main() -> None:
             POSIXUtilsTest(10),
             FioDisksScalingTest(10),
             FioDisksNightly(10),
+            FioDisksDMDelay(30),
+            FioDisksDMDust(30),
             Iperf3LocalTest(30),
             StressNgPerformanceCpuTest(60),
             ChaosbladeCPUTest(60),
