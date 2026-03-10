@@ -249,3 +249,21 @@ def time_cmd_many(
     return ToolTimes(
         array.mean(axis=0), np.median(array, axis=0), array.std(axis=0), array.var(axis=0)
     )
+
+
+def tooltimes_to_bmf(tooltimes: ToolTimes) -> dict:
+    metrics = ["real", "user", "sys"]
+    result = {}
+
+    for name, array in [
+        ("mean", tooltimes.mean),
+        ("median", tooltimes.median),
+        ("std", tooltimes.std),
+        ("var", tooltimes.var),
+    ]:
+        d = {}
+        for i, metric in enumerate(metrics):
+            d[metric] = {"value": float(array[i])}
+        result[name] = d
+
+    return result
