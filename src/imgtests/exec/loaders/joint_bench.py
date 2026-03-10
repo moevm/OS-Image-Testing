@@ -1,8 +1,9 @@
 import logging
-from typing import TYPE_CHECKING, Any, Literal, get_args
+from typing import TYPE_CHECKING, Any, get_args
 
 from imgtests.exec.loaders.perf import Perf
 from imgtests.exec.loaders.pts import PhoronixTestSuite
+from imgtests.runner import Subsystem
 
 if TYPE_CHECKING:
     from imgtests.database.database import ImgtestsDatabase
@@ -13,19 +14,16 @@ TOOLS_CONFIG = {
         "class": PhoronixTestSuite,
         "run": "run",
         "target": {
-            "cpu": [
-                {"test_name": "pts/core-latency", "run_count": 1},
-            ],
-            "disk": [
+            Subsystem.FILE: [
                 {"test_name": "pts/hdparm-read", "run_count": 1},
             ],
-            "network": [
+            Subsystem.NETWORK: [
                 {"test_name": "pts/network-loopback", "run_count": 1},
             ],
-            "memory": [
+            Subsystem.MEMORY: [
                 {"test_name": "pts/tinymembench", "run_count": 1},
             ],
-            "system": [
+            Subsystem.SYSTEM: [
                 {"test_name": "pts/ctx-clock", "run_count": 1},
                 {"test_name": "pts/appleseed", "run_count": 1},
             ],
@@ -35,28 +33,18 @@ TOOLS_CONFIG = {
         "class": Perf,
         "run": "bench",
         "target": {
-            "memory": [
+            Subsystem.MEMORY: [
                 {"collection": "mem"},
             ],
-            "ipc": [
+            Subsystem.IPC: [
                 {"collection": "sched"},
             ],
-            "syscalls": [
+            Subsystem.SYSCALLS: [
                 {"collection": "syscall"},
             ],
         },
     },
 }
-
-Subsystem = Literal[
-    "cpu",
-    "disk",
-    "memory",
-    "network",
-    "ipc",
-    "syscalls",
-    "system",
-]
 
 
 class JointBench:
