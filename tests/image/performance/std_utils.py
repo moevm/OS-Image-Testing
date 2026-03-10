@@ -155,9 +155,7 @@ class POSIXUtilsTest(AbstractRunnableManyTimesTest):
             elif tool in {"md5sum", "sha256sum"}:
                 cmd = f"{tool} {filename1} {filename2}"
             results[tool] = time_cmd_many(time, cmd, iterations, client)
-            self.logger.info(
-                "Results for %s: %s", tool, time_cmd_many(time, cmd, iterations, client)
-            )
+            self.logger.info("Results for %s: %s", tool, results[tool])
         return results
 
     def test_net_utils(self, client: SSHClient | None, iterations: int) -> ToolsTimes:
@@ -243,7 +241,7 @@ def time_cmd_many(time: Time, tool: str, iterations: int, client: SSHClient) -> 
     for i in range(iterations):
         parts = tool.split()
         if "mkdir" in tool:
-            path = Path(tempfile.gettempdir()) / "/".join(str(i) for i in range(1, 51))
+            path = Path(tempfile.gettempdir()) / "/".join(str(j) for j in range(1, 51))
             common_run_command(
                 [
                     "test",
