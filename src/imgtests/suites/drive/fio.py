@@ -60,6 +60,7 @@ class FioSuiteConfig:
     duration_sec: int
     results_dir: Path
     workloads: tuple[FioWorkload, ...]
+    filename: str | None = None
     size: str = "100MB"
     direct: Direct = 1
     ioengine: IOEngine = "libaio"
@@ -79,10 +80,13 @@ class FioSuite:
         stamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%SZ")
         suite_root = _DEFAULT_TMP_ROOT / f"{self.cfg.suite}-{stamp}"
         suite_tgz = _DEFAULT_TMP_ROOT / f"{self.cfg.suite}-{stamp}.tgz"
-        testfiles_dir = suite_root / "testfiles"
-
+        testfiles_dir = None
         mkdir = MkDir(self.client)
-        mkdir(["--parents", suite_root, testfiles_dir])
+
+        if self.cfg.filename is None:
+            testfiles_dir = suite_root / "testfiles"
+            mkdir(["--parents", suite_root, testfiles_dir])
+
         workloads = list(self.cfg.workloads)
         timing = _normalize_timing(
             duration_sec=self.cfg.duration_sec,
@@ -97,12 +101,13 @@ class FioSuite:
         )
 
         logger.info(
-            "fio suite=%s duration=%ss cases=%d iodepth=%s numjobs=%s",
+            "fio suite=%s duration=%ss cases=%d iodepth=%s numjobs=%s filename=%s",
             self.cfg.suite,
             self.cfg.duration_sec,
             len(cases),
             timing.grid.iodepths,
             timing.grid.numjobs,
+            self.cfg.filename or "dir",
         )
 
         for case in cases:
@@ -125,6 +130,12 @@ class FioSuite:
                 "output": out_json,
                 "eta": "never",
             }
+
+            if self.cfg.filename is not None:
+                extra["filename"] = self.cfg.filename
+            else:
+                extra["directory"] = testfiles_dir
+
             if timing.ramp_time_sec > 0:
                 extra["ramp_time"] = timing.ramp_time_sec
 
@@ -135,7 +146,6 @@ class FioSuite:
                 readwrite=case.workload.rw,
                 ioengine=self.cfg.ioengine,
                 direct=self.cfg.direct,
-                directory=testfiles_dir,
                 **extra,
             )
             if res.returncode:
