@@ -1,7 +1,8 @@
 from typing import TYPE_CHECKING
 
 from imgtests.exec.loaders import Chaosblade, StressNg
-from imgtests.runner import AbstractRunnableTimeLimitedTest
+from imgtests.runner import AbstractRunnableTimeLimitedTest, Subsystem
+from imgtests.suites.general.stress_ng import StressNgTest
 
 if TYPE_CHECKING:
     from concurrent.futures import ThreadPoolExecutor
@@ -9,21 +10,22 @@ if TYPE_CHECKING:
     from imgtests.exec.exec import SSHClient
 
 
-class StressNgCpuTest(AbstractRunnableTimeLimitedTest):
+class StressNgPerformanceCpuTest(StressNgTest):
     def __init__(self, timeout: int) -> None:
-        super().__init__("Load CPU with stress-ng.", {"system"}, timeout)
+        super().__init__(
+            "Stress-ng performance CPU test.",
+            {Subsystem.SYSTEM},
+            timeout,
+        )
 
     def _run(self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int) -> None:
         stress_ng = StressNg(client)
-        future = executor.submit(stress_ng.run, timeout_sec=timeout, cpu=0)
-        result = future.result()
-        _, metrics = result
-        self.logger.info(metrics)
+        self.run_test(stress_ng=stress_ng, executor=executor, timeout=timeout, cpu=0)
 
 
 class ChaosbladeCPUTest(AbstractRunnableTimeLimitedTest):
     def __init__(self, timeout: int) -> None:
-        super().__init__("Load CPU 70% with chaosblade.", {"system"}, timeout)
+        super().__init__("Load CPU 70% with chaosblade.", {Subsystem.SYSTEM}, timeout)
 
     def _run(self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int) -> None:
         chaos = Chaosblade(client)

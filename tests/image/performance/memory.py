@@ -2,7 +2,7 @@ from concurrent.futures import ThreadPoolExecutor
 import logging
 from typing import TYPE_CHECKING
 
-from imgtests.runner import AbstractRunnableTimeLimitedTest
+from imgtests.runner import AbstractRunnableTimeLimitedTest, Subsystem
 from imgtests.exec.observers.sar import Sar
 from imgtests.exec.base_util import common_run_command
 
@@ -15,7 +15,7 @@ class SarWithStressNGTest(AbstractRunnableTimeLimitedTest):
     """Tests that run stress-ng with sar to measure pgscan time."""
 
     def __init__(self, timeout: int) -> None:
-        super().__init__("Stress-ng with sar measure pgscan time.", {"memory"}, timeout)
+        super().__init__("Stress-ng with sar measure pgscan time.", {Subsystem.MEMORY}, timeout)
 
     def _run(
         self,
