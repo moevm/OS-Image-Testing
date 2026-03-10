@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING
 
 from imgtests.exec.loaders import Perf
-from imgtests.runner import AbstractRunnableManyTimesTest
+from imgtests.runner import AbstractRunnableManyTimesTest, Subsystem
 
 if TYPE_CHECKING:
     from concurrent.futures import ThreadPoolExecutor
@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 class SchedPerformanceTest(AbstractRunnableManyTimesTest):
     def __init__(self, iterations: int = 1) -> None:
-        super().__init__("Benchmark scheduler and IPC mechanisms.", {"IPC"}, iterations)
+        super().__init__("Benchmark scheduler and IPC mechanisms.", {Subsystem.IPC}, iterations)
 
     def _run(
         self,
