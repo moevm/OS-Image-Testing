@@ -111,11 +111,11 @@ class POSIXUtilsTest(AbstractRunnableManyTimesTest):
             "paste",
             "tr",
             "diff",
-            "patch",
             "cp",
-            "rm",
+            "patch",
             "mv",
             "ln",
+            "rm",
             "chmod",
             "chown",
             "chgrp",
@@ -129,13 +129,13 @@ class POSIXUtilsTest(AbstractRunnableManyTimesTest):
             elif tool in {"head", "tail"}:
                 cmd = f"{tool} -n 1000 {filename1} {filename2} > /dev/null"
             elif tool == "grep":
-                cmd = f"{tool} test {filename1} {filename2} > /dev/null || exit 0"
+                cmd = f"bash -c '{tool} test {filename1} {filename2} > /dev/null || true'"
             elif tool == "paste":
                 cmd = f"{tool} {filename2} {filename1} > /dev/null"
             elif tool == "tr":
                 cmd = f"{tool} 'a-z' 'A-Z' < {filename1} > /dev/null"
             elif tool == "diff":
-                cmd = f"{tool} -u {filename1} {filename2} > diff.patch"
+                cmd = f"bash -c '{tool} -u {filename1} {filename2} > diff.patch || true'"
             elif tool == "cp":
                 cmd = " ".join([tool, str(filename1), f"{filename1}.copy"])
             elif tool == "patch":
@@ -145,7 +145,7 @@ class POSIXUtilsTest(AbstractRunnableManyTimesTest):
             elif tool == "ln":
                 cmd = " ".join([tool, str(filename1), f"{filename1}.hardlink"])
             elif tool == "rm":
-                cmd = " ".join([tool, f"{filename1}.new", f"{filename1}.hardlink"])
+                cmd = " ".join([tool, f"{filename1}.new"])
             elif tool == "chmod":
                 cmd = f"{tool} 777 {filename1}"
             elif tool in {"chown", "chgrp"}:
@@ -154,8 +154,10 @@ class POSIXUtilsTest(AbstractRunnableManyTimesTest):
                 cmd = f"{tool} -cf {filename1}.tar {filename1}"
             elif tool in {"md5sum", "sha256sum"}:
                 cmd = f"{tool} {filename1} {filename2}"
-            results[tool] = time_cmd_many(time, cmd, iterations)
-            self.logger.info("Results for %s: %s", tool, time_cmd_many(time, cmd, iterations))
+            results[tool] = time_cmd_many(time, cmd, iterations, client)
+            self.logger.info(
+                "Results for %s: %s", tool, time_cmd_many(time, cmd, iterations, client)
+            )
         return results
 
     def test_net_utils(self, client: SSHClient | None, iterations: int) -> ToolsTimes:
@@ -166,7 +168,7 @@ class POSIXUtilsTest(AbstractRunnableManyTimesTest):
             cmd = tool
             if tool == "ping":
                 cmd = f"{tool} -c 20 localhost"
-            results[tool] = time_cmd_many(time, cmd, iterations)
+            results[tool] = time_cmd_many(time, cmd, iterations, client)
             self.logger.info("Results for %s: %s", tool, results[tool])
         return results
 
@@ -187,18 +189,20 @@ class POSIXUtilsTest(AbstractRunnableManyTimesTest):
         path = tmpdir / "/".join(str(i) for i in range(1, 51))
         for tool in tools:
             cmd = tool
-            if tool in {"mkdir", "rmdir"}:
+            if tool == "mkdir":
                 cmd = f"{tool} -p {path}"
+            elif tool == "rmdir":
+                cmd = f"{tool} {tempfile.gettempdir()}/test"
             elif tool == "find":
                 cmd = f"{tool} /tmp -type d -name '40'"
             elif tool == "ls":
                 for j in range(1, 101):
                     dd(["if=/dev/urandom", f"of=/tmp/file{j}", "bs=10", "count=1"])
                 cmd = f"{tool} /tmp"
-                rm([str(tmpdir / "/file*")])
+                rm([str(tmpdir / f"file{j}") for j in range(1, 101)])
             elif tool == "realpath":
                 cmd = f"{tool} {path}"
-            results[tool] = time_cmd_many(time, cmd, iterations)
+            results[tool] = time_cmd_many(time, cmd, iterations, client)
             self.logger.info("Results for %s: %s", tool, results[tool])
         return results
 
@@ -226,21 +230,69 @@ class POSIXUtilsTest(AbstractRunnableManyTimesTest):
                 cmd = f"{tool} aux | grep {process}"
             elif tool == "pgrep":
                 cmd = f"{tool} {process}"
-            elif tool in {"echo", "hello"}:
+            elif tool in {"echo", "printf"}:
                 string = "a" * 1000
                 cmd = f"{tool} {string}"
-            results[tool] = time_cmd_many(time, cmd, iterations)
+            results[tool] = time_cmd_many(time, cmd, iterations, client)
             self.logger.info("Results for %s: %s", tool, results[tool])
         return results
 
 
-def time_cmd_many(
-    time: Time,
-    tool: str,
-    iterations: int,
-) -> ToolTimes | None:
+def time_cmd_many(time: Time, tool: str, iterations: int, client: SSHClient) -> ToolTimes | None:
     result: list[Times] = []
-    for _ in range(iterations):
+    for i in range(iterations):
+        parts = tool.split()
+        if "mkdir" in tool:
+            path = Path(tempfile.gettempdir()) / "/".join(str(i) for i in range(1, 51))
+            common_run_command(
+                [
+                    "test",
+                    "-d",
+                    str(path),
+                    "&&",
+                    "rm",
+                    "-rf",
+                    f"{tempfile.gettempdir()}/1",
+                    "||",
+                    "true",
+                ],
+                client,
+            )
+        elif "rmdir" in tool:
+            common_run_command(["mkdir", f"{tempfile.gettempdir()}/test"], client)
+        elif parts[0] == "patch":
+            common_run_command(["cp", parts[1], f"{parts[1]}.{i}"], client)
+            tool_old = tool
+            tool = f"{parts[0]} {parts[1]}.{i} < diff.patch"
+            times = time.run(tool)
+            if times is None:
+                return None
+            result.append(times)
+            tool = tool_old
+            continue
+        elif "mv" in tool:
+            common_run_command(["cp", parts[1].split(".")[0], parts[1]], client)
+        elif "ln" in tool:
+            common_run_command(
+                ["[", "-f", parts[2], "]", "&&", "rm", parts[2], "||", "true"], client
+            )
+        elif "rm" in tool:
+            common_run_command(
+                [
+                    "[",
+                    "!",
+                    "-f",
+                    parts[1],
+                    "]",
+                    "&&",
+                    "cp",
+                    parts[1].split(".")[0],
+                    parts[1],
+                    "||",
+                    "true",
+                ],
+                client,
+            )
         times = time.run(tool)
         if times is None:
             return None
