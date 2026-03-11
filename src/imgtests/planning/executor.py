@@ -11,12 +11,13 @@ from typing import TYPE_CHECKING, Any
 
 from imgtests.exec.loaders.fio import Fio
 from imgtests.exec.loaders.stress_ng import StressNg
+from imgtests.runner import Subsystem
 from imgtests.sysrep import get_system_info
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from imgtests.database.database import ImgtestsDatabase
+    from imgtests.database.database import ExperimentType, ImgtestsDatabase
     from imgtests.exec.exec import SSHClient
     from imgtests.planning.models import LoadTask, PlanStage, TestPlan
 
@@ -165,7 +166,7 @@ def _build_stress_retry_args(args: dict[str, Any]) -> dict[str, Any]:
     if "vm" in retry_args:
         retry_args["vm"] = _halve_positive_int(retry_args["vm"], fallback=1)
         retry_args["vm_bytes"] = "15%"
-        for key in ("vm_populate", "vm_flip", "vm_mmap", "vm_hugepage"):
+        for key in ("vm-populate", "vm-flip", "vm-mmap", "vm-hugepage"):
             retry_args.pop(key, None)
 
     if "cpu" in retry_args:
@@ -182,6 +183,10 @@ def _build_stress_retry_args(args: dict[str, Any]) -> dict[str, Any]:
 
     if "syscall" in retry_args:
         retry_args["syscall"] = _halve_positive_int(retry_args["syscall"], fallback=1)
+
+    for key in ("mq", "pipe", "sem", "shm"):
+        if key in retry_args:
+            retry_args[key] = _halve_positive_int(retry_args[key], fallback=1)
 
     return retry_args
 
@@ -295,7 +300,7 @@ class PlanExecutor:
         experiment = self.db.insert_experiment(
             config_id=cfg_id,
             description=self.experiment_description,
-            experiment_type=getattr(plan.test_kind, "value", str(plan.test_kind)),
+            experiment_type=_resolve_experiment_type(plan),
             started_at=started_at,
             ended_at=started_at,
         )
@@ -675,3 +680,15 @@ class PlanExecutor:
                 )
 
         return out
+
+
+def _resolve_experiment_type(plan: TestPlan) -> ExperimentType:
+    test_kind = getattr(plan.test_kind, "value", str(plan.test_kind))
+
+    if set(plan.subsystems) == set(Subsystem):
+        return "all"
+
+    if test_kind == "stability":
+        return "endurance"
+
+    return "performance"

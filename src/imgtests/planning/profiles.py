@@ -44,12 +44,19 @@ PROFILE_LAYOUTS: dict[TestKind, tuple[StageTemplate, ...]] = {
 }
 
 _STRESS_ARGS: dict[Subsystem, dict[LoadPattern, dict[str, Any]]] = {
-    Subsystem.CPU: {
+    Subsystem.SYSTEM: {
         LoadPattern.SOFT: {"cpu": 1, "cpu_method": "matrixprod"},
         LoadPattern.BALANCED: {"cpu": 0, "cpu_method": "all"},
         LoadPattern.INTENSE: {"cpu": 0, "cpu_method": "all"},
         LoadPattern.EXTREME: {"cpu": 0, "cpu_method": "all"},
         LoadPattern.SPIKE: {"cpu": 0, "cpu_method": "all"},
+    },
+    Subsystem.IPC: {
+        LoadPattern.SOFT: {"mq": 1, "pipe": 1, "sem": 1, "shm": 1},
+        LoadPattern.BALANCED: {"mq": 2, "pipe": 2, "sem": 2, "shm": 2},
+        LoadPattern.INTENSE: {"mq": 4, "pipe": 4, "sem": 4, "shm": 4},
+        LoadPattern.EXTREME: {"mq": 6, "pipe": 6, "sem": 6, "shm": 6},
+        LoadPattern.SPIKE: {"mq": 8, "pipe": 8, "sem": 8, "shm": 8},
     },
     Subsystem.MEMORY: {
         LoadPattern.SOFT: {"vm": 1, "vm_method": "all", "vm_bytes": "10%"},
@@ -59,13 +66,13 @@ _STRESS_ARGS: dict[Subsystem, dict[LoadPattern, dict[str, Any]]] = {
             "vm": 8,
             "vm_method": "all",
             "vm_bytes": "50%",
-            "vm_populate": True,
+            "vm-populate": True,
         },
         LoadPattern.SPIKE: {
             "vm": 8,
             "vm_method": "all",
             "vm_bytes": "55%",
-            "vm_populate": True,
+            "vm-populate": True,
         },
     },
     Subsystem.NETWORK: {
@@ -75,7 +82,7 @@ _STRESS_ARGS: dict[Subsystem, dict[LoadPattern, dict[str, Any]]] = {
         LoadPattern.EXTREME: {"sock": 6, "sock_ops": 350_000},
         LoadPattern.SPIKE: {"sock": 8, "sock_ops": 500_000},
     },
-    Subsystem.SYSCALL: {
+    Subsystem.SYSCALLS: {
         LoadPattern.SOFT: {"syscall": 1},
         LoadPattern.BALANCED: {"syscall": 2},
         LoadPattern.INTENSE: {"syscall": 4},
@@ -124,7 +131,7 @@ _FIO_ARGS: dict[LoadPattern, dict[str, Any]] = {
 
 
 def build_task(subsystem: Subsystem, pattern: LoadPattern, stage_duration_sec: int) -> LoadTask:
-    if subsystem == Subsystem.DISK:
+    if subsystem == Subsystem.FILE:
         args = dict(_FIO_ARGS[pattern])
         args["runtime_sec"] = stage_duration_sec
         return LoadTask(subsystem=subsystem, tool="fio", args=args)

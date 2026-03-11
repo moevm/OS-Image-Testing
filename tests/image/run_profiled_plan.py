@@ -64,11 +64,15 @@ def parse_subsystems(raw: str) -> tuple[Subsystem, ...]:
         return tuple(Subsystem)
 
     mapping: dict[str, Subsystem] = {
-        "cpu": Subsystem.CPU,
+        "system": Subsystem.SYSTEM,
+        "cpu": Subsystem.SYSTEM,
+        "file": Subsystem.FILE,
+        "disk": Subsystem.FILE,
+        "ipc": Subsystem.IPC,
         "memory": Subsystem.MEMORY,
-        "disk": Subsystem.DISK,
         "network": Subsystem.NETWORK,
-        "syscall": Subsystem.SYSCALL,
+        "syscalls": Subsystem.SYSCALLS,
+        "syscall": Subsystem.SYSCALLS,
     }
 
     out: list[Subsystem] = []
@@ -197,7 +201,7 @@ def _safe_close_client(client: Any) -> Iterator[Any]:
 
 
 def _run_main() -> int:
-    subsystems = parse_subsystems(os.getenv("PLAN_SUBSYSTEMS", "cpu,memory,disk,network,syscall"))
+    subsystems = parse_subsystems(os.getenv("PLAN_SUBSYSTEMS", "all"))
     results_root = Path(os.getenv("PLAN_RESULTS_DIR", "results/profiled"))
     run_matrix = parse_bool_env("PLAN_RUN_MATRIX", default=False)
 
