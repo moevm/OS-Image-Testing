@@ -251,28 +251,21 @@ class PhoronixTestSuite(PkgMgrMixin, GenericUtil):
     def serialize_metrics(metrics: dict[str, Any]) -> str:
         return json.dumps(metrics)
 
-    def prepare(self) -> None:
+    def prepare(self) -> ExecResult:
         """Prepares PTS for running tests.
 
         Sets up Google DNS server and turns off interactive questions in the future tests.
         """
-        result = common_run_command(
-            cmd=["echo", "'nameserver 8.8.8.8'", ">", "/etc/resolv.conf"],
-            ssh_client=self.ssh_client,
-        )
-        if result.returncode:
-            logger.error("PTS setup failed: '%s'", result.stderr)
-            return
-
-        common_run_command(
-            cmd=["phoronix-test-suite", "openbenchmarking-refresh"],
-            ssh_client=self.ssh_client,
-        )
-
         setup_answers = "y\n" + "n\n" * 6
-        commands = [["echo", "-e", f'"{setup_answers}"'], ["phoronix-test-suite", "batch-setup"]]
+        commands = [
+            ["echo", "'nameserver 8.8.8.8'", ">", "/etc/resolv.conf"],
+            ["phoronix-test-suite", "openbenchmarking-refresh"],
+            ["echo", "-e", f'"{setup_answers}"'],
+            ["phoronix-test-suite", "batch-setup"],
+        ]
         for result in pipeline(cmds=commands, ssh_client=self.ssh_client, pass_output=True):
             if result.returncode:
                 logger.error("PTS setup failed: '%s'", result.stderr)
-                return
+                return result
         logger.info("PTS setup successful")
+        return result
