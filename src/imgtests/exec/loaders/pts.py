@@ -248,8 +248,8 @@ class PhoronixTestSuite(PkgMgrMixin, GenericUtil):
         return result, json_data
 
     @staticmethod
-    def serialize_metrics(result: dict[str, Any]) -> str:
-        return json.dumps(result)
+    def serialize_metrics(metrics: dict[str, Any]) -> str:
+        return json.dumps(metrics)
 
     def prepare(self) -> None:
         """Prepares PTS for running tests.
