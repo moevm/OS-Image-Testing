@@ -56,10 +56,8 @@ class PhoronixTestSuite(PkgMgrMixin, GenericUtil):
                 return
         logger.info("PTS test '%s' removed", test_name)
 
-    def run_test(self, test_name: str, run_count: int) -> ExecResult | None:
+    def run_test(self, test_name: str, run_count: int) -> ExecResult:
         """Runs a given test with set amount of iterations."""
-        if not self.install_test(test_name=test_name):
-            return None
         logger.info("PTS test '%s' started", test_name)
         result = common_run_command(
             [f"FORCE_TIMES_TO_RUN={run_count}", self.name, "batch-run", test_name],
@@ -239,16 +237,14 @@ class PhoronixTestSuite(PkgMgrMixin, GenericUtil):
             test_name (str): Name of PTS test.
             run_count (int): Amount of iterations of given test.
 
+        Raises:
+            ValueError: When there are no test results or JSON is corrupted.
+
         Returns:
-            Returns:
             tuple[ExecResult, dict[str, Any]]: Result of test and metrics.
         """
         result = self.run_test(test_name=test_name, run_count=run_count)
-
-        try:
-            json_data = self.get_result_json()
-        except ValueError as e:
-            return f"Error while processing results: {e}"
+        json_data = self.get_result_json()
         return result, json_data
 
     @staticmethod
