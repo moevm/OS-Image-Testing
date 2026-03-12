@@ -4,7 +4,6 @@ from .fio import Fio as Fio
 from .fio import FioPlot as FioPlot
 from .fwts import Fwts as Fwts
 from .iperf3 import Iperf3 as Iperf3
-from .joint_bench import JointBench as JointBench
 from .kirk import Kirk as Kirk
 from .perf import Perf as Perf
 from .perf import PerfBenchMetrics as PerfBenchMetrics
