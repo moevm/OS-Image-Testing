@@ -41,7 +41,9 @@ class FioDisksScalingTest(AbstractRunnableTimeLimitedTest):
     """Test that runs fio on a disk with scaling workloads."""
 
     def __init__(self, timeout: int) -> None:
-        super().__init__("Scaling load drives with fio.", {Subsystem.FILE}, timeout=timeout)
+        super().__init__(
+            "Scaling load drives with fio.", frozenset({Subsystem.FILE}), timeout=timeout
+        )
 
     def _run(
         self,
@@ -63,7 +65,7 @@ class FioDisksNightly(AbstractRunnableTimeLimitedTest):
     """Tests that run fio on a disk with nightly workloads."""
 
     def __init__(self, timeout: int) -> None:
-        super().__init__("Nightly load drives with fio.", {Subsystem.FILE}, timeout)
+        super().__init__("Nightly load drives with fio.", frozenset({Subsystem.FILE}), timeout)
 
     def _run(
         self,

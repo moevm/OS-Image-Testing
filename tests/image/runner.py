@@ -20,6 +20,7 @@ from image.performance.system import PTSSystemTest
 from imgtests.exec.exec import wait_remote
 from imgtests.logger import set_handlers
 from imgtests.runner import TestsRunner, TestsRunnerConfig
+from imgtests.suites.general.joint_bench import JointBench
 from imgtests.suites.system import SystemLoadTimeTest, SystemSlowServicesTest
 
 yocto_conf = (
@@ -44,6 +45,7 @@ def main() -> None:
         tests=(
             SystemLoadTimeTest(),
             SystemSlowServicesTest(),
+            JointBench(iterations=3),
             POSIXUtilsTest(10),
             FioDisksScalingTest(10),
             FioDisksNightly(10),

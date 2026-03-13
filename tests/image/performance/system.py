@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 class PTSSystemTest(AbstractRunnableManyTimesTest):
     def __init__(self, iterations: int = 1) -> None:
-        super().__init__("Load system with PTS.", {Subsystem.SYSTEM}, iterations)
+        super().__init__("Load system with PTS.", frozenset({Subsystem.SYSTEM}), iterations)
 
     def _run(self, executor: ThreadPoolExecutor, client: SSHClient | None, iterations: int) -> None:
         pts = PhoronixTestSuite(client)

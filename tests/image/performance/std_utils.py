@@ -34,7 +34,9 @@ ToolsTimes = dict[str, ToolTimes | None]
 
 class POSIXUtilsTest(AbstractRunnableManyTimesTest):
     def __init__(self, iterations: int = 1) -> None:
-        super().__init__("Tests standard utilities performance.", {Subsystem.SYSTEM}, iterations)
+        super().__init__(
+            "Tests standard utilities performance.", frozenset({Subsystem.SYSTEM}), iterations
+        )
 
     def _run(
         self,

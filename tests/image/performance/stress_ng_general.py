@@ -40,14 +40,16 @@ class StressNgConsecutiveLoadTest(StressNgTest):
     def __init__(self, timeout: int) -> None:
         super().__init__(
             "Test stress-ng full consecutive load on subsystems.",
-            {
-                Subsystem.MEMORY,
-                Subsystem.FILE,
-                Subsystem.IPC,
-                Subsystem.SYSCALLS,
-                Subsystem.NETWORK,
-                Subsystem.SYSTEM,
-            },
+            frozenset(
+                {
+                    Subsystem.MEMORY,
+                    Subsystem.FILE,
+                    Subsystem.IPC,
+                    Subsystem.SYSCALLS,
+                    Subsystem.NETWORK,
+                    Subsystem.SYSTEM,
+                }
+            ),
             timeout,
         )
 
@@ -62,14 +64,16 @@ class StressNgCombineLoadTest(StressNgTest):
     def __init__(self, timeout: int) -> None:
         super().__init__(
             "Test stress-ng full combine load on subsystems.",
-            {
-                Subsystem.MEMORY,
-                Subsystem.FILE,
-                Subsystem.IPC,
-                Subsystem.SYSCALLS,
-                Subsystem.NETWORK,
-                Subsystem.SYSTEM,
-            },
+            frozenset(
+                {
+                    Subsystem.MEMORY,
+                    Subsystem.FILE,
+                    Subsystem.IPC,
+                    Subsystem.SYSCALLS,
+                    Subsystem.NETWORK,
+                    Subsystem.SYSTEM,
+                }
+            ),
             timeout,
         )
 
@@ -88,14 +92,16 @@ class StressNgParallelLoadTest(StressNgTest):
     def __init__(self, timeout: int) -> None:
         super().__init__(
             "Test stress-ng full parallel load on subsystems.",
-            {
-                Subsystem.MEMORY,
-                Subsystem.FILE,
-                Subsystem.IPC,
-                Subsystem.SYSCALLS,
-                Subsystem.NETWORK,
-                Subsystem.SYSTEM,
-            },
+            frozenset(
+                {
+                    Subsystem.MEMORY,
+                    Subsystem.FILE,
+                    Subsystem.IPC,
+                    Subsystem.SYSCALLS,
+                    Subsystem.NETWORK,
+                    Subsystem.SYSTEM,
+                }
+            ),
             timeout,
         )
 

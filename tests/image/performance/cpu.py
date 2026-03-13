@@ -14,7 +14,7 @@ class StressNgPerformanceCpuTest(StressNgTest):
     def __init__(self, timeout: int) -> None:
         super().__init__(
             "Stress-ng performance CPU test.",
-            {Subsystem.SYSTEM},
+            frozenset({Subsystem.SYSTEM}),
             timeout,
         )
 
@@ -25,7 +25,7 @@ class StressNgPerformanceCpuTest(StressNgTest):
 
 class ChaosbladeCPUTest(AbstractRunnableTimeLimitedTest):
     def __init__(self, timeout: int) -> None:
-        super().__init__("Load CPU 70% with chaosblade.", {Subsystem.SYSTEM}, timeout)
+        super().__init__("Load CPU 70% with chaosblade.", frozenset({Subsystem.SYSTEM}), timeout)
 
     def _run(self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int) -> None:
         chaos = Chaosblade(client)

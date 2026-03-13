@@ -11,7 +11,9 @@ if TYPE_CHECKING:
 
 class SchedPerformanceTest(AbstractRunnableManyTimesTest):
     def __init__(self, iterations: int = 1) -> None:
-        super().__init__("Benchmark scheduler and IPC mechanisms.", {Subsystem.IPC}, iterations)
+        super().__init__(
+            "Benchmark scheduler and IPC mechanisms.", frozenset({Subsystem.IPC}), iterations
+        )
 
     def _run(
         self,

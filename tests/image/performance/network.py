@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 class Iperf3LocalTest(AbstractRunnableTimeLimitedTest):
     def __init__(self, timeout: int) -> None:
-        super().__init__("Load local network with iperf3.", {Subsystem.NETWORK}, timeout)
+        super().__init__("Load local network with iperf3.", frozenset({Subsystem.NETWORK}), timeout)
 
     def _run(self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int) -> None:
         """Test remote network with server and client on the remote."""
@@ -20,7 +20,7 @@ class Iperf3LocalTest(AbstractRunnableTimeLimitedTest):
         for udp in (False, True):
             server_future = executor.submit(iperf3.run, server=True, one_off=True, version4=True)
             sleep(1)
-            # TODO: save result to the database  # noqa: FIX002, TD002, TD003
+            # TODO: save result to the database
             ret = iperf3.run(
                 client="localhost",
                 time=timeout,
