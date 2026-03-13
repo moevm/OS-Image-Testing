@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 class LTPSyscallsTest(AbstractRunnableManyTimesTest):
     def __init__(self, iterations: int = 1) -> None:
-        super().__init__("Test syscalls with LTP.", {Subsystem.SYSCALLS}, iterations)
+        super().__init__("Test syscalls with LTP.", frozenset({Subsystem.SYSCALLS}), iterations)
 
     def _run(
         self,
@@ -32,7 +32,7 @@ class StressNgEnduranceSyscallsTest(StressNgTest):
     def __init__(self, timeout: int) -> None:
         super().__init__(
             "Stress-ng endurance syscalls test.",
-            {Subsystem.SYSCALLS},
+            frozenset({Subsystem.SYSCALLS}),
             timeout,
         )
 

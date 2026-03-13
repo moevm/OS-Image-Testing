@@ -1,9 +1,12 @@
+import inspect
 import logging
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 from enum import Enum
 from threading import Event, Thread
 from typing import TYPE_CHECKING, Any, NamedTuple
+from zoneinfo import ZoneInfo
 
 import paramiko
 import paramiko.ssh_exception
@@ -32,6 +35,13 @@ class Subsystem(str, Enum):
     SYSTEM = "system"
 
 
+class TestResult(NamedTuple):
+    metrics: Any
+    command: str = ""
+    started_at: datetime = datetime.now(tz=ZoneInfo("UTC"))
+    ended_at: datetime = datetime.now(tz=ZoneInfo("UTC"))
+
+
 class DefaultCleanupMixin:
     def cleanup(self, client: SSHClient | None, logger: logging.Logger) -> None:
         for path in ("/tmp/*", "/var/tmp/*"):  # noqa: S108
@@ -48,7 +58,7 @@ class AbstractRunnableManyTimesTest(ABC, DefaultCleanupMixin):
     def __init__(
         self,
         description: str,
-        subsystems: set[Subsystem],
+        subsystems: frozenset[Subsystem],
         iterations: int = 1,
     ) -> None:
         """Construct a AbstractRunnableManyTimesTest instance.
@@ -73,9 +83,15 @@ class AbstractRunnableManyTimesTest(ABC, DefaultCleanupMixin):
         self.iterations = iterations
         self.logger = logging.getLogger(f"{LIB_NAME}.runnable_test")
 
-    def __call__(self, executor: ThreadPoolExecutor, client: SSHClient | None = None) -> Any:
+    def __call__(
+        self, executor: ThreadPoolExecutor, client: SSHClient | None = None
+    ) -> Iterable[TestResult]:
         self.logger.info("Starting '%s' test '%d' times.", self.description, self.iterations)
-        self._run(executor, client, self.iterations)
+        # TODO: make all tests return a generator
+        if inspect.isgeneratorfunction(self._run):
+            yield from self._run(executor, client, self.iterations)
+        else:
+            self._run(executor, client, self.iterations)
         self.logger.info("'%s' test finished.", self.description)
 
     @abstractmethod
@@ -84,7 +100,7 @@ class AbstractRunnableManyTimesTest(ABC, DefaultCleanupMixin):
         executor: ThreadPoolExecutor,
         client: SSHClient | None,
         iterations: int,
-    ) -> None: ...
+    ) -> Iterable[TestResult]: ...
 
 
 class AbstractRunnableTimeLimitedTest(ABC, DefaultCleanupMixin):
@@ -93,7 +109,7 @@ class AbstractRunnableTimeLimitedTest(ABC, DefaultCleanupMixin):
     def __init__(
         self,
         description: str,
-        subsystems: set[Subsystem],
+        subsystems: frozenset[Subsystem],
         timeout: int,
     ) -> None:
         """Construct a AbstractRunnableTimeLimitedTest instance.
@@ -118,9 +134,15 @@ class AbstractRunnableTimeLimitedTest(ABC, DefaultCleanupMixin):
         self.timeout = timeout
         self.logger = logging.getLogger(f"{LIB_NAME}.runnable_test")
 
-    def __call__(self, executor: ThreadPoolExecutor, client: SSHClient | None = None) -> Any:
+    def __call__(
+        self, executor: ThreadPoolExecutor, client: SSHClient | None = None
+    ) -> Iterable[TestResult]:
         self.logger.info("Starting '%s' test with '%d' timeout.", self.description, self.timeout)
-        self._run(executor, client, self.timeout)
+        # TODO: make all tests return a generator
+        if inspect.isgeneratorfunction(self._run):
+            yield from self._run(executor, client, self.timeout)
+        else:
+            self._run(executor, client, self.timeout)
         self.logger.info("'%s' test finished.", self.description)
 
     @abstractmethod
@@ -129,7 +151,7 @@ class AbstractRunnableTimeLimitedTest(ABC, DefaultCleanupMixin):
         executor: ThreadPoolExecutor,
         client: SSHClient | None,
         timeout: int,
-    ) -> None: ...
+    ) -> Iterable[TestResult]: ...
 
 
 # Time to run, subsystems, stages (plan, risk analysis, run, cleanup, results, etc), etc
@@ -166,7 +188,18 @@ class TestsRunner:
                 self.__client.reconnect()
             is_alive_cycle = Thread(target=self.__is_remote_alive, args=(test_completed_event,))
             is_alive_cycle.start()
-            test(self.__executor, self.__client)
+            # TODO: make all tests return a generator
+            if inspect.isgeneratorfunction(test._run):  # noqa: SLF001
+                for result in test(self.__executor, self.__client):
+                    self.__database.insert_loader(
+                        experiment_id=experiment.experiment_id,
+                        result=result.metrics,
+                        command=result.command,
+                        started_at=result.started_at,
+                        ended_at=result.ended_at,
+                    )
+            else:
+                list(test(self.__executor, self.__client))
             test.cleanup(self.__client, self.logger)
             test_completed_event.set()
             is_alive_cycle.join(10)
