@@ -31,7 +31,8 @@ from imgtests.exec.loaders.perf import Perf, PerfBenchMetrics
             """,
             (
                 PerfBenchMetrics(
-                    benchmark="sched/messaging", total_time=0.464, usecs_per_op=-1, ops_per_sec=-1
+                    benchmark="sched/messaging",
+                    total_time=0.464,
                 ),
                 PerfBenchMetrics(
                     benchmark="sched/pipe",
@@ -103,14 +104,124 @@ from imgtests.exec.loaders.perf import Perf, PerfBenchMetrics
                 ),
             ),
         ),
+        (
+            """perf bench mem memcpy
+            # Running 'mem/memcpy' benchmark:
+            # function 'default' (Default memcpy() provided by glibc)
+            # Copying 1MB bytes ...
+
+                6,180775 GB/sec
+            # function 'x86-64-unrolled' (unrolled memcpy() in arch/x86/lib/memcpy_64.S)
+            # Copying 1MB bytes ...
+
+                1,337757 GB/sec
+            # function 'x86-64-movsq' (movsq-based memcpy() in arch/x86/lib/memcpy_64.S)
+            # Copying 1MB bytes ...
+
+                7,025629 GB/sec
+            """,
+            (
+                PerfBenchMetrics(
+                    benchmark="mem/memcpy",
+                    gb_per_sec_default=6.180775,
+                    gb_per_sec_unrolled=1.337757,
+                    gb_per_sec_movsq_based=7.025629,
+                ),
+            ),
+        ),
+        (
+            """
+            # Running 'mem/memset' benchmark:
+            # function 'default' (Default memset() provided by glibc)
+            # Copying 1MB bytes ...
+
+                21,229620 GB/sec
+            # function 'x86-64-unrolled' (unrolled memset() in arch/x86/lib/memset_64.S)
+            # Copying 1MB bytes ...
+
+                21,701389 GB/sec
+            # function 'x86-64-stosq' (movsq-based memset() in arch/x86/lib/memset_64.S)
+            # Copying 1MB bytes ...
+
+                30,517578 GB/sec
+            """,
+            (
+                PerfBenchMetrics(
+                    benchmark="mem/memset",
+                    gb_per_sec_default=21.229620,
+                    gb_per_sec_unrolled=21.701389,
+                    gb_per_sec_movsq_based=30.517578,
+                ),
+            ),
+        ),
         ("", ()),
     ],
     ids=[
         "'perf sched all' parsing",
         "'perf syscall all' parsing",
+        "'perf mem memcpy' parsing",
+        "'perf mem memset' parsing",
         "Empty output",
     ],
 )
 def test_parse_metrics(raw_metrics: str, expected: tuple[PerfBenchMetrics, ...]) -> None:
     result = Perf.parse_bench(raw_metrics)
+    assert result == expected
+
+
+@pytest.mark.parametrize(
+    ("metrics", "expected"),
+    [
+        (
+            (
+                PerfBenchMetrics(
+                    benchmark="mem/memset",
+                    gb_per_sec_default=21.229620,
+                    gb_per_sec_unrolled=21.701389,
+                    gb_per_sec_movsq_based=30.517578,
+                ),
+            ),
+            [
+                {
+                    "benchmark": "mem/memset",
+                    "gb_per_sec_default": 21.22962,
+                    "gb_per_sec_unrolled": 21.701389,
+                    "gb_per_sec_movsq_based": 30.517578,
+                }
+            ],
+        ),
+        (
+            (
+                PerfBenchMetrics(
+                    benchmark="mem/memset",
+                    gb_per_sec_default=21.229620,
+                    gb_per_sec_unrolled=21.701389,
+                    gb_per_sec_movsq_based=30.517578,
+                    total_time=3.2,
+                    ops_per_sec=23211,
+                    usecs_per_op=23996.39934,
+                ),
+            ),
+            [
+                {
+                    "benchmark": "mem/memset",
+                    "total_time": 3.2,
+                    "usecs_per_op": 23996.39934,
+                    "ops_per_sec": 23211,
+                    "gb_per_sec_default": 21.22962,
+                    "gb_per_sec_unrolled": 21.701389,
+                    "gb_per_sec_movsq_based": 30.517578,
+                }
+            ],
+        ),
+        ((), []),
+    ],
+    ids=[
+        "With None values",
+        "Without None values",
+        "Empty metrics",
+    ],
+)
+def test_to_json(metrics: tuple[PerfBenchMetrics, ...], expected: str) -> None:
+    result = Perf.to_json(metrics)
     assert result == expected

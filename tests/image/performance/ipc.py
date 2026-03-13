@@ -11,7 +11,9 @@ if TYPE_CHECKING:
 
 class SchedPerformanceTest(AbstractRunnableManyTimesTest):
     def __init__(self, iterations: int = 1) -> None:
-        super().__init__("Benchmark scheduler and IPC mechanisms.", {Subsystem.IPC}, iterations)
+        super().__init__(
+            "Benchmark scheduler and IPC mechanisms.", frozenset({Subsystem.IPC}), iterations
+        )
 
     def _run(
         self,
@@ -23,10 +25,10 @@ class SchedPerformanceTest(AbstractRunnableManyTimesTest):
         for benchmark, args in zip(
             ["messaging", "messaging", "pipe"], [[], ["--thread"], []], strict=True
         ):
-            result = perf.bench("sched", benchmark, args, repeat=iterations)
+            _, m = perf.bench("sched", benchmark, args, repeat=iterations)
             self.logger.info(
                 "Total time: %s. For the benchmark '%s' with args %s.",
-                result.stdout,
+                m[0].total_time,
                 benchmark,
                 str(args),
             )

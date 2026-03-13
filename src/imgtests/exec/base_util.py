@@ -74,6 +74,22 @@ class BaseTestUtil(ABC):
         not_implemented_message = f"The '{self.name}' install logic is not implemented."
         raise NotImplementedError(not_implemented_message)
 
+    @staticmethod
+    def to_json(metrics: Any) -> Any:
+        """Converts the metrics provided by the utility into JSON.
+
+        Args:
+            metrics (Any): Metrics in the format provided by the specific utility.
+
+        Returns:
+            str: JSON like object.
+        """
+        return metrics
+
+    def prepare(self) -> ExecResult:
+        """Prepare before running the utility, if necessary."""
+        return ExecResult((), "", "", 0)
+
     @abstractmethod
     def version(self) -> Version | None:
         """Returns the utility version.
