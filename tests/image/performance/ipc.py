@@ -1,9 +1,12 @@
+from datetime import datetime
 from typing import TYPE_CHECKING
+from zoneinfo import ZoneInfo
 
 from imgtests.exec.loaders import Perf
-from imgtests.runner import AbstractRunnableManyTimesTest, Subsystem
+from imgtests.runner import AbstractRunnableManyTimesTest, Subsystem, TestResult
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
     from concurrent.futures import ThreadPoolExecutor
 
     from imgtests.exec.exec import SSHClient
@@ -20,15 +23,18 @@ class SchedPerformanceTest(AbstractRunnableManyTimesTest):
         executor: ThreadPoolExecutor,  # noqa: ARG002
         client: SSHClient | None,
         iterations: int,
-    ) -> None:
+    ) -> Iterable[TestResult]:
         perf = Perf(client)
         for benchmark, args in zip(
             ["messaging", "messaging", "pipe"], [[], ["--thread"], []], strict=True
         ):
-            _, m = perf.bench("sched", benchmark, args, repeat=iterations)
-            self.logger.info(
-                "Total time: %s. For the benchmark '%s' with args %s.",
-                m[0].total_time,
-                benchmark,
-                str(args),
-            )
+            started_at = datetime.now(tz=ZoneInfo("UTC"))
+            result, metrics = perf.bench("sched", benchmark, args, repeat=iterations)
+            if result.returncode:
+                self.logger.error("Failed to run benchmark '%s' with args '%s'.", benchmark, args)
+            else:
+                yield TestResult(
+                    started_at=started_at,
+                    metrics=perf.metrics_to_json(metrics),
+                    command=" ".join(result.cmd),
+                )

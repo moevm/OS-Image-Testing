@@ -36,7 +36,7 @@ class Subsystem(str, Enum):
 
 
 class TestResult(NamedTuple):
-    metrics: dict[str, Any]
+    metrics: Any
     command: str = ""
     started_at: datetime = datetime.now(tz=ZoneInfo("UTC"))
     ended_at: datetime = datetime.now(tz=ZoneInfo("UTC"))
