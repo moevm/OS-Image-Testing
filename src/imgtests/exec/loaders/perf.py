@@ -164,7 +164,7 @@ class Perf(PkgMgrMixin, GenericUtil):
         return tuple(results)
 
     @staticmethod
-    def to_json(metrics: tuple[PerfBenchMetrics, ...]) -> list[dict[str, Any]]:
+    def metrics_to_json(metrics: tuple[PerfBenchMetrics, ...]) -> list[dict[str, Any]]:
         processed_result: list[dict[str, Any]] = []
         for metric in metrics:
             d = metric._asdict()

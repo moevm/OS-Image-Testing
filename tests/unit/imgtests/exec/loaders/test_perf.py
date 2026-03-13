@@ -223,5 +223,5 @@ def test_parse_metrics(raw_metrics: str, expected: tuple[PerfBenchMetrics, ...])
     ],
 )
 def test_to_json(metrics: tuple[PerfBenchMetrics, ...], expected: str) -> None:
-    result = Perf.to_json(metrics)
+    result = Perf.metrics_to_json(metrics)
     assert result == expected

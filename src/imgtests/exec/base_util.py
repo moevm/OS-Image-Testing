@@ -75,7 +75,7 @@ class BaseTestUtil(ABC):
         raise NotImplementedError(not_implemented_message)
 
     @staticmethod
-    def to_json(metrics: Any) -> Any:
+    def metrics_to_json(metrics: Any) -> Any:
         """Converts the metrics provided by the utility into JSON.
 
         Args:
