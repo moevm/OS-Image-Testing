@@ -1,4 +1,3 @@
-import json
 import logging
 import re
 from typing import Any, Final, Literal, NamedTuple
@@ -165,11 +164,11 @@ class Perf(PkgMgrMixin, GenericUtil):
         return tuple(results)
 
     @staticmethod
-    def serialize_metrics(metrics: tuple[PerfBenchMetrics, ...]) -> str:
+    def to_json(metrics: tuple[PerfBenchMetrics, ...]) -> list[dict[str, Any]]:
         processed_result: list[dict[str, Any]] = []
         for metric in metrics:
             d = metric._asdict()
             filtered_d = {key: value for key, value in d.items() if value is not None}
             processed_result.append(filtered_d)
 
-        return json.dumps(processed_result)
+        return processed_result

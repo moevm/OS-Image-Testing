@@ -181,9 +181,14 @@ def test_parse_metrics(raw_metrics: str, expected: tuple[PerfBenchMetrics, ...])
                     gb_per_sec_movsq_based=30.517578,
                 ),
             ),
-            '[{"benchmark": "mem/memset", "gb_per_sec_default": 21.22962, '
-            '"gb_per_sec_unrolled": 21.701389, '
-            '"gb_per_sec_movsq_based": 30.517578}]',
+            [
+                {
+                    "benchmark": "mem/memset",
+                    "gb_per_sec_default": 21.22962,
+                    "gb_per_sec_unrolled": 21.701389,
+                    "gb_per_sec_movsq_based": 30.517578,
+                }
+            ],
         ),
         (
             (
@@ -197,13 +202,19 @@ def test_parse_metrics(raw_metrics: str, expected: tuple[PerfBenchMetrics, ...])
                     usecs_per_op=23996.39934,
                 ),
             ),
-            '[{"benchmark": "mem/memset", "total_time": 3.2, '
-            '"usecs_per_op": 23996.39934, "ops_per_sec": 23211, '
-            '"gb_per_sec_default": 21.22962, '
-            '"gb_per_sec_unrolled": 21.701389, '
-            '"gb_per_sec_movsq_based": 30.517578}]',
+            [
+                {
+                    "benchmark": "mem/memset",
+                    "total_time": 3.2,
+                    "usecs_per_op": 23996.39934,
+                    "ops_per_sec": 23211,
+                    "gb_per_sec_default": 21.22962,
+                    "gb_per_sec_unrolled": 21.701389,
+                    "gb_per_sec_movsq_based": 30.517578,
+                }
+            ],
         ),
-        ((), "[]"),
+        ((), []),
     ],
     ids=[
         "With None values",
@@ -211,6 +222,6 @@ def test_parse_metrics(raw_metrics: str, expected: tuple[PerfBenchMetrics, ...])
         "Empty metrics",
     ],
 )
-def test_serialize_metrics(metrics: tuple[PerfBenchMetrics, ...], expected: str) -> None:
-    result = Perf.serialize_metrics(metrics)
+def test_to_json(metrics: tuple[PerfBenchMetrics, ...], expected: str) -> None:
+    result = Perf.to_json(metrics)
     assert result == expected

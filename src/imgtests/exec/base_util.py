@@ -75,21 +75,16 @@ class BaseTestUtil(ABC):
         raise NotImplementedError(not_implemented_message)
 
     @staticmethod
-    def serialize_metrics(metrics: Any) -> str:
-        """Serializes the metrics provided by the utility.
+    def to_json(metrics: Any) -> Any:
+        """Converts the metrics provided by the utility into JSON.
 
         Args:
             metrics (Any): Metrics in the format provided by the specific utility.
 
-        Raises:
-            NotImplementedError: If the serialization logic is not implemented
-                for the specific utility.
-
         Returns:
-            str: JSON string.
+            str: JSON like object.
         """
-        not_implemented_message = "The serialization logic is not implemented."
-        raise NotImplementedError(not_implemented_message)
+        return metrics
 
     def prepare(self) -> ExecResult:
         """Prepare before running the utility, if necessary."""
