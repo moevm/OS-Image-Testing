@@ -29,6 +29,5 @@ class SarWithStressNGTest(AbstractRunnableTimeLimitedTest):
         sar.prepare()
 
         common_run_command([f"stress-ng --vm 4 --vm-bytes 95% --timeout {timeout} &"], client)
-        r, pgscan = sar.run(interval=1, count=timeout)
-        logger.info(r)
-        logger.info("pgscan = %s", pgscan)
+        _, pgscan = sar.run(interval=1, count=timeout)
+        logger.info("pgscan time: %s s", pgscan)
