@@ -312,9 +312,9 @@ def time_cmd_many(
     )
 
 
-def tooltimes_to_bmf(tooltimes: ToolTimes) -> dict:
+def tooltimes_to_bmf(tooltimes: ToolTimes) -> dict[str, dict[str, dict[str, float]]]:
     metrics = ["real", "user", "sys"]
-    result = {}
+    result: dict[str, dict[str, dict[str, float]]] = {}
 
     for name, array in [
         ("mean", tooltimes.mean),
