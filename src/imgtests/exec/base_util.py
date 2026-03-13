@@ -86,6 +86,11 @@ class BaseTestUtil(ABC):
         """
         return metrics
 
+    @staticmethod
+    def metrics_to_bmf(metrics: Any) -> Any:
+        """Converts the metrics provided by the utility into BMF."""
+        return metrics
+
     def prepare(self) -> ExecResult:
         """Prepare before running the utility, if necessary."""
         return ExecResult((), "", "", 0)

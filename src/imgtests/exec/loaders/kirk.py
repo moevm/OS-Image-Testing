@@ -1,4 +1,3 @@
-import json
 import logging
 import shlex
 from pathlib import Path
@@ -162,13 +161,10 @@ class Kirk(GenericUtil):
 
         return res, local_json_path
 
-    def json_to_bmf(self, json_file: Path) -> dict[str, Any]:
-        with Path.open(json_file) as f:
-            data = json.load(f)
-
-        result = {}
-
-        for test in data["results"]:
+    @staticmethod
+    def metrics_to_bmf(metrics: Any) -> dict[str, dict[str, dict[str, Any]]]:
+        result: dict[str, dict[str, dict[str, Any]]] = {}
+        for test in metrics["results"]:
             test_name = test["test_fqn"]
             test_info = test["test"]
 
@@ -181,7 +177,7 @@ class Kirk(GenericUtil):
             retval = test_info["retval"]
             retval_str = retval[0] if retval else ""
 
-            bmf_data = {
+            bmf_data: dict[str, dict[str, Any]] = {
                 "status": {"value": test["status"]},
                 "command": {"value": test_info["command"]},
                 "arguments": {"value": arguments_str},

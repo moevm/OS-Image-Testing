@@ -1,5 +1,3 @@
-import json
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from imgtests.exec.base_util import GenericUtil
@@ -81,21 +79,19 @@ class Iperf3(PkgMgrMixin, GenericUtil):
             )
         return self._install_packages(["iperf"])
 
-    def json_to_bmf(self, json_file: Path) -> dict[str, Any]:
-        with Path.open(json_file) as f:
-            data = json.load(f)
-
-        result = {}
-        if "end" in data and "sum_sent" in data["end"]:
-            sum_sent = data["end"]["sum_sent"]
+    @staticmethod
+    def metrics_to_bmf(metrics: dict[str, Any]) -> dict[str, dict[str, dict[str, Any]]]:
+        result: dict[str, dict[str, dict[str, Any]]] = {}
+        if "end" in metrics and "sum_sent" in metrics["end"]:
+            sum_sent = metrics["end"]["sum_sent"]
             result["sum"] = {
                 "seconds": {"value": sum_sent["seconds"]},
                 "bytes": {"value": sum_sent["bytes"]},
                 "bits_per_second": {"value": sum_sent["bits_per_second"]},
             }
 
-        if "end" in data and "cpu_utilization_percent" in data["end"]:
-            cpu = data["end"]["cpu_utilization_percent"]
+        if "end" in metrics and "cpu_utilization_percent" in metrics["end"]:
+            cpu = metrics["end"]["cpu_utilization_percent"]
             result["cpu_utilization_percent"] = {
                 "host_total": {"value": cpu["host_total"]},
                 "host_user": {"value": cpu["host_user"]},

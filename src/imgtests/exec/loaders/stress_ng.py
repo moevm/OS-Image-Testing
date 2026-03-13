@@ -477,8 +477,9 @@ class StressNg(PkgMgrMixin, GenericUtil):
             return None
         return tuple(methods.strip().split())
 
-    def stress_ng_metrics_to_bmf(self, metrics: StressNGMetrics) -> dict[str, Any]:
-        result = {
+    @staticmethod
+    def metrics_to_bmf(metrics: StressNGMetrics) -> dict[str, dict[str, Any]]:
+        result: dict[str, dict[str, Any]] = {
             "StressNGMetrics": {
                 "stressor": {"value": metrics.stressor},
                 "bogo_ops": {"value": metrics.bogo_ops},

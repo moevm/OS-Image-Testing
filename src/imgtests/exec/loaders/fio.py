@@ -1,5 +1,3 @@
-import json
-from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
 from imgtests.exec.base_util import GenericUtil
@@ -9,6 +7,8 @@ from imgtests.exec.pkgmgrs.pip3 import Pip3
 from imgtests.exec.utils import create_opt
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from imgtests.types import Version
 
 IOPattern = Literal[
@@ -106,47 +106,51 @@ class Fio(PkgMgrMixin, GenericUtil):
             **kwargs,
         )
 
-    def json_to_bmf(self, json_file: Path) -> dict[str, Any]:  # noqa: PLR0912, C901
-        with Path.open(json_file) as f:
-            data = json.load(f)
-        result = {}
-        for job in data.get("jobs", []):
+    @staticmethod
+    def metrics_to_bmf(metrics: dict[str, Any]) -> dict[str, Any]:  # noqa: PLR0912, C901
+        result: dict[str, Any] = {}
+        for job in metrics.get("jobs", []):
             name = job["jobname"]
             for op in ["read", "write"]:
-                if op in job:
-                    d = job[op]
-                    metrics = {}
-                    for m in [
-                        "io_bytes",
-                        "io_kbytes",
-                        "bw_bytes",
-                        "bw",
-                        "runtime",
-                        "total_ios",
-                        "iops",
-                    ]:
-                        if m in d:
-                            metrics[m] = {"value": d[m]}
-                    for m in ["bw", "iops"]:
-                        if f"{m}_mean" in d and f"{m}_min" in d and f"{m}_max" in d:
-                            metrics[f"{m}_mean"] = {
-                                "value": d[f"{m}_mean"],
-                                "lower_value": d[f"{m}_min"],
-                                "upper_value": d[f"{m}_max"],
-                            }
-                    for lat in ["slat_ns", "clat_ns", "lat_ns"]:
-                        if lat in d and all(k in d[lat] for k in ["mean", "min", "max"]):
-                            metrics[lat] = {
-                                "value": d[lat]["mean"],
-                                "lower_value": d[lat]["min"],
-                                "upper_value": d[lat]["max"],
-                            }
-                            if metrics:
-                                result[f"{name}_{op}"] = metrics
+                if op not in job:
+                    continue
+                job_res = job[op]
+                fio_metrics = {}
+                for metric in [
+                    "io_bytes",
+                    "io_kbytes",
+                    "bw_bytes",
+                    "bw",
+                    "runtime",
+                    "total_ios",
+                    "iops",
+                ]:
+                    if metric in job_res:
+                        fio_metrics[metric] = {"value": job_res[metric]}
+                for metric in ["bw", "iops"]:
+                    if (
+                        f"{metric}_mean" in job_res
+                        and f"{metric}_min" in job_res
+                        and f"{metric}_max" in job_res
+                    ):
+                        fio_metrics[f"{metric}_mean"] = {
+                            "value": job_res[f"{metric}_mean"],
+                            "lower_value": job_res[f"{metric}_min"],
+                            "upper_value": job_res[f"{metric}_max"],
+                        }
+                for lat in ["slat_ns", "clat_ns", "lat_ns"]:
+                    if lat in job_res and all(k in job_res[lat] for k in ["mean", "min", "max"]):
+                        fio_metrics[lat] = {
+                            "value": job_res[lat]["mean"],
+                            "lower_value": job_res[lat]["min"],
+                            "upper_value": job_res[lat]["max"],
+                        }
+                        if fio_metrics:
+                            result[f"{name}_{op}"] = fio_metrics
             cpu = {}
-            for m in ["usr_cpu", "sys_cpu", "ctx"]:
-                if m in job:
-                    cpu[m] = {"value": job[m]}
+            for metric in ["usr_cpu", "sys_cpu", "ctx"]:
+                if metric in job:
+                    cpu[metric] = {"value": job[metric]}
             if cpu:
                 result[f"{name}_cpu"] = cpu
         return result
