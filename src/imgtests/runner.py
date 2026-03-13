@@ -87,7 +87,11 @@ class AbstractRunnableManyTimesTest(ABC, DefaultCleanupMixin):
         self, executor: ThreadPoolExecutor, client: SSHClient | None = None
     ) -> Iterable[TestResult]:
         self.logger.info("Starting '%s' test '%d' times.", self.description, self.iterations)
-        yield from self._run(executor, client, self.iterations)
+        # TODO: make all tests return a generator
+        if inspect.isgeneratorfunction(self._run):
+            yield from self._run(executor, client, self.iterations)
+        else:
+            self._run(executor, client, self.iterations)
         self.logger.info("'%s' test finished.", self.description)
 
     @abstractmethod
