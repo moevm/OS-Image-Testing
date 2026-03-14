@@ -23,16 +23,7 @@ class DeviceMapperSetup(GenericUtil):
                 "create",
                 f"{device_name}1",
                 "--table",
-                '"0',
-                "1048576",
-                device_name,
-                "/dev/loop0",
-                "0",
-                read_delay,
-                "/dev/loop0",
-                "0",
-                write_delay,
-                '"',
+                f'"0 1048576 {device_name} /dev/loop0 0 {read_delay} /dev/loop0 0 {write_delay}"',
             ]
         )
         return result.returncode == 0
@@ -48,13 +39,7 @@ class DeviceMapperSetup(GenericUtil):
                 "create",
                 f"{device_name}1",
                 "--table",
-                '"0',
-                "1048576",
-                device_name,
-                "/dev/loop0",
-                "0",
-                block_size,
-                '"',
+                f'"0 1048576 {device_name} /dev/loop0 0 {block_size}"',
             ]
         )
         return result.returncode == 0
