@@ -2,6 +2,7 @@ import logging
 import sys
 from pathlib import Path
 
+from image.endurance.network import WgetEnduranceNetworkTest
 from image.endurance.syscalls import (
     LTPSyscallsTest,
     StressNgEnduranceSyscallsTest,
@@ -50,6 +51,7 @@ def main() -> None:
             POSIXUtilsTest(10),
             FioDisksScalingTest(10),
             FioDisksNightly(10),
+            WgetEnduranceNetworkTest(5),
             Iperf3LocalTest(30),
             StressNgPerformanceCpuTest(60),
             ChaosbladeCPUTest(60),

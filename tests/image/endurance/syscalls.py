@@ -1,10 +1,11 @@
 from typing import TYPE_CHECKING
 
 from imgtests.exec.loaders import Kirk, StressNg
-from imgtests.runner import AbstractRunnableManyTimesTest, Subsystem
+from imgtests.runner import AbstractRunnableManyTimesTest, Subsystem, TestResult
 from imgtests.suites.general.stress_ng import StressNgTest
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
     from concurrent.futures import ThreadPoolExecutor
 
     from imgtests.exec.exec import SSHClient
@@ -36,9 +37,11 @@ class StressNgEnduranceSyscallsTest(StressNgTest):
             timeout,
         )
 
-    def _run(self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int) -> None:
+    def _run(
+        self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int
+    ) -> Iterable[TestResult]:
         stress_ng = StressNg(client)
-        self.run_test(
+        yield from self.run_test(
             stress_ng=stress_ng,
             executor=executor,
             timeout=timeout,

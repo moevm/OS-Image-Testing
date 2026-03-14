@@ -2,10 +2,11 @@ from itertools import combinations
 from typing import TYPE_CHECKING, Any
 
 from imgtests.exec.loaders import StressNg
-from imgtests.runner import Subsystem
+from imgtests.runner import Subsystem, TestResult
 from imgtests.suites.general.stress_ng import StressNgTest
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
     from concurrent.futures import ThreadPoolExecutor
 
     from imgtests.exec.exec import SSHClient
@@ -53,11 +54,15 @@ class StressNgConsecutiveLoadTest(StressNgTest):
             timeout,
         )
 
-    def _run(self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int) -> None:
+    def _run(
+        self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int
+    ) -> Iterable[TestResult]:
         stress_ng = StressNg(client)
 
         for params in tests:
-            self.run_test(stress_ng=stress_ng, executor=executor, timeout=timeout, **params)
+            yield from self.run_test(
+                stress_ng=stress_ng, executor=executor, timeout=timeout, **params
+            )
 
 
 class StressNgCombineLoadTest(StressNgTest):
@@ -77,13 +82,15 @@ class StressNgCombineLoadTest(StressNgTest):
             timeout,
         )
 
-    def _run(self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int) -> None:
+    def _run(
+        self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int
+    ) -> Iterable[TestResult]:
         stress_ng = StressNg(client)
 
         for r in range(2, len(tests)):
             for test_combination in combinations(tests, r):
                 test_params = combine_params(test_combination)
-                self.run_test(
+                yield from self.run_test(
                     stress_ng=stress_ng, executor=executor, timeout=timeout, **test_params
                 )
 
@@ -105,8 +112,12 @@ class StressNgParallelLoadTest(StressNgTest):
             timeout,
         )
 
-    def _run(self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int) -> None:
+    def _run(
+        self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int
+    ) -> Iterable[TestResult]:
         stress_ng = StressNg(client)
 
         test_params = combine_params(tests)
-        self.run_test(stress_ng=stress_ng, executor=executor, timeout=timeout, **test_params)
+        yield from self.run_test(
+            stress_ng=stress_ng, executor=executor, timeout=timeout, **test_params
+        )
