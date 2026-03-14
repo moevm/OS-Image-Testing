@@ -100,9 +100,14 @@ class FioDisksDMDelay(AbstractRunnableTimeLimitedTest):
         client: SSHClient | None,
         timeout: int,
     ) -> None:
-        setup_block_device(ssh_client=client)
+        if not setup_block_device(ssh_client=client):
+            logger.error("Error in block device setup.")
+            return
+
         dm = DeviceMapperSetup(client)
-        dm.create_dm_delay_device()
+        if not dm.create_dm_delay_device():
+            logger.error("Error in creating dm-delay device.")
+            return
 
         cfg = FioSuiteConfig(
             suite="dm-delay",
@@ -127,9 +132,14 @@ class FioDisksDMDust(AbstractRunnableTimeLimitedTest):
         client: SSHClient | None,
         timeout: int,
     ) -> None:
-        setup_block_device(ssh_client=client)
+        if not setup_block_device(ssh_client=client):
+            logger.error("Error in block device setup.")
+            return
+
         dm = DeviceMapperSetup(client)
-        dm.create_dm_dust_device()
+        if not dm.create_dm_dust_device():
+            logger.error("Error in creating dm-delay device.")
+            return
         dm.add_bad_blocks(device_name="dust1", block_numbers=list(range(50, 100)))
 
         read_cfg = FioSuiteConfig(

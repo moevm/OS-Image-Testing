@@ -1,7 +1,7 @@
 import logging
 
 from imgtests.exec.base_util import GenericUtil
-from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
+from imgtests.exec.exec import SSHClient, common_run_command
 
 logger = logging.getLogger(__name__)
 
@@ -12,11 +12,11 @@ class DeviceMapperSetup(GenericUtil):
 
     def create_dm_delay_device(
         self, device_name: str = "delay", read_delay: int = 2000, write_delay: int = 2000
-    ) -> ExecResult:
+    ) -> bool:
         result = self(["ls"])
 
         if f"{device_name}1" in result.stdout:
-            return None
+            return True
 
         result = self(
             [
@@ -35,15 +35,13 @@ class DeviceMapperSetup(GenericUtil):
                 '"',
             ]
         )
-        if result.returncode:
-            return None
-        return result
+        return result.returncode == 0
 
-    def create_dm_dust_device(self, device_name: str = "dust", block_size: int = 512) -> ExecResult:
+    def create_dm_dust_device(self, device_name: str = "dust", block_size: int = 512) -> bool:
         result = self(["ls"])
 
         if f"{device_name}1" in result.stdout:
-            return None
+            return True
 
         result = self(
             [
@@ -59,9 +57,7 @@ class DeviceMapperSetup(GenericUtil):
                 '"',
             ]
         )
-        if result.returncode:
-            return None
-        return result
+        return result.returncode == 0
 
     def add_bad_blocks(self, device_name: str, block_numbers: list[int]) -> None:
         result = self(["message", device_name, 0, "enable"])
@@ -75,37 +71,34 @@ class DeviceMapperSetup(GenericUtil):
             if result.returncode:
                 logger.error("BLOCK NOT ADDED")
 
-    def remove_dm_device(self, device_name: str) -> ExecResult:
+    def remove_dm_device(self, device_name: str) -> bool:
         result = self(["remove", device_name])
-        if result.returncode:
-            return None
-        return result
+        return result.returncode == 0
 
 
 def setup_block_device(
     ssh_client: SSHClient | None = None, block_size: str = "1M", block_count: int = 512
-) -> None:
+) -> bool:
     result = common_run_command(
         cmd=["dd", "if=/dev/zero", "of=storage.img", f"bs={block_size}", f"count={block_count}"],
         ssh_client=ssh_client,
     )
     if result.returncode:
-        return result
+        return False
 
     result = common_run_command(
         cmd=["losetup", "-a"],
         ssh_client=ssh_client,
     )
     if "/dev/loop0" in result.stdout and "storage.img" in result.stdout:
-        return None
+        return True
 
     result = common_run_command(
         cmd=["losetup", "/dev/loop0", "storage.img"],
         ssh_client=ssh_client,
     )
     if result.returncode:
-        return result
+        return False
 
     logger.info("Block device setup successful")
-
-    return None
+    return True
