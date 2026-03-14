@@ -126,7 +126,9 @@ class FioDisksDMDust(AbstractRunnableTimeLimitedTest):
     """Tests that run fio on a disk with dm-dust."""
 
     def __init__(self, timeout: int) -> None:
-        super().__init__("Dm-dust fio test with errors on read.", frozenset({Subsystem.FILE}), timeout)
+        super().__init__(
+            "Dm-dust fio test with errors on read.", frozenset({Subsystem.FILE}), timeout
+        )
 
     def _run(
         self,
