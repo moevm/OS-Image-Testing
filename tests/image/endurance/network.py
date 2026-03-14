@@ -1,13 +1,16 @@
 import logging
 import shlex
+from datetime import datetime
 from typing import TYPE_CHECKING, Final
+from zoneinfo import ZoneInfo
 
 from imgtests.exec.exec import SSHClient, common_run_command
 from imgtests.exec.loaders import StressNg
-from imgtests.runner import AbstractRunnableTimeLimitedTest
+from imgtests.runner import AbstractRunnableTimeLimitedTest, Subsystem, TestResult
 from imgtests.suites.general.stress_ng import StressNgTest
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
     from concurrent.futures import ThreadPoolExecutor
 
 logger = logging.getLogger(__name__)
@@ -20,13 +23,15 @@ class StressNgEnduranceNetworkTest(StressNgTest):
     def __init__(self, timeout: int) -> None:
         super().__init__(
             "Stress-ng endurance network test.",
-            {"network"},
+            frozenset({Subsystem.NETWORK}),
             timeout,
         )
 
-    def _run(self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int) -> None:
+    def _run(
+        self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int
+    ) -> Iterable[TestResult]:
         stress_ng = StressNg(client)
-        self.run_test(
+        yield from self.run_test(
             stress_ng=stress_ng,
             executor=executor,
             timeout=timeout,
@@ -37,12 +42,14 @@ class StressNgEnduranceNetworkTest(StressNgTest):
 
 class WgetEnduranceNetworkTest(AbstractRunnableTimeLimitedTest):
     def __init__(self, timeout: int) -> None:
-        super().__init__("Load CPU 70% with chaosblade.", {"network"}, timeout)
+        super().__init__("Load CPU 70% with chaosblade.", frozenset({Subsystem.NETWORK}), timeout)
 
-    def _run(self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int) -> None:
+    def _run(
+        self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int
+    ) -> Iterable[TestResult]:
         def run_test() -> None:
             if common_run_command(
-                ["echo", "nameserver", _DNS_SERVER, ">>", "/etc/resolv.conf"], client
+                ["sudo", "echo", "nameserver", _DNS_SERVER, ">>", "/etc/resolv.conf"], client
             ).returncode:
                 self.logger.error("NETWORK endurance test FAILED")
                 return
@@ -55,5 +62,10 @@ class WgetEnduranceNetworkTest(AbstractRunnableTimeLimitedTest):
                 return
             self.logger.info("NETWORK endurance test PASSED")
 
+        started_at = datetime.now(tz=ZoneInfo("UTC"))
         future = executor.submit(run_test)
-        future.result()
+        yield TestResult(
+            metrics=future.result(),
+            command=f"wget --timeout={timeout} --tries=1 {_GOOGLE_URL}",
+            started_at=started_at,
+        )

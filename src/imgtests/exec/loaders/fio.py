@@ -106,6 +106,55 @@ class Fio(PkgMgrMixin, GenericUtil):
             **kwargs,
         )
 
+    @staticmethod
+    def metrics_to_bmf(metrics: dict[str, Any]) -> dict[str, Any]:  # noqa: PLR0912, C901
+        result: dict[str, Any] = {}
+        for job in metrics.get("jobs", []):
+            name = job["jobname"]
+            for op in ["read", "write"]:
+                if op not in job:
+                    continue
+                job_res = job[op]
+                fio_metrics = {}
+                for metric in [
+                    "io_bytes",
+                    "io_kbytes",
+                    "bw_bytes",
+                    "bw",
+                    "runtime",
+                    "total_ios",
+                    "iops",
+                ]:
+                    if metric in job_res:
+                        fio_metrics[metric] = {"value": job_res[metric]}
+                for metric in ["bw", "iops"]:
+                    if (
+                        f"{metric}_mean" in job_res
+                        and f"{metric}_min" in job_res
+                        and f"{metric}_max" in job_res
+                    ):
+                        fio_metrics[f"{metric}_mean"] = {
+                            "value": job_res[f"{metric}_mean"],
+                            "lower_value": job_res[f"{metric}_min"],
+                            "upper_value": job_res[f"{metric}_max"],
+                        }
+                for lat in ["slat_ns", "clat_ns", "lat_ns"]:
+                    if lat in job_res and all(k in job_res[lat] for k in ["mean", "min", "max"]):
+                        fio_metrics[lat] = {
+                            "value": job_res[lat]["mean"],
+                            "lower_value": job_res[lat]["min"],
+                            "upper_value": job_res[lat]["max"],
+                        }
+                        if fio_metrics:
+                            result[f"{name}_{op}"] = fio_metrics
+            cpu = {}
+            for metric in ["usr_cpu", "sys_cpu", "ctx"]:
+                if metric in job:
+                    cpu[metric] = {"value": job[metric]}
+            if cpu:
+                result[f"{name}_cpu"] = cpu
+        return result
+
 
 class FioPlot(PkgMgrMixin, GenericUtil):
     def __init__(self, ssh_client: SSHClient | None = None) -> None:

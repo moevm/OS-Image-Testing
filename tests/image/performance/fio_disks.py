@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from imgtests.exec.loaders.dmsetup import DeviceMapperSetup, setup_block_device
-from imgtests.runner import AbstractRunnableTimeLimitedTest
+from imgtests.runner import AbstractRunnableTimeLimitedTest, Subsystem
 from imgtests.suites.drive.fio import FioSuite, FioSuiteConfig, FioWorkload
 
 if TYPE_CHECKING:
@@ -48,7 +48,9 @@ class FioDisksScalingTest(AbstractRunnableTimeLimitedTest):
     """Test that runs fio on a disk with scaling workloads."""
 
     def __init__(self, timeout: int) -> None:
-        super().__init__("Scaling load drives with fio.", {"file"}, timeout=timeout)
+        super().__init__(
+            "Scaling load drives with fio.", frozenset({Subsystem.FILE}), timeout=timeout
+        )
 
     def _run(
         self,
@@ -70,7 +72,7 @@ class FioDisksNightly(AbstractRunnableTimeLimitedTest):
     """Tests that run fio on a disk with nightly workloads."""
 
     def __init__(self, timeout: int) -> None:
-        super().__init__("Nightly load drives with fio.", {"file"}, timeout)
+        super().__init__("Nightly load drives with fio.", frozenset({Subsystem.FILE}), timeout)
 
     def _run(
         self,
@@ -92,7 +94,7 @@ class FioDisksDMDelay(AbstractRunnableTimeLimitedTest):
     """Tests that run fio on a disk with dm-delay."""
 
     def __init__(self, timeout: int) -> None:
-        super().__init__("Dm-delay test with fio.", {"file"}, timeout)
+        super().__init__("Dm-delay test with fio.", frozenset({Subsystem.FILE}), timeout)
 
     def _run(
         self,
@@ -124,7 +126,7 @@ class FioDisksDMDust(AbstractRunnableTimeLimitedTest):
     """Tests that run fio on a disk with dm-dust."""
 
     def __init__(self, timeout: int) -> None:
-        super().__init__("Dm-dust fio test with errors on read.", {"file"}, timeout)
+        super().__init__("Dm-dust fio test with errors on read.", frozenset({Subsystem.FILE}), timeout)
 
     def _run(
         self,
