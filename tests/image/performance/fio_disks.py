@@ -41,9 +41,7 @@ DMDUST_READ_WORKLOAD: tuple[FioWorkload, ...] = (
     FioWorkload("rand_read_1M", "randread", "1M", 1.0),
 )
 
-DMDUST_WRITE_WORKLOAD: tuple[FioWorkload, ...] = (
-    FioWorkload("seq_write_1M", "write", "1M", 1.0),
-)
+DMDUST_WRITE_WORKLOAD: tuple[FioWorkload, ...] = (FioWorkload("seq_write_1M", "write", "1M", 1.0),)
 
 
 class FioDisksScalingTest(AbstractRunnableTimeLimitedTest):
@@ -148,10 +146,10 @@ class FioDisksDMDust(AbstractRunnableTimeLimitedTest):
             workloads=DMDUST_WRITE_WORKLOAD,
             filename="/dev/mapper/dust1",
         )
-        
+
         try:
             FioSuite(client, read_cfg).run()
-        except:
+        except RuntimeError:
             logger.info("Error above is intended, dm-dust works.")
 
         out = FioSuite(client, write_cfg).run()
