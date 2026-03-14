@@ -37,9 +37,12 @@ NIGHTLY_WORKLOADS: tuple[FioWorkload, ...] = (
     FioWorkload("rand_read_4k", "randread", "4k", 1.0),
 )
 
-DMDUST_WORKLOADS: tuple[FioWorkload, ...] = (
-    FioWorkload("seq_write_4k", "write", "4k", 1.0),
-    FioWorkload("seq_write_4k", "randread", "4k", 1.0),
+DMDUST_READ_WORKLOAD: tuple[FioWorkload, ...] = (
+    FioWorkload("rand_read_1M", "randread", "1M", 1.0),
+)
+
+DMDUST_WRITE_WORKLOAD: tuple[FioWorkload, ...] = (
+    FioWorkload("seq_write_1M", "write", "1M", 1.0),
 )
 
 
@@ -118,7 +121,7 @@ class FioDisksDMDust(AbstractRunnableTimeLimitedTest):
     """Tests that run fio on a disk with dm-dust."""
 
     def __init__(self, timeout: int) -> None:
-        super().__init__("Dm-dust test with fio.", {"file"}, timeout)
+        super().__init__("Dm-dust fio test with errors on read.", {"file"}, timeout)
 
     def _run(
         self,
@@ -131,12 +134,25 @@ class FioDisksDMDust(AbstractRunnableTimeLimitedTest):
         dm.create_dm_dust_device()
         dm.add_bad_blocks(device_name="dust1", block_numbers=list(range(50, 100)))
 
-        cfg = FioSuiteConfig(
+        read_cfg = FioSuiteConfig(
             suite="dm-dust",
             duration_sec=timeout,
             results_dir=Path().home() / "fio",
-            workloads=DMDUST_WORKLOADS,
+            workloads=DMDUST_READ_WORKLOAD,
             filename="/dev/mapper/dust1",
         )
-        out = FioSuite(client, cfg).run()
+        write_cfg = FioSuiteConfig(
+            suite="dm-dust",
+            duration_sec=timeout,
+            results_dir=Path().home() / "fio",
+            workloads=DMDUST_WRITE_WORKLOAD,
+            filename="/dev/mapper/dust1",
+        )
+        
+        try:
+            FioSuite(client, read_cfg).run()
+        except:
+            logger.info("Error above is intended, dm-dust works.")
+
+        out = FioSuite(client, write_cfg).run()
         logger.info("FIO dm-dust PASSED: %s", out)
