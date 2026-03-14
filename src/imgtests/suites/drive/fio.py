@@ -80,12 +80,10 @@ class FioSuite:
         stamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%SZ")
         suite_root = _DEFAULT_TMP_ROOT / f"{self.cfg.suite}-{stamp}"
         suite_tgz = _DEFAULT_TMP_ROOT / f"{self.cfg.suite}-{stamp}.tgz"
-        testfiles_dir = None
+        testfiles_dir = suite_root / "testfiles"
         mkdir = MkDir(self.client)
 
-        if self.cfg.filename is None:
-            testfiles_dir = suite_root / "testfiles"
-            mkdir(["--parents", suite_root, testfiles_dir])
+        mkdir(["--parents", suite_root, testfiles_dir])
 
         workloads = list(self.cfg.workloads)
         timing = _normalize_timing(
@@ -107,7 +105,7 @@ class FioSuite:
             len(cases),
             timing.grid.iodepths,
             timing.grid.numjobs,
-            self.cfg.filename or "dir",
+            self.cfg.filename or "None",
         )
 
         for case in cases:
@@ -131,21 +129,18 @@ class FioSuite:
                 "eta": "never",
             }
 
-            if self.cfg.filename is not None:
-                extra["filename"] = self.cfg.filename
-            else:
-                extra["directory"] = testfiles_dir
-
             if timing.ramp_time_sec > 0:
                 extra["ramp_time"] = timing.ramp_time_sec
 
             res = fio.run(
                 name=case.workload.name,
                 numjobs=case.numjobs,
+                filename=self.cfg.filename,
                 size=self.cfg.size,
                 readwrite=case.workload.rw,
                 ioengine=self.cfg.ioengine,
                 direct=self.cfg.direct,
+                directory=testfiles_dir,
                 **extra,
             )
             if res.returncode:
