@@ -40,11 +40,6 @@ class ImgtestsDatabase:
         self.session = sessionmaker(self.engine)
         Base.metadata.create_all(self.engine)
 
-    def _check_session(self) -> None:
-        if not hasattr(self, "session") or self.session is None:
-            error_message = "Database session not initialized."
-            raise RuntimeError(error_message)
-
     def insert_from_system_info(self, sys_info: SystemInfo) -> ConfigurationBase:
         db_os = str(sys_info.os_info)
         db_cinfo = str(sys_info.uname_info)
@@ -118,7 +113,7 @@ class ImgtestsDatabase:
         experiment_id: int,
         command: str,
         result: dict[str, Any],
-        description: str | None = None,
+        description: str,
         started_at: datetime | None = None,
         ended_at: datetime | None = None,
     ) -> LoaderBase:
@@ -149,7 +144,7 @@ class ImgtestsDatabase:
         experiment_id: int,
         command: str,
         result: dict[str, Any],
-        description: str | None = None,
+        description: str,
         started_at: datetime | None = None,
         ended_at: datetime | None = None,
     ) -> ObserverBase:
@@ -201,3 +196,8 @@ class ImgtestsDatabase:
                 logger.error("Table '%s' doesn't exist.", table_name)
 
             return session.query(models[table_name]).all()
+
+    def _check_session(self) -> None:
+        if not hasattr(self, "session") or self.session is None:
+            error_message = "Database session not initialized."
+            raise RuntimeError(error_message)
