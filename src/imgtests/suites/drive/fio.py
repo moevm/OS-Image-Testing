@@ -60,7 +60,7 @@ class FioSuiteConfig:
     duration_sec: int
     results_dir: Path
     workloads: tuple[FioWorkload, ...]
-    filename: str | None = None
+    filename: Path | None = None
     size: str = "100MB"
     direct: Direct = 1
     ioengine: IOEngine = "libaio"
@@ -105,7 +105,7 @@ class FioSuite:
             len(cases),
             timing.grid.iodepths,
             timing.grid.numjobs,
-            self.cfg.filename or "None",
+            self.cfg.filename,
         )
 
         for case in cases:
