@@ -40,11 +40,6 @@ class ImgtestsDatabase:
         self.session = sessionmaker(self.engine)
         Base.metadata.create_all(self.engine)
 
-    def _check_session(self) -> None:
-        if not hasattr(self, "session") or self.session is None:
-            error_message = "Database session not initialized."
-            raise RuntimeError(error_message)
-
     def insert_from_system_info(self, sys_info: SystemInfo) -> ConfigurationBase:
         db_os = str(sys_info.os_info)
         db_cinfo = str(sys_info.uname_info)
