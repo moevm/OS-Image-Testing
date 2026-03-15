@@ -14,89 +14,104 @@ class DeviceMapperSetup(GenericUtil):
     def list_dm_devices(self) -> ExecResult:
         return self(["ls"])
 
-    def create_dm_delay_device(
+    def create_dm_delay_device(  # noqa: PLR0913
         self,
-        device_name: str = "delay",
-        block_name: str = "/dev/loop0",
-        r_delay: int = 2000,
-        w_delay: int = 2000,
-    ) -> bool:
+        device_name: str = "delay1",
+        target_type: str = "delay",
+        start: int = 0,
+        sectors: int = 1048576,
+        block_path: str = "/dev/loop0",
+        read_offset: int = 0,
+        read_delay: int = 2000,
+        write_offset: int = 0,
+        write_delay: int = 2000,
+    ) -> ExecResult:
         result = self.list_dm_devices()
+        if device_name in result.stdout:
+            return result
 
-        if f"{device_name}1" in result.stdout:
-            return True
-
-        sectors = 1048576
-        result = self(
+        return self(
             [
                 "create",
-                f"{device_name}1",
+                device_name,
                 "--table",
-                f'"0 {sectors} {device_name} {block_name} 0 {r_delay} {block_name} 0 {w_delay}"',
+                (
+                    f'"{start} {sectors} {target_type} '
+                    f"{block_path} {read_offset} {read_delay} "
+                    f'{block_path} {write_offset} {write_delay}"'
+                ),
             ]
         )
-        return result.returncode == 0
 
-    def create_dm_dust_device(
-        self, device_name: str = "dust", block_name: str = "/dev/loop0", block_size: int = 512
-    ) -> bool:
+    def create_dm_dust_device(  # noqa: PLR0913
+        self,
+        device_name: str = "dust1",
+        target_type: str = "dust",
+        start: int = 0,
+        sectors: int = 1048576,
+        block_path: str = "/dev/loop0",
+        offset: int = 0,
+        block_size: int = 512,
+    ) -> ExecResult:
         result = self.list_dm_devices()
+        if device_name in result.stdout:
+            return result
 
-        if f"{device_name}1" in result.stdout:
-            return True
-
-        sectors = 1048576
-        result = self(
+        return self(
             [
                 "create",
-                f"{device_name}1",
+                f"{device_name}",
                 "--table",
-                f'"0 {sectors} {device_name} {block_name} 0 {block_size}"',
+                (f'"{start} {sectors} {target_type} {block_path} {offset} {block_size}"'),
             ]
         )
-        return result.returncode == 0
 
-    def add_bad_blocks(self, device_name: str, block_numbers: list[int]) -> None:
+    def add_bad_blocks(self, device_name: str, block_numbers: list[int]) -> ExecResult | None:
         result = self(["message", device_name, 0, "enable"])
+        if result.returncode:
+            return result
 
         self(["message", device_name, 0, "clearbadblocks"])
 
-        if result.returncode:
-            return
         for block_number in block_numbers:
             result = self(["message", device_name, 0, "addbadblock", block_number])
             if result.returncode:
                 logger.error("BLOCK NOT ADDED")
+        return None
 
-    def remove_dm_device(self, device_name: str) -> bool:
-        result = self(["remove", device_name])
-        return result.returncode == 0
+    def remove_dm_device(self, device_name: str) -> ExecResult:
+        return self(["remove", device_name])
 
 
-def setup_block_device(
+def setup_block_device(  # noqa: PLR0913
     client: SSHClient | None = None,
+    data_source: str = "/dev/zero",
+    storage_name: str = "storage.img",
     block_name: str = "/dev/loop0",
     block_size: str = "1M",
     block_count: int = 512,
-) -> bool:
+) -> ExecResult | None:
     dd = Dd(ssh_client=client)
-    result = dd(["if=/dev/zero", "of=storage.img", f"bs={block_size}", f"count={block_count}"])
+    result = dd(
+        [f"if={data_source}", f"of={storage_name}", f"bs={block_size}", f"count={block_count}"]
+    )
     if result.returncode:
-        return False
+        return result
 
     result = common_run_command(
         cmd=["losetup", "-a"],
         ssh_client=client,
     )
-    if block_name in result.stdout and "storage.img" in result.stdout:
-        return True
+    if block_name in result.stdout and storage_name in result.stdout:
+        return None
 
     result = common_run_command(
-        cmd=["losetup", block_name, "storage.img"],
+        cmd=["losetup", block_name, storage_name],
         ssh_client=client,
     )
     if result.returncode:
-        return False
+        return result
 
     logger.info("Block device setup successful")
-    return True
+
+    return None

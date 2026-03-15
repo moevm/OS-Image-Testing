@@ -102,12 +102,14 @@ class FioDisksDMDelay(AbstractRunnableTimeLimitedTest):
         client: SSHClient | None,
         timeout: int,
     ) -> None:
-        if not setup_block_device(client=client):
+        result = setup_block_device(client=client)
+        if result is not None and result.returncode:
             logger.error("Error in block device setup.")
             return
 
         dm = DeviceMapperSetup(client)
-        if not dm.create_dm_delay_device():
+        result = dm.create_dm_delay_device()
+        if result.returncode:
             logger.error("Error in creating dm-delay device.")
             return
 
@@ -118,7 +120,9 @@ class FioDisksDMDelay(AbstractRunnableTimeLimitedTest):
             workloads=SCALING_WORKLOADS,
             filename="/dev/mapper/delay1",
         )
+
         out = FioSuite(client, cfg).run()
+        dm.remove_dm_device(device_name="delay1")
         logger.info("FIO dm-delay PASSED: %s", out)
 
 
@@ -136,12 +140,14 @@ class FioDisksDMDust(AbstractRunnableTimeLimitedTest):
         client: SSHClient | None,
         timeout: int,
     ) -> None:
-        if not setup_block_device(client=client):
+        result = setup_block_device(client=client)
+        if result is not None and result.returncode:
             logger.error("Error in block device setup.")
             return
 
         dm = DeviceMapperSetup(client)
-        if not dm.create_dm_dust_device():
+        result = dm.create_dm_dust_device()
+        if result.returncode:
             logger.error("Error in creating dm-delay device.")
             return
         dm.add_bad_blocks(device_name="dust1", block_numbers=list(range(50, 100)))
@@ -167,4 +173,5 @@ class FioDisksDMDust(AbstractRunnableTimeLimitedTest):
             logger.info("Error above is intended, dm-dust works.")
 
         out = FioSuite(client, write_cfg).run()
+        dm.remove_dm_device(device_name="dust1")
         logger.info("FIO dm-dust PASSED: %s", out)
