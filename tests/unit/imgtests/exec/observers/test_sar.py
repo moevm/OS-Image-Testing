@@ -31,9 +31,22 @@ from imgtests.exec.observers.sar import Sar
 Average:         1,06  88220,50 240045,57      0,02 232309,62      0,00     21,66     43,33    200,00""",  # noqa: E501
             3,
         ),
+        (
+            """Linux 6.17.0-19-generic (ubuntu-24) 	03/15/2026 	_x86_64_	(5 CPU)
+
+05:43:30 PM  pgpgin/s pgpgout/s   fault/s  majflt/s  pgfree/s pgscank/s pgscand/s pgsteal/s    %vmeff
+05:43:40 PM      0.00     15.67 1919949.56      0.00 2036294.52      0.00   1034.48   2062.29    199.36
+05:43:51 PM      0.00      0.00 2144628.96      0.00 2097884.35      0.00   1070.38   2123.34    198.37
+05:44:02 PM      0.00      1.09 2389524.02      0.00 2374324.29      0.00      0.00      0.00      0.00
+05:44:13 PM      0.00     14.19 2278492.17      0.00 2258054.96      0.00      0.00      0.00      0.00
+05:44:23 PM      0.00      0.40 2316645.90      0.00 2209071.40      0.00      0.00      0.00      0.00
+05:44:33 PM      0.00      2.40 1701796.80      0.00 1801087.21      0.00      0.00      0.00      0.00
+Average:         0.00      5.66 2131204.37      0.00 2134633.97      0.00    349.66    695.28    198.84""",  # noqa: E501
+            22,
+        ),
         ("", 0),
     ],
-    ids=["sar not empty results", "empty results"],
+    ids=["sar not empty results", "sar AM/PM time format", "empty results"],
 )
 def test_extract_pgscan_time(metrics: str, result: int) -> None:
     assert Sar.extract_pgscan_time(metrics) == result

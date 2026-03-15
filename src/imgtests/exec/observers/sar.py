@@ -12,7 +12,10 @@ if TYPE_CHECKING:
     from imgtests.exec.exec import SSHClient
 
 PGSCAN_LINE_PATTERN = re.compile(
-    r"^(\d{2}:\d{2}:\d{2})\s+[\d,]+\s+[\d,]+\s+[\d,]+\s+[\d,]+\s+[\d,]+\s+([\d,]+)\s+([\d,]+)"
+    r"^(?P<timestamp>\d{2}:\d{2}:\d{2}(?:\s+[AP]M)?)\s+"
+    r"[\d,.]+\s+[\d,.]+\s+[\d,.]+\s+[\d,.]+\s+[\d,.]+\s+"
+    r"(?P<pgscank>[\d,.]+)\s+"
+    r"(?P<pgscand>[\d,.]+)"
 )
 
 
@@ -80,16 +83,18 @@ class Sar(PkgMgrMixin, BaseTestUtil):
         return result, self.extract_pgscan_time(result.stdout)
 
     @staticmethod
-    def extract_pgscan_time(metrics: str) -> int:
+    def extract_pgscan_time(metrics: str) -> float:
         """Parses pgcan time.
 
         Args:
             metrics (str): Metric string returned by sar
 
         Returns:
-            int: pgscan time in seconds
+            float: pgscan time in seconds
         """
         lines = metrics.strip().split("\n")
+
+        time_fmt = "%I:%M:%S %p" if re.search(r"\d{2}:\d{2}:\d{2}\s+[AP]M", metrics) else "%H:%M:%S"
 
         start = None
         duration = 0
@@ -98,10 +103,9 @@ class Sar(PkgMgrMixin, BaseTestUtil):
             if not m:
                 continue
 
-            timestamp_str, pgscank_str, pgscand_str = m.groups()
-            pgscank = float(pgscank_str.replace(",", "."))
-            pgscand = float(pgscand_str.replace(",", "."))
-            timestamp = datetime.strptime(timestamp_str, "%H:%M:%S").replace(tzinfo=UTC)
+            pgscank = float(m.group("pgscank").replace(",", "."))
+            pgscand = float(m.group("pgscand").replace(",", "."))
+            timestamp = datetime.strptime(m.group("timestamp"), time_fmt).replace(tzinfo=UTC)
 
             if pgscand > 0 or pgscank > 0:
                 if start is None:
@@ -114,7 +118,9 @@ class Sar(PkgMgrMixin, BaseTestUtil):
             for line in reversed(lines):
                 m = PGSCAN_LINE_PATTERN.match(line)
                 if m:
-                    timestamp = datetime.strptime(m.group(1), "%H:%M:%S").replace(tzinfo=UTC)
+                    timestamp = datetime.strptime(m.group("timestamp"), time_fmt).replace(
+                        tzinfo=UTC
+                    )
                     duration += (timestamp - start).total_seconds()
                     break
         return duration
