@@ -12,6 +12,7 @@ class DeviceMapperSetup(GenericUtil):
         super().__init__("dmsetup", ssh_client)
 
     def list_dm_devices(self) -> ExecResult:
+        """Returns the list of created device-mapper devices."""
         return self(["ls"])
 
     def create_dm_delay_device(  # noqa: PLR0913
@@ -26,6 +27,23 @@ class DeviceMapperSetup(GenericUtil):
         write_offset: int = 0,
         write_delay: int = 2000,
     ) -> ExecResult:
+        """Creates the dm-delay device.
+
+        Args:
+            device_name (str): The name of the created dm-delay device.
+            target_type (str): The device-mapper target type.
+            start (int): Starting sector for create operation.
+            sectors (int): The amount of used sectors (512-byte each). Counted by dividing
+              total given memory by amount of blocks.
+            block_path (str): The path to the underlying block device for handling I/O.
+            read_offset (int): The starting sector on the read device.
+            read_delay (int): The delay in milliseconds to apply to every read request.
+            write_offset (int): The starting sector on the write device.
+            write_delay (int): The delay in milliseconds to apply to every write request.
+
+        Returns:
+            ExecResult: Result of dmsetup ls or create operation.
+        """
         result = self.list_dm_devices()
         if device_name in result.stdout:
             return result
@@ -53,6 +71,21 @@ class DeviceMapperSetup(GenericUtil):
         offset: int = 0,
         block_size: int = 512,
     ) -> ExecResult:
+        """Creates the dm-dust device.
+
+        Args:
+            device_name (str): The name of the created dm-dust device.
+            target_type (str): The device-mapper target type.
+            start (int): Starting sector for create operation.
+            sectors (int): Amount of used sectors (512-byte each). Counted by dividing total
+              given memory by amount of blocks.
+            block_path (str): The path to the underlying block device for handling I/O.
+            offset (int): The starting sector on block device.
+            block_size (int): The block size of block device.
+
+        Returns:
+            ExecResult: Result of dmsetup ls or create operation.
+        """
         result = self.list_dm_devices()
         if device_name in result.stdout:
             return result
@@ -67,6 +100,15 @@ class DeviceMapperSetup(GenericUtil):
         )
 
     def add_bad_blocks(self, device_name: str, block_numbers: list[int]) -> ExecResult | None:
+        """Adds invalid blocks to given device.
+
+        Args:
+            device_name (str): The name of the dm device.
+            block_numbers (list[int]): The list of block ids to be corrupted.
+
+        Returns:
+            ExecResult | None: Result in case of error and None otherwise.
+        """
         result = self(["message", device_name, 0, "enable"])
         if result.returncode:
             return result
@@ -76,10 +118,11 @@ class DeviceMapperSetup(GenericUtil):
         for block_number in block_numbers:
             result = self(["message", device_name, 0, "addbadblock", block_number])
             if result.returncode:
-                logger.error("BLOCK NOT ADDED")
+                logger.error("Failed to add block %s.", block_number)
         return None
 
     def remove_dm_device(self, device_name: str) -> ExecResult:
+        """Removes given dm device."""
         return self(["remove", device_name])
 
 
@@ -91,6 +134,20 @@ def setup_block_device(  # noqa: PLR0913
     block_size: str = "1M",
     block_count: int = 512,
 ) -> ExecResult | None:
+    """Setups the block device for device-mapper.
+
+    Args:
+        client (SSHClient | None): The active ssh client.
+        data_source (str): The name of the device serving as data source for the storage.
+        storage_name (str): The name of the created storage serves as a virtual storage.
+        block_name (str): The name of the block device, which will be connected with
+          storage device.
+        block_size (str): The size of each block.
+        block_count (int): The amount of blocks created.
+
+    Returns:
+        ExecResult | None: Result in case of error and None otherwise.
+    """
     dd = Dd(ssh_client=client)
     result = dd(
         [f"if={data_source}", f"of={storage_name}", f"bs={block_size}", f"count={block_count}"]
