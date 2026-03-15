@@ -2,6 +2,7 @@ import logging
 
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import SSHClient, common_run_command
+from imgtests.exec.user_commands import Dd
 
 logger = logging.getLogger(__name__)
 
@@ -62,25 +63,23 @@ class DeviceMapperSetup(GenericUtil):
 
 
 def setup_block_device(
-    ssh_client: SSHClient | None = None, block_size: str = "1M", block_count: int = 512
+    client: SSHClient | None = None, block_size: str = "1M", block_count: int = 512
 ) -> bool:
-    result = common_run_command(
-        cmd=["dd", "if=/dev/zero", "of=storage.img", f"bs={block_size}", f"count={block_count}"],
-        ssh_client=ssh_client,
-    )
+    dd = Dd(ssh_client=client)
+    result = dd(["if=/dev/zero", "of=storage.img", f"bs={block_size}", f"count={block_count}"])
     if result.returncode:
         return False
 
     result = common_run_command(
         cmd=["losetup", "-a"],
-        ssh_client=ssh_client,
+        ssh_client=client,
     )
     if "/dev/loop0" in result.stdout and "storage.img" in result.stdout:
         return True
 
     result = common_run_command(
         cmd=["losetup", "/dev/loop0", "storage.img"],
-        ssh_client=ssh_client,
+        ssh_client=client,
     )
     if result.returncode:
         return False

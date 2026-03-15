@@ -102,7 +102,7 @@ class FioDisksDMDelay(AbstractRunnableTimeLimitedTest):
         client: SSHClient | None,
         timeout: int,
     ) -> None:
-        if not setup_block_device(ssh_client=client):
+        if not setup_block_device(client=client):
             logger.error("Error in block device setup.")
             return
 
@@ -136,7 +136,7 @@ class FioDisksDMDust(AbstractRunnableTimeLimitedTest):
         client: SSHClient | None,
         timeout: int,
     ) -> None:
-        if not setup_block_device(ssh_client=client):
+        if not setup_block_device(client=client):
             logger.error("Error in block device setup.")
             return
 
