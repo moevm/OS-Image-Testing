@@ -1,9 +1,10 @@
+import logging
 import re
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
-from imgtests.exec.base_util import BaseTestUtil, common_run_command
-from imgtests.exec.exec import ExecResult
+from imgtests.exec.base_util import BaseTestUtil
+from imgtests.exec.exec import ExecResult, pipeline
 from imgtests.exec.osinfo import get_os_release
 from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
 from imgtests.exec.utils import extract_version
@@ -17,6 +18,8 @@ PGSCAN_LINE_PATTERN = re.compile(
     r"(?P<pgscank>[\d,.]+)\s+"
     r"(?P<pgscand>[\d,.]+)"
 )
+
+logger = logging.getLogger(__name__)
 
 
 class Sar(PkgMgrMixin, BaseTestUtil):
@@ -125,25 +128,20 @@ class Sar(PkgMgrMixin, BaseTestUtil):
                     break
         return duration
 
-    def prepare(self) -> None:
+    def prepare(self) -> ExecResult | None:
         """Starts automatic collection of metrics.
 
         Is required to use the utility without parameters interval and count.
         """
-        os_id = get_os_release(getattr(self, "ssh_client", None)).id
+        os_id = get_os_release(self.ssh_client).id
         if os_id and "opensuse" in os_id:
-            common_run_command(
+            cmds = [
                 ["sudo", "sed", "-i", 's/ENABLED="false"/ENABLED="true"/', "/etc/sysstat/sysstat"],
-                self.ssh_client,
-            )
-            common_run_command(
-                ["sudo", "systemctl", "enable", "--now", "sysstat_collect.timer"], self.ssh_client
-            )
-            common_run_command(
-                ["sudo", "systemctl", "enable", "--now", "sysstat_summary.timer"], self.ssh_client
-            )
+                ["sudo", "systemctl", "enable", "--now", "sysstat_collect.timer"],
+                ["sudo", "systemctl", "enable", "--now", "sysstat_summary.timer"],
+            ]
         else:
-            common_run_command(
+            cmds = [
                 [
                     "sudo",
                     "sed",
@@ -151,17 +149,19 @@ class Sar(PkgMgrMixin, BaseTestUtil):
                     's/ENABLED="false"/ENABLED="true"/',
                     "/etc/sysconfig/sysstat",
                 ],
-                self.ssh_client,
-            )
-            common_run_command(["sudo", "systemctl", "restart", "sysstat"], self.ssh_client)
-            common_run_command(["sudo", "systemctl", "enable", "sysstat"], self.ssh_client)
-            common_run_command(
+                ["sudo", "systemctl", "enable", "--now", "sysstat"],
                 [
                     "echo -e '*/10 * * * * root /usr/libexec/sa/sa1 1 1\n",
                     "23:59 * * * * root /usr/libexec/sa/sa2 -A'",
                     "| sudo tee /etc/cron.d/sysstat",
                 ],
-                self.ssh_client,
-            )
-            common_run_command(["sudo systemctl restart crond"], self.ssh_client)
-            common_run_command(["sudo systemctl enable crond"], self.ssh_client)
+                ["sudo", "chmod", "644", "/etc/cron.d/sysstat"],
+                ["sudo", "systemctl", "enable", "--now", "crond"],
+            ]
+        last_r = None
+        for r in pipeline(cmds, ssh_client=self.ssh_client):
+            last_r = r
+            if r.returncode != 0:
+                logger.error("Prepare failed: %s", r)
+                return r
+        return last_r
