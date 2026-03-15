@@ -1,7 +1,7 @@
 import logging
 
 from imgtests.exec.base_util import GenericUtil
-from imgtests.exec.exec import SSHClient, common_run_command
+from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
 from imgtests.exec.user_commands import Dd
 
 logger = logging.getLogger(__name__)
@@ -11,6 +11,9 @@ class DeviceMapperSetup(GenericUtil):
     def __init__(self, ssh_client: SSHClient | None = None) -> None:
         super().__init__("dmsetup", ssh_client)
 
+    def list_dm_devices(self) -> ExecResult:
+        return self(["ls"])
+
     def create_dm_delay_device(
         self,
         device_name: str = "delay",
@@ -18,7 +21,7 @@ class DeviceMapperSetup(GenericUtil):
         r_delay: int = 2000,
         w_delay: int = 2000,
     ) -> bool:
-        result = self(["ls"])
+        result = self.list_dm_devices()
 
         if f"{device_name}1" in result.stdout:
             return True
@@ -37,7 +40,7 @@ class DeviceMapperSetup(GenericUtil):
     def create_dm_dust_device(
         self, device_name: str = "dust", block_name: str = "/dev/loop0", block_size: int = 512
     ) -> bool:
-        result = self(["ls"])
+        result = self.list_dm_devices()
 
         if f"{device_name}1" in result.stdout:
             return True
