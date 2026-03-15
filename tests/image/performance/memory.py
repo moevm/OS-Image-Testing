@@ -26,7 +26,6 @@ class SarWithStressNGTest(AbstractRunnableTimeLimitedTest):
         timeout: int,
     ) -> None:
         sar = Sar(client)
-        sar.prepare()
 
         stress_ng = StressNg(client)
         stress_ng_future = executor.submit(
