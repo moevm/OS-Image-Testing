@@ -1,14 +1,19 @@
+import inspect
 import logging
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
+from enum import Enum
 from threading import Event, Thread
-from typing import TYPE_CHECKING, Any, Literal, NamedTuple
+from typing import TYPE_CHECKING, Any, NamedTuple
+from zoneinfo import ZoneInfo
 
 import paramiko
 import paramiko.ssh_exception
 
 from imgtests.constant import LIB_NAME
 from imgtests.database.database import ImgtestsDatabase
+from imgtests.exec.exec import common_run_command
 from imgtests.exec.observers.journalctl import Journalctl
 from imgtests.exec.observers.systemctl import Systemctl
 from imgtests.sysrep import get_system_info
@@ -20,16 +25,40 @@ if TYPE_CHECKING:
     from imgtests.exec.base_util import BaseTestUtil
     from imgtests.exec.exec import SSHClient
 
-Subsystem = Literal["file", "syscalls", "IPC", "network", "memory", "system"]
+
+class Subsystem(str, Enum):
+    FILE = "file"
+    IPC = "IPC"
+    MEMORY = "memory"
+    NETWORK = "network"
+    SYSCALLS = "syscalls"
+    SYSTEM = "system"
 
 
-class AbstractRunnableManyTimesTest(ABC):
+class TestResult(NamedTuple):
+    metrics: Any
+    command: str = ""
+    started_at: datetime = datetime.now(tz=ZoneInfo("UTC"))
+    ended_at: datetime = datetime.now(tz=ZoneInfo("UTC"))
+
+
+class DefaultCleanupMixin:
+    def cleanup(self, client: SSHClient | None, logger: logging.Logger) -> None:
+        for path in ("/tmp/*", "/var/tmp/*"):  # noqa: S108
+            result = common_run_command(["sudo", "rm", "-rf", path], client)
+            if result.returncode:
+                logger.warning("Failed to cleanup folder '%s'.", path)
+            else:
+                logger.info("Cleaned up folder '%s'.", path)
+
+
+class AbstractRunnableManyTimesTest(ABC, DefaultCleanupMixin):
     __slots__ = ("description", "iterations", "logger", "subsystems")
 
     def __init__(
         self,
         description: str,
-        subsystems: set[Subsystem],
+        subsystems: frozenset[Subsystem],
         iterations: int = 1,
     ) -> None:
         """Construct a AbstractRunnableManyTimesTest instance.
@@ -54,9 +83,15 @@ class AbstractRunnableManyTimesTest(ABC):
         self.iterations = iterations
         self.logger = logging.getLogger(f"{LIB_NAME}.runnable_test")
 
-    def __call__(self, executor: ThreadPoolExecutor, client: SSHClient | None = None) -> Any:
+    def __call__(
+        self, executor: ThreadPoolExecutor, client: SSHClient | None = None
+    ) -> Iterable[TestResult]:
         self.logger.info("Starting '%s' test '%d' times.", self.description, self.iterations)
-        self._run(executor, client, self.iterations)
+        # TODO: make all tests return a generator
+        if inspect.isgeneratorfunction(self._run):
+            yield from self._run(executor, client, self.iterations)
+        else:
+            self._run(executor, client, self.iterations)
         self.logger.info("'%s' test finished.", self.description)
 
     @abstractmethod
@@ -65,16 +100,16 @@ class AbstractRunnableManyTimesTest(ABC):
         executor: ThreadPoolExecutor,
         client: SSHClient | None,
         iterations: int,
-    ) -> None: ...
+    ) -> Iterable[TestResult]: ...
 
 
-class AbstractRunnableTimeLimitedTest(ABC):
+class AbstractRunnableTimeLimitedTest(ABC, DefaultCleanupMixin):
     __slots__ = ("description", "logger", "subsystems", "timeout")
 
     def __init__(
         self,
         description: str,
-        subsystems: set[Subsystem],
+        subsystems: frozenset[Subsystem],
         timeout: int,
     ) -> None:
         """Construct a AbstractRunnableTimeLimitedTest instance.
@@ -99,9 +134,15 @@ class AbstractRunnableTimeLimitedTest(ABC):
         self.timeout = timeout
         self.logger = logging.getLogger(f"{LIB_NAME}.runnable_test")
 
-    def __call__(self, executor: ThreadPoolExecutor, client: SSHClient | None = None) -> Any:
+    def __call__(
+        self, executor: ThreadPoolExecutor, client: SSHClient | None = None
+    ) -> Iterable[TestResult]:
         self.logger.info("Starting '%s' test with '%d' timeout.", self.description, self.timeout)
-        self._run(executor, client, self.timeout)
+        # TODO: make all tests return a generator
+        if inspect.isgeneratorfunction(self._run):
+            yield from self._run(executor, client, self.timeout)
+        else:
+            self._run(executor, client, self.timeout)
         self.logger.info("'%s' test finished.", self.description)
 
     @abstractmethod
@@ -110,7 +151,7 @@ class AbstractRunnableTimeLimitedTest(ABC):
         executor: ThreadPoolExecutor,
         client: SSHClient | None,
         timeout: int,
-    ) -> None: ...
+    ) -> Iterable[TestResult]: ...
 
 
 # Time to run, subsystems, stages (plan, risk analysis, run, cleanup, results, etc), etc
@@ -124,7 +165,7 @@ class TestsRunnerConfig(NamedTuple):
 class TestsRunner:
     __slots__ = ("__client", "__database", "__executor", "__test_config", "logger")
 
-    def __init__(self, client: SSHClient, test_config: TestsRunnerConfig) -> None:
+    def __init__(self, client: SSHClient | None, test_config: TestsRunnerConfig) -> None:
         self.__executor = ThreadPoolExecutor()
         self.__client = client
         self.__database = ImgtestsDatabase()
@@ -143,10 +184,23 @@ class TestsRunner:
             experiment_type=self.__test_config.experiment_type,
         )
         for test in self.__test_config.tests:
-            self.__client.reconnect()
+            if self.__client is not None:
+                self.__client.reconnect()
             is_alive_cycle = Thread(target=self.__is_remote_alive, args=(test_completed_event,))
             is_alive_cycle.start()
-            test(self.__executor, self.__client)
+            # TODO: make all tests return a generator
+            if inspect.isgeneratorfunction(test._run):  # noqa: SLF001
+                for result in test(self.__executor, self.__client):
+                    self.__database.insert_loader(
+                        experiment_id=experiment.experiment_id,
+                        result=result.metrics,
+                        command=result.command,
+                        started_at=result.started_at,
+                        ended_at=result.ended_at,
+                    )
+            else:
+                list(test(self.__executor, self.__client))
+            test.cleanup(self.__client, self.logger)
             test_completed_event.set()
             is_alive_cycle.join(10)
             test_completed_event.clear()
@@ -169,7 +223,8 @@ class TestsRunner:
             journalctl._calc_records_cnt(systemd_err_records.stdout),  # noqa: SLF001
         )
         self.logger.info("All tests completed successfully.")
-        self.__client.close()
+        if self.__client is not None:
+            self.__client.close()
 
     def install_dependencies(self) -> None:
         from imgtests.exec.loaders import (  # noqa: PLC0415
@@ -212,10 +267,11 @@ class TestsRunner:
     def __is_remote_alive(self, test_completed_event: Event) -> None:
         while not test_completed_event.wait(5.0):
             try:
-                self.__client(["echo", "test"])
+                common_run_command(["echo", "test"], self.__client)
             except paramiko.ssh_exception.SSHException:
                 break
         if not test_completed_event.is_set():
             self.logger.error("Remote node unavailable during test.")
-            self.__client.close()
+            if self.__client is not None:
+                self.__client.close()
             self.__executor.shutdown(cancel_futures=True)

@@ -122,6 +122,7 @@ class ImgtestsDatabase:
         if ended_at is None:
             ended_at = datetime.now(ZoneInfo("UTC"))
 
+        logger.debug("Inserting test '%s' results into experiment '%d'.", command, experiment_id)
         loader_object = LoaderBase(
             experiment_id=experiment_id,
             command=command,

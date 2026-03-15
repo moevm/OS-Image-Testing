@@ -1,12 +1,15 @@
 import tempfile
 from concurrent.futures import as_completed
+from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, NamedTuple
+from typing import TYPE_CHECKING, Final, NamedTuple
+from zoneinfo import ZoneInfo
 
 from imgtests.exec.exec import common_run_command
-from imgtests.runner import AbstractRunnableManyTimesTest
+from imgtests.runner import AbstractRunnableManyTimesTest, Subsystem, TestResult
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
     from concurrent.futures import Future, ThreadPoolExecutor
 
     from imgtests.exec.exec import SSHClient
@@ -16,6 +19,9 @@ import numpy.typing as npt
 
 from imgtests.exec.observers.time import Time, Times
 from imgtests.exec.user_commands import Dd, Rm
+
+TEST_FILE1: Final = Path(tempfile.gettempdir()) / "test_file1"
+TEST_FILE2: Final = Path(tempfile.gettempdir()) / "test_file2"
 
 
 class ToolTimes(NamedTuple):
@@ -31,15 +37,18 @@ ToolsTimes = dict[str, ToolTimes | None]
 
 class POSIXUtilsTest(AbstractRunnableManyTimesTest):
     def __init__(self, iterations: int = 1) -> None:
-        super().__init__("Tests standard utilities performance.", {"system"}, iterations)
+        super().__init__(
+            "Tests standard utilities performance.", frozenset({Subsystem.SYSTEM}), iterations
+        )
 
     def _run(
         self,
         executor: ThreadPoolExecutor,
         client: SSHClient | None,
         iterations: int,
-    ) -> None:
-        final_results: ToolsTimes = {}
+    ) -> Iterable[TestResult]:
+        final_results: dict[str, dict[str, list[float]]] = {}
+        started_at = datetime.now(tz=ZoneInfo("UTC"))
         futures: list[Future[ToolsTimes]] = [
             executor.submit(func, client, iterations)
             for func in [
@@ -50,29 +59,41 @@ class POSIXUtilsTest(AbstractRunnableManyTimesTest):
             ]
         ]
         for future in as_completed(futures):
-            final_results.update(future.result())
+            result = future.result()
+            for tool, metrics in result.items():
+                if metrics:
+                    final_results[tool] = {
+                        "mean": metrics.mean.tolist(),
+                        "median": metrics.median.tolist(),
+                        "std": metrics.std.tolist(),
+                        "var": metrics.var.tolist(),
+                    }
+                else:
+                    final_results[tool] = {}
 
-    def test_utils_for_files(  # noqa: PLR0912, C901, PLR0915
+        yield TestResult(
+            started_at=started_at,
+            metrics=final_results,
+        )
+
+    def test_utils_for_files(  # noqa: PLR0912, C901
         self, client: SSHClient | None, iterations: int
     ) -> ToolsTimes:
         time = Time(client)
         dd = Dd(client)
-        tmpdir = Path(tempfile.gettempdir())
-        filename1 = tmpdir / "test_file1"
-        filename2 = tmpdir / "test_file2"
         ret = dd(
             [
                 "if=/dev/urandom",
                 "bs=1M",
                 "count=50",
-                f"of={filename1}.tmp",
+                f"of={TEST_FILE1}.tmp",
             ]
         )
         if ret.returncode:
             self.logger.error("Test file wasn't created correctly")
             return {}
         ret = common_run_command(
-            ["tr", "-dc", "'[:print:]'", "<", f"{filename1}.tmp", ">", str(filename1)],
+            ["tr", "-dc", "'[:print:]'", "<", f"{TEST_FILE1}.tmp", ">", str(TEST_FILE1)],
             client,
         )
         if ret.returncode:
@@ -83,20 +104,20 @@ class POSIXUtilsTest(AbstractRunnableManyTimesTest):
                 "if=/dev/urandom",
                 "bs=1M",
                 "count=50",
-                f"of={filename2}.tmp",
+                f"of={TEST_FILE2}.tmp",
             ]
         )
         if ret.returncode:
             self.logger.error("Test file wasn't created correctly")
             return {}
         ret = common_run_command(
-            ["tr", "-dc", "'[:print:]'", "<", f"{filename2}.tmp", ">", str(filename2)],
+            ["tr", "-dc", "'[:print:]'", "<", f"{TEST_FILE2}.tmp", ">", str(TEST_FILE2)],
             client,
         )
         if ret.returncode:
             self.logger.error("Test file wasn't created correctly")
             return {}
-        common_run_command(["rm", "-f", f"{filename1}.tmp", f"{filename2}.tmp"], client)
+        common_run_command(["rm", "-f", f"{TEST_FILE1}.tmp", f"{TEST_FILE2}.tmp"], client)
         tools = [
             "cat",
             "head",
@@ -111,11 +132,11 @@ class POSIXUtilsTest(AbstractRunnableManyTimesTest):
             "paste",
             "tr",
             "diff",
-            "patch",
             "cp",
-            "rm",
+            "patch",
             "mv",
             "ln",
+            "rm",
             "chmod",
             "chown",
             "chgrp",
@@ -125,37 +146,37 @@ class POSIXUtilsTest(AbstractRunnableManyTimesTest):
         for tool in tools:
             cmd = tool
             if tool in {"cat", "wc", "od", "sort", "uniq"}:
-                cmd = f"cat {filename1} {filename2} > /dev/null"
+                cmd = f"cat {TEST_FILE1} {TEST_FILE2} > /dev/null"
             elif tool in {"head", "tail"}:
-                cmd = f"{tool} -n 1000 {filename1} {filename2} > /dev/null"
+                cmd = f"{tool} -n 1000 {TEST_FILE1} {TEST_FILE2} > /dev/null"
             elif tool == "grep":
-                cmd = f"{tool} test {filename1} {filename2} > /dev/null || exit 0"
+                cmd = f"bash -c '{tool} test {TEST_FILE1} {TEST_FILE2} > /dev/null || true'"
             elif tool == "paste":
-                cmd = f"{tool} {filename2} {filename1} > /dev/null"
+                cmd = f"{tool} {TEST_FILE2} {TEST_FILE1} > /dev/null"
             elif tool == "tr":
-                cmd = f"{tool} 'a-z' 'A-Z' < {filename1} > /dev/null"
+                cmd = f"{tool} 'a-z' 'A-Z' < {TEST_FILE1} > /dev/null"
             elif tool == "diff":
-                cmd = f"{tool} -u {filename1} {filename2} > diff.patch"
+                cmd = f"bash -c '{tool} -u {TEST_FILE1} {TEST_FILE2} > diff.patch || true'"
             elif tool == "cp":
-                cmd = " ".join([tool, str(filename1), f"{filename1}.copy"])
+                cmd = " ".join([tool, str(TEST_FILE1), f"{TEST_FILE1}.copy"])
             elif tool == "patch":
-                cmd = f"{tool} {filename1}.copy < diff.patch"
+                cmd = f"{tool} {TEST_FILE1}.copy < diff.patch"
             elif tool == "mv":
-                cmd = " ".join([tool, f"{filename1}.copy", f"{filename1}.new"])
+                cmd = " ".join([tool, f"{TEST_FILE1}.copy", f"{TEST_FILE1}.new"])
             elif tool == "ln":
-                cmd = " ".join([tool, str(filename1), f"{filename1}.hardlink"])
+                cmd = " ".join([tool, str(TEST_FILE1), f"{TEST_FILE1}.hardlink"])
             elif tool == "rm":
-                cmd = " ".join([tool, f"{filename1}.new", f"{filename1}.hardlink"])
+                cmd = " ".join([tool, f"{TEST_FILE1}.new"])
             elif tool == "chmod":
-                cmd = f"{tool} 777 {filename1}"
+                cmd = f"{tool} 777 {TEST_FILE1}"
             elif tool in {"chown", "chgrp"}:
-                cmd = f"{tool} root {filename1}"
+                cmd = f"sudo {tool} root {TEST_FILE1}"
             elif tool == "tar":
-                cmd = f"{tool} -cf {filename1}.tar {filename1}"
+                cmd = f"{tool} -cf {TEST_FILE1}.tar {TEST_FILE1}"
             elif tool in {"md5sum", "sha256sum"}:
-                cmd = f"{tool} {filename1} {filename2}"
-            results[tool] = time_cmd_many(time, cmd, iterations)
-            self.logger.info("Results for %s: %s", tool, time_cmd_many(time, cmd, iterations))
+                cmd = f"{tool} {TEST_FILE1} {TEST_FILE2}"
+            results[tool] = time_cmd_many(time, cmd, iterations, client)
+            self.logger.info("Results for %s: %s", tool, results[tool])
         return results
 
     def test_net_utils(self, client: SSHClient | None, iterations: int) -> ToolsTimes:
@@ -166,7 +187,7 @@ class POSIXUtilsTest(AbstractRunnableManyTimesTest):
             cmd = tool
             if tool == "ping":
                 cmd = f"{tool} -c 20 localhost"
-            results[tool] = time_cmd_many(time, cmd, iterations)
+            results[tool] = time_cmd_many(time, cmd, iterations, client)
             self.logger.info("Results for %s: %s", tool, results[tool])
         return results
 
@@ -187,18 +208,20 @@ class POSIXUtilsTest(AbstractRunnableManyTimesTest):
         path = tmpdir / "/".join(str(i) for i in range(1, 51))
         for tool in tools:
             cmd = tool
-            if tool in {"mkdir", "rmdir"}:
+            if tool == "mkdir":
                 cmd = f"{tool} -p {path}"
+            elif tool == "rmdir":
+                cmd = f"{tool} {tempfile.gettempdir()}/test"
             elif tool == "find":
-                cmd = f"{tool} /tmp -type d -name '40'"
+                cmd = f"sudo {tool} /tmp -type d -name '40'"
             elif tool == "ls":
                 for j in range(1, 101):
                     dd(["if=/dev/urandom", f"of=/tmp/file{j}", "bs=10", "count=1"])
                 cmd = f"{tool} /tmp"
-                rm([str(tmpdir / "/file*")])
+                rm([str(tmpdir / f"file{j}") for j in range(1, 101)])
             elif tool == "realpath":
                 cmd = f"{tool} {path}"
-            results[tool] = time_cmd_many(time, cmd, iterations)
+            results[tool] = time_cmd_many(time, cmd, iterations, client)
             self.logger.info("Results for %s: %s", tool, results[tool])
         return results
 
@@ -225,8 +248,8 @@ class POSIXUtilsTest(AbstractRunnableManyTimesTest):
             if tool == "ps":
                 cmd = f"{tool} aux | grep {process}"
             elif tool == "pgrep":
-                cmd = f"{tool} {process}"
-            elif tool in {"echo", "hello"}:
+                cmd = f"{tool} sh"
+            elif tool in {"echo", "printf"}:
                 string = "a" * 1000
                 cmd = f"{tool} {string}"
             results[tool] = time_cmd_many(time, cmd, iterations)
@@ -235,12 +258,50 @@ class POSIXUtilsTest(AbstractRunnableManyTimesTest):
 
 
 def time_cmd_many(
-    time: Time,
-    tool: str,
-    iterations: int,
+    time: Time, tool: str, iterations: int, client: SSHClient | None = None
 ) -> ToolTimes | None:
     result: list[Times] = []
-    for _ in range(iterations):
+    for i in range(iterations):
+        parts = tool.split()
+        if "mkdir" in tool:
+            common_run_command(
+                [
+                    "rm",
+                    "-rf",
+                    f"{tempfile.gettempdir()}/1",
+                ],
+                client,
+            )
+        elif "rmdir" in tool:
+            common_run_command(["mkdir", f"{tempfile.gettempdir()}/test"], client)
+        elif parts[0] == "patch":
+            common_run_command(["cp", parts[1], f"{parts[1]}.{i}"], client)
+            tool = f"{parts[0]} {parts[1]}.{i} < diff.patch"
+        elif "mv" in tool:
+            common_run_command(["cp", parts[1].split(".")[0], parts[1]], client)
+        elif "ln" in tool:
+            common_run_command(
+                ["[", "-f", parts[2], "]", "&&", "rm", parts[2], "||", "true"], client
+            )
+        elif "rm" in tool:
+            common_run_command(
+                [
+                    "[",
+                    "!",
+                    "-f",
+                    parts[1],
+                    "]",
+                    "&&",
+                    "cp",
+                    parts[1].split(".")[0],
+                    parts[1],
+                    "||",
+                    "true",
+                ],
+                client,
+            )
+        elif "tar" in tool:
+            common_run_command(["rm", "-f", f"{TEST_FILE1}.tar"], client)
         times = time.run(tool)
         if times is None:
             return None
@@ -249,3 +310,21 @@ def time_cmd_many(
     return ToolTimes(
         array.mean(axis=0), np.median(array, axis=0), array.std(axis=0), array.var(axis=0)
     )
+
+
+def tooltimes_to_bmf(tooltimes: ToolTimes) -> dict[str, dict[str, dict[str, float]]]:
+    metrics = ["real", "user", "sys"]
+    result: dict[str, dict[str, dict[str, float]]] = {}
+
+    for name, array in [
+        ("mean", tooltimes.mean),
+        ("median", tooltimes.median),
+        ("std", tooltimes.std),
+        ("var", tooltimes.var),
+    ]:
+        d = {}
+        for i, metric in enumerate(metrics):
+            d[metric] = {"value": float(array[i])}
+        result[name] = d
+
+    return result
