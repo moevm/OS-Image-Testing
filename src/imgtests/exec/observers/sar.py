@@ -1,7 +1,7 @@
 import logging
 import re
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Literal, get_args
 
 from imgtests.exec.base_util import BaseTestUtil
 from imgtests.exec.exec import ExecResult, pipeline
@@ -20,6 +20,8 @@ PGSCAN_LINE_PATTERN = re.compile(
 )
 
 logger = logging.getLogger(__name__)
+
+ReportTypes = Literal["A", "B", "b", "C", "D", "d", "H", "S", "v", "W", "w", "y"]
 
 
 class Sar(PkgMgrMixin, BaseTestUtil):
@@ -40,12 +42,20 @@ class Sar(PkgMgrMixin, BaseTestUtil):
             )
         return self._install_packages(["sysstat"])
 
-    def run(self, interval: int | None = None, count: int | None = None) -> tuple[ExecResult, int]:
-        """Run sar -B with parameters.
+    def run(
+        self,
+        report_type: ReportTypes = "B",
+        interval: int | None = None,
+        count: int | None = None,
+        **kwargs: dict[str, Any],
+    ) -> tuple[ExecResult, int]:
+        """Run sar with parameters.
 
         Args:
+            report_type (ReportTypes): Subsystem activity report flag. Default is 'B' for paging.
             interval (int | None): Measurement time interval
             count (int | None): Number of measurements
+            **kwargs (dict[str, Any]): Command arguments in the free form with values.
 
         Returns:
             tuple[ExecResult, int]: Result of sar and parsed pgscan time
@@ -54,6 +64,10 @@ class Sar(PkgMgrMixin, BaseTestUtil):
             ValueError: When invalid parameters provided or repeated.
         """
         # validation
+        if report_type not in get_args(ReportTypes):
+            err_msg = f"Invalid type '{report_type}'. Type should be one of {get_args(ReportTypes)}"
+            raise ValueError(err_msg)
+
         if interval is None and count is not None:
             err_msg = "If interval is None, count should be set None."
             raise ValueError(err_msg)
@@ -75,13 +89,16 @@ class Sar(PkgMgrMixin, BaseTestUtil):
             raise ValueError(err_msg)
 
         # create command
-        opts = ["-B"]
+        opts = [f"-{type}"]
         if interval is not None:
             opts.append(interval)
             if interval != 0 and count is not None:
                 opts.append(count)
 
-        result = self(opts)
+        result = self(
+            opts,
+            **kwargs,
+        )
 
         return result, self.extract_pgscan_time(result.stdout)
 
