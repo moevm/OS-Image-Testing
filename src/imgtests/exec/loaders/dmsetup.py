@@ -12,35 +12,43 @@ class DeviceMapperSetup(GenericUtil):
         super().__init__("dmsetup", ssh_client)
 
     def create_dm_delay_device(
-        self, device_name: str = "delay", read_delay: int = 2000, write_delay: int = 2000
+        self,
+        device_name: str = "delay",
+        block_name: str = "/dev/loop0",
+        r_delay: int = 2000,
+        w_delay: int = 2000,
     ) -> bool:
         result = self(["ls"])
 
         if f"{device_name}1" in result.stdout:
             return True
 
+        sectors = 1048576
         result = self(
             [
                 "create",
                 f"{device_name}1",
                 "--table",
-                f'"0 1048576 {device_name} /dev/loop0 0 {read_delay} /dev/loop0 0 {write_delay}"',
+                f'"0 {sectors} {device_name} {block_name} 0 {r_delay} {block_name} 0 {w_delay}"',
             ]
         )
         return result.returncode == 0
 
-    def create_dm_dust_device(self, device_name: str = "dust", block_size: int = 512) -> bool:
+    def create_dm_dust_device(
+        self, device_name: str = "dust", block_name: str = "/dev/loop0", block_size: int = 512
+    ) -> bool:
         result = self(["ls"])
 
         if f"{device_name}1" in result.stdout:
             return True
 
+        sectors = 1048576
         result = self(
             [
                 "create",
                 f"{device_name}1",
                 "--table",
-                f'"0 1048576 {device_name} /dev/loop0 0 {block_size}"',
+                f'"0 {sectors} {device_name} {block_name} 0 {block_size}"',
             ]
         )
         return result.returncode == 0
@@ -63,7 +71,10 @@ class DeviceMapperSetup(GenericUtil):
 
 
 def setup_block_device(
-    client: SSHClient | None = None, block_size: str = "1M", block_count: int = 512
+    client: SSHClient | None = None,
+    block_name: str = "/dev/loop0",
+    block_size: str = "1M",
+    block_count: int = 512,
 ) -> bool:
     dd = Dd(ssh_client=client)
     result = dd(["if=/dev/zero", "of=storage.img", f"bs={block_size}", f"count={block_count}"])
@@ -74,11 +85,11 @@ def setup_block_device(
         cmd=["losetup", "-a"],
         ssh_client=client,
     )
-    if "/dev/loop0" in result.stdout and "storage.img" in result.stdout:
+    if block_name in result.stdout and "storage.img" in result.stdout:
         return True
 
     result = common_run_command(
-        cmd=["losetup", "/dev/loop0", "storage.img"],
+        cmd=["losetup", block_name, "storage.img"],
         ssh_client=client,
     )
     if result.returncode:
