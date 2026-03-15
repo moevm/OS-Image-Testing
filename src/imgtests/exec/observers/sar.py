@@ -89,7 +89,7 @@ class Sar(PkgMgrMixin, BaseTestUtil):
             raise ValueError(err_msg)
 
         # create command
-        opts = [f"-{type}"]
+        opts = [f"-{report_type}"]
         if interval is not None:
             opts.append(interval)
             if interval != 0 and count is not None:
