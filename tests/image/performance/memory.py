@@ -1,8 +1,8 @@
 import logging
 from typing import TYPE_CHECKING
 
-from imgtests.exec.base_util import common_run_command
-from imgtests.exec.observers.sar import Sar
+from imgtests.exec.loaders import StressNg
+from imgtests.exec.observers import Sar
 from imgtests.runner import AbstractRunnableTimeLimitedTest, Subsystem
 
 if TYPE_CHECKING:
@@ -21,13 +21,23 @@ class SarWithStressNGTest(AbstractRunnableTimeLimitedTest):
 
     def _run(
         self,
-        executor: ThreadPoolExecutor,  # noqa: ARG002
+        executor: ThreadPoolExecutor,
         client: SSHClient | None,
         timeout: int,
     ) -> None:
         sar = Sar(client)
         sar.prepare()
 
-        common_run_command([f"stress-ng --vm 4 --vm-bytes 95% --timeout {timeout} &"], client)
+        stress_ng = StressNg(client)
+        stress_ng_future = executor.submit(
+            stress_ng.run,
+            timeout_sec=timeout,
+            vm=4,
+            vm_bytes="95%",
+        )
+
         _, pgscan = sar.run(interval=1, count=timeout)
+        _, m = stress_ng_future.result()
+
+        logger.info("stress-ng metrics: %s", m)
         logger.info("pgscan time: %s s", pgscan)
