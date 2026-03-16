@@ -3,8 +3,10 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from imgtests.exec.loaders.dmsetup import DeviceMapperSetup, setup_block_device
+from imgtests.exec.osinfo import get_os_release
 from imgtests.runner import AbstractRunnableTimeLimitedTest, Subsystem
 from imgtests.suites.drive.fio import FioSuite, FioSuiteConfig, FioWorkload
+from imgtests.types import Distro
 
 if TYPE_CHECKING:
     from concurrent.futures import ThreadPoolExecutor
@@ -102,6 +104,11 @@ class FioDisksDMDelay(AbstractRunnableTimeLimitedTest):
         client: SSHClient | None,
         timeout: int,
     ) -> None:
+        os_id = get_os_release(client).id
+        if os_id and os_id != Distro.POKY.value:
+            self.logger.warning("Skipping test due dm-delay test is only supported on poky.")
+            return
+
         result = setup_block_device(client=client)
         if result is not None and result.returncode:
             logger.error("Error in block device setup.")
@@ -140,6 +147,11 @@ class FioDisksDMDust(AbstractRunnableTimeLimitedTest):
         client: SSHClient | None,
         timeout: int,
     ) -> None:
+        os_id = get_os_release(client).id
+        if os_id and os_id != Distro.POKY.value:
+            self.logger.warning("Skipping test due dm-dust test is only supported on poky.")
+            return
+
         result = setup_block_device(client=client)
         if result is not None and result.returncode:
             logger.error("Error in block device setup.")
