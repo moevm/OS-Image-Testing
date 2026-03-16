@@ -125,7 +125,7 @@ class FioDisksDMDelay(AbstractRunnableTimeLimitedTest):
             duration_sec=timeout,
             results_dir=Path().home() / "fio",
             workloads=SCALING_WORKLOADS,
-            filename="/dev/mapper/delay1",
+            filename=Path("/dev/mapper/delay1"),
         )
 
         out = FioSuite(client, cfg).run()
@@ -162,21 +162,23 @@ class FioDisksDMDust(AbstractRunnableTimeLimitedTest):
         if result.returncode:
             logger.error("Error in creating dm-delay device.")
             return
-        dm.add_bad_blocks(device_name="dust1", block_numbers=list(range(50, 100)))
+        result = dm.add_bad_blocks(device_name="dust1", block_numbers=list(range(50, 100)))
+        if result.returncode:
+            return
 
         read_cfg = FioSuiteConfig(
             suite="dm-dust",
             duration_sec=timeout,
             results_dir=Path().home() / "fio",
             workloads=DMDUST_READ_WORKLOAD,
-            filename="/dev/mapper/dust1",
+            filename=Path("/dev/mapper/dust1"),
         )
         write_cfg = FioSuiteConfig(
             suite="dm-dust",
             duration_sec=timeout,
             results_dir=Path().home() / "fio",
             workloads=DMDUST_WRITE_WORKLOAD,
-            filename="/dev/mapper/dust1",
+            filename=Path("/dev/mapper/dust1"),
         )
 
         try:
