@@ -37,4 +37,3 @@ int main(int argc, char** argv) {
     fprintf(stderr, "No bridge helper found\n");
     return 1;
 }
-

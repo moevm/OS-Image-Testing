@@ -21,7 +21,7 @@ index e8b72da3a..5cd86b142 100644
 +++ b/scripts/decodetree.py
 @@ -1558,7 +1558,7 @@ def main():
      toppat = ExcMultiPattern(0)
- 
+
      for filename in args:
 -        input_file = filename
 +        input_file = os.path.relpath(filename)

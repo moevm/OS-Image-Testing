@@ -29,4 +29,3 @@ do_install:append() {
     install -d ${D}${libdir}/qemu-python/qmp/
     install -D ${S}/python/qemu/qmp/* ${D}${libdir}/qemu-python/qmp/
 }
-

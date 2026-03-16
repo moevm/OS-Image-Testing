@@ -21,7 +21,7 @@ index 490ab8182..d19ee5606 100644
 --- a/tests/unit/meson.build
 +++ b/tests/unit/meson.build
 @@ -128,17 +128,17 @@ endif
- 
+
  if have_system
    tests += {
 -    'ptimer-test': ['ptimer-test-stubs.c', meson.project_source_root() / 'hw/core/ptimer.c'],

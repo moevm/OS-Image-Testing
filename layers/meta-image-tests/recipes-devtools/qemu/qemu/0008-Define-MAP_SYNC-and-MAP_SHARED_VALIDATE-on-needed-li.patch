@@ -24,7 +24,7 @@ index ed14f9c64..038f5b4b5 100644
 @@ -10,14 +10,18 @@
   * later.  See the COPYING file in the top-level directory.
   */
- 
+
 +#include "qemu/osdep.h"
  #ifdef CONFIG_LINUX
  #include <linux/mman.h>
@@ -38,7 +38,7 @@ index ed14f9c64..038f5b4b5 100644
  #define MAP_SHARED_VALIDATE   0x0
 -#endif /* CONFIG_LINUX */
 +#endif /* MAP_SHARED_VALIDATE */
- 
+
 -#include "qemu/osdep.h"
  #include "qemu/mmap-alloc.h"
  #include "qemu/host-utils.h"
