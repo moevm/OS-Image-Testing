@@ -193,6 +193,8 @@ class TestsRunner:
                 for result in test(self.__executor, self.__client):
                     self.__database.insert_loader(
                         experiment_id=experiment.experiment_id,
+                        # TODO: fill descriptions and adds into TestResult class
+                        description="",
                         result=result.metrics,
                         command=result.command,
                         started_at=result.started_at,
