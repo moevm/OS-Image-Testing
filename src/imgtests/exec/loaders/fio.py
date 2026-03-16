@@ -58,7 +58,7 @@ class Fio(PkgMgrMixin, GenericUtil):
         name: str | None = None,
         loops: int | None = None,
         numjobs: int | None = None,
-        filename: str | None = None,
+        filename: Path | None = None,
         size: str | None = None,
         readwrite: IOPattern | None = None,
         ioengine: IOEngine | None = None,
@@ -72,7 +72,7 @@ class Fio(PkgMgrMixin, GenericUtil):
             name (str | None): Name of the job.
             loops (int | None): Number of iterations of this job.
             numjobs (int | None): Number of fio jobs.
-            filename (str | None): Output filename or block device.
+            filename (Path | None): Output filename or block device.
             size (str | None): The total size of file I/O for each thread of this job.
             readwrite (IOPattern | None): Type of I/O pattern.
             ioengine (IOEngine| None): How the job issues I/O.

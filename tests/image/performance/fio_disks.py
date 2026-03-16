@@ -2,6 +2,7 @@ import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from imgtests.exec.loaders.dmsetup import DeviceMapperSetup, setup_block_device
 from imgtests.runner import AbstractRunnableTimeLimitedTest, Subsystem
 from imgtests.suites.drive.fio import FioSuite, FioSuiteConfig, FioWorkload
 
@@ -35,6 +36,12 @@ NIGHTLY_WORKLOADS: tuple[FioWorkload, ...] = (
     FioWorkload("rand_read_16k", "randread", "16k", 1.0),
     FioWorkload("rand_read_4k", "randread", "4k", 1.0),
 )
+
+DMDUST_READ_WORKLOAD: tuple[FioWorkload, ...] = (
+    FioWorkload("rand_read_1M", "randread", "1M", 1.0),
+)
+
+DMDUST_WRITE_WORKLOAD: tuple[FioWorkload, ...] = (FioWorkload("seq_write_1M", "write", "1M", 1.0),)
 
 
 class FioDisksScalingTest(AbstractRunnableTimeLimitedTest):
@@ -81,3 +88,90 @@ class FioDisksNightly(AbstractRunnableTimeLimitedTest):
         )
         out = FioSuite(client, cfg).run()
         logger.info("FIO nightly PASSED: %s", out)
+
+
+class FioDisksDMDelay(AbstractRunnableTimeLimitedTest):
+    """Tests that run fio on a disk with dm-delay."""
+
+    def __init__(self, timeout: int) -> None:
+        super().__init__("Dm-delay test with fio.", frozenset({Subsystem.FILE}), timeout)
+
+    def _run(
+        self,
+        executor: ThreadPoolExecutor,  # noqa: ARG002
+        client: SSHClient | None,
+        timeout: int,
+    ) -> None:
+        result = setup_block_device(client=client)
+        if result is not None and result.returncode:
+            logger.error("Error in block device setup.")
+            return
+
+        dm = DeviceMapperSetup(client)
+        result = dm.create_dm_delay_device()
+        if result.returncode:
+            logger.error("Error in creating dm-delay device.")
+            return
+
+        cfg = FioSuiteConfig(
+            suite="dm-delay",
+            duration_sec=timeout,
+            results_dir=Path().home() / "fio",
+            workloads=SCALING_WORKLOADS,
+            filename="/dev/mapper/delay1",
+        )
+
+        out = FioSuite(client, cfg).run()
+        dm.remove_dm_device(device_name="delay1")
+        logger.info("FIO dm-delay PASSED: %s", out)
+
+
+class FioDisksDMDust(AbstractRunnableTimeLimitedTest):
+    """Tests that run fio on a disk with dm-dust."""
+
+    def __init__(self, timeout: int) -> None:
+        super().__init__(
+            "Dm-dust fio test with errors on read.", frozenset({Subsystem.FILE}), timeout
+        )
+
+    def _run(
+        self,
+        executor: ThreadPoolExecutor,  # noqa: ARG002
+        client: SSHClient | None,
+        timeout: int,
+    ) -> None:
+        result = setup_block_device(client=client)
+        if result is not None and result.returncode:
+            logger.error("Error in block device setup.")
+            return
+
+        dm = DeviceMapperSetup(client)
+        result = dm.create_dm_dust_device()
+        if result.returncode:
+            logger.error("Error in creating dm-delay device.")
+            return
+        dm.add_bad_blocks(device_name="dust1", block_numbers=list(range(50, 100)))
+
+        read_cfg = FioSuiteConfig(
+            suite="dm-dust",
+            duration_sec=timeout,
+            results_dir=Path().home() / "fio",
+            workloads=DMDUST_READ_WORKLOAD,
+            filename="/dev/mapper/dust1",
+        )
+        write_cfg = FioSuiteConfig(
+            suite="dm-dust",
+            duration_sec=timeout,
+            results_dir=Path().home() / "fio",
+            workloads=DMDUST_WRITE_WORKLOAD,
+            filename="/dev/mapper/dust1",
+        )
+
+        try:
+            FioSuite(client, read_cfg).run()
+        except RuntimeError:
+            logger.info("Error above is intended, dm-dust works.")
+
+        out = FioSuite(client, write_cfg).run()
+        dm.remove_dm_device(device_name="dust1")
+        logger.info("FIO dm-dust PASSED: %s", out)
