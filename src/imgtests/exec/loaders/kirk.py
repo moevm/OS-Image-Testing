@@ -1,7 +1,7 @@
 import logging
 import shlex
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
@@ -15,6 +15,8 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 DEFAULT_LTP_RESULTS_DIR = Path("/var/tmp/ltp-results")  # noqa: S108
+DEBUGFS_MOUNTPOINT = Path("/sys/kernel/debug")
+MAX_FAULT_INJECTION = 100
 
 
 class Kirk(GenericUtil):
@@ -75,10 +77,29 @@ class Kirk(GenericUtil):
 
         return tuple(line.strip() for line in res.stdout.splitlines() if line.strip())
 
-    def run(  # noqa: PLR0911
+    @staticmethod
+    def _validate_fault_injection(fault_injection: int) -> None:
+        if not 0 <= fault_injection <= MAX_FAULT_INJECTION:
+            err_msg = "fault_injection must be in range 0..100."
+            raise ValueError(err_msg)
+
+    def _ensure_debugfs(self) -> ExecResult:
+        debugfs_path = str(DEBUGFS_MOUNTPOINT)
+        mount_pattern = f"[[:space:]]{debugfs_path}[[:space:]]debugfs[[:space:]]"
+        script = (
+            "set -eu; "
+            f'mkdir -p "{debugfs_path}"; '
+            f'if ! grep -qs "{mount_pattern}" /proc/mounts; then '
+            f'mount -t debugfs debugfs "{debugfs_path}"; '
+            "fi"
+        )
+        return common_run_command(("sudo", "bash", "-lc", f"'{script}'"), self.ssh_client)
+
+    def run(  # noqa: C901, PLR0911, PLR0912
         self,
         scenarios: Iterable[str],
         results_dir: str | Path = DEFAULT_LTP_RESULTS_DIR,
+        fault_injection: int | None = None,
     ) -> tuple[ExecResult, Path | None]:
         """Run an LTP scenario via kirk and store results as JSON."""
         results_dir_path = Path(results_dir)
@@ -87,6 +108,13 @@ class Kirk(GenericUtil):
         if not scenarios_list:
             scenarios_empty_msg = "scenarios must not be empty"
             raise ValueError(scenarios_empty_msg)
+
+        if fault_injection is not None:
+            self._validate_fault_injection(fault_injection)
+
+            debugfs_res = self._ensure_debugfs()
+            if debugfs_res.returncode:
+                return debugfs_res, None
 
         if self.ssh_client is None:
             try:
@@ -129,7 +157,12 @@ class Kirk(GenericUtil):
         report_name = f"{suites_str}.json"
 
         remote_json_path = remote_results_dir / report_name
-        res = self(["--run-suite", *scenarios_list, "--json-report", str(remote_json_path)])
+
+        cmd = ["--run-suite", *scenarios_list, "--json-report", str(remote_json_path)]
+        if fault_injection is not None:
+            cmd = ["--fault-injection", str(fault_injection), *cmd]
+
+        res = self(cmd)
         if res.returncode:
             return res, None
 
@@ -160,38 +193,3 @@ class Kirk(GenericUtil):
             return res, None
 
         return res, local_json_path
-
-    @staticmethod
-    def metrics_to_bmf(metrics: Any) -> dict[str, dict[str, dict[str, Any]]]:
-        result: dict[str, dict[str, dict[str, Any]]] = {}
-        for test in metrics["results"]:
-            test_name = test["test_fqn"]
-            test_info = test["test"]
-
-            if not test_name or not test_info:
-                continue
-
-            arguments = test_info["arguments"]
-            arguments_str = " ".join(arguments) if arguments else ""
-
-            retval = test_info["retval"]
-            retval_str = retval[0] if retval else ""
-
-            bmf_data: dict[str, dict[str, Any]] = {
-                "status": {"value": test["status"]},
-                "command": {"value": test_info["command"]},
-                "arguments": {"value": arguments_str},
-                "log": {"value": test_info["log"]},
-                "retval": {"value": retval_str},
-                "duration": {"value": test_info["duration"]},
-                "failed": {"value": test_info["failed"]},
-                "passed": {"value": test_info["passed"]},
-                "broken": {"value": test_info["broken"]},
-                "skipped": {"value": test_info["skipped"]},
-                "warnings": {"value": test_info["warnings"]},
-                "result": {"value": test_info["result"]},
-            }
-
-            result[test_name] = bmf_data
-
-        return result
