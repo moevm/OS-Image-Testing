@@ -28,30 +28,32 @@ class Systemctl(GenericUtil):
     def daemon_reload(self) -> ExecResult:
         return self(["daemon-reload"])
 
-    def get_failed_services(self) -> set[str]:
+    def get_failed_services(self) -> tuple[ExecResult, set[str]]:
         result = self(["--failed", "--no-legend"])
         if result.returncode:
-            return set()
-        result = result.stdout
+            return result, set()
         try:
-            return {
+            return result, {
                 line.split()[1]
-                for line in result.split("\n")
+                for line in result.stdout.split("\n")
                 if line and line.split()[1].endswith(".service")
             }
         except IndexError:
-            return set()
+            return result, set()
 
-    def get_running_services(self) -> set[str]:
+    def get_running_services(self) -> tuple[ExecResult, set[str]]:
         result = self(["list-units", "--type=service", "--state=running", "--no-legend"])
         if result.returncode:
-            return set()
-        result = result.stdout
+            return result, set()
         try:
-            return {
+            return result, {
                 line.split()[0]
-                for line in result.split("\n")
+                for line in result.stdout.split("\n")
                 if line and line.split()[0].endswith(".service")
             }
         except IndexError:
-            return set()
+            return result, set()
+
+    @staticmethod
+    def metrics_to_json(metrics: set[str]) -> list[str]:
+        return list(metrics)

@@ -1,10 +1,11 @@
 from typing import TYPE_CHECKING
 
 from imgtests.exec.loaders import Kirk, StressNg
-from imgtests.runner import AbstractRunnableManyTimesTest, Subsystem
+from imgtests.runner import AbstractRunnableManyTimesTest, Subsystem, TestResult
 from imgtests.suites.general.stress_ng import StressNgTest
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
     from concurrent.futures import ThreadPoolExecutor
 
     from imgtests.exec.exec import SSHClient
@@ -12,7 +13,7 @@ if TYPE_CHECKING:
 
 class LTPSyscallsTest(AbstractRunnableManyTimesTest):
     def __init__(self, iterations: int = 1) -> None:
-        super().__init__("Test syscalls with LTP.", {Subsystem.SYSCALLS}, iterations)
+        super().__init__("Test syscalls with LTP.", frozenset({Subsystem.SYSCALLS}), iterations)
 
     def _run(
         self,
@@ -32,13 +33,15 @@ class StressNgEnduranceSyscallsTest(StressNgTest):
     def __init__(self, timeout: int) -> None:
         super().__init__(
             "Stress-ng endurance syscalls test.",
-            {Subsystem.SYSCALLS},
+            frozenset({Subsystem.SYSCALLS}),
             timeout,
         )
 
-    def _run(self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int) -> None:
+    def _run(
+        self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int
+    ) -> Iterable[TestResult]:
         stress_ng = StressNg(client)
-        self.run_test(
+        yield from self.run_test(
             stress_ng=stress_ng,
             executor=executor,
             timeout=timeout,

@@ -1,9 +1,12 @@
+import inspect
 import logging
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 from enum import Enum
 from threading import Event, Thread
 from typing import TYPE_CHECKING, Any, NamedTuple
+from zoneinfo import ZoneInfo
 
 import paramiko
 import paramiko.ssh_exception
@@ -32,6 +35,13 @@ class Subsystem(str, Enum):
     SYSTEM = "system"
 
 
+class TestResult(NamedTuple):
+    metrics: Any
+    command: str = ""
+    started_at: datetime = datetime.now(tz=ZoneInfo("UTC"))
+    ended_at: datetime = datetime.now(tz=ZoneInfo("UTC"))
+
+
 class DefaultCleanupMixin:
     def cleanup(self, client: SSHClient | None, logger: logging.Logger) -> None:
         for path in ("/tmp/*", "/var/tmp/*"):  # noqa: S108
@@ -48,7 +58,7 @@ class AbstractRunnableManyTimesTest(ABC, DefaultCleanupMixin):
     def __init__(
         self,
         description: str,
-        subsystems: set[Subsystem],
+        subsystems: frozenset[Subsystem],
         iterations: int = 1,
     ) -> None:
         """Construct a AbstractRunnableManyTimesTest instance.
@@ -73,9 +83,15 @@ class AbstractRunnableManyTimesTest(ABC, DefaultCleanupMixin):
         self.iterations = iterations
         self.logger = logging.getLogger(f"{LIB_NAME}.runnable_test")
 
-    def __call__(self, executor: ThreadPoolExecutor, client: SSHClient | None = None) -> Any:
+    def __call__(
+        self, executor: ThreadPoolExecutor, client: SSHClient | None = None
+    ) -> Iterable[TestResult]:
         self.logger.info("Starting '%s' test '%d' times.", self.description, self.iterations)
-        self._run(executor, client, self.iterations)
+        # TODO: make all tests return a generator
+        if inspect.isgeneratorfunction(self._run):
+            yield from self._run(executor, client, self.iterations)
+        else:
+            self._run(executor, client, self.iterations)
         self.logger.info("'%s' test finished.", self.description)
 
     @abstractmethod
@@ -84,7 +100,7 @@ class AbstractRunnableManyTimesTest(ABC, DefaultCleanupMixin):
         executor: ThreadPoolExecutor,
         client: SSHClient | None,
         iterations: int,
-    ) -> None: ...
+    ) -> Iterable[TestResult]: ...
 
 
 class AbstractRunnableTimeLimitedTest(ABC, DefaultCleanupMixin):
@@ -93,7 +109,7 @@ class AbstractRunnableTimeLimitedTest(ABC, DefaultCleanupMixin):
     def __init__(
         self,
         description: str,
-        subsystems: set[Subsystem],
+        subsystems: frozenset[Subsystem],
         timeout: int,
     ) -> None:
         """Construct a AbstractRunnableTimeLimitedTest instance.
@@ -118,9 +134,15 @@ class AbstractRunnableTimeLimitedTest(ABC, DefaultCleanupMixin):
         self.timeout = timeout
         self.logger = logging.getLogger(f"{LIB_NAME}.runnable_test")
 
-    def __call__(self, executor: ThreadPoolExecutor, client: SSHClient | None = None) -> Any:
+    def __call__(
+        self, executor: ThreadPoolExecutor, client: SSHClient | None = None
+    ) -> Iterable[TestResult]:
         self.logger.info("Starting '%s' test with '%d' timeout.", self.description, self.timeout)
-        self._run(executor, client, self.timeout)
+        # TODO: make all tests return a generator
+        if inspect.isgeneratorfunction(self._run):
+            yield from self._run(executor, client, self.timeout)
+        else:
+            self._run(executor, client, self.timeout)
         self.logger.info("'%s' test finished.", self.description)
 
     @abstractmethod
@@ -129,7 +151,7 @@ class AbstractRunnableTimeLimitedTest(ABC, DefaultCleanupMixin):
         executor: ThreadPoolExecutor,
         client: SSHClient | None,
         timeout: int,
-    ) -> None: ...
+    ) -> Iterable[TestResult]: ...
 
 
 # Time to run, subsystems, stages (plan, risk analysis, run, cleanup, results, etc), etc
@@ -166,29 +188,31 @@ class TestsRunner:
                 self.__client.reconnect()
             is_alive_cycle = Thread(target=self.__is_remote_alive, args=(test_completed_event,))
             is_alive_cycle.start()
-            test(self.__executor, self.__client)
+            test_started_at = datetime.now(tz=ZoneInfo("UTC"))
+            # TODO: make all tests return a generator
+            if inspect.isgeneratorfunction(test._run):  # noqa: SLF001
+                for result in test(self.__executor, self.__client):
+                    self.__database.insert_loader(
+                        experiment_id=experiment.experiment_id,
+                        # TODO: fill descriptions and adds into TestResult class
+                        description="",
+                        result=result.metrics,
+                        command=result.command,
+                        started_at=result.started_at,
+                        ended_at=result.ended_at,
+                    )
+            else:
+                list(test(self.__executor, self.__client))
+            self._collect_system_errors(
+                experiment_id=experiment.experiment_id,
+                since=test_started_at,
+                until=datetime.now(tz=ZoneInfo("UTC")),
+            )
             test.cleanup(self.__client, self.logger)
             test_completed_event.set()
             is_alive_cycle.join(10)
             test_completed_event.clear()
             self.__database.update_experiment_ended_at(experiment.experiment_id)
-        systemctl = Systemctl(self.__client)
-        self.logger.info("Failed services: %s", systemctl.get_failed_services())
-        journalctl = Journalctl(self.__client, use_sudo=True)
-        oom_records = journalctl.oom_records(
-            since=experiment.started_at.strftime(journalctl.DATE_FORMAT),
-            until=experiment.ended_at.strftime(journalctl.DATE_FORMAT),
-        )
-        self.logger.info("OOM records %d", journalctl._calc_records_cnt(oom_records.stdout))  # noqa: SLF001
-        systemd_err_records = journalctl.systemd_only_records(
-            since=experiment.started_at.strftime(journalctl.DATE_FORMAT),
-            until=experiment.ended_at.strftime(journalctl.DATE_FORMAT),
-            priority="err",
-        )
-        self.logger.info(
-            "systemd errors records %d",
-            journalctl._calc_records_cnt(systemd_err_records.stdout),  # noqa: SLF001
-        )
         self.logger.info("All tests completed successfully.")
         if self.__client is not None:
             self.__client.close()
@@ -243,3 +267,53 @@ class TestsRunner:
             if self.__client is not None:
                 self.__client.close()
             self.__executor.shutdown(cancel_futures=True)
+
+    def _collect_system_errors(self, experiment_id: int, since: datetime, until: datetime) -> None:
+        systemctl = Systemctl(self.__client)
+        journalctl = Journalctl(self.__client, use_sudo=True)
+
+        # failed services
+        fs_r, fs_m = systemctl.get_failed_services()
+        self.logger.info("Failed services: %s", fs_m)
+        self.__database.insert_observer(
+            experiment_id=experiment_id,
+            command=" ".join(fs_r.cmd),
+            description="Failed systemd services.",
+            result=systemctl.metrics_to_json(fs_m),
+        )
+
+        # OOM
+        oom_r = journalctl.oom_records(
+            since=since.strftime(journalctl.DATE_FORMAT),
+            until=until.strftime(journalctl.DATE_FORMAT),
+        )
+        oom_m = journalctl.calc_records_cnt(oom_r.stdout)
+        self.logger.info("OOM records %d", oom_m)
+        self.__database.insert_observer(
+            experiment_id=experiment_id,
+            command=" ".join(oom_r.cmd),
+            description="OOM records.",
+            started_at=since,
+            ended_at=until,
+            result=journalctl.metrics_to_json(oom_m),
+        )
+
+        # systemd errors
+        sstmd_err_r = journalctl.systemd_only_records(
+            since=since.strftime(journalctl.DATE_FORMAT),
+            until=until.strftime(journalctl.DATE_FORMAT),
+            priority="err",
+        )
+        sstmd_err_m = journalctl.calc_records_cnt(sstmd_err_r.stdout)
+        self.logger.info(
+            "systemd errors records %d",
+            sstmd_err_m,
+        )
+        self.__database.insert_observer(
+            experiment_id=experiment_id,
+            command=" ".join(sstmd_err_r.cmd),
+            description="Systemd errors records",
+            started_at=since,
+            ended_at=until,
+            result=journalctl.metrics_to_json(sstmd_err_m),
+        )

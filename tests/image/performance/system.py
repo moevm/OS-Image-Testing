@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from imgtests.exec.loaders import PhoronixTestSuite, setup_pts
+from imgtests.exec.loaders import PhoronixTestSuite
 from imgtests.runner import AbstractRunnableManyTimesTest, Subsystem
 
 if TYPE_CHECKING:
@@ -11,20 +11,20 @@ if TYPE_CHECKING:
 
 class PTSSystemTest(AbstractRunnableManyTimesTest):
     def __init__(self, iterations: int = 1) -> None:
-        super().__init__("Load system with PTS.", {Subsystem.SYSTEM}, iterations)
+        super().__init__("Load system with PTS.", frozenset({Subsystem.SYSTEM}), iterations)
 
     def _run(self, executor: ThreadPoolExecutor, client: SSHClient | None, iterations: int) -> None:
         pts = PhoronixTestSuite(client)
-        future = executor.submit(setup_pts, client)
+        future = executor.submit(pts.prepare)
         result = future.result()
         if result.returncode:
             self.logger.error("PTS setup failed: '%s'", result.stderr)
             return
 
         future = executor.submit(pts.run, test_name="pts/ctx-clock", run_count=iterations)
-        result = future.result()
-        self.logger.info(result)
+        _, result = future.result()
+        self.logger.info(PhoronixTestSuite.parse_metrics(result))
 
         future = executor.submit(pts.run, test_name="pts/appleseed", run_count=iterations)
-        result = future.result()
-        self.logger.info(result)
+        _, result = future.result()
+        self.logger.info(PhoronixTestSuite.parse_metrics(result))
