@@ -55,5 +55,5 @@ class Systemctl(GenericUtil):
             return result, set()
 
     @staticmethod
-    def metrics_to_json(metrics: set[str]) -> list:
+    def metrics_to_json(metrics: set[str]) -> list[str]:
         return list(metrics)

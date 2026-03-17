@@ -277,7 +277,7 @@ class TestsRunner:
         self.__database.insert_observer(
             experiment_id=experiment_id,
             command=" ".join(fs_r.cmd),
-            description="Failed systemd services",
+            description="Failed systemd services.",
             result=systemctl.metrics_to_json(fs_m),
         )
 
@@ -286,12 +286,12 @@ class TestsRunner:
             since=since.strftime(journalctl.DATE_FORMAT),
             until=until.strftime(journalctl.DATE_FORMAT),
         )
-        oom_m = journalctl._calc_records_cnt(oom_r.stdout)  # noqa: SLF001
+        oom_m = journalctl.calc_records_cnt(oom_r.stdout)
         self.logger.info("OOM records %d", oom_m)
         self.__database.insert_observer(
             experiment_id=experiment_id,
             command=" ".join(oom_r.cmd),
-            description="OOM records",
+            description="OOM records.",
             started_at=since,
             ended_at=until,
             result=journalctl.metrics_to_json(oom_m),
@@ -303,7 +303,7 @@ class TestsRunner:
             until=until.strftime(journalctl.DATE_FORMAT),
             priority="err",
         )
-        sstmd_err_m = journalctl._calc_records_cnt(sstmd_err_r.stdout)  # noqa: SLF001
+        sstmd_err_m = journalctl.calc_records_cnt(sstmd_err_r.stdout)
         self.logger.info(
             "systemd errors records %d",
             sstmd_err_m,
