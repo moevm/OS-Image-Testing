@@ -14,7 +14,7 @@ class ExperimentBase(Base):
 
     experiment_id: Mapped[int] = mapped_column(primary_key=True)
     config_id: Mapped[int] = mapped_column(ForeignKey("configuration.config_id"))
-    description: Mapped[str | None] = mapped_column(String(100))
+    description: Mapped[str] = mapped_column(String(100))
     type: Mapped[str | None] = mapped_column(String(20))
     started_at: Mapped[datetime | None] = mapped_column(DateTime)
     ended_at: Mapped[datetime | None] = mapped_column(DateTime)

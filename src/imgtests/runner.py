@@ -36,8 +36,8 @@ class Subsystem(str, Enum):
 
 
 class TestResult(NamedTuple):
-    metrics: dict[str, Any]
-    command: str
+    metrics: Any
+    command: str = ""
     started_at: datetime = datetime.now(tz=ZoneInfo("UTC"))
     ended_at: datetime = datetime.now(tz=ZoneInfo("UTC"))
 
@@ -194,6 +194,8 @@ class TestsRunner:
                 for result in test(self.__executor, self.__client):
                     self.__database.insert_loader(
                         experiment_id=experiment.experiment_id,
+                        # TODO: fill descriptions and adds into TestResult class
+                        description="",
                         result=result.metrics,
                         command=result.command,
                         started_at=result.started_at,

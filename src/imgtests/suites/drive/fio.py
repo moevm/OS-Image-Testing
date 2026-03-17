@@ -60,6 +60,7 @@ class FioSuiteConfig:
     duration_sec: int
     results_dir: Path
     workloads: tuple[FioWorkload, ...]
+    filename: Path | None = None
     size: str = "100MB"
     direct: Direct = 1
     ioengine: IOEngine = "libaio"
@@ -80,9 +81,10 @@ class FioSuite:
         suite_root = _DEFAULT_TMP_ROOT / f"{self.cfg.suite}-{stamp}"
         suite_tgz = _DEFAULT_TMP_ROOT / f"{self.cfg.suite}-{stamp}.tgz"
         testfiles_dir = suite_root / "testfiles"
-
         mkdir = MkDir(self.client)
+
         mkdir(["--parents", suite_root, testfiles_dir])
+
         workloads = list(self.cfg.workloads)
         timing = _normalize_timing(
             duration_sec=self.cfg.duration_sec,
@@ -97,12 +99,13 @@ class FioSuite:
         )
 
         logger.info(
-            "fio suite=%s duration=%ss cases=%d iodepth=%s numjobs=%s",
+            "fio suite=%s duration=%ss cases=%d iodepth=%s numjobs=%s filename=%s",
             self.cfg.suite,
             self.cfg.duration_sec,
             len(cases),
             timing.grid.iodepths,
             timing.grid.numjobs,
+            self.cfg.filename,
         )
 
         for case in cases:
@@ -125,12 +128,14 @@ class FioSuite:
                 "output": out_json,
                 "eta": "never",
             }
+
             if timing.ramp_time_sec > 0:
                 extra["ramp_time"] = timing.ramp_time_sec
 
             res = fio.run(
                 name=case.workload.name,
                 numjobs=case.numjobs,
+                filename=self.cfg.filename,
                 size=self.cfg.size,
                 readwrite=case.workload.rw,
                 ioengine=self.cfg.ioengine,

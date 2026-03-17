@@ -1,12 +1,15 @@
 import tempfile
 from concurrent.futures import as_completed
+from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Final, NamedTuple
+from zoneinfo import ZoneInfo
 
 from imgtests.exec.exec import common_run_command
-from imgtests.runner import AbstractRunnableManyTimesTest, Subsystem
+from imgtests.runner import AbstractRunnableManyTimesTest, Subsystem, TestResult
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
     from concurrent.futures import Future, ThreadPoolExecutor
 
     from imgtests.exec.exec import SSHClient
@@ -43,8 +46,9 @@ class POSIXUtilsTest(AbstractRunnableManyTimesTest):
         executor: ThreadPoolExecutor,
         client: SSHClient | None,
         iterations: int,
-    ) -> None:
-        final_results: ToolsTimes = {}
+    ) -> Iterable[TestResult]:
+        final_results: dict[str, dict[str, list[float]]] = {}
+        started_at = datetime.now(tz=ZoneInfo("UTC"))
         futures: list[Future[ToolsTimes]] = [
             executor.submit(func, client, iterations)
             for func in [
@@ -55,7 +59,22 @@ class POSIXUtilsTest(AbstractRunnableManyTimesTest):
             ]
         ]
         for future in as_completed(futures):
-            final_results.update(future.result())
+            result = future.result()
+            for tool, metrics in result.items():
+                if metrics:
+                    final_results[tool] = {
+                        "mean": metrics.mean.tolist(),
+                        "median": metrics.median.tolist(),
+                        "std": metrics.std.tolist(),
+                        "var": metrics.var.tolist(),
+                    }
+                else:
+                    final_results[tool] = {}
+
+        yield TestResult(
+            started_at=started_at,
+            metrics=final_results,
+        )
 
     def test_utils_for_files(  # noqa: PLR0912, C901
         self, client: SSHClient | None, iterations: int
@@ -291,3 +310,21 @@ def time_cmd_many(
     return ToolTimes(
         array.mean(axis=0), np.median(array, axis=0), array.std(axis=0), array.var(axis=0)
     )
+
+
+def tooltimes_to_bmf(tooltimes: ToolTimes) -> dict[str, dict[str, dict[str, float]]]:
+    metrics = ["real", "user", "sys"]
+    result: dict[str, dict[str, dict[str, float]]] = {}
+
+    for name, array in [
+        ("mean", tooltimes.mean),
+        ("median", tooltimes.median),
+        ("std", tooltimes.std),
+        ("var", tooltimes.var),
+    ]:
+        d = {}
+        for i, metric in enumerate(metrics):
+            d[metric] = {"value": float(array[i])}
+        result[name] = d
+
+    return result

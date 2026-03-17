@@ -2,12 +2,18 @@ import logging
 import sys
 from pathlib import Path
 
+from image.endurance.network import WgetEnduranceNetworkTest
 from image.endurance.syscalls import (
     LTPSyscallsTest,
     StressNgEnduranceSyscallsTest,
 )
 from image.performance.cpu import ChaosbladeCPUTest, StressNgPerformanceCpuTest
-from image.performance.fio_disks import FioDisksNightly, FioDisksScalingTest
+from image.performance.fio_disks import (
+    FioDisksDMDelay,
+    FioDisksDMDust,
+    FioDisksNightly,
+    FioDisksScalingTest,
+)
 from image.performance.ipc import SchedPerformanceTest
 from image.performance.network import Iperf3LocalTest
 from image.performance.std_utils import POSIXUtilsTest
@@ -46,15 +52,18 @@ def main() -> None:
             SystemLoadTimeTest(),
             SystemSlowServicesTest(),
             JointBench(iterations=3),
+            SchedPerformanceTest(3),
             POSIXUtilsTest(10),
             FioDisksScalingTest(10),
             FioDisksNightly(10),
+            FioDisksDMDelay(30),
+            FioDisksDMDust(30),
+            WgetEnduranceNetworkTest(5),
             Iperf3LocalTest(30),
             StressNgPerformanceCpuTest(60),
             ChaosbladeCPUTest(60),
             LTPSyscallsTest(),
             StressNgEnduranceSyscallsTest(60),
-            SchedPerformanceTest(3),
             PTSSystemTest(2),
             StressNgConsecutiveLoadTest(30),
             StressNgCombineLoadTest(10),
