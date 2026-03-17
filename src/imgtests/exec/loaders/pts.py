@@ -254,7 +254,17 @@ class PhoronixTestSuite(PkgMgrMixin, GenericUtil):
         """
         setup_answers = "y\n" + "n\n" * 6
         commands = [
-            ["sudo", "echo", "'nameserver 8.8.8.8'", ">", "/etc/resolv.conf"],
+            [
+                "echo",
+                "'nameserver 8.8.8.8'",
+                "|",
+                "sudo",
+                "tee",
+                "-a",
+                "/etc/resolv.conf",
+                ">",
+                "/dev/null",
+            ],
             ["phoronix-test-suite", "openbenchmarking-refresh"],
             ["echo", "-e", f'"{setup_answers}"'],
             ["phoronix-test-suite", "batch-setup"],
