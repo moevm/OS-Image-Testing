@@ -1,7 +1,7 @@
 import logging
 import shlex
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
@@ -193,3 +193,38 @@ class Kirk(GenericUtil):
             return res, None
 
         return res, local_json_path
+
+    @staticmethod
+    def metrics_to_bmf(metrics: Any) -> dict[str, dict[str, dict[str, Any]]]:
+        result: dict[str, dict[str, dict[str, Any]]] = {}
+        for test in metrics["results"]:
+            test_name = test["test_fqn"]
+            test_info = test["test"]
+
+            if not test_name or not test_info:
+                continue
+
+            arguments = test_info["arguments"]
+            arguments_str = " ".join(arguments) if arguments else ""
+
+            retval = test_info["retval"]
+            retval_str = retval[0] if retval else ""
+
+            bmf_data: dict[str, dict[str, Any]] = {
+                "status": {"value": test["status"]},
+                "command": {"value": test_info["command"]},
+                "arguments": {"value": arguments_str},
+                "log": {"value": test_info["log"]},
+                "retval": {"value": retval_str},
+                "duration": {"value": test_info["duration"]},
+                "failed": {"value": test_info["failed"]},
+                "passed": {"value": test_info["passed"]},
+                "broken": {"value": test_info["broken"]},
+                "skipped": {"value": test_info["skipped"]},
+                "warnings": {"value": test_info["warnings"]},
+                "result": {"value": test_info["result"]},
+            }
+
+            result[test_name] = bmf_data
+
+        return result
