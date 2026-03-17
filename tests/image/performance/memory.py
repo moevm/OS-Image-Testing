@@ -1,11 +1,14 @@
 import logging
+from datetime import datetime
 from typing import TYPE_CHECKING
+from zoneinfo import ZoneInfo
 
 from imgtests.exec.loaders import StressNg
 from imgtests.exec.observers import Sar
-from imgtests.runner import AbstractRunnableTimeLimitedTest, Subsystem
+from imgtests.runner import AbstractRunnableTimeLimitedTest, Subsystem, TestResult
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
     from concurrent.futures import ThreadPoolExecutor
 
     from imgtests.exec.exec import SSHClient
@@ -17,17 +20,20 @@ class SarWithStressNGTest(AbstractRunnableTimeLimitedTest):
     """Tests that run stress-ng with sar to measure pgscan time."""
 
     def __init__(self, timeout: int) -> None:
-        super().__init__("Stress-ng with sar measure pgscan time.", {Subsystem.MEMORY}, timeout)
+        super().__init__(
+            "Stress-ng with sar measure pgscan time.", frozenset({Subsystem.MEMORY}), timeout
+        )
 
     def _run(
         self,
         executor: ThreadPoolExecutor,
         client: SSHClient | None,
         timeout: int,
-    ) -> None:
+    ) -> Iterable[TestResult]:
         sar = Sar(client)
 
         stress_ng = StressNg(client)
+        started_at = datetime.now(tz=ZoneInfo("UTC"))
         stress_ng_future = executor.submit(
             stress_ng.run,
             timeout_sec=timeout,
@@ -36,7 +42,14 @@ class SarWithStressNGTest(AbstractRunnableTimeLimitedTest):
         )
 
         _, pgscan = sar.run(interval=1, count=timeout)
-        _, m = stress_ng_future.result()
+        result, (metrics, summary) = stress_ng_future.result()
 
-        logger.info("stress-ng metrics: %s", m)
-        logger.info("pgscan time: %s s", pgscan)
+        yield TestResult(
+            metrics={
+                "pgscan_time_sec": pgscan,
+                "stress_ng_metrics": metrics,
+                "stress_ng_summary": summary,
+            },
+            command=" ".join(result.cmd),
+            started_at=started_at,
+        )
