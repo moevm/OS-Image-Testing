@@ -48,7 +48,7 @@ class Sar(PkgMgrMixin, BaseTestUtil):
         interval: int | None = None,
         count: int | None = None,
         **kwargs: dict[str, Any],
-    ) -> tuple[ExecResult, int]:
+    ) -> tuple[ExecResult, float]:
         """Run sar with parameters.
 
         Args:
@@ -88,12 +88,11 @@ class Sar(PkgMgrMixin, BaseTestUtil):
             err_msg = f"Invalid count '{count}'. Expected more than 0."
             raise ValueError(err_msg)
 
-        # create command
         opts = [f"-{report_type}"]
         if interval is not None:
-            opts.append(interval)
+            opts.append(str(interval))
             if interval != 0 and count is not None:
-                opts.append(count)
+                opts.append(str(count))
 
         result = self(
             opts,
@@ -145,7 +144,7 @@ class Sar(PkgMgrMixin, BaseTestUtil):
                     break
         return duration
 
-    def prepare(self) -> ExecResult | None:
+    def prepare(self) -> ExecResult:
         """Starts automatic collection of metrics.
 
         Is required to use the utility without parameters interval and count.
@@ -175,10 +174,9 @@ class Sar(PkgMgrMixin, BaseTestUtil):
                 ["sudo", "chmod", "644", "/etc/cron.d/sysstat"],
                 ["sudo", "systemctl", "enable", "--now", "crond"],
             ]
-        last_r = None
         for r in pipeline(cmds, ssh_client=self.ssh_client):
             last_r = r
-            if r.returncode != 0:
+            if r.returncode:
                 logger.error("Prepare failed: %s", r)
                 return r
         return last_r
