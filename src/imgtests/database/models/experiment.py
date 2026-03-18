@@ -1,6 +1,6 @@
 from datetime import datetime  # noqa: TC003
 
-from sqlalchemy import DateTime, ForeignKey, String, Integer
+from sqlalchemy import DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from imgtests.database.models.base import Base
@@ -25,8 +25,8 @@ class ExperimentBase(Base):
     observers: Mapped[list[ObserverBase]] = relationship(
         "ObserverBase", back_populates="experiment"
     )
-    tests_passed: Mapped[int | None] = mapped_column(Integer, server_default='0')
-    tests_total: Mapped[int | None] = mapped_column(Integer, server_default='0')
+    tests_passed: Mapped[int | None] = mapped_column(Integer, server_default="0")
+    tests_total: Mapped[int | None] = mapped_column(Integer, server_default="0")
 
     def __repr__(self) -> str:
         return (
