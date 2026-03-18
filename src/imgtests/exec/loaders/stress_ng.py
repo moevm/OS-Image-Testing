@@ -46,6 +46,11 @@ class StressNGSummary(NamedTuple):
     metrics_untrustworthy: int
 
 
+class StressNGResult(NamedTuple):
+    metrics: list[StressNGMetrics]
+    summary: StressNGSummary | None
+
+
 SYSCALL_ENTRY_RE: Final = re.compile(r"^syscall:\s+(\S+)\s+([\d.]+)\s+(\d+)\s+(\d+)$")
 SPF_RE: Final = re.compile(r"^(skipped|passed|failed):\s*(\d+)(?::\s*([^\s()]+))?", re.IGNORECASE)
 METRICS_UNTRUSTY_RE: Final = re.compile(r"metrics untrustworthy:\s*(\d+)", re.IGNORECASE)
@@ -156,7 +161,7 @@ class StressNg(PkgMgrMixin, GenericUtil):
         shm_ops: int | None = None,
         verify: bool = True,
         **kwargs: dict[str, Any],
-    ) -> tuple[ExecResult, tuple[list[StressNGMetrics], StressNGSummary | None]]:
+    ) -> tuple[ExecResult, StressNGResult]:
         """Runs the stress-ng util stressors.
 
         Args:
@@ -221,7 +226,7 @@ class StressNg(PkgMgrMixin, GenericUtil):
             ValueError: When invalid parameters provided or repeated.
 
         Returns:
-            tuple[ExecResult, list[StressNGMetrics]]: Result of stress test work and parsed metrics.
+            tuple[ExecResult, StressNGResult]: Result of stress test work and parsed metrics.
         """
         params = {
             "cpu": cpu,
@@ -301,7 +306,7 @@ class StressNg(PkgMgrMixin, GenericUtil):
     @staticmethod
     def parse_metrics(  # noqa: PLR0915, PLR0912, C901
         raw_metrics: str,
-    ) -> tuple[list[StressNGMetrics], StressNGSummary | None]:
+    ) -> StressNGResult:
         """Parse stress-ng metrics output.
 
         Args:
@@ -431,14 +436,14 @@ class StressNg(PkgMgrMixin, GenericUtil):
             try:
                 sm = StressNGMetrics(
                     stressor,
-                    int(info.get("bogo_ops", 0)),
-                    float(info.get("real_time_secs", 0.0)),
-                    float(info.get("usr_time_secs", 0.0)),
-                    float(info.get("sys_time_secs", 0.0)),
-                    float(info.get("bogo_ops_s_real_time", 0.0)),
-                    float(info.get("bogo_ops_s_usr_sys_time", 0.0)),
-                    float(info.get("cpu_used_per_instance", 0.0)),
-                    int(info.get("rss_max_kb")) if info.get("rss_max_kb") is not None else None,
+                    int(info.get("bogo_ops", -1)),
+                    float(info.get("real_time_secs", -1)),
+                    float(info.get("usr_time_secs", -1)),
+                    float(info.get("sys_time_secs", -1)),
+                    float(info.get("bogo_ops_s_real_time", -1)),
+                    float(info.get("bogo_ops_s_usr_sys_time", -1)),
+                    float(info.get("cpu_used_per_instance", -1)),
+                    int(info["rss_max_kb"]) if info.get("rss_max_kb") is not None else None,
                     top10_slowest,
                 )
             except (ValueError, TypeError) as e:
@@ -449,15 +454,15 @@ class StressNg(PkgMgrMixin, GenericUtil):
             metrics.append(sm)
 
         if not any([summary_skipped, summary_passed, summary_failed, summary_untrusty]):
-            return metrics, None
+            return StressNGResult(metrics, None)
         summary = StressNGSummary(
-            skipped=summary_skipped or 0,
-            passed=summary_passed or 0,
-            failed=summary_failed or 0,
-            metrics_untrustworthy=summary_untrusty or 0,
+            skipped=summary_skipped or -1,
+            passed=summary_passed or -1,
+            failed=summary_failed or -1,
+            metrics_untrustworthy=summary_untrusty or -1,
         )
 
-        return metrics, summary
+        return StressNGResult(metrics, summary)
 
     @staticmethod
     def __parse_untrusty(line: str) -> int | None:
@@ -506,6 +511,12 @@ class StressNg(PkgMgrMixin, GenericUtil):
 
         return result
 
+    @staticmethod
+    def metrics_to_json(metrics: StressNGResult) -> Any:
+        return {
+            "stress_ng_metrics": [metric._asdict() for metric in metrics.metrics],
+            "stress_ng_summary": metrics.summary._asdict() if metrics.summary else None,
+        }
 
 def _safe_int(value: Any, default: int) -> int:
     try:

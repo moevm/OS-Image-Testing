@@ -97,9 +97,9 @@ class Journalctl(GenericUtil):
         return -1
 
     @staticmethod
-    def _calc_records_cnt(raw: str) -> int:
+    def calc_records_cnt(raw: str) -> int:
         records = raw.strip().splitlines()
-        if len(records) == 1 and "-- no entries --" in records[0]:
+        if len(records) == 1 and "-- no entries --" in records[0].lower():
             return 0
         return len(records)
 

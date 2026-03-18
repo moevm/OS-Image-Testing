@@ -188,6 +188,7 @@ class TestsRunner:
                 self.__client.reconnect()
             is_alive_cycle = Thread(target=self.__is_remote_alive, args=(test_completed_event,))
             is_alive_cycle.start()
+            test_started_at = datetime.now(tz=ZoneInfo("UTC"))
             # TODO: make all tests return a generator
             if inspect.isgeneratorfunction(test._run):  # noqa: SLF001
                 for result in test(self.__executor, self.__client):
@@ -202,28 +203,16 @@ class TestsRunner:
                     )
             else:
                 list(test(self.__executor, self.__client))
+            self._collect_system_errors(
+                experiment_id=experiment.experiment_id,
+                since=test_started_at,
+                until=datetime.now(tz=ZoneInfo("UTC")),
+            )
             test.cleanup(self.__client, self.logger)
             test_completed_event.set()
             is_alive_cycle.join(10)
             test_completed_event.clear()
             self.__database.update_experiment_ended_at(experiment.experiment_id)
-        systemctl = Systemctl(self.__client)
-        self.logger.info("Failed services: %s", systemctl.get_failed_services())
-        journalctl = Journalctl(self.__client, use_sudo=True)
-        oom_records = journalctl.oom_records(
-            since=experiment.started_at.strftime(journalctl.DATE_FORMAT),
-            until=experiment.ended_at.strftime(journalctl.DATE_FORMAT),
-        )
-        self.logger.info("OOM records %d", journalctl._calc_records_cnt(oom_records.stdout))  # noqa: SLF001
-        systemd_err_records = journalctl.systemd_only_records(
-            since=experiment.started_at.strftime(journalctl.DATE_FORMAT),
-            until=experiment.ended_at.strftime(journalctl.DATE_FORMAT),
-            priority="err",
-        )
-        self.logger.info(
-            "systemd errors records %d",
-            journalctl._calc_records_cnt(systemd_err_records.stdout),  # noqa: SLF001
-        )
         self.logger.info("All tests completed successfully.")
         if self.__client is not None:
             self.__client.close()
@@ -238,7 +227,7 @@ class TestsRunner:
             PhoronixTestSuite,
             StressNg,
         )
-        from imgtests.exec.observers import NodeExporter, Time  # noqa: PLC0415
+        from imgtests.exec.observers import NodeExporter, Sar, Time  # noqa: PLC0415
 
         self.logger.info("Installing dependencies. This may take a while.")
         for tool in (
@@ -251,6 +240,7 @@ class TestsRunner:
             PhoronixTestSuite,
             Time,
             NodeExporter,
+            Sar,
         ):
             tool_instance: BaseTestUtil = tool(self.__client)
             try:
@@ -277,3 +267,53 @@ class TestsRunner:
             if self.__client is not None:
                 self.__client.close()
             self.__executor.shutdown(cancel_futures=True)
+
+    def _collect_system_errors(self, experiment_id: int, since: datetime, until: datetime) -> None:
+        systemctl = Systemctl(self.__client)
+        journalctl = Journalctl(self.__client, use_sudo=True)
+
+        # failed services
+        fs_r, fs_m = systemctl.get_failed_services()
+        self.logger.info("Failed services: %s", fs_m)
+        self.__database.insert_observer(
+            experiment_id=experiment_id,
+            command=" ".join(fs_r.cmd),
+            description="Failed systemd services.",
+            result=systemctl.metrics_to_json(fs_m),
+        )
+
+        # OOM
+        oom_r = journalctl.oom_records(
+            since=since.strftime(journalctl.DATE_FORMAT),
+            until=until.strftime(journalctl.DATE_FORMAT),
+        )
+        oom_m = journalctl.calc_records_cnt(oom_r.stdout)
+        self.logger.info("OOM records %d", oom_m)
+        self.__database.insert_observer(
+            experiment_id=experiment_id,
+            command=" ".join(oom_r.cmd),
+            description="OOM records.",
+            started_at=since,
+            ended_at=until,
+            result=journalctl.metrics_to_json(oom_m),
+        )
+
+        # systemd errors
+        sstmd_err_r = journalctl.systemd_only_records(
+            since=since.strftime(journalctl.DATE_FORMAT),
+            until=until.strftime(journalctl.DATE_FORMAT),
+            priority="err",
+        )
+        sstmd_err_m = journalctl.calc_records_cnt(sstmd_err_r.stdout)
+        self.logger.info(
+            "systemd errors records %d",
+            sstmd_err_m,
+        )
+        self.__database.insert_observer(
+            experiment_id=experiment_id,
+            command=" ".join(sstmd_err_r.cmd),
+            description="Systemd errors records",
+            started_at=since,
+            ended_at=until,
+            result=journalctl.metrics_to_json(sstmd_err_m),
+        )
