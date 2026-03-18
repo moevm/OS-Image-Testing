@@ -42,13 +42,13 @@ class SarWithStressNGTest(AbstractRunnableTimeLimitedTest):
         )
 
         _, pgscan = sar.run(interval=1, count=timeout)
-        result, (metrics, summary) = stress_ng_future.result()
+        result, metrics = stress_ng_future.result()
+        metrics_json = stress_ng.metrics_to_json(metrics)
 
         yield TestResult(
             metrics={
                 "pgscan_time_sec": pgscan,
-                "stress_ng_metrics": metrics,
-                "stress_ng_summary": summary,
+                **metrics_json,
             },
             command=" ".join(result.cmd),
             started_at=started_at,
