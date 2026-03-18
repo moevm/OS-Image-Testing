@@ -40,6 +40,7 @@ class TestResult(NamedTuple):
     command: str = ""
     started_at: datetime = datetime.now(tz=ZoneInfo("UTC"))
     ended_at: datetime = datetime.now(tz=ZoneInfo("UTC"))
+    cmd_status: int = 0
 
 
 class DefaultCleanupMixin:
@@ -183,6 +184,8 @@ class TestsRunner:
             description=self.__test_config.description,
             experiment_type=self.__test_config.experiment_type,
         )
+        total = 0
+        pass_count = 0
         for test in self.__test_config.tests:
             if self.__client is not None:
                 self.__client.reconnect()
@@ -201,6 +204,9 @@ class TestsRunner:
                         started_at=result.started_at,
                         ended_at=result.ended_at,
                     )
+                    if not result.cmd_status:
+                        pass_count += 1
+                    total += 1
             else:
                 list(test(self.__executor, self.__client))
             self._collect_system_errors(
@@ -213,6 +219,7 @@ class TestsRunner:
             is_alive_cycle.join(10)
             test_completed_event.clear()
             self.__database.update_experiment_ended_at(experiment.experiment_id)
+        self.__database.update_experiment_test_count(experiment.experiment_id, pass_count, total)
         self.logger.info("All tests completed successfully.")
         if self.__client is not None:
             self.__client.close()

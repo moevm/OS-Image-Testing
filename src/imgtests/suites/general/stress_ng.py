@@ -31,6 +31,7 @@ class StressNgTest(AbstractRunnableTimeLimitedTest):
                 metrics=metrics,
                 command=" ".join(result.cmd),
                 started_at=started_at,
+                cmd_status=result.returncode,
             )
         if summary:
             self.logger.info(summary)

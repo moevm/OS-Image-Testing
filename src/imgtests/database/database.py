@@ -176,6 +176,14 @@ class ImgtestsDatabase:
             experiment.ended_at = datetime.now(tz=ZoneInfo("UTC"))
             session.commit()
 
+    def update_experiment_test_count(self, experiment_id: int, passed: int, total: int) -> None:
+        self._check_session()
+        with self.session() as session:
+            experiment = session.query(ExperimentBase).filter_by(experiment_id=experiment_id).one()
+            experiment.tests_passed = passed
+            experiment.tests_total = total
+            session.commit()
+
     def return_table(self, table_name: Table) -> list[Any]:
         available_tables = get_args(Table)
         if table_name not in available_tables:

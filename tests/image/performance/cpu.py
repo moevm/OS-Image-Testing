@@ -43,4 +43,5 @@ class ChaosbladeCPUTest(AbstractRunnableTimeLimitedTest):
             metrics=chaos_result,
             command=" ".join(result.cmd),
             started_at=started_at,
+            cmd_status=result.returncode,
         )

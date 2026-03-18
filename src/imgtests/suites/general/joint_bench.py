@@ -119,4 +119,5 @@ class JointBench(AbstractRunnableManyTimesTest):
                         ended_at=ended_at,
                         metrics=tool_instance.metrics_to_json(metrics),
                         command=" ".join(tool_result.cmd),
+                        cmd_status=tool_result.returncode
                     )

@@ -37,4 +37,5 @@ class SchedPerformanceTest(AbstractRunnableManyTimesTest):
                     started_at=started_at,
                     metrics=perf.metrics_to_json(metrics),
                     command=" ".join(result.cmd),
+                    cmd_status=result.returncode,
                 )
