@@ -8,9 +8,9 @@ from functools import lru_cache
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from jinja2 import Environment, FileSystemLoader, StrictUndefined, select_autoescape
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from matplotlib.figure import Figure
-from jinja2 import Environment, FileSystemLoader, StrictUndefined, select_autoescape
 
 if TYPE_CHECKING:
     from imgtests.planning.executor import MetricSample, PlanExecutionResult
@@ -64,10 +64,7 @@ def generate_html_report(plan: TestPlan, execution: PlanExecutionResult, out_dir
 
     total_tasks = sum(len(stage.tasks) for stage in execution.stage_runs)
     failed_tasks = sum(
-        1
-        for stage in execution.stage_runs
-        for task in stage.tasks
-        if task.returncode != 0
+        1 for stage in execution.stage_runs for task in stage.tasks if task.returncode != 0
     )
 
     template = _template_environment().get_template("load_test_report.html.j2")
@@ -114,9 +111,7 @@ def _build_timeline_rows(
 
     for stage in plan.stages:
         run = stage_run_map.get(stage.name)
-        failures = sum(
-            1 for task in (run.tasks if run else ()) if task.returncode != 0
-        )
+        failures = sum(1 for task in (run.tasks if run else ()) if task.returncode != 0)
 
         rows.append(
             StageTimelineRow(
@@ -192,9 +187,7 @@ def _build_boxplots(
     out_dir: Path,
     plots_dir: Path,
 ) -> list[PlotAsset]:
-    metric_to_subsystems: dict[str, dict[str, list[float]]] = defaultdict(
-        lambda: defaultdict(list)
-    )
+    metric_to_subsystems: dict[str, dict[str, list[float]]] = defaultdict(lambda: defaultdict(list))
     for sample in samples:
         metric_to_subsystems[sample.metric_name][sample.subsystem].append(float(sample.value))
 
