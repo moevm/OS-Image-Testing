@@ -10,7 +10,8 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 from imgtests.exec.loaders.fio import Fio
-from imgtests.exec.loaders.stress_ng import StressNg
+from imgtests.exec.loaders.stress_ng import StressNg, build_stress_retry_args
+from imgtests.planning.fio_sizing import bytes_to_mib_str, parse_size_to_bytes
 from imgtests.runner import Subsystem
 from imgtests.sysrep import get_system_info
 
@@ -76,19 +77,12 @@ def _truncate(text: str, max_len: int = 8000) -> str:
 
 
 def _safe_float(value: Any) -> float | None:
+    if value is None:
+        return None
     try:
-        if value is None:
-            return None
         return float(value)
     except (TypeError, ValueError):
         return None
-
-
-def _safe_int(value: Any, default: int) -> int:
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return default
 
 
 def _try_parse_json(text: str) -> dict[str, Any]:
@@ -99,39 +93,6 @@ def _try_parse_json(text: str) -> dict[str, Any]:
         return data if isinstance(data, dict) else {}
     except json.JSONDecodeError:
         return {}
-
-
-def _parse_size_to_bytes(s: str) -> int | None:
-    v = str(s).strip()
-    if not v:
-        return None
-    if v.endswith("%"):
-        return None
-
-    mul = 1
-    last = v[-1].lower()
-    num = v
-
-    if last in {"k", "m", "g", "t"}:
-        num = v[:-1]
-        if last == "k":
-            mul = 1024
-        elif last == "m":
-            mul = 1024**2
-        elif last == "g":
-            mul = 1024**3
-        elif last == "t":
-            mul = 1024**4
-
-    try:
-        return int(float(num) * mul)
-    except (TypeError, ValueError):
-        return None
-
-
-def _bytes_to_mib_str(b: int) -> str:
-    mib = max(1, b // (1024**2))
-    return f"{mib}M"
 
 
 def _remote_df_avail_bytes(client: SSHClient, path: str) -> int | None:
@@ -151,44 +112,6 @@ def _remote_df_avail_bytes(client: SSHClient, path: str) -> int | None:
         return int(last[_DF_AVAIL_COLUMN_INDEX])
 
     return None
-
-
-def _halve_positive_int(value: Any, fallback: int = 1) -> int:
-    try:
-        return max(1, int(value) // 2)
-    except (TypeError, ValueError):
-        return fallback
-
-
-def _build_stress_retry_args(args: dict[str, Any]) -> dict[str, Any]:
-    retry_args = dict(args)
-
-    if "vm" in retry_args:
-        retry_args["vm"] = _halve_positive_int(retry_args["vm"], fallback=1)
-        retry_args["vm_bytes"] = "15%"
-        for key in ("vm-populate", "vm-flip", "vm-mmap", "vm-hugepage"):
-            retry_args.pop(key, None)
-
-    if "cpu" in retry_args:
-        cpu_value = _safe_int(retry_args["cpu"], default=1)
-        retry_args["cpu"] = 1 if cpu_value == 0 else max(1, min(cpu_value, 2))
-
-    if "sock" in retry_args:
-        retry_args["sock"] = _halve_positive_int(retry_args["sock"], fallback=1)
-        if "sock_ops" in retry_args:
-            try:
-                retry_args["sock_ops"] = max(10_000, int(retry_args["sock_ops"]) // 3)
-            except (TypeError, ValueError):
-                retry_args.pop("sock_ops", None)
-
-    if "syscall" in retry_args:
-        retry_args["syscall"] = _halve_positive_int(retry_args["syscall"], fallback=1)
-
-    for key in ("mq", "pipe", "sem", "shm"):
-        if key in retry_args:
-            retry_args[key] = _halve_positive_int(retry_args[key], fallback=1)
-
-    return retry_args
 
 
 def _stress_metric_samples(
@@ -504,7 +427,7 @@ class PlanExecutor:
         if exec_res.returncode != _STRESS_RETRY_RETURN_CODE:
             return None
 
-        retry_args = _build_stress_retry_args(args)
+        retry_args = build_stress_retry_args(args)
         retry_timeout = max(5, int(timeout_sec * 0.5))
 
         logger.info(
@@ -588,13 +511,13 @@ class PlanExecutor:
             args["filename"] = created_filename
 
         if "size" in args:
-            req = _parse_size_to_bytes(str(args["size"]))
+            req = parse_size_to_bytes(str(args["size"]))
             avail = _remote_df_avail_bytes(self.client, self.fio_workdir)
             if req is not None and avail is not None:
                 cap = max(64 * 1024**2, int(avail * 0.25))
                 safe = min(req, cap)
                 if safe < req:
-                    args["size"] = _bytes_to_mib_str(safe)
+                    args["size"] = bytes_to_mib_str(safe)
 
         fio_name = args.pop(
             "name",

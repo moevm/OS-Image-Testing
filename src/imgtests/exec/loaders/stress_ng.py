@@ -505,3 +505,48 @@ class StressNg(PkgMgrMixin, GenericUtil):
                 }
 
         return result
+
+
+def _safe_int(value: Any, default: int) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _halve_positive_int(value: Any, fallback: int = 1) -> int:
+    try:
+        return max(1, int(value) // 2)
+    except (TypeError, ValueError):
+        return fallback
+
+
+def build_stress_retry_args(args: dict[str, Any]) -> dict[str, Any]:
+    retry_args = dict(args)
+
+    if "vm" in retry_args:
+        retry_args["vm"] = _halve_positive_int(retry_args["vm"], fallback=1)
+        retry_args["vm_bytes"] = "15%"
+        for key in ("vm-populate", "vm-flip", "vm-mmap", "vm-hugepage"):
+            retry_args.pop(key, None)
+
+    if "cpu" in retry_args:
+        cpu_value = _safe_int(retry_args["cpu"], default=1)
+        retry_args["cpu"] = 1 if cpu_value == 0 else max(1, min(cpu_value, 2))
+
+    if "sock" in retry_args:
+        retry_args["sock"] = _halve_positive_int(retry_args["sock"], fallback=1)
+        if "sock_ops" in retry_args:
+            try:
+                retry_args["sock_ops"] = max(10_000, int(retry_args["sock_ops"]) // 3)
+            except (TypeError, ValueError):
+                retry_args.pop("sock_ops", None)
+
+    if "syscall" in retry_args:
+        retry_args["syscall"] = _halve_positive_int(retry_args["syscall"], fallback=1)
+
+    for key in ("mq", "pipe", "sem", "shm"):
+        if key in retry_args:
+            retry_args[key] = _halve_positive_int(retry_args[key], fallback=1)
+
+    return retry_args
