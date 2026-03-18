@@ -518,6 +518,7 @@ class StressNg(PkgMgrMixin, GenericUtil):
             "stress_ng_summary": metrics.summary._asdict() if metrics.summary else None,
         }
 
+
 def _safe_int(value: Any, default: int) -> int:
     try:
         return int(value)
