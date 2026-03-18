@@ -3,11 +3,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from enum import Enum
-from typing import TYPE_CHECKING, Any
+from typing import Any
 from uuid import uuid4
 
-if TYPE_CHECKING:
-    from imgtests.runner import Subsystem
+from imgtests.runner import Subsystem  # noqa: TC001
 
 
 class TestKind(str, Enum):

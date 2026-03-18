@@ -19,6 +19,7 @@ from imgtests.exec.exec import wait_remote
 from imgtests.logger import set_handlers
 from imgtests.planning import LoadPattern, PlanRequest, Subsystem, TestKind, build_plan
 from imgtests.planning.executor import PlanExecutor
+from imgtests.reporting import generate_html_report
 
 logger = logging.getLogger()
 set_handlers(logger, Path("processing.log"))
@@ -171,6 +172,9 @@ def run_one(
     )
     execution = executor.execute(plan)
 
+    report_dir = run_dir / "html"
+    report_path = generate_html_report(plan, execution, report_dir)
+
     failures = sum(1 for s in execution.stage_runs for t in s.tasks if t.returncode != 0)
 
     logger.info(
@@ -182,8 +186,9 @@ def run_one(
         execution.experiment_id,
     )
     logger.info("[PROFILED] plan=%s", execution.plan_path)
+    logger.info("[PROFILED] report=%s", report_path)
 
-    return failures
+    return failures, report_path
 
 
 @contextmanager
@@ -212,6 +217,7 @@ def _run_main() -> int:
         db = ImgtestsDatabase()
 
         total_failures = 0
+        last_report: Path | None = None
 
         if run_matrix:
             profiles = parse_profiles(os.getenv("PLAN_MATRIX_PROFILES", "all"))
@@ -222,7 +228,7 @@ def _run_main() -> int:
                 raw = os.getenv(env_key)
                 duration_sec = int(raw) if raw is not None else default_duration
 
-                failures = run_one(
+                failures, report_path = run_one(
                     client=client,
                     db=db,
                     params=RunOneParams(
@@ -234,11 +240,12 @@ def _run_main() -> int:
                     ),
                 )
                 total_failures += failures
+                last_report = report_path
         else:
             profile = parse_profile(os.getenv("PLAN_PROFILE", "load"))
             duration_sec = int(os.getenv("PLAN_DURATION_SEC", "120"))
 
-            failures = run_one(
+            failures, report_path = run_one(
                 client=client,
                 db=db,
                 params=RunOneParams(
@@ -250,6 +257,10 @@ def _run_main() -> int:
                 ),
             )
             total_failures = failures
+            last_report = report_path
+
+        if last_report is not None:
+            logger.info("[PROFILED] Last report path: %s", last_report)
 
         return 1 if total_failures else 0
 
