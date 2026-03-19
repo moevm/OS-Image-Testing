@@ -6,20 +6,19 @@ def parse_size_to_bytes(value: str) -> int | None:
     if not normalized or normalized.endswith("%"):
         return None
 
-    multiplier = 1
     suffix = normalized[-1].lower()
-    number = normalized
-
-    if suffix in {"k", "m", "g", "t"}:
-        number = normalized[:-1]
-        if suffix == "k":
+    match suffix:
+        case "k":
             multiplier = 1024
-        elif suffix == "m":
+        case "m":
             multiplier = 1024**2
-        elif suffix == "g":
+        case "g":
             multiplier = 1024**3
-        elif suffix == "t":
+        case "t":
             multiplier = 1024**4
+        case _:
+            multiplier = 1
+    number = normalized[:-1]
 
     try:
         return int(float(number) * multiplier)
