@@ -1,3 +1,4 @@
+import json
 from typing import TYPE_CHECKING, Any
 
 from imgtests.exec.base_util import GenericUtil
@@ -98,3 +99,7 @@ class Iperf3(PkgMgrMixin, GenericUtil):
                 "host_system": {"value": cpu["host_system"]},
             }
         return result
+
+    @staticmethod
+    def metrics_to_json(metrics: str) -> Any:
+        return json.loads(metrics)
