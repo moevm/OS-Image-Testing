@@ -10,9 +10,9 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 from imgtests.exec.loaders.fio import Fio
-from imgtests.exec.loaders.stress_ng import StressNg, build_stress_retry_args
-from imgtests.planning.fio_sizing import bytes_to_mib_str, parse_size_to_bytes
+from imgtests.exec.loaders.stress_ng import StressNg
 from imgtests.runner import Subsystem
+from imgtests.sizing import bytes_to_mib_str, parse_size_to_bytes
 from imgtests.sysrep import get_system_info
 
 if TYPE_CHECKING:
@@ -68,12 +68,6 @@ class PlanExecutionResult:
     ended_at: datetime
     stage_runs: tuple[StageRunResult, ...]
     metrics: tuple[MetricSample, ...]
-
-
-def _truncate(text: str, max_len: int = 8000) -> str:
-    if len(text) <= max_len:
-        return text
-    return text[:max_len] + "\n...[truncated]..."
 
 
 def _safe_float(value: Any) -> float | None:
@@ -278,16 +272,10 @@ class PlanExecutor:
                     experiment_id=experiment_id,
                     command=full_cmd,
                     result={
-                        "stage_name": stage.name,
-                        "subsystem": subsystem_value,
-                        "tool": task_run.task.tool,
                         "returncode": task_run.returncode,
-                        "command_full": full_cmd,
-                        "stdout": _truncate(task_run.stdout),
-                        "stderr": _truncate(task_run.stderr),
                         "summary": task_run.summary,
                     },
-                    description=f"Task result for stage={stage.name}",
+                    description=f"Task result stage={stage.name} subsystem={subsystem_value}",
                     started_at=task_run.started_at,
                     ended_at=task_run.ended_at,
                 )
@@ -298,12 +286,12 @@ class PlanExecutor:
                         experiment_id=experiment_id,
                         command=f"{task_run.task.tool}:{sample.metric_name}",
                         result={
-                            "stage_name": sample.stage_name,
-                            "subsystem": sample.subsystem,
-                            "metric_name": sample.metric_name,
                             "value": sample.value,
                         },
-                        description="Observed numeric metric",
+                        description=(
+                            f"Observed numeric metric stage={sample.stage_name} "
+                            f"subsystem={sample.subsystem}"
+                        ),
                         started_at=task_run.started_at,
                         ended_at=task_run.ended_at,
                     )
@@ -427,7 +415,6 @@ class PlanExecutor:
         if exec_res.returncode != _STRESS_RETRY_RETURN_CODE:
             return None
 
-        retry_args = build_stress_retry_args(args)
         retry_timeout = max(5, int(timeout_sec * 0.5))
 
         logger.info(
@@ -440,7 +427,7 @@ class PlanExecutor:
 
         exec_res2, (metrics2, summary2) = stress.run(
             timeout_sec=retry_timeout,
-            **retry_args,
+            **args,
         )
         if exec_res2.returncode == 0:
             return exec_res2, metrics2, summary2
