@@ -55,7 +55,7 @@ class SyscallsWithCpuLoadTest(AbstractRunnableTimeLimitedTest):
                 started_at=started_at,
                 ended_at=datetime.now(tz=ZoneInfo("UTC")),
             )
-            self.cleanup()
+            self.cleanup(client, self.logger)
 
 
 class StressNgSyscallsWithMemLoadTest(StressNgTest):
