@@ -1,4 +1,3 @@
-import inspect
 import logging
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor
@@ -87,11 +86,7 @@ class AbstractRunnableManyTimesTest(ABC, DefaultCleanupMixin):
         self, executor: ThreadPoolExecutor, client: SSHClient | None = None
     ) -> Iterable[TestResult]:
         self.logger.info("Starting '%s' test '%d' times.", self.description, self.iterations)
-        # TODO: make all tests return a generator
-        if inspect.isgeneratorfunction(self._run):
-            yield from self._run(executor, client, self.iterations)
-        else:
-            self._run(executor, client, self.iterations)
+        yield from self._run(executor, client, self.iterations)
         self.logger.info("'%s' test finished.", self.description)
 
     @abstractmethod
@@ -138,11 +133,7 @@ class AbstractRunnableTimeLimitedTest(ABC, DefaultCleanupMixin):
         self, executor: ThreadPoolExecutor, client: SSHClient | None = None
     ) -> Iterable[TestResult]:
         self.logger.info("Starting '%s' test with '%d' timeout.", self.description, self.timeout)
-        # TODO: make all tests return a generator
-        if inspect.isgeneratorfunction(self._run):
-            yield from self._run(executor, client, self.timeout)
-        else:
-            self._run(executor, client, self.timeout)
+        yield from self._run(executor, client, self.timeout)
         self.logger.info("'%s' test finished.", self.description)
 
     @abstractmethod
@@ -189,20 +180,16 @@ class TestsRunner:
             is_alive_cycle = Thread(target=self.__is_remote_alive, args=(test_completed_event,))
             is_alive_cycle.start()
             test_started_at = datetime.now(tz=ZoneInfo("UTC"))
-            # TODO: make all tests return a generator
-            if inspect.isgeneratorfunction(test._run):  # noqa: SLF001
-                for result in test(self.__executor, self.__client):
-                    self.__database.insert_loader(
-                        experiment_id=experiment.experiment_id,
-                        # TODO: fill descriptions and adds into TestResult class
-                        description="",
-                        result=result.metrics,
-                        command=result.command,
-                        started_at=result.started_at,
-                        ended_at=result.ended_at,
-                    )
-            else:
-                list(test(self.__executor, self.__client))
+            for result in test(self.__executor, self.__client):
+                self.__database.insert_loader(
+                    experiment_id=experiment.experiment_id,
+                    # TODO: fill descriptions and adds into TestResult class
+                    description="",
+                    result=result.metrics,
+                    command=result.command,
+                    started_at=result.started_at,
+                    ended_at=result.ended_at,
+                )
             self._collect_system_errors(
                 experiment_id=experiment.experiment_id,
                 since=test_started_at,
