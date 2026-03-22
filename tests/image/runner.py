@@ -23,6 +23,7 @@ from image.performance.stress_ng_general import (
     StressNgConsecutiveLoadTest,
     StressNgParallelLoadTest,
 )
+from image.performance.syscalls import StressNgSyscallsWithMemLoadTest, SyscallsWithCpuLoadTest
 from image.performance.system import PTSSystemTest
 from imgtests.exec.exec import wait_remote
 from imgtests.logger import set_handlers
@@ -70,6 +71,8 @@ def main() -> None:
             StressNgCombineLoadTest(10),
             StressNgParallelLoadTest(30),
             SarWithStressNGTest(60),
+            SyscallsWithCpuLoadTest(60),
+            StressNgSyscallsWithMemLoadTest(60),
         ),
         experiment_type="all",
         install_dependencies=True,
