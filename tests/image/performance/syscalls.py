@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
-from imgtests.exec.loaders import Kirk, StressNg
+from imgtests.exec.loaders import Kirk, Perf, StressNg
 from imgtests.runner import AbstractRunnableTimeLimitedTest, Subsystem, TestResult
 from imgtests.suites.general.stress_ng import StressNgTest
 
@@ -34,7 +34,7 @@ class SyscallsWithCpuLoadTest(AbstractRunnableTimeLimitedTest):
 
             future_stress_ng = executor.submit(
                 stress_ng.run,
-                timeout=timeout,
+                timeout_sec=timeout,
                 syscall=0,
                 syscall_method="all",
                 cpu=0,
@@ -43,10 +43,7 @@ class SyscallsWithCpuLoadTest(AbstractRunnableTimeLimitedTest):
             stress_ng_res, stress_ng_metrics = future_stress_ng.result()
             _, kirk_metrics_path = future_kirk.result()
 
-            self.logger.info("Finished test with %d load", cpu_percent)
-
             yield TestResult(
-                # TODO: update command with LTP
                 command=" ".join(stress_ng_res.cmd),
                 metrics={
                     **stress_ng.metrics_to_json(stress_ng_metrics),
@@ -73,9 +70,48 @@ class StressNgSyscallsWithMemLoadTest(StressNgTest):
         yield from self.run_test(
             stress_ng=stress_ng,
             executor=executor,
-            timeout=timeout,
+            timeout_sec=timeout,
             syscall=0,
             syscall_method="all",
             vm=0,
             vm_bytes="95%",
+        )
+
+
+class SyscallsFullLoadTest(AbstractRunnableTimeLimitedTest):
+    def __init__(self, timeout: int) -> None:
+        super().__init__(
+            "Syscalls full load test.",
+            frozenset({Subsystem.SYSCALLS}),
+            timeout,
+        )
+
+    def _run(
+        self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int
+    ) -> Iterable[TestResult]:
+        stress_ng = StressNg(client)
+        perf = Perf(client)
+
+        started_at = datetime.now(tz=ZoneInfo("UTC"))
+        future_stress_ng = executor.submit(
+            stress_ng.run,
+            timeout_sec=timeout,
+            syscall=0,
+        )
+        future_perf = executor.submit(
+            perf.bench,
+            collection="syscall",
+        )
+
+        stress_ng_res, stress_ng_metrics = future_stress_ng.result()
+        _, perf_metrics = future_perf.result()
+
+        yield TestResult(
+            command=" ".join(stress_ng_res.cmd),
+            metrics={
+                **stress_ng.metrics_to_json(stress_ng_metrics),
+                "perf_metrics": perf.metrics_to_json(perf_metrics),
+            },
+            started_at=started_at,
+            ended_at=datetime.now(tz=ZoneInfo("UTC")),
         )
