@@ -41,10 +41,10 @@ class SyscallsWithCpuLoadTest(AbstractRunnableTimeLimitedTest):
                 **{"cpu-load": cpu_percent},
             )
             stress_ng_res, stress_ng_metrics = future_stress_ng.result()
-            _, kirk_metrics_path = future_kirk.result()
+            kirk_res, kirk_metrics_path = future_kirk.result()
 
             yield TestResult(
-                command=" ".join(stress_ng_res.cmd),
+                command=" ".join(stress_ng_res.cmd) + " & " + " ".join(kirk_res.cmd),
                 metrics={
                     **stress_ng.metrics_to_json(stress_ng_metrics),
                     **kirk.metrics_to_json(kirk_metrics_path),
@@ -104,10 +104,10 @@ class SyscallsFullLoadTest(AbstractRunnableTimeLimitedTest):
         )
 
         stress_ng_res, stress_ng_metrics = future_stress_ng.result()
-        _, perf_metrics = future_perf.result()
+        perf_res, perf_metrics = future_perf.result()
 
         yield TestResult(
-            command=" ".join(stress_ng_res.cmd),
+            command=" ".join(stress_ng_res.cmd) + " & " + " ".join(perf_res.cmd),
             metrics={
                 **stress_ng.metrics_to_json(stress_ng_metrics),
                 "perf_metrics": perf.metrics_to_json(perf_metrics),
