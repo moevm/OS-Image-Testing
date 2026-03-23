@@ -24,9 +24,10 @@ from image.performance.stress_ng_general import (
     StressNgParallelLoadTest,
 )
 from image.performance.system import PTSSystemTest
+from imgtests.database.database import ImgtestsDatabase
 from imgtests.exec.exec import wait_remote
 from imgtests.logger import set_handlers
-from imgtests.runner import TestsRunner, TestsRunnerConfig
+from imgtests.runner import ProfiledPlanRunner, TestsRunner, TestsRunnerConfig
 from imgtests.suites.general.joint_bench import JointBench
 from imgtests.suites.system import SystemLoadTimeTest, SystemSlowServicesTest
 
@@ -84,6 +85,15 @@ def main() -> None:
         all_subsystems_suite,
     )
     yocto_runner.run()
+
+    client = wait_remote(*yocto_conf) or sys.exit(1)
+    exit_code = ProfiledPlanRunner(
+        client=client,
+        db=ImgtestsDatabase(),
+    ).run_from_env()
+    client.close()
+
+    sys.exit(exit_code)
 
 
 if __name__ == "__main__":

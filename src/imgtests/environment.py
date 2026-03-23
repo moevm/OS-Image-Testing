@@ -2,9 +2,13 @@ import os
 from pathlib import Path
 from typing import cast
 
+_MISSING = object()
 
-def env_var_to_type[T](variable: str, val_type: type[T]) -> T:
+
+def env_var_to_type[T](variable: str, val_type: type[T], default: T | object = _MISSING) -> T:
     if variable not in os.environ:
+        if default is not _MISSING:
+            return cast("T", default)
         err_msg = f"Environment variable '{variable}' not found."
         raise ValueError(err_msg)
 

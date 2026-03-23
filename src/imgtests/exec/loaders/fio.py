@@ -1,7 +1,8 @@
+from contextlib import suppress
 from typing import TYPE_CHECKING, Any, Literal
 
 from imgtests.exec.base_util import GenericUtil
-from imgtests.exec.exec import ExecResult, SSHClient
+from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
 from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
 from imgtests.exec.pkgmgrs.pip3 import Pip3
 from imgtests.exec.utils import create_opt
@@ -28,8 +29,13 @@ IOEngine = Literal[
 # fmt: on
 Direct = Literal[1] | None
 
+_DF_AVAIL_COLUMN_INDEX = 3
+_DF_MIN_COLUMNS = 4
+
 
 class Fio(PkgMgrMixin, GenericUtil):
+    DEFAULT_WORKDIR = "/var/lib/imgtests-fio"
+
     def __init__(self, ssh_client: SSHClient | None = None) -> None:
         super().__init__("fio", ssh_client)
 
@@ -52,6 +58,36 @@ class Fio(PkgMgrMixin, GenericUtil):
         if ":" in lines[0]:
             lines = lines[1:]
         return tuple(line.strip() for line in lines)
+
+    def ensure_default_workdir(self) -> str:
+        common_run_command(["mkdir", "-p", self.DEFAULT_WORKDIR], self.ssh_client)
+        return self.DEFAULT_WORKDIR
+
+    def default_filename(self, filename: str) -> str:
+        return f"{self.ensure_default_workdir()}/{filename}"
+
+    def available_bytes(self, path: str | None = None) -> int | None:
+        target_path = path or self.ensure_default_workdir()
+        with suppress(Exception):
+            res = common_run_command(["df", "-PB1", target_path], self.ssh_client)
+            if res.returncode != 0:
+                return None
+
+            out = (res.stdout or "").strip().splitlines()
+            if not out:
+                return None
+
+            last = out[-1].split()
+            if len(last) < _DF_MIN_COLUMNS:
+                return None
+
+            return int(last[_DF_AVAIL_COLUMN_INDEX])
+
+        return None
+
+    def cleanup_file(self, path: str) -> None:
+        with suppress(Exception):
+            common_run_command(["rm", "-f", path], self.ssh_client)
 
     def run(  # noqa: PLR0913
         self,

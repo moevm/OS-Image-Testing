@@ -1,18 +1,22 @@
+from __future__ import annotations
+
 import logging
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from enum import Enum
+from pathlib import Path
 from threading import Event, Thread
-from typing import TYPE_CHECKING, Any, NamedTuple
+from typing import TYPE_CHECKING, Any, ClassVar, NamedTuple
 from zoneinfo import ZoneInfo
 
 import paramiko
 import paramiko.ssh_exception
 
 from imgtests.constant import LIB_NAME
-from imgtests.database.database import ImgtestsDatabase
-from imgtests.exec.exec import common_run_command
+from imgtests.database.database import ExperimentType, ImgtestsDatabase
+from imgtests.environment import env_var_to_type
+from imgtests.exec.exec import SSHClient, common_run_command
 from imgtests.exec.observers.journalctl import Journalctl
 from imgtests.exec.observers.systemctl import Systemctl
 from imgtests.sysrep import get_system_info
@@ -20,9 +24,9 @@ from imgtests.sysrep import get_system_info
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
-    from imgtests.database.database import ExperimentType
+    from imgtests.database.models.experiment import ExperimentBase
     from imgtests.exec.base_util import BaseTestUtil
-    from imgtests.exec.exec import SSHClient
+    from imgtests.planning import LoadPattern, TestKind
 
 
 class Subsystem(str, Enum):
@@ -153,7 +157,44 @@ class TestsRunnerConfig(NamedTuple):
     install_dependencies: bool = False
 
 
-class TestsRunner:
+class BaseRunner:
+    __slots__ = ()
+
+    @staticmethod
+    def resolve_config_id(
+        client: SSHClient | None,
+        database: ImgtestsDatabase,
+        config_id: int | None = None,
+    ) -> int:
+        if config_id is not None:
+            return int(config_id)
+
+        result = get_system_info(client)
+        configuration_record = database.insert_from_system_info(result)
+        return int(configuration_record.config_id)
+
+    @classmethod
+    def start_experiment(  # noqa: PLR0913
+        cls,
+        *,
+        client: SSHClient | None,
+        database: ImgtestsDatabase,
+        description: str,
+        experiment_type: ExperimentType,
+        config_id: int | None = None,
+        started_at: datetime | None = None,
+        ended_at: datetime | None = None,
+    ) -> ExperimentBase:
+        return database.insert_experiment(
+            config_id=cls.resolve_config_id(client, database, config_id),
+            description=description,
+            experiment_type=experiment_type,
+            started_at=started_at,
+            ended_at=ended_at,
+        )
+
+
+class TestsRunner(BaseRunner):
     __slots__ = ("__client", "__database", "__executor", "__test_config", "logger")
 
     def __init__(self, client: SSHClient | None, test_config: TestsRunnerConfig) -> None:
@@ -167,10 +208,9 @@ class TestsRunner:
         test_completed_event = Event()
         if self.__test_config.install_dependencies:
             self.install_dependencies()
-        result = get_system_info(self.__client)
-        configuration_record = self.__database.insert_from_system_info(result)
-        experiment = self.__database.insert_experiment(
-            config_id=configuration_record.config_id,
+        experiment = self.start_experiment(
+            client=self.__client,
+            database=self.__database,
             description=self.__test_config.description,
             experiment_type=self.__test_config.experiment_type,
         )
@@ -304,3 +344,206 @@ class TestsRunner:
             ended_at=until,
             result=journalctl.metrics_to_json(sstmd_err_m),
         )
+
+
+class ProfiledPlanRunner(BaseRunner):
+    __slots__ = ("client", "db", "executor")
+
+    _SUBSYSTEM_ALIASES: ClassVar[dict[str, Subsystem]] = {
+        "cpu": Subsystem.SYSTEM,
+        "disk": Subsystem.FILE,
+        "ipc": Subsystem.IPC,
+    }
+
+    def __init__(
+        self,
+        client: SSHClient,
+        db: ImgtestsDatabase,
+    ) -> None:
+        from imgtests.planning.executor import PlanExecutor  # noqa: PLC0415
+
+        self.client = client
+        self.db = db
+        self.executor = PlanExecutor(client=client, db=db)
+
+    def run_from_env(self) -> int:
+        subsystems = self._parse_subsystems(env_var_to_type("PLAN_SUBSYSTEMS", str, "all"))
+        results_root = env_var_to_type("PLAN_RESULTS_DIR", Path, Path("results/profiled"))
+        pattern = self._parse_pattern(env_var_to_type("PLAN_PATTERN", str, ""))
+        config_id = self.resolve_config_id(self.client, self.db)
+
+        if env_var_to_type("PLAN_RUN_MATRIX", bool, default=False):
+            return self._run_matrix(
+                subsystems=subsystems,
+                results_root=results_root,
+                pattern=pattern,
+                config_id=config_id,
+            )
+
+        failures = self._run_one(
+            profile=self._parse_profile(env_var_to_type("PLAN_PROFILE", str, "load")),
+            duration_sec=env_var_to_type("PLAN_DURATION_SEC", int, 120),
+            subsystems=subsystems,
+            results_root=results_root,
+            pattern=pattern,
+            config_id=config_id,
+        )
+        return 1 if failures else 0
+
+    def _run_matrix(
+        self,
+        *,
+        subsystems: frozenset[Subsystem],
+        results_root: Path,
+        pattern: LoadPattern | None,
+        config_id: int,
+    ) -> int:
+        total_failures = 0
+        default_duration = env_var_to_type("PLAN_DURATION_SEC", int, 120)
+
+        for index, profile in enumerate(
+            self._parse_profiles(env_var_to_type("PLAN_MATRIX_PROFILES", str, "all"))
+        ):
+            if index > 0:
+                self.client.reconnect()
+
+            duration_sec = env_var_to_type(
+                f"PLAN_DURATION_{profile.value.upper()}",
+                int,
+                default_duration,
+            )
+            total_failures += self._run_one(
+                profile=profile,
+                duration_sec=duration_sec,
+                subsystems=subsystems,
+                results_root=results_root,
+                pattern=pattern,
+                config_id=config_id,
+            )
+
+        return 1 if total_failures else 0
+
+    def _run_one(  # noqa: PLR0913
+        self,
+        *,
+        profile: TestKind,
+        duration_sec: int,
+        subsystems: frozenset[Subsystem],
+        results_root: Path,
+        pattern: LoadPattern | None,
+        config_id: int,
+    ) -> int:
+        from imgtests.planning import PlanRequest, build_plan  # noqa: PLC0415
+
+        execution = self.executor.execute(
+            build_plan(
+                PlanRequest(
+                    duration_sec=duration_sec,
+                    subsystems=subsystems,
+                    test_kind=profile,
+                    pattern=pattern,
+                )
+            ),
+            results_dir=results_root / self._build_run_name(profile, pattern),
+            experiment_description=f"Profiled plan: {profile.value}",
+            config_id=config_id,
+        )
+        failures = sum(
+            1 for stage in execution.stage_runs for task in stage.tasks if task.returncode != 0
+        )
+
+        logging.getLogger(__name__).info(
+            "[PROFILED] DONE profile=%s pattern=%s duration=%ss failures=%d experiment_id=%s",
+            profile.value,
+            pattern.value if pattern else "auto",
+            duration_sec,
+            failures,
+            execution.experiment_id,
+        )
+        logging.getLogger(__name__).info("[PROFILED] plan=%s", execution.plan_path)
+        return failures
+
+    @staticmethod
+    def _build_run_name(profile: TestKind, pattern: LoadPattern | None) -> str:
+        run_name = datetime.now(tz=ZoneInfo("UTC")).strftime("%Y%m%d_%H%M%S")
+        run_name = f"{run_name}_{profile.value}"
+        if pattern is not None:
+            run_name += f"_{pattern.value}"
+        return run_name
+
+    @classmethod
+    def _parse_subsystems(cls, raw: str) -> frozenset[Subsystem]:
+        value = raw.strip().lower()
+        if value == "all":
+            return frozenset(Subsystem)
+
+        subsystems: set[Subsystem] = set()
+        for part in [item.strip().lower() for item in value.split(",") if item.strip()]:
+            if part in cls._SUBSYSTEM_ALIASES:
+                subsystems.add(cls._SUBSYSTEM_ALIASES[part])
+                continue
+
+            try:
+                subsystems.add(Subsystem(part))
+            except ValueError as exc:
+                allowed = ", ".join(
+                    sorted(
+                        [subsystem.value for subsystem in Subsystem] + list(cls._SUBSYSTEM_ALIASES),
+                    )
+                )
+                msg = f"Unknown subsystem '{part}'. Allowed: {allowed}"
+                raise ValueError(msg) from exc
+
+        if not subsystems:
+            msg = "No subsystems provided."
+            raise ValueError(msg)
+
+        return frozenset(subsystems)
+
+    @staticmethod
+    def _parse_profile(raw: str) -> TestKind:
+        from imgtests.planning import TestKind  # noqa: PLC0415
+
+        try:
+            return TestKind(raw.strip().lower())
+        except ValueError as exc:
+            allowed = ", ".join(item.value for item in TestKind)
+            msg = f"Unknown profile '{raw}'. Allowed: {allowed}"
+            raise ValueError(msg) from exc
+
+    @classmethod
+    def _parse_profiles(cls, raw: str) -> tuple[TestKind, ...]:
+        from imgtests.planning import TestKind  # noqa: PLC0415
+
+        value = raw.strip().lower()
+        if value in {"", "all"}:
+            return tuple(TestKind)
+
+        profiles: list[TestKind] = []
+        seen: set[TestKind] = set()
+        for part in [item.strip() for item in value.split(",") if item.strip()]:
+            profile = cls._parse_profile(part)
+            if profile not in seen:
+                profiles.append(profile)
+                seen.add(profile)
+
+        if not profiles:
+            msg = "No profiles provided."
+            raise ValueError(msg)
+
+        return tuple(profiles)
+
+    @staticmethod
+    def _parse_pattern(raw: str) -> LoadPattern | None:
+        from imgtests.planning import LoadPattern  # noqa: PLC0415
+
+        value = raw.strip().lower()
+        if value in {"", "auto"}:
+            return None
+
+        try:
+            return LoadPattern(value)
+        except ValueError as exc:
+            allowed = ", ".join(item.value for item in LoadPattern)
+            msg = f"Unknown pattern '{raw}'. Allowed: {allowed}"
+            raise ValueError(msg) from exc

@@ -4,16 +4,14 @@ import json
 import logging
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from contextlib import suppress
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 from imgtests.exec.loaders.fio import Fio
 from imgtests.exec.loaders.stress_ng import StressNg
-from imgtests.runner import Subsystem
+from imgtests.runner import BaseRunner, Subsystem
 from imgtests.sizing import bytes_to_mib_str, parse_size_to_bytes
-from imgtests.sysrep import get_system_info
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -24,10 +22,6 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-_DEFAULT_FIO_WORKDIR = "/var/lib/imgtests-fio"
-
-_DF_AVAIL_COLUMN_INDEX = 3
-_DF_MIN_COLUMNS = 4
 _STRESS_RETRY_RETURN_CODE = 3
 
 
@@ -87,25 +81,6 @@ def _try_parse_json(text: str) -> dict[str, Any]:
         return data if isinstance(data, dict) else {}
     except json.JSONDecodeError:
         return {}
-
-
-def _remote_df_avail_bytes(client: SSHClient, path: str) -> int | None:
-    with suppress(Exception):
-        res = client(("df", "-PB1", path))
-        if getattr(res, "returncode", 1) != 0:
-            return None
-
-        out = (res.stdout or "").strip().splitlines()
-        if not out:
-            return None
-
-        last = out[-1].split()
-        if len(last) < _DF_MIN_COLUMNS:
-            return None
-
-        return int(last[_DF_AVAIL_COLUMN_INDEX])
-
-    return None
 
 
 def _stress_metric_samples(
@@ -186,38 +161,38 @@ def _fio_op_samples(
     return out
 
 
-class PlanExecutor:
+class PlanExecutor(BaseRunner):
     def __init__(
         self,
         client: SSHClient,
         db: ImgtestsDatabase,
-        results_dir: Path,
-        config_id: int | None = None,
-        experiment_description: str | None = None,
     ) -> None:
         self.client = client
         self.db = db
-        self.results_dir = results_dir
-        self.config_id = config_id
-        self.experiment_description = experiment_description or "Auto-generated load test plan"
-        self.fio_workdir = _DEFAULT_FIO_WORKDIR
 
-    def execute(self, plan: TestPlan) -> PlanExecutionResult:
-        self.results_dir.mkdir(parents=True, exist_ok=True)
+    def execute(
+        self,
+        plan: TestPlan,
+        *,
+        results_dir: Path,
+        experiment_description: str,
+        config_id: int | None = None,
+    ) -> PlanExecutionResult:
+        results_dir.mkdir(parents=True, exist_ok=True)
         started_at = datetime.now(UTC)
 
-        plan_path = self.results_dir / f"plan_{plan.plan_id}.json"
+        plan_path = results_dir / f"plan_{plan.plan_id}.json"
         plan_path.write_text(
             json.dumps(plan.to_dict(), ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
 
-        cfg_id = self._ensure_config_id()
-
-        experiment = self.db.insert_experiment(
-            config_id=cfg_id,
-            description=self.experiment_description,
+        experiment = self.start_experiment(
+            client=self.client,
+            database=self.db,
+            description=experiment_description,
             experiment_type=_resolve_experiment_type(plan),
+            config_id=config_id,
             started_at=started_at,
             ended_at=started_at,
         )
@@ -319,13 +294,6 @@ class PlanExecutor:
             stage_runs=tuple(stage_runs),
             metrics=tuple(collected_metrics),
         )
-
-    def _ensure_config_id(self) -> int:
-        if self.config_id is not None:
-            return int(self.config_id)
-        sys_info = get_system_info(self.client)
-        cfg = self.db.insert_from_system_info(sys_info)
-        return int(cfg.config_id)
 
     def _wait_for_stage_offset(
         self,
@@ -486,7 +454,6 @@ class PlanExecutor:
         started_at: datetime,
     ) -> TaskRunResult:
         fio = Fio(self.client)
-        self.client(("mkdir", "-p", self.fio_workdir))
 
         args = dict(task.args or {})
         runtime_sec = int(args.pop("runtime_sec", stage.duration_sec))
@@ -494,12 +461,12 @@ class PlanExecutor:
         created_filename: str | None = None
         if "filename" not in args and "directory" not in args:
             subsystem = getattr(task.subsystem, "value", str(task.subsystem))
-            created_filename = f"{self.fio_workdir}/{stage.name}-{subsystem}.dat"
+            created_filename = fio.default_filename(f"{stage.name}-{subsystem}.dat")
             args["filename"] = created_filename
 
         if "size" in args:
             req = parse_size_to_bytes(str(args["size"]))
-            avail = _remote_df_avail_bytes(self.client, self.fio_workdir)
+            avail = fio.available_bytes() if created_filename is not None else None
             if req is not None and avail is not None:
                 cap = max(64 * 1024**2, int(avail * 0.25))
                 safe = min(req, cap)
@@ -523,8 +490,7 @@ class PlanExecutor:
             )
         finally:
             if created_filename:
-                with suppress(Exception):
-                    self.client(("rm", "-f", created_filename))
+                fio.cleanup_file(created_filename)
 
         ended_at = datetime.now(UTC)
 

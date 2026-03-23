@@ -144,8 +144,11 @@ def build_task(subsystem: Subsystem, pattern: LoadPattern, stage_duration_sec: i
 
 def build_stage_tasks(
     _test_kind: TestKind,
-    subsystems: tuple[Subsystem, ...],
+    subsystems: frozenset[Subsystem],
     pattern: LoadPattern,
     stage_duration_sec: int,
 ) -> tuple[LoadTask, ...]:
-    return tuple(build_task(ss, pattern, stage_duration_sec) for ss in subsystems)
+    return tuple(
+        build_task(ss, pattern, stage_duration_sec)
+        for ss in sorted(subsystems, key=lambda item: item.value)
+    )
