@@ -56,21 +56,19 @@ class StressNgPerformanceMemoryTest(StressNgTest):
         ram_size = int(result.stdout)
 
         stress_ng = StressNg(client)
-        for params in tests:
+        extended_tests = tests.copy()
+
+        workers = 512 if ram_size < (1024 * HUGE_PAGE_SIZE) else 1024
+        instances = int((ram_size * 0.7) / (HUGE_PAGE_SIZE * random.uniform(1, 2)))  # noqa: S311
+        instances = min(instances, 1024)
+
+        extended_tests.append({"mmaphuge": workers})
+        extended_tests.append({"vm": instances, "vm_bytes": "70%"})
+
+        for params in extended_tests:
             yield from self.run_test(
                 stress_ng=stress_ng, executor=executor, timeout=timeout, **params
             )
-
-        workers = 512 if ram_size < (1024 * HUGE_PAGE_SIZE) else 1024
-        yield from self.run_test(
-            stress_ng=stress_ng, executor=executor, timeout=timeout, mmaphuge=workers
-        )
-
-        instances = int((ram_size * 0.7) / (HUGE_PAGE_SIZE * random.uniform(1, 2)))  # noqa: S311
-        instances = min(instances, 1024)
-        yield from self.run_test(
-            stress_ng=stress_ng, executor=executor, timeout=timeout, vm=instances, vm_bytes="70%"
-        )
 
 
 class SarWithStressNGTest(AbstractRunnableTimeLimitedTest):
