@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from imgtests.exec.loaders import StressNg
 from imgtests.runner import Subsystem, TestResult
@@ -9,6 +9,12 @@ if TYPE_CHECKING:
     from concurrent.futures import ThreadPoolExecutor
 
     from imgtests.exec.exec import SSHClient
+
+tests: list[dict[str, Any]] = [
+    {"vm": 4, "vm_bytes": "35%", "vm_populate": True, "mmap": 4, "mmap_bytes": "35%"},
+    {"memrate": 0, "memrate_rd_mbs": 500, "memrate_wr_mbs": 1000},
+    {"mmaptorture": 0, "mmaptorture_bytes": "70%"},
+]
 
 
 class StressNgEnduranceMemoryTest(StressNgTest):
@@ -23,10 +29,7 @@ class StressNgEnduranceMemoryTest(StressNgTest):
         self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int
     ) -> Iterable[TestResult]:
         stress_ng = StressNg(client)
-        yield from self.run_test(
-            stress_ng=stress_ng,
-            executor=executor,
-            timeout=timeout,
-            mmaptorture=0,
-            mmaptorture_bytes="70%",
-        )
+        for params in tests:
+            yield from self.run_test(
+                stress_ng=stress_ng, executor=executor, timeout=timeout, **params
+            )

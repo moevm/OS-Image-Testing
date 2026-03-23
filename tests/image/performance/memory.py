@@ -18,7 +18,6 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-PAGE_SIZE = 4  # kB
 HUGE_PAGE_SIZE = 2048  # kB
 
 tests: list[dict[str, Any]] = [
@@ -42,9 +41,11 @@ def get_ram_size(client: SSHClient | None = None) -> ExecResult:
     return last_result
 
 
-class StressNgPerformanceVMTest(StressNgTest):
+class StressNgPerformanceMemoryTest(StressNgTest):
     def __init__(self, timeout: int) -> None:
-        super().__init__("Stress-ng performance VM test.", frozenset({Subsystem.MEMORY}), timeout)
+        super().__init__(
+            "Stress-ng performance memory test.", frozenset({Subsystem.MEMORY}), timeout
+        )
 
     def _run(
         self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int
