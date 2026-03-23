@@ -129,6 +129,10 @@ class StressNg(PkgMgrMixin, GenericUtil):
         vm: int | None = None,
         vm_method: str = "all",
         vm_bytes: str | None = None,
+        vm_populate: bool | None = None,
+        memrate: int | None = None,
+        memrate_rd_mbs: int | None = None,
+        memrate_wr_mbs: int | None = None,
         mmap: int | None = None,
         mmap_bytes: str | None = None,
         mmaphuge: int | None = None,
@@ -177,6 +181,11 @@ class StressNg(PkgMgrMixin, GenericUtil):
               of logical processors.
             vm_method (str): Stress virtual memory method.
             vm_bytes (str | None): Utilized memory as value or percent of all available memory.
+            vm_populate (bool): Populate page tables for the memory mappings to stress swapping.
+            memrate (int | None): Count of the memory read/write stressors. When set to 0 got
+              count of logical processors.
+            memrate_rd_mbs (int | None): Read rate in MB/sec.
+            memrate_wr_mbs (int | None): Write rate in MB/sec.
             mmap (int | None): Count of the memory mapping stressors. When set to 0 got count
               of logical processors.
             mmap_bytes (str | None): Utilized memory mapping as value or percent of all available
@@ -240,6 +249,7 @@ class StressNg(PkgMgrMixin, GenericUtil):
         params = {
             "cpu": cpu,
             "vm": vm,
+            "memrate": memrate,
             "mmap": mmap,
             "mmaphuge": mmaphuge,
             "mmaptorture": mmaptorture,
@@ -272,6 +282,9 @@ class StressNg(PkgMgrMixin, GenericUtil):
             *create_opt("vm", vm),
             *create_opt("vm-method", vm_method),
             *create_opt("vm-bytes", vm_bytes),
+            *create_opt("memrate", memrate),
+            *create_opt("memrate-rd-mbs", memrate_rd_mbs),
+            *create_opt("memrate-wr-mbs", memrate_wr_mbs),
             *create_opt("mmap", mmap),
             *create_opt("mmap-bytes", mmap_bytes),
             *create_opt("mmaphuge", mmaphuge),
@@ -310,6 +323,9 @@ class StressNg(PkgMgrMixin, GenericUtil):
         ]
         if syscall is not None:
             opts.extend(create_opt("syscall-top", 0))
+
+        if vm_populate is not None:
+            opts.extend(add_flag("vm-populate"))
 
         result = self(opts, **kwargs)
 
