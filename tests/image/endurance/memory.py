@@ -27,6 +27,6 @@ class StressNgEnduranceMemoryTest(StressNgTest):
             stress_ng=stress_ng,
             executor=executor,
             timeout=timeout,
-            vm=2,
-            vm_bytes="16M",
+            mmaptorture=0,
+            mmaptorture_bytes="70%",
         )
