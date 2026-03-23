@@ -68,13 +68,20 @@ def main() -> None:
             Iperf3LocalTest(30),
             StressNgPerformanceCpuTest(60),
             ChaosbladeCPUTest(60),
-            LTPSyscallsTest(),
-            StressNgEnduranceSyscallsTest(60),
             PTSSystemTest(2),
             StressNgConsecutiveLoadTest(30),
             StressNgCombineLoadTest(10),
             StressNgParallelLoadTest(30),
             SarWithStressNGTest(60),
+        ),
+        experiment_type="all",
+        install_dependencies=True,
+    )
+    syscall_suite = TestsRunnerConfig(  # noqa: F841
+        description="Test suite for syscalls.",
+        tests=(
+            StressNgEnduranceSyscallsTest(60),
+            LTPSyscallsTest(),
             SyscallsWithCpuLoadTest(600),
             StressNgSyscallsWithMemLoadTest(60),
             SyscallsFullLoadTest(600),
