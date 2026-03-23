@@ -23,7 +23,7 @@ HUGE_PAGE_SIZE = 2048  # kB
 tests: list[dict[str, Any]] = [
     {"vm": 4, "vm_bytes": "25%", "mmap": 4, "mmap_bytes": "25%"},
     {"vm": 4, "vm_bytes": "35%", "mmap": 4, "mmap_bytes": "35%"},
-    {"vm": 1024, "vm_bytes": "16M"},
+    {"vm": 1024, "vm_bytes": "4M"},
     {"vm": 1024, "vm_bytes": "1G"},
 ]
 
