@@ -61,7 +61,7 @@ class Perf(PkgMgrMixin, GenericUtil):
             collection (str): Testing subsystem. Default is "all".
             benchmark (str): Running tests. Default is "all".
             add_opts (list[str]): Additional tests options.
-            format_: The output formatting style. Default is "simple".
+            format_: The output formatting style. Default is "default".
             repeat (int): Number of times to repeat the run. Default is 1.
         """
         if repeat <= 0:
