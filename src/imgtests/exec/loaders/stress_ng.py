@@ -131,6 +131,9 @@ class StressNg(PkgMgrMixin, GenericUtil):
         vm_bytes: str | None = None,
         mmap: int | None = None,
         mmap_bytes: str | None = None,
+        mmaphuge: int | None = None,
+        mmaptorture: int | None = None,
+        mmaptorture_bytes: str | None = None,
         cache: int | None = None,
         cache_ops: int | None = None,
         hdd: int | None = None,
@@ -178,6 +181,12 @@ class StressNg(PkgMgrMixin, GenericUtil):
               of logical processors.
             mmap_bytes (str | None): Utilized memory mapping as value or percent of all available
               memory.
+            mmaphuge (int | None): Count of the memory mapping stressors with huge mappings. When
+              set to 0 got count of logical processors.
+            mmaptorture (int | None): Count of the stressors torturing page mappings. When set
+            to 0 got count of logical processors.
+            mmaptorture_bytes (str | None): Utilized memory mapping torture as value or percent
+              of all available memory.
             cache (int | None): Count of the cache stressors. When set to 0 got count of logical
               processors.
             cache_ops (int | None): Number of cache operations per stressor.
@@ -232,6 +241,8 @@ class StressNg(PkgMgrMixin, GenericUtil):
             "cpu": cpu,
             "vm": vm,
             "mmap": mmap,
+            "mmaphuge": mmaphuge,
+            "mmaptorture": mmaptorture,
             "cache": cache,
             "hdd": hdd,
             "sock": sock,
@@ -263,6 +274,9 @@ class StressNg(PkgMgrMixin, GenericUtil):
             *create_opt("vm-bytes", vm_bytes),
             *create_opt("mmap", mmap),
             *create_opt("mmap-bytes", mmap_bytes),
+            *create_opt("mmaphuge", mmaphuge),
+            *create_opt("mmaptorture", mmaptorture),
+            *create_opt("mmaptorture-bytes", mmaptorture_bytes),
             *create_opt("cache", cache),
             *create_opt("cache-ops", cache_ops),
             *create_opt("hdd", hdd),
