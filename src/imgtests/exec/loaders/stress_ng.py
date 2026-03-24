@@ -124,6 +124,9 @@ class StressNg(PkgMgrMixin, GenericUtil):
     def run(  # noqa: PLR0913
         self,
         timeout_sec: int = 0,
+        class_name: str | None = None,
+        class_sequential: int | None = None,
+        class_all: int | None = None,
         cpu: int | None = None,
         cpu_method: str = "all",
         vm: int | None = None,
@@ -174,6 +177,9 @@ class StressNg(PkgMgrMixin, GenericUtil):
         Args:
             timeout_sec (int): Execution time of stressors work. When set to 0 run 1 day
               stress test.
+            class_name(str | None): Run only stressors from the specified class.
+            class_sequential (int | None): Run stressors from the specified class sequentially.
+            class_all (int | None): Run stressors from the specified class in parallel.
             cpu (int | None): Count of the CPU stressors. When set to 0 got count of logical
               processors.
             cpu_method (str): Stress CPU method.
@@ -247,6 +253,8 @@ class StressNg(PkgMgrMixin, GenericUtil):
             tuple[ExecResult, StressNGResult]: Result of stress test work and parsed metrics.
         """
         params = {
+            "sequential": class_sequential,
+            "all": class_all,
             "cpu": cpu,
             "vm": vm,
             "memrate": memrate,
@@ -277,6 +285,9 @@ class StressNg(PkgMgrMixin, GenericUtil):
                 raise ValueError(err_msg)
         opts = [
             *create_opt("timeout", timeout_sec),
+            *create_opt("class", class_name),
+            *create_opt("sequential", class_sequential),
+            *create_opt("all", class_all),
             *create_opt("cpu", cpu),
             *create_opt("cpu-method", cpu_method),
             *create_opt("vm", vm),
