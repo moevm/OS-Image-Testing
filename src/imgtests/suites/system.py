@@ -2,7 +2,7 @@ from time import sleep
 from typing import TYPE_CHECKING
 
 from imgtests.exec.observers.systemd_analyze import SystemdAnalyze
-from imgtests.runner import AbstractRunnableManyTimesTest, Subsystem, TestResult
+from imgtests.runner import AbstractRunnableManyTimesTest, Subsystem, TestResult, TestStatus
 
 if TYPE_CHECKING:
     import logging
@@ -36,7 +36,11 @@ class SystemLoadTimeTest(AbstractRunnableManyTimesTest):
             result = systemd_analyze.time()
         if result.total_time < 0:
             self.logger.error("Failed to get boot time, system might not be ready.")
-        yield TestResult(command=f"{systemd_analyze.name} time", metrics=result._asdict())
+        yield TestResult(
+            command=f"{systemd_analyze.name} time",
+            metrics=result._asdict(),
+            status=TestStatus.Passed,
+        )
 
     def cleanup(self, client: SSHClient | None, logger: logging.Logger) -> None:  # noqa: ARG002
         logger.debug("Noting to cleanup for system load time test.")
@@ -54,7 +58,11 @@ class SystemSlowServicesTest(AbstractRunnableManyTimesTest):
     ) -> Iterable[TestResult]:
         systemd_analyze = SystemdAnalyze(client)
         result = systemd_analyze.slow_load_services()
-        yield TestResult(command=f"{systemd_analyze.name} critical-chain", metrics=result)
+        yield TestResult(
+            command=f"{systemd_analyze.name} critical-chain",
+            metrics=result,
+            status=TestStatus.Passed,
+        )
 
     def cleanup(self, client: SSHClient | None, logger: logging.Logger) -> None:  # noqa: ARG002
         logger.debug("Noting to cleanup for system slow services test.")

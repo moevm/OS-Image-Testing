@@ -25,8 +25,11 @@ class ExperimentBase(Base):
     observers: Mapped[list[ObserverBase]] = relationship(
         "ObserverBase", back_populates="experiment"
     )
-    tests_passed: Mapped[int | None] = mapped_column(Integer, server_default="0")
     tests_total: Mapped[int | None] = mapped_column(Integer, server_default="0")
+    tests_passed: Mapped[int | None] = mapped_column(Integer, server_default="0")
+    tests_failed: Mapped[int | None] = mapped_column(Integer, server_default="0")
+    tests_broken: Mapped[int | None] = mapped_column(Integer, server_default="0")
+    tests_skiped: Mapped[int | None] = mapped_column(Integer, server_default="0")
 
     def __repr__(self) -> str:
         return (

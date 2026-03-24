@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 from imgtests.exec.loaders.dmsetup import DeviceMapperSetup, setup_block_device
 from imgtests.exec.osinfo import get_os_release
-from imgtests.runner import AbstractRunnableTimeLimitedTest, Subsystem
+from imgtests.runner import AbstractRunnableTimeLimitedTest, Subsystem, TestResult, TestStatus
 from imgtests.suites.drive.fio import FioSuite, FioSuiteConfig, FioWorkload
 from imgtests.types import Distro
 
@@ -59,7 +59,7 @@ class FioDisksScalingTest(AbstractRunnableTimeLimitedTest):
         executor: ThreadPoolExecutor,  # noqa: ARG002
         client: SSHClient | None,
         timeout: int,
-    ) -> None:
+    ) -> TestResult:
         cfg = FioSuiteConfig(
             suite="scaling",
             duration_sec=timeout,
@@ -68,6 +68,8 @@ class FioDisksScalingTest(AbstractRunnableTimeLimitedTest):
         )
         out = FioSuite(client, cfg).run()
         self.logger.info("FIO scaling PASSED: %s", out)
+
+        return TestResult(status=TestStatus.Passed)
 
 
 class FioDisksNightly(AbstractRunnableTimeLimitedTest):
@@ -81,7 +83,7 @@ class FioDisksNightly(AbstractRunnableTimeLimitedTest):
         executor: ThreadPoolExecutor,  # noqa: ARG002
         client: SSHClient | None,
         timeout: int,
-    ) -> None:
+    ) -> TestResult:
         cfg = FioSuiteConfig(
             suite="nightly",
             duration_sec=timeout,
@@ -90,6 +92,8 @@ class FioDisksNightly(AbstractRunnableTimeLimitedTest):
         )
         out = FioSuite(client, cfg).run()
         logger.info("FIO nightly PASSED: %s", out)
+
+        return TestResult(status=TestStatus.Passed)
 
 
 class FioDisksDMDelay(AbstractRunnableTimeLimitedTest):
@@ -103,22 +107,22 @@ class FioDisksDMDelay(AbstractRunnableTimeLimitedTest):
         executor: ThreadPoolExecutor,  # noqa: ARG002
         client: SSHClient | None,
         timeout: int,
-    ) -> None:
+    ) -> TestResult:
         os_id = get_os_release(client).id
         if os_id and os_id != Distro.POKY.value:
             self.logger.warning("Skipping test due dm-delay test is only supported on poky.")
-            return
+            return TestResult(status=TestStatus.Skipped)
 
         result = setup_block_device(client=client)
         if result is not None and result.returncode:
             logger.error("Error in block device setup.")
-            return
+            return TestResult(status=TestStatus.Broken)
 
         dm = DeviceMapperSetup(client)
         result = dm.create_dm_delay_device()
         if result.returncode:
             logger.error("Error in creating dm-delay device.")
-            return
+            return TestResult(status=TestStatus.Broken)
 
         cfg = FioSuiteConfig(
             suite="dm-delay",
@@ -131,6 +135,8 @@ class FioDisksDMDelay(AbstractRunnableTimeLimitedTest):
         out = FioSuite(client, cfg).run()
         dm.remove_dm_device(device_name="delay1")
         logger.info("FIO dm-delay PASSED: %s", out)
+
+        return TestResult(status=TestStatus.Passed)
 
 
 class FioDisksDMDust(AbstractRunnableTimeLimitedTest):
@@ -146,25 +152,25 @@ class FioDisksDMDust(AbstractRunnableTimeLimitedTest):
         executor: ThreadPoolExecutor,  # noqa: ARG002
         client: SSHClient | None,
         timeout: int,
-    ) -> None:
+    ) -> TestResult:
         os_id = get_os_release(client).id
         if os_id and os_id != Distro.POKY.value:
             self.logger.warning("Skipping test due dm-dust test is only supported on poky.")
-            return
+            return TestResult(status=TestStatus.Skipped)
 
         result = setup_block_device(client=client)
         if result is not None and result.returncode:
             logger.error("Error in block device setup.")
-            return
+            return TestResult(status=TestStatus.Broken)
 
         dm = DeviceMapperSetup(client)
         result = dm.create_dm_dust_device()
         if result.returncode:
             logger.error("Error in creating dm-delay device.")
-            return
+            return TestResult(status=TestStatus.Broken)
         result = dm.add_bad_blocks(device_name="dust1", block_numbers=list(range(50, 100)))
         if result.returncode:
-            return
+            return TestResult(status=TestStatus.Failed)
 
         read_cfg = FioSuiteConfig(
             suite="dm-dust",
@@ -189,3 +195,5 @@ class FioDisksDMDust(AbstractRunnableTimeLimitedTest):
         out = FioSuite(client, write_cfg).run()
         dm.remove_dm_device(device_name="dust1")
         logger.info("FIO dm-dust PASSED: %s", out)
+
+        return TestResult(status=TestStatus.Passed)

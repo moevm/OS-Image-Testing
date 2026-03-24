@@ -12,7 +12,7 @@ import paramiko
 import paramiko.ssh_exception
 
 from imgtests.constant import LIB_NAME
-from imgtests.database.database import ImgtestsDatabase
+from imgtests.database.database import ImgtestsDatabase, TestsCounts
 from imgtests.exec.exec import common_run_command
 from imgtests.exec.observers.journalctl import Journalctl
 from imgtests.exec.observers.systemctl import Systemctl
@@ -35,12 +35,19 @@ class Subsystem(str, Enum):
     SYSTEM = "system"
 
 
+class TestStatus(Enum):
+    Passed = 0
+    Failed = 1
+    Skipped = 2
+    Broken = 3
+
+
 class TestResult(NamedTuple):
-    metrics: Any
+    metrics: Any = None
     command: str = ""
     started_at: datetime = datetime.now(tz=ZoneInfo("UTC"))
     ended_at: datetime = datetime.now(tz=ZoneInfo("UTC"))
-    cmd_status: int = 0
+    status: TestStatus = TestStatus.Skipped
 
 
 class DefaultCleanupMixin:
@@ -184,8 +191,13 @@ class TestsRunner:
             description=self.__test_config.description,
             experiment_type=self.__test_config.experiment_type,
         )
-        total = 0
-        pass_count = 0
+        total_count = 0
+        counts = {
+            TestStatus.Passed: 0,
+            TestStatus.Failed: 0,
+            TestStatus.Skipped: 0,
+            TestStatus.Broken: 0,
+        }
         for test in self.__test_config.tests:
             if self.__client is not None:
                 self.__client.reconnect()
@@ -204,11 +216,15 @@ class TestsRunner:
                         started_at=result.started_at,
                         ended_at=result.ended_at,
                     )
-                    if not result.cmd_status:
-                        pass_count += 1
-                    total += 1
+                    counts[result.status] += 1
             else:
-                list(test(self.__executor, self.__client))
+                for result in list(test(self.__executor, self.__client)):
+                    if result is None:
+                        # test is skipped
+                        counts[TestResult().status] += 1
+                    else:
+                        counts[result.status] += 1
+            total_count += 1
             self._collect_system_errors(
                 experiment_id=experiment.experiment_id,
                 since=test_started_at,
@@ -219,7 +235,16 @@ class TestsRunner:
             is_alive_cycle.join(10)
             test_completed_event.clear()
             self.__database.update_experiment_ended_at(experiment.experiment_id)
-        self.__database.update_experiment_test_count(experiment.experiment_id, pass_count, total)
+        self.__database.update_experiment_tests_count(
+            experiment.experiment_id,
+            TestsCounts(
+                total_count=total_count,
+                broken_count=counts[TestStatus.Broken],
+                passed_count=counts[TestStatus.Passed],
+                failed_count=counts[TestStatus.Failed],
+                skip_count=counts[TestStatus.Skipped],
+            ),
+        )
         self.logger.info("All tests completed successfully.")
         if self.__client is not None:
             self.__client.close()

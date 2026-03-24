@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any
 from zoneinfo import ZoneInfo
 
-from imgtests.runner import AbstractRunnableTimeLimitedTest, TestResult
+from imgtests.runner import AbstractRunnableTimeLimitedTest, TestResult, TestStatus
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -25,13 +25,14 @@ class StressNgTest(AbstractRunnableTimeLimitedTest):
 
         if result.returncode:
             self.logger.error("stress-ng test FAILED")
+            yield TestResult(status=TestStatus.Failed)
 
         if metrics:
             yield TestResult(
                 metrics=metrics,
                 command=" ".join(result.cmd),
                 started_at=started_at,
-                cmd_status=result.returncode,
+                status=TestStatus.Passed,
             )
         if summary:
             self.logger.info(summary)

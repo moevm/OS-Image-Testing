@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING
 
 from imgtests.exec.loaders import Kirk, StressNg
-from imgtests.runner import AbstractRunnableManyTimesTest, Subsystem, TestResult
+from imgtests.runner import AbstractRunnableManyTimesTest, Subsystem, TestResult, TestStatus
 from imgtests.suites.general.stress_ng import StressNgTest
 
 if TYPE_CHECKING:
@@ -20,13 +20,14 @@ class LTPSyscallsTest(AbstractRunnableManyTimesTest):
         executor: ThreadPoolExecutor,  # noqa: ARG002
         client: SSHClient | None,
         iterations: int,  # noqa: ARG002
-    ) -> None:
+    ) -> TestResult:
         kirk = Kirk(client)
         available_suites = kirk.list_suites()
         if "syscalls" not in available_suites:
             self.logger.warning("'syscalls' suite not available for the image with LTP.")
-            return
+            return TestResult(status=TestStatus.Broken)
         kirk.run(["syscalls"])
+        return TestResult(status=TestStatus.Passed)
 
 
 class StressNgEnduranceSyscallsTest(StressNgTest):

@@ -5,7 +5,7 @@ from zoneinfo import ZoneInfo
 
 from imgtests.exec.loaders.perf import Perf
 from imgtests.exec.loaders.pts import PhoronixTestSuite
-from imgtests.runner import AbstractRunnableManyTimesTest, Subsystem, TestResult
+from imgtests.runner import AbstractRunnableManyTimesTest, Subsystem, TestResult, TestStatus
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -112,12 +112,13 @@ class JointBench(AbstractRunnableManyTimesTest):
                         tool_result, metrics = run_method(**test_copy)
                     except Exception:
                         self.logger.exception("Test failed.")
-                        continue
+                        yield TestResult(status=TestStatus.Broken)
                     ended_at = datetime.now(tz=ZoneInfo("UTC"))
+                    status = TestStatus.Passed if not tool_result.returncode else TestStatus.Failed
                     yield TestResult(
                         started_at=started_at,
                         ended_at=ended_at,
                         metrics=tool_instance.metrics_to_json(metrics),
                         command=" ".join(tool_result.cmd),
-                        cmd_status=tool_result.returncode,
+                        status=status,
                     )

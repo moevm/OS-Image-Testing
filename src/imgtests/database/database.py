@@ -1,7 +1,7 @@
 import logging
 import os
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Literal, get_args
+from typing import TYPE_CHECKING, Any, Literal, NamedTuple, get_args
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import create_engine
@@ -19,6 +19,14 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 Table = Literal["configurations", "experiments", "loaders", "observers"]
 ExperimentType = Literal["performance", "endurance", "all"]
+
+
+class TestsCounts(NamedTuple):
+    total_count: int = 0
+    broken_count: int = 0
+    passed_count: int = 0
+    failed_count: int = 0
+    skip_count: int = 0
 
 
 class ImgtestsDatabase:
@@ -176,12 +184,15 @@ class ImgtestsDatabase:
             experiment.ended_at = datetime.now(tz=ZoneInfo("UTC"))
             session.commit()
 
-    def update_experiment_test_count(self, experiment_id: int, passed: int, total: int) -> None:
+    def update_experiment_tests_count(self, experiment_id: int, counts: TestsCounts) -> None:
         self._check_session()
         with self.session() as session:
             experiment = session.query(ExperimentBase).filter_by(experiment_id=experiment_id).one()
-            experiment.tests_passed = passed
-            experiment.tests_total = total
+            experiment.tests_total = counts.total_count
+            experiment.tests_passed = counts.passed_count
+            experiment.tests_failed = counts.failed_count
+            experiment.tests_broken = counts.broken_count
+            experiment.tests_skiped = counts.skip_count
             session.commit()
 
     def return_table(self, table_name: Table) -> list[Any]:
