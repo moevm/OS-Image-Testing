@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any
 from zoneinfo import ZoneInfo
 
-from imgtests.exec.exec import ExecResult, pipeline
+from imgtests.exec.exec import common_run_command
 from imgtests.exec.loaders import StressNg
 from imgtests.exec.observers import Sar
 from imgtests.runner import AbstractRunnableTimeLimitedTest, Subsystem, TestResult
@@ -18,27 +18,26 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-HUGE_PAGE_SIZE = 2048  # kB
+HUGE_PAGE_SIZE = 2048  # Kb
+STRESSORS_LIMIT = 1024
+RAM_LOAD = 0.7
 
 tests: list[dict[str, Any]] = [
+    # 50% and 70% RAM load tests
     {"vm": 4, "vm_bytes": "25%", "mmap": 4, "mmap_bytes": "25%"},
     {"vm": 4, "vm_bytes": "35%", "mmap": 4, "mmap_bytes": "35%"},
-    {"vm": 1024, "vm_bytes": "4M"},
-    {"vm": 1024, "vm_bytes": "1G"},
+    # Fixed allocation size per instance tests
+    {"vm": 1024, "vm_bytes": "4M"},  # 4Kb each, equal to page size
+    {"vm": 1024, "vm_bytes": "1G"},  # 1Mb each, between page and huge page size
 ]
 
 
-def get_ram_size(client: SSHClient | None = None) -> ExecResult:
-    commands = [
-        ["grep", "MemTotal", "/proc/meminfo"],
-        ["awk", "'{print $2}'"],
-    ]
-    for result in pipeline(cmds=commands, ssh_client=client, pass_output=True):
-        last_result = result
-        if result.returncode:
-            logger.error("Find RAM size failed: '%s'", result.stderr)
-            return result
-    return last_result
+def get_ram_size(client: SSHClient | None = None) -> int | None:
+    result = common_run_command(["grep", "MemTotal", "/proc/meminfo"], ssh_client=client)
+    if result.returncode:
+        logger.error("Finding RAM size failed: '%s'", result.stderr)
+        return None
+    return int(result.stdout.split()[1])
 
 
 class StressNgPerformanceMemoryTest(StressNgTest):
@@ -50,22 +49,27 @@ class StressNgPerformanceMemoryTest(StressNgTest):
     def _run(
         self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int
     ) -> Iterable[TestResult]:
-        result = get_ram_size(client=client)
-        if result.returncode:
+        ram_size = get_ram_size(client=client)
+        if ram_size is None:
             return
-        ram_size = int(result.stdout)
 
         stress_ng = StressNg(client)
-        extended_tests = tests.copy()
 
-        workers = 512 if ram_size < (1024 * HUGE_PAGE_SIZE) else 1024
-        instances = int((ram_size * 0.7) / (HUGE_PAGE_SIZE * random.uniform(1, 2)))  # noqa: S311
-        instances = min(instances, 1024)
+        workers = (
+            STRESSORS_LIMIT // 2
+            if ram_size < (STRESSORS_LIMIT * HUGE_PAGE_SIZE)
+            else STRESSORS_LIMIT
+        )
+        instances = int((ram_size * RAM_LOAD) / (HUGE_PAGE_SIZE * random.uniform(1, 2)))  # noqa: S311
+        instances = min(instances, STRESSORS_LIMIT)
 
-        extended_tests.append({"mmaphuge": workers})
-        extended_tests.append({"vm": instances, "vm_bytes": "70%"})
+        # Test with huge pages
+        tests.append({"mmaphuge": workers})
 
-        for params in extended_tests:
+        # Randomized test with allocation per instance above huge page size
+        tests.append({"vm": instances, "vm_bytes": "70%"})
+
+        for params in tests:
             yield from self.run_test(
                 stress_ng=stress_ng, executor=executor, timeout=timeout, **params
             )
