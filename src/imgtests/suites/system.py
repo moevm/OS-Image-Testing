@@ -58,7 +58,11 @@ class SystemSlowServicesTest(AbstractRunnableManyTimesTest):
     ) -> Iterable[TestResult]:
         systemd_analyze = SystemdAnalyze(client)
         result = SystemdAnalyze.metrics_to_json(systemd_analyze.slow_load_services())
-        yield TestResult(command=f"{systemd_analyze.name} critical-chain", metrics=result, status=TestStatus.Passed)
+        yield TestResult(
+            command=f"{systemd_analyze.name} critical-chain",
+            metrics=result,
+            status=TestStatus.Passed,
+        )
 
     def cleanup(self, client: SSHClient | None, logger: logging.Logger) -> None:  # noqa: ARG002
         logger.debug("Noting to cleanup for system slow services test.")

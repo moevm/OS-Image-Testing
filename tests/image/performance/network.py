@@ -44,5 +44,5 @@ class Iperf3LocalTest(AbstractRunnableTimeLimitedTest):
                     "server": iperf3.metrics_to_json(server_result.stdout.strip()),
                 },
                 started_at=started_at,
-                status=TestStatus.Passed
+                status=TestStatus.Passed,
             )
