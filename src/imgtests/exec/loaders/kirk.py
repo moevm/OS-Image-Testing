@@ -1,3 +1,4 @@
+import json
 import logging
 import shlex
 from pathlib import Path
@@ -228,3 +229,7 @@ class Kirk(GenericUtil):
             result[test_name] = bmf_data
 
         return result
+
+    @staticmethod
+    def metrics_to_json(metrics: Path) -> Any:
+        return json.loads(metrics.read_text())
