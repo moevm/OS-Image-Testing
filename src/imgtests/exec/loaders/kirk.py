@@ -5,9 +5,10 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from imgtests.exec.base_util import GenericUtil
-from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
+from imgtests.exec.exec import ExecResult, SSHClient, common_run_command, pipeline
 from imgtests.exec.osinfo import get_os_release
 from imgtests.exec.pkgmgrs.zypper import Zypper
+from imgtests.exec.utils import create_opt
 from imgtests.types import Distro
 
 if TYPE_CHECKING:
@@ -87,16 +88,69 @@ class Kirk(GenericUtil):
     def _ensure_debugfs(self) -> ExecResult:
         debugfs_path = str(DEBUGFS_MOUNTPOINT)
         mount_pattern = f"[[:space:]]{debugfs_path}[[:space:]]debugfs[[:space:]]"
-        script = (
-            "set -eu; "
-            f'mkdir -p "{debugfs_path}"; '
-            f'if ! grep -qs "{mount_pattern}" /proc/mounts; then '
-            f'mount -t debugfs debugfs "{debugfs_path}"; '
-            "fi"
+        mkdir_cmd = ("sudo", "mkdir", "-p", debugfs_path)
+        check_mount_cmd = ("sudo", "grep", "-qs", mount_pattern, "/proc/mounts")
+        mount_cmd = ("sudo", "mount", "-t", "debugfs", "debugfs", debugfs_path)
+        commands = (
+            mkdir_cmd,
+            check_mount_cmd,
+            mount_cmd,
         )
-        return common_run_command(("sudo", "bash", "-lc", f"'{script}'"), self.ssh_client)
+        step_names = ("mkdir", "check_mount", "mount")
+        last_result = ExecResult(cmd=mkdir_cmd)
 
-    def run(  # noqa: C901, PLR0911, PLR0912
+        for step_name, result in zip(
+            step_names,
+            pipeline(cmds=commands, ssh_client=self.ssh_client),
+            strict=True,
+        ):
+            last_result = result
+
+            if step_name == "check_mount":
+                if result.returncode == 0:
+                    return result
+
+                if result.returncode == 1:
+                    continue
+                return result
+
+            if result.returncode:
+                if step_name == "mount":
+                    rollback_check_res = common_run_command(check_mount_cmd, self.ssh_client)
+                    if rollback_check_res.returncode > 1:
+                        check_stderr = "\n".join(
+                            part
+                            for part in (
+                                result.stderr,
+                                "Failed to verify debugfs mount state after mount failure:",
+                                rollback_check_res.stderr,
+                            )
+                            if part
+                        )
+                        return rollback_check_res._replace(stderr=check_stderr)
+
+                    if rollback_check_res.returncode == 0:
+                        rollback_res = common_run_command(
+                            ("sudo", "umount", debugfs_path),
+                            self.ssh_client,
+                        )
+                        if rollback_res.returncode:
+                            rollback_stderr = "\n".join(
+                                part
+                                for part in (
+                                    result.stderr,
+                                    "Rollback failed:",
+                                    rollback_res.stderr,
+                                )
+                                if part
+                            )
+                            return rollback_res._replace(stderr=rollback_stderr)
+
+                return result
+
+        return last_result
+
+    def run(  # noqa: PLR0911
         self,
         scenarios: Iterable[str],
         results_dir: str | Path = DEFAULT_LTP_RESULTS_DIR,
@@ -159,9 +213,13 @@ class Kirk(GenericUtil):
 
         remote_json_path = remote_results_dir / report_name
 
-        cmd = ["--run-suite", *scenarios_list, "--json-report", str(remote_json_path)]
-        if fault_injection is not None:
-            cmd = ["--fault-injection", str(fault_injection), *cmd]
+        cmd = [
+            *create_opt("fault-injection", fault_injection),
+            "--run-suite",
+            *scenarios_list,
+            "--json-report",
+            str(remote_json_path),
+        ]
 
         res = self(cmd)
         if res.returncode:
