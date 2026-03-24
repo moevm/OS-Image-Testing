@@ -4,11 +4,7 @@ from typing import TYPE_CHECKING
 
 from imgtests.exec.loaders.dmsetup import DeviceMapperSetup, setup_block_device
 from imgtests.exec.osinfo import get_os_release
-<<<<<<< HEAD
 from imgtests.runner import AbstractRunnableTimeLimitedTest, Subsystem, TestResult, TestStatus
-=======
-from imgtests.runner import AbstractRunnableTimeLimitedTest, Subsystem, TestResult
->>>>>>> main
 from imgtests.suites.drive.fio import FioSuite, FioSuiteConfig, FioWorkload
 from imgtests.types import Distro
 
