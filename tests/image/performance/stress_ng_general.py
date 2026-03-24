@@ -35,6 +35,32 @@ def combine_params(test_combination: list[dict[str, Any]]) -> dict[str, Any]:
     return test_params
 
 
+def tests_config(client: SSHClient | None):
+    nproc_result = common_run_command(["nproc"], client)
+    nproc = int(nproc_result.stdout)
+    net_param = int(nproc / 2) if nproc > 1 else 1
+    net = {
+        "sock": net_param,
+        "netdev": net_param,
+        "udp_flood": net_param,
+    }
+    if net not in tests:
+        tests.append(net)
+    ipc_param = int(nproc * 3 / 4) if nproc > 1 else 1
+    ipc = {
+        "mq": ipc_param,
+        "pipe": ipc_param,
+        "sem": ipc_param,
+        "shm": ipc_param,
+    }
+    syscall_param = int(nproc / 2) if nproc > 1 else 1
+    syscall = {"syscall": syscall_param}
+    if syscall not in tests:
+        tests.append(syscall)
+    if ipc not in tests:
+        tests.append(ipc)
+
+
 class StressNgConsecutiveLoadTest(StressNgTest):
     def __init__(self, timeout: int) -> None:
         super().__init__(
@@ -57,29 +83,7 @@ class StressNgConsecutiveLoadTest(StressNgTest):
     ) -> Iterable[TestResult]:
         stress_ng = StressNg(client)
 
-        nproc_result = common_run_command(["nproc"], client)
-        nproc = int(nproc_result.stdout)
-        net_param = int(nproc / 2) if nproc > 1 else 1
-        net = {
-            "sock": net_param,
-            "netdev": net_param,
-            "udp_flood": net_param,
-        }
-        if net not in tests:
-            tests.append(net)
-        ipc_param = int(nproc * 3 / 4) if nproc > 1 else 1
-        ipc = {
-            "mq": ipc_param,
-            "pipe": ipc_param,
-            "sem": ipc_param,
-            "shm": ipc_param,
-        }
-        syscall_param = int(nproc / 2) if nproc > 1 else 1
-        syscall = {"syscall": syscall_param}
-        if syscall not in tests:
-            tests.append(syscall)
-        if ipc not in tests:
-            tests.append(ipc)
+        tests_config(client)
 
         for params in tests:
             yield from self.run_test(
@@ -109,29 +113,7 @@ class StressNgCombineLoadTest(StressNgTest):
     ) -> Iterable[TestResult]:
         stress_ng = StressNg(client)
 
-        nproc_result = common_run_command(["nproc"], client)
-        nproc = int(nproc_result.stdout)
-        net_param = int(nproc / 2) if nproc > 1 else 1
-        net = {
-            "sock": net_param,
-            "netdev": net_param,
-            "udp_flood": net_param,
-        }
-        if net not in tests:
-            tests.append(net)
-        ipc_param = int(nproc * 3 / 4) if nproc > 1 else 1
-        ipc = {
-            "mq": ipc_param,
-            "pipe": ipc_param,
-            "sem": ipc_param,
-            "shm": ipc_param,
-        }
-        syscall_param = int(nproc / 2) if nproc > 1 else 1
-        syscall = {"syscall": syscall_param}
-        if syscall not in tests:
-            tests.append(syscall)
-        if ipc not in tests:
-            tests.append(ipc)
+        tests_config(client)
 
         for r in range(2, len(tests)):
             for test_combination in combinations(tests, r):
@@ -163,29 +145,7 @@ class StressNgParallelLoadTest(StressNgTest):
     ) -> Iterable[TestResult]:
         stress_ng = StressNg(client)
 
-        nproc_result = common_run_command(["nproc"], client)
-        nproc = int(nproc_result.stdout)
-        net_param = int(nproc / 2) if nproc > 1 else 1
-        net = {
-            "sock": net_param,
-            "netdev": net_param,
-            "udp_flood": net_param,
-        }
-        if net not in tests:
-            tests.append(net)
-        ipc_param = int(nproc * 3 / 4) if nproc > 1 else 1
-        ipc = {
-            "mq": ipc_param,
-            "pipe": ipc_param,
-            "sem": ipc_param,
-            "shm": ipc_param,
-        }
-        syscall_param = int(nproc / 2) if nproc > 1 else 1
-        syscall = {"syscall": syscall_param}
-        if syscall not in tests:
-            tests.append(syscall)
-        if ipc not in tests:
-            tests.append(ipc)
+        tests_config(client)
 
         test_params = combine_params(tests)
         yield from self.run_test(
