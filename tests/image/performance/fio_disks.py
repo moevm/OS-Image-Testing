@@ -4,11 +4,16 @@ from typing import TYPE_CHECKING
 
 from imgtests.exec.loaders.dmsetup import DeviceMapperSetup, setup_block_device
 from imgtests.exec.osinfo import get_os_release
+<<<<<<< HEAD
 from imgtests.runner import AbstractRunnableTimeLimitedTest, Subsystem, TestResult, TestStatus
+=======
+from imgtests.runner import AbstractRunnableTimeLimitedTest, Subsystem, TestResult
+>>>>>>> main
 from imgtests.suites.drive.fio import FioSuite, FioSuiteConfig, FioWorkload
 from imgtests.types import Distro
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
     from concurrent.futures import ThreadPoolExecutor
 
     from imgtests.exec.exec import SSHClient
@@ -59,17 +64,14 @@ class FioDisksScalingTest(AbstractRunnableTimeLimitedTest):
         executor: ThreadPoolExecutor,  # noqa: ARG002
         client: SSHClient | None,
         timeout: int,
-    ) -> TestResult:
+    ) -> Iterable[TestResult]:
         cfg = FioSuiteConfig(
             suite="scaling",
             duration_sec=timeout,
             results_dir=Path().home() / "fio",
             workloads=SCALING_WORKLOADS,
         )
-        out = FioSuite(client, cfg).run()
-        self.logger.info("FIO scaling PASSED: %s", out)
-
-        return TestResult(status=TestStatus.Passed)
+        yield from _handle_fio_suite(client, cfg, "FIO scaling PASSED.")
 
 
 class FioDisksNightly(AbstractRunnableTimeLimitedTest):
@@ -83,17 +85,14 @@ class FioDisksNightly(AbstractRunnableTimeLimitedTest):
         executor: ThreadPoolExecutor,  # noqa: ARG002
         client: SSHClient | None,
         timeout: int,
-    ) -> TestResult:
+    ) -> Iterable[TestResult]:
         cfg = FioSuiteConfig(
             suite="nightly",
             duration_sec=timeout,
             results_dir=Path().home() / "fio",
             workloads=NIGHTLY_WORKLOADS,
         )
-        out = FioSuite(client, cfg).run()
-        logger.info("FIO nightly PASSED: %s", out)
-
-        return TestResult(status=TestStatus.Passed)
+        yield from _handle_fio_suite(client, cfg, "FIO nightly PASSED.")
 
 
 class FioDisksDMDelay(AbstractRunnableTimeLimitedTest):
@@ -107,22 +106,22 @@ class FioDisksDMDelay(AbstractRunnableTimeLimitedTest):
         executor: ThreadPoolExecutor,  # noqa: ARG002
         client: SSHClient | None,
         timeout: int,
-    ) -> TestResult:
+    ) -> Iterable[TestResult]:
         os_id = get_os_release(client).id
         if os_id and os_id != Distro.POKY.value:
             self.logger.warning("Skipping test due dm-delay test is only supported on poky.")
-            return TestResult(status=TestStatus.Skipped)
+            yield TestResult(status=TestStatus.Skipped)
 
         result = setup_block_device(client=client)
         if result is not None and result.returncode:
             logger.error("Error in block device setup.")
-            return TestResult(status=TestStatus.Broken)
+            yield TestResult(status=TestStatus.Broken)
 
         dm = DeviceMapperSetup(client)
         result = dm.create_dm_delay_device()
         if result.returncode:
             logger.error("Error in creating dm-delay device.")
-            return TestResult(status=TestStatus.Broken)
+            yield TestResult(status=TestStatus.Broken)
 
         cfg = FioSuiteConfig(
             suite="dm-delay",
@@ -132,11 +131,8 @@ class FioDisksDMDelay(AbstractRunnableTimeLimitedTest):
             filename=Path("/dev/mapper/delay1"),
         )
 
-        out = FioSuite(client, cfg).run()
+        yield from _handle_fio_suite(client, cfg, "FIO dm-delay PASSED.")
         dm.remove_dm_device(device_name="delay1")
-        logger.info("FIO dm-delay PASSED: %s", out)
-
-        return TestResult(status=TestStatus.Passed)
 
 
 class FioDisksDMDust(AbstractRunnableTimeLimitedTest):
@@ -152,25 +148,25 @@ class FioDisksDMDust(AbstractRunnableTimeLimitedTest):
         executor: ThreadPoolExecutor,  # noqa: ARG002
         client: SSHClient | None,
         timeout: int,
-    ) -> TestResult:
+    ) -> Iterable[TestResult]:
         os_id = get_os_release(client).id
         if os_id and os_id != Distro.POKY.value:
             self.logger.warning("Skipping test due dm-dust test is only supported on poky.")
-            return TestResult(status=TestStatus.Skipped)
+            yield TestResult(status=TestStatus.Skipped)
 
         result = setup_block_device(client=client)
         if result is not None and result.returncode:
             logger.error("Error in block device setup.")
-            return TestResult(status=TestStatus.Broken)
+            yield TestResult(status=TestStatus.Broken)
 
         dm = DeviceMapperSetup(client)
         result = dm.create_dm_dust_device()
         if result.returncode:
             logger.error("Error in creating dm-delay device.")
-            return TestResult(status=TestStatus.Broken)
+            yield TestResult(status=TestStatus.Broken)
         result = dm.add_bad_blocks(device_name="dust1", block_numbers=list(range(50, 100)))
         if result.returncode:
-            return TestResult(status=TestStatus.Failed)
+            yield TestResult(status=TestStatus.Failed)
 
         read_cfg = FioSuiteConfig(
             suite="dm-dust",
@@ -192,8 +188,16 @@ class FioDisksDMDust(AbstractRunnableTimeLimitedTest):
         except RuntimeError:
             logger.info("Error above is intended, dm-dust works.")
 
-        out = FioSuite(client, write_cfg).run()
+        yield from _handle_fio_suite(client, write_cfg, "FIO dm-dust PASSED.")
         dm.remove_dm_device(device_name="dust1")
-        logger.info("FIO dm-dust PASSED: %s", out)
 
-        return TestResult(status=TestStatus.Passed)
+
+def _handle_fio_suite(
+    client: SSHClient | None, cfg: FioSuiteConfig, msg: str
+) -> Iterable[TestResult]:
+    fio_gen = FioSuite(client, cfg).run()
+    yield from fio_gen
+    try:
+        next(fio_gen)
+    except StopIteration:
+        logger.info(msg)

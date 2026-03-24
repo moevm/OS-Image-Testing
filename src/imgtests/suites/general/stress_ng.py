@@ -21,7 +21,7 @@ class StressNgTest(AbstractRunnableTimeLimitedTest):
     ) -> Iterable[TestResult]:
         started_at = datetime.now(tz=ZoneInfo("UTC"))
         future = executor.submit(stress_ng.run, timeout_sec=timeout, **kwargs)
-        result, (metrics, summary) = future.result()
+        result, metrics = future.result()
 
         if result.returncode:
             self.logger.error("stress-ng test FAILED")
@@ -34,5 +34,3 @@ class StressNgTest(AbstractRunnableTimeLimitedTest):
                 started_at=started_at,
                 status=TestStatus.Passed,
             )
-        if summary:
-            self.logger.info(summary)

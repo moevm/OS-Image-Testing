@@ -1,4 +1,6 @@
+from datetime import datetime
 from typing import TYPE_CHECKING
+from zoneinfo import ZoneInfo
 
 from imgtests.exec.loaders import Kirk, StressNg
 from imgtests.runner import AbstractRunnableManyTimesTest, Subsystem, TestResult, TestStatus
@@ -20,14 +22,27 @@ class LTPSyscallsTest(AbstractRunnableManyTimesTest):
         executor: ThreadPoolExecutor,  # noqa: ARG002
         client: SSHClient | None,
         iterations: int,  # noqa: ARG002
-    ) -> TestResult:
+    ) -> Iterable[TestResult]:
         kirk = Kirk(client)
         available_suites = kirk.list_suites()
         if "syscalls" not in available_suites:
             self.logger.warning("'syscalls' suite not available for the image with LTP.")
             return TestResult(status=TestStatus.Broken)
-        kirk.run(["syscalls"])
-        return TestResult(status=TestStatus.Passed)
+        started_at = datetime.now(tz=ZoneInfo("UTC"))
+        res, metrics_path = kirk.run(["syscalls"])
+        if metrics_path:
+            yield TestResult(
+                command=" ".join(res.cmd),
+                metrics=kirk.metrics_to_json(metrics_path),
+                started_at=started_at,
+                status=TestStatus.Passed,
+            )
+        else:
+            yield TestResult(
+                command=" ".join(res.cmd),
+                started_at=started_at,
+                status=TestStatus.Failed,
+            )
 
 
 class StressNgEnduranceSyscallsTest(StressNgTest):

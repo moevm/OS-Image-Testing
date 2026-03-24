@@ -15,6 +15,7 @@ from image.performance.fio_disks import (
     FioDisksScalingTest,
 )
 from image.performance.ipc import SchedPerformanceTest
+from image.performance.memory import SarWithStressNGTest
 from image.performance.network import Iperf3LocalTest
 from image.performance.std_utils import POSIXUtilsTest
 from image.performance.stress_ng_general import (
@@ -68,6 +69,7 @@ def main() -> None:
             StressNgConsecutiveLoadTest(30),
             StressNgCombineLoadTest(10),
             StressNgParallelLoadTest(30),
+            SarWithStressNGTest(60),
         ),
         experiment_type="all",
         install_dependencies=True,
