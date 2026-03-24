@@ -11,8 +11,11 @@ if TYPE_CHECKING:
     from imgtests.exec.exec import SSHClient
 
 tests: list[dict[str, Any]] = [
+    # General memory stress test with mmap() callings
     {"vm": 4, "vm_bytes": "35%", "vm_populate": True, "mmap": 4, "mmap_bytes": "35%"},
+    # Memory bandwidth test
     {"memrate": 0, "memrate_rd_mbs": 500, "memrate_wr_mbs": 1000},
+    # Memory mappings of various sizes and calls test
     {"mmaptorture": 0, "mmaptorture_bytes": "70%"},
 ]
 
