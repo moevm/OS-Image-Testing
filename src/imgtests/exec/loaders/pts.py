@@ -23,7 +23,15 @@ class PhoronixTestSuite(PkgMgrMixin, GenericUtil):
             return ExecResult(
                 cmd=(), stderr=f"{self.name} already has been installed.", returncode=0
             )
-        return self._install_packages(["phoronix-test-suite"])
+        packages = [
+            "phoronix-test-suite",
+            "gcc",
+            "gcc-c++",
+            "make",
+            "autoconf",
+            "Mesa-demo-x",
+        ]
+        return self._install_packages(packages)
 
     def version(self) -> Version | None:
         result = self(["version"])
@@ -58,6 +66,9 @@ class PhoronixTestSuite(PkgMgrMixin, GenericUtil):
 
     def run_test(self, test_name: str, run_count: int) -> ExecResult:
         """Runs a given test with set amount of iterations."""
+        ret = self.install_test(test_name)
+        if not ret:
+            logger.error("Error installing PTS test: %s", test_name)
         logger.info("PTS test '%s' started", test_name)
         result = common_run_command(
             [f"FORCE_TIMES_TO_RUN={run_count}", self.name, "batch-run", test_name],
