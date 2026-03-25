@@ -29,7 +29,7 @@ class StressNgTest(AbstractRunnableTimeLimitedTest):
             return
 
         yield TestResult(
-            metrics=metrics,
+            metrics=stress_ng.metrics_to_json(metrics),
             command=" ".join(result.cmd),
             started_at=started_at,
             status=TestStatus.PASSED,
