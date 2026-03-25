@@ -47,28 +47,28 @@ class WgetEnduranceNetworkTest(AbstractRunnableTimeLimitedTest):
     def _run(
         self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int
     ) -> Iterable[TestResult]:
-        def run_test() -> int | None:
+        def run_test() -> int:
             if common_run_command(
                 ["sudo", "echo", "nameserver", _DNS_SERVER, ">>", "/etc/resolv.conf"], client
             ).returncode:
                 self.logger.error("NETWORK endurance test FAILED")
-                return -1
+                return 1
             result = common_run_command(
                 ["wget", f"--timeout={timeout}", "--tries=1", _GOOGLE_URL],
                 client,
             )
             if result.returncode:
                 self.logger.error("NETWORK endurance test FAILED")
-                return -1
+                return 1
             self.logger.info("NETWORK endurance test PASSED")
-            return None
+            return 0
 
         started_at = datetime.now(tz=ZoneInfo("UTC"))
         future = executor.submit(run_test)
         result = future.result()
-        status = TestStatus.FAILED
-        if result is None:
-            status = TestStatus.PASSED
+        status = TestStatus.PASSED
+        if result:
+            status = TestStatus.FAILED
         yield TestResult(
             metrics=result,
             command=f"wget --timeout={timeout} --tries=1 {_GOOGLE_URL}",
