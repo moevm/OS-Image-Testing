@@ -39,7 +39,7 @@ class SystemLoadTimeTest(AbstractRunnableManyTimesTest):
         yield TestResult(
             command=f"{systemd_analyze.name} time",
             metrics=result._asdict(),
-            status=TestStatus.Passed,
+            status=TestStatus.PASSED,
         )
 
     def cleanup(self, client: SSHClient | None, logger: logging.Logger) -> None:  # noqa: ARG002
@@ -61,7 +61,7 @@ class SystemSlowServicesTest(AbstractRunnableManyTimesTest):
         yield TestResult(
             command=f"{systemd_analyze.name} critical-chain",
             metrics=result,
-            status=TestStatus.Passed,
+            status=TestStatus.PASSED,
         )
 
     def cleanup(self, client: SSHClient | None, logger: logging.Logger) -> None:  # noqa: ARG002

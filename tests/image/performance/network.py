@@ -35,7 +35,7 @@ class Iperf3LocalTest(AbstractRunnableTimeLimitedTest):
             if ret.returncode:
                 self.logger.error("Error occurred while launching iperf3 client.")
                 server_future.result(timeout=5)
-                return TestResult(status=TestStatus.Failed)
+                return TestResult(status=TestStatus.FAILED)
             server_result = server_future.result(timeout=5)
             yield TestResult(
                 command=" ".join(ret.cmd),
@@ -44,5 +44,5 @@ class Iperf3LocalTest(AbstractRunnableTimeLimitedTest):
                     "server": iperf3.metrics_to_json(server_result.stdout.strip()),
                 },
                 started_at=started_at,
-                status=TestStatus.Passed,
+                status=TestStatus.PASSED,
             )

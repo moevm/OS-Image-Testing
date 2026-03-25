@@ -39,7 +39,7 @@ class ChaosbladeCPUTest(AbstractRunnableTimeLimitedTest):
         started_at = datetime.now(tz=ZoneInfo("UTC"))
         future = executor.submit(chaos.create_cpu_exp, cpu_percent=70, timeout_sec=timeout)
         result, chaos_result = future.result()
-        status = TestStatus.Passed if not result.returncode else TestStatus.Failed
+        status = TestStatus.PASSED if not result.returncode else TestStatus.FAILED
         yield TestResult(
             metrics=chaos_result,
             command=" ".join(result.cmd),

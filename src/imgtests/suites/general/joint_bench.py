@@ -8,11 +8,11 @@ from imgtests.exec.loaders.pts import PhoronixTestSuite
 from imgtests.runner import AbstractRunnableManyTimesTest, Subsystem, TestResult, TestStatus
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Callable, Iterable
     from concurrent.futures import ThreadPoolExecutor
 
     from imgtests.exec.base_util import BaseTestUtil
-    from imgtests.exec.exec import SSHClient
+    from imgtests.exec.exec import ExecResult, SSHClient
 
 
 class ToolConfig(NamedTuple):
@@ -104,7 +104,9 @@ class JointBench(AbstractRunnableManyTimesTest):
                             test_copy["run_count"] = iterations
                         case _:
                             pass
-                    run_method = getattr(tool_instance, TOOLS_CONFIG[tool_name].run)
+                    run_method: Callable[..., tuple[ExecResult, Any]] = getattr(
+                        tool_instance, TOOLS_CONFIG[tool_name].run
+                    )
                     self.logger.info("Run '%s' test '%s'", tool_name, test_copy)
                     started_at = datetime.now(tz=ZoneInfo("UTC"))
                     # TODO: handle only specific exceptions
@@ -112,9 +114,10 @@ class JointBench(AbstractRunnableManyTimesTest):
                         tool_result, metrics = run_method(**test_copy)
                     except Exception:
                         self.logger.exception("Test failed.")
-                        yield TestResult(status=TestStatus.Broken)
+                        yield TestResult(status=TestStatus.BROKEN)
+                        return
                     ended_at = datetime.now(tz=ZoneInfo("UTC"))
-                    status = TestStatus.Passed if not tool_result.returncode else TestStatus.Failed
+                    status = TestStatus.PASSED if not tool_result.returncode else TestStatus.FAILED
                     yield TestResult(
                         started_at=started_at,
                         ended_at=ended_at,

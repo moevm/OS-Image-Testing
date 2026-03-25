@@ -36,10 +36,10 @@ class Subsystem(str, Enum):
 
 
 class TestStatus(Enum):
-    Passed = auto()
-    Failed = auto()
-    Skipped = auto()
-    Broken = auto()
+    PASSED = auto()
+    FAILED = auto()
+    SKIPPED = auto()
+    BROKEN = auto()
 
 
 class TestResult(NamedTuple):
@@ -47,7 +47,7 @@ class TestResult(NamedTuple):
     command: str = ""
     started_at: datetime = datetime.now(tz=ZoneInfo("UTC"))
     ended_at: datetime = datetime.now(tz=ZoneInfo("UTC"))
-    status: TestStatus = TestStatus.Skipped
+    status: TestStatus = TestStatus.SKIPPED
 
 
 class DefaultCleanupMixin:
@@ -185,10 +185,10 @@ class TestsRunner:
         )
         total_count = 0
         counts = {
-            TestStatus.Passed: 0,
-            TestStatus.Failed: 0,
-            TestStatus.Skipped: 0,
-            TestStatus.Broken: 0,
+            TestStatus.PASSED: 0,
+            TestStatus.FAILED: 0,
+            TestStatus.SKIPPED: 0,
+            TestStatus.BROKEN: 0,
         }
         for test in self.__test_config.tests:
             if self.__client is not None:
@@ -222,10 +222,10 @@ class TestsRunner:
             experiment.experiment_id,
             TestsCounts(
                 total_count=total_count,
-                broken_count=counts[TestStatus.Broken],
-                passed_count=counts[TestStatus.Passed],
-                failed_count=counts[TestStatus.Failed],
-                skip_count=counts[TestStatus.Skipped],
+                broken_count=counts[TestStatus.BROKEN],
+                passed_count=counts[TestStatus.PASSED],
+                failed_count=counts[TestStatus.FAILED],
+                skip_count=counts[TestStatus.SKIPPED],
             ),
         )
         self.logger.info("All tests completed successfully.")

@@ -33,9 +33,9 @@ class SchedPerformanceTest(AbstractRunnableManyTimesTest):
             metrics_json = {}
             if result.returncode:
                 self.logger.error("Failed to run benchmark '%s' with args '%s'.", benchmark, args)
-                status = TestStatus.Failed
+                status = TestStatus.FAILED
             else:
-                status = TestStatus.Passed
+                status = TestStatus.PASSED
                 metrics_json = perf.metrics_to_json(metrics)
             yield TestResult(
                 started_at=started_at,

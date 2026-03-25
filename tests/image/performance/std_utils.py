@@ -71,7 +71,7 @@ class POSIXUtilsTest(AbstractRunnableManyTimesTest):
                 else:
                     final_results[tool] = {}
 
-        yield TestResult(started_at=started_at, metrics=final_results, status=TestStatus.Passed)
+        yield TestResult(started_at=started_at, metrics=final_results, status=TestStatus.PASSED)
 
     def test_utils_for_files(  # noqa: PLR0912, C901
         self, client: SSHClient | None, iterations: int

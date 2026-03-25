@@ -156,7 +156,7 @@ class FioSuite:
                 metrics=common_run_command(["cat", str(extra["output"])], self.client).stdout,
                 command=" ".join(res.cmd),
                 started_at=started_at,
-                status=TestStatus.Passed,
+                status=TestStatus.PASSED,
             )
 
         if self.client:

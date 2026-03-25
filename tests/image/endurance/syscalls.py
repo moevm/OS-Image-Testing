@@ -27,7 +27,7 @@ class LTPSyscallsTest(AbstractRunnableManyTimesTest):
         available_suites = kirk.list_suites()
         if "syscalls" not in available_suites:
             self.logger.warning("'syscalls' suite not available for the image with LTP.")
-            return TestResult(status=TestStatus.Broken)
+            return TestResult(status=TestStatus.SKIPPED)
         started_at = datetime.now(tz=ZoneInfo("UTC"))
         res, metrics_path = kirk.run(["syscalls"])
         if metrics_path:
@@ -35,13 +35,13 @@ class LTPSyscallsTest(AbstractRunnableManyTimesTest):
                 command=" ".join(res.cmd),
                 metrics=kirk.metrics_to_json(metrics_path),
                 started_at=started_at,
-                status=TestStatus.Passed,
+                status=TestStatus.PASSED,
             )
         else:
             yield TestResult(
                 command=" ".join(res.cmd),
                 started_at=started_at,
-                status=TestStatus.Failed,
+                status=TestStatus.FAILED,
             )
 
 

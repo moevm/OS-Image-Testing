@@ -106,18 +106,18 @@ class FioDisksDMDelay(AbstractRunnableTimeLimitedTest):
         os_id = get_os_release(client).id
         if os_id and os_id != Distro.POKY.value:
             self.logger.warning("Skipping test due dm-delay test is only supported on poky.")
-            return TestResult(status=TestStatus.Skipped)
+            return TestResult(status=TestStatus.SKIPPED)
 
         result = setup_block_device(client=client)
         if result is not None and result.returncode:
             logger.error("Error in block device setup.")
-            return TestResult(status=TestStatus.Broken)
+            return TestResult(status=TestStatus.BROKEN)
 
         dm = DeviceMapperSetup(client)
         result = dm.create_dm_delay_device()
         if result.returncode:
             logger.error("Error in creating dm-delay device.")
-            return TestResult(status=TestStatus.Broken)
+            return TestResult(status=TestStatus.BROKEN)
 
         cfg = FioSuiteConfig(
             suite="dm-delay",
@@ -148,21 +148,21 @@ class FioDisksDMDust(AbstractRunnableTimeLimitedTest):
         os_id = get_os_release(client).id
         if os_id and os_id != Distro.POKY.value:
             self.logger.warning("Skipping test due dm-dust test is only supported on poky.")
-            return TestResult(status=TestStatus.Skipped)
+            return TestResult(status=TestStatus.SKIPPED)
 
         result = setup_block_device(client=client)
         if result is not None and result.returncode:
             logger.error("Error in block device setup.")
-            return TestResult(status=TestStatus.Broken)
+            return TestResult(status=TestStatus.BROKEN)
 
         dm = DeviceMapperSetup(client)
         result = dm.create_dm_dust_device()
         if result.returncode:
             logger.error("Error in creating dm-delay device.")
-            return TestResult(status=TestStatus.Broken)
+            return TestResult(status=TestStatus.BROKEN)
         result = dm.add_bad_blocks(device_name="dust1", block_numbers=list(range(50, 100)))
         if result.returncode:
-            return TestResult(status=TestStatus.Failed)
+            return TestResult(status=TestStatus.BROKEN)
 
         read_cfg = FioSuiteConfig(
             suite="dm-dust",

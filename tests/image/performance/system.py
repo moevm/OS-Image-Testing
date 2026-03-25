@@ -29,11 +29,11 @@ class PTSSystemTest(AbstractRunnableManyTimesTest):
             result, metrics = future.result()
             if result.returncode:
                 self.logger.error("PTS test '%s' FAILED.", test_name)
-                yield TestResult(status=TestStatus.Failed)
+                yield TestResult(status=TestStatus.FAILED)
             else:
                 yield TestResult(
                     command=" ".join(result.cmd),
                     metrics=metrics,
                     started_at=started_at,
-                    status=TestStatus.Passed,
+                    status=TestStatus.PASSED,
                 )
