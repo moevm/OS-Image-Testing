@@ -66,12 +66,9 @@ class WgetEnduranceNetworkTest(AbstractRunnableTimeLimitedTest):
         started_at = datetime.now(tz=ZoneInfo("UTC"))
         future = executor.submit(run_test)
         result = future.result()
-        status = TestStatus.PASSED
-        if result:
-            status = TestStatus.FAILED
         yield TestResult(
             metrics=result,
             command=f"wget --timeout={timeout} --tries=1 {_GOOGLE_URL}",
             started_at=started_at,
-            status=status,
+            status=TestStatus.FAILED if result else TestStatus.PASSED,
         )
