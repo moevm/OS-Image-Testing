@@ -43,11 +43,11 @@ class TestStatus(Enum):
 
 
 class TestResult(NamedTuple):
+    status: TestStatus
     metrics: Any = None
     command: str = ""
     started_at: datetime = datetime.now(tz=ZoneInfo("UTC"))
     ended_at: datetime = datetime.now(tz=ZoneInfo("UTC"))
-    status: TestStatus = TestStatus.SKIPPED
 
 
 class DefaultCleanupMixin:
@@ -218,16 +218,16 @@ class TestsRunner:
             is_alive_cycle.join(10)
             test_completed_event.clear()
             self.__database.update_experiment_ended_at(experiment.experiment_id)
-        self.__database.update_experiment_tests_count(
-            experiment.experiment_id,
-            TestsCounts(
-                total_count=total_count,
-                broken_count=counts[TestStatus.BROKEN],
-                passed_count=counts[TestStatus.PASSED],
-                failed_count=counts[TestStatus.FAILED],
-                skip_count=counts[TestStatus.SKIPPED],
-            ),
-        )
+            self.__database.update_experiment_tests_count(
+                experiment.experiment_id,
+                TestsCounts(
+                    total_count=total_count,
+                    broken_count=counts[TestStatus.BROKEN],
+                    passed_count=counts[TestStatus.PASSED],
+                    failed_count=counts[TestStatus.FAILED],
+                    skip_count=counts[TestStatus.SKIPPED],
+                ),
+            )
         self.logger.info("All tests completed successfully.")
         if self.__client is not None:
             self.__client.close()

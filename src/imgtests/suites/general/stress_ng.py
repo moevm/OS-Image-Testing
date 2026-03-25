@@ -26,11 +26,11 @@ class StressNgTest(AbstractRunnableTimeLimitedTest):
         if result.returncode:
             self.logger.error("stress-ng test FAILED")
             yield TestResult(status=TestStatus.FAILED)
+            return
 
-        if metrics:
-            yield TestResult(
-                metrics=metrics,
-                command=" ".join(result.cmd),
-                started_at=started_at,
-                status=TestStatus.PASSED,
-            )
+        yield TestResult(
+            metrics=metrics,
+            command=" ".join(result.cmd),
+            started_at=started_at,
+            status=TestStatus.PASSED,
+        )
