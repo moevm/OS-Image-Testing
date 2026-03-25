@@ -22,6 +22,9 @@ class PTSSystemTest(AbstractRunnableManyTimesTest):
         pts = PhoronixTestSuite(client)
         future = executor.submit(pts.prepare)
         result = future.result()
+        if result.returncode:
+            self.logger.error("PTS setup failed: '%s'", result.stderr)
+            return TestResult(status=TestStatus.BROKEN)
 
         for test_name in ("pts/ctx-clock", "pts/appleseed"):
             started_at = datetime.now(tz=ZoneInfo("UTC"))
