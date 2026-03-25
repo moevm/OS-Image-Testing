@@ -29,7 +29,7 @@ class ExperimentBase(Base):
     tests_passed: Mapped[int] = mapped_column(Integer, server_default="0")
     tests_failed: Mapped[int] = mapped_column(Integer, server_default="0")
     tests_broken: Mapped[int] = mapped_column(Integer, server_default="0")
-    tests_skiped: Mapped[int] = mapped_column(Integer, server_default="0")
+    tests_skipped: Mapped[int] = mapped_column(Integer, server_default="0")
 
     def __repr__(self) -> str:
         return (

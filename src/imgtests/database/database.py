@@ -190,7 +190,7 @@ class ImgtestsDatabase:
             experiment.tests_passed = counts.passed_count
             experiment.tests_failed = counts.failed_count
             experiment.tests_broken = counts.broken_count
-            experiment.tests_skiped = counts.skip_count
+            experiment.tests_skipped = counts.skip_count
             session.commit()
 
     def return_table(self, table_name: Table) -> list[Any]:
