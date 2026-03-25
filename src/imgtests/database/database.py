@@ -16,6 +16,7 @@ from imgtests.database.models.observer import ObserverBase
 
 if TYPE_CHECKING:
     from imgtests.sysrep import SystemInfo
+    from imgtests.types import TestsCounts
 
 logger = logging.getLogger(__name__)
 Table = Literal["configurations", "experiments", "loaders", "observers"]
@@ -179,6 +180,17 @@ class ImgtestsDatabase:
         with self.session() as session:
             experiment = session.query(ExperimentBase).filter_by(experiment_id=experiment_id).one()
             experiment.ended_at = datetime.now(tz=ZoneInfo("UTC"))
+            session.commit()
+
+    def update_experiment_tests_count(self, experiment_id: int, counts: TestsCounts) -> None:
+        self._check_session()
+        with self.session() as session:
+            experiment = session.query(ExperimentBase).filter_by(experiment_id=experiment_id).one()
+            experiment.tests_total = counts.total_count
+            experiment.tests_passed = counts.passed_count
+            experiment.tests_failed = counts.failed_count
+            experiment.tests_broken = counts.broken_count
+            experiment.tests_skipped = counts.skip_count
             session.commit()
 
     def return_table(self, table_name: Table) -> list[Any]:

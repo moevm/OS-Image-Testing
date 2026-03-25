@@ -5,7 +5,7 @@ from zoneinfo import ZoneInfo
 
 from imgtests.exec.loaders import StressNg
 from imgtests.exec.observers import Sar
-from imgtests.runner import AbstractRunnableTimeLimitedTest, Subsystem, TestResult
+from imgtests.runner import AbstractRunnableTimeLimitedTest, Subsystem, TestResult, TestStatus
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -43,13 +43,16 @@ class SarWithStressNGTest(AbstractRunnableTimeLimitedTest):
 
         _, pgscan = sar.run(interval=1, count=timeout)
         result, metrics = stress_ng_future.result()
-        metrics_json = stress_ng.metrics_to_json(metrics)
-
-        yield TestResult(
-            metrics={
-                "pgscan_time_sec": pgscan,
-                **metrics_json,
-            },
-            command=" ".join(result.cmd),
-            started_at=started_at,
-        )
+        if result.returncode:
+            yield TestResult(status=TestStatus.FAILED)
+        else:
+            metrics_json = stress_ng.metrics_to_json(metrics)
+            yield TestResult(
+                status=TestStatus.PASSED,
+                metrics={
+                    "pgscan_time_sec": pgscan,
+                    **metrics_json,
+                },
+                command=" ".join(result.cmd),
+                started_at=started_at,
+            )
