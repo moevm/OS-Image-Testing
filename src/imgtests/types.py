@@ -2,6 +2,7 @@ import re
 from contextlib import suppress
 from enum import Enum
 from functools import total_ordering
+from typing import NamedTuple
 
 
 @total_ordering
@@ -61,3 +62,11 @@ class Version:
 class Distro(str, Enum):
     OPEN_SUSE_LEAP = "opensuse-leap"
     POKY = "poky"
+
+
+class TestsCounts(NamedTuple):
+    total_count: int = 0
+    broken_count: int = 0
+    passed_count: int = 0
+    failed_count: int = 0
+    skip_count: int = 0
