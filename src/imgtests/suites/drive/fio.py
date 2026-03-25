@@ -149,14 +149,11 @@ class FioSuite:
                 directory=testfiles_dir,
                 **extra,
             )
-            if res.returncode:
-                err_msg = res.stderr or res.stdout or "fio failed"
-                raise RuntimeError(err_msg)
             yield TestResult(
                 metrics=common_run_command(["cat", str(extra["output"])], self.client).stdout,
                 command=" ".join(res.cmd),
                 started_at=started_at,
-                status=TestStatus.PASSED,
+                status=TestStatus.FAILED if res.returncode else TestStatus.PASSED,
             )
 
         if self.client:
