@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Literal, NamedTuple, get_args
+from typing import TYPE_CHECKING, Any, Literal, get_args
 from zoneinfo import ZoneInfo
 
 from pydantic import Field
@@ -16,6 +16,7 @@ from imgtests.database.models.observer import ObserverBase
 
 if TYPE_CHECKING:
     from imgtests.sysrep import SystemInfo
+    from imgtests.types import TestsCounts
 
 logger = logging.getLogger(__name__)
 Table = Literal["configurations", "experiments", "loaders", "observers"]
@@ -28,14 +29,6 @@ class PostgresCreds(BaseSettings):
     database_name: str = Field(validation_alias="POSTGRES_DB")
     host: str = Field(validation_alias="POSTGRES_HOST")
     port: int = Field(validation_alias="POSTGRES_PORT")
-
-
-class TestsCounts(NamedTuple):
-    total_count: int = 0
-    broken_count: int = 0
-    passed_count: int = 0
-    failed_count: int = 0
-    skip_count: int = 0
 
 
 class ImgtestsDatabase:

@@ -2,7 +2,7 @@ import logging
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-from enum import Enum
+from enum import Enum, auto
 from threading import Event, Thread
 from typing import TYPE_CHECKING, Any, NamedTuple
 from zoneinfo import ZoneInfo
@@ -11,11 +11,12 @@ import paramiko
 import paramiko.ssh_exception
 
 from imgtests.constant import LIB_NAME
-from imgtests.database.database import ImgtestsDatabase, TestsCounts
+from imgtests.database.database import ImgtestsDatabase
 from imgtests.exec.exec import common_run_command
 from imgtests.exec.observers.journalctl import Journalctl
 from imgtests.exec.observers.systemctl import Systemctl
 from imgtests.sysrep import get_system_info
+from imgtests.types import TestsCounts
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -35,10 +36,10 @@ class Subsystem(str, Enum):
 
 
 class TestStatus(Enum):
-    Passed = 0
-    Failed = 1
-    Skipped = 2
-    Broken = 3
+    Passed = auto()
+    Failed = auto()
+    Skipped = auto()
+    Broken = auto()
 
 
 class TestResult(NamedTuple):
