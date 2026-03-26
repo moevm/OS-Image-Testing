@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
 from imgtests.exec.loaders import Perf
-from imgtests.runner import AbstractRunnableManyTimesTest, Subsystem, TestResult
+from imgtests.runner import AbstractRunnableManyTimesTest, Subsystem, TestResult, TestStatus
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -30,11 +30,16 @@ class SchedPerformanceTest(AbstractRunnableManyTimesTest):
         ):
             started_at = datetime.now(tz=ZoneInfo("UTC"))
             result, metrics = perf.bench("sched", benchmark, args, repeat=iterations)
+            metrics_json = {}
             if result.returncode:
                 self.logger.error("Failed to run benchmark '%s' with args '%s'.", benchmark, args)
+                status = TestStatus.FAILED
             else:
-                yield TestResult(
-                    started_at=started_at,
-                    metrics=perf.metrics_to_json(metrics),
-                    command=" ".join(result.cmd),
-                )
+                status = TestStatus.PASSED
+                metrics_json = perf.metrics_to_json(metrics)
+            yield TestResult(
+                started_at=started_at,
+                metrics=metrics_json,
+                command=" ".join(result.cmd),
+                status=status,
+            )
