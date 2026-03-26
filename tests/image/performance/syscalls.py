@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
 from imgtests.exec.loaders import Kirk, Perf, StressNg
-from imgtests.runner import AbstractRunnableTimeLimitedTest, Subsystem, TestResult
+from imgtests.runner import AbstractRunnableTimeLimitedTest, Subsystem, TestResult, TestStatus
 from imgtests.suites.general.stress_ng import StressNgTest
 
 if TYPE_CHECKING:
@@ -28,9 +28,9 @@ class SyscallsWithCpuLoadTest(AbstractRunnableTimeLimitedTest):
         kirk = Kirk(client)
 
         for cpu_percent in range(50, 101, 10):
+            self.logger.info("Running test with %d cpu load...", cpu_percent)
             started_at = datetime.now(tz=ZoneInfo("UTC"))
             future_kirk = executor.submit(kirk.run, ["syscalls"])
-
             future_stress_ng = executor.submit(
                 stress_ng.run,
                 timeout_sec=timeout,
@@ -40,19 +40,46 @@ class SyscallsWithCpuLoadTest(AbstractRunnableTimeLimitedTest):
                 cpu_method="matrixprod",
                 cpu_load=cpu_percent,
             )
-            stress_ng_res, stress_ng_metrics = future_stress_ng.result()
-            kirk_res, kirk_metrics_path = future_kirk.result()
+            kirk_res = None
+            stress_ng_res = None
 
-            yield TestResult(
-                command=" ".join(stress_ng_res.cmd) + " & " + " ".join(kirk_res.cmd),
-                metrics={
-                    **stress_ng.metrics_to_json(stress_ng_metrics),
-                    **kirk.metrics_to_json(kirk_metrics_path),
-                },
-                started_at=started_at,
-                ended_at=datetime.now(tz=ZoneInfo("UTC")),
-            )
-            self.cleanup(client, self.logger)
+            while not future_stress_ng.done():
+                if future_kirk.done():
+                    if kirk_res is None:
+                        kirk_res, kirk_metrics_path = future_kirk.result()
+                    future_kirk = executor.submit(kirk.run, ["syscalls"])
+            while not future_kirk.done():
+                if future_stress_ng.done():
+                    if stress_ng_res is None:
+                        stress_ng_res, stress_ng_metrics = future_stress_ng.result()
+                    future_stress_ng = executor.submit(
+                        stress_ng.run,
+                        timeout_sec=60,
+                        syscall=0,
+                        syscall_method="all",
+                        cpu=0,
+                        cpu_method="matrixprod",
+                        cpu_load=cpu_percent,
+                    )
+
+            if stress_ng_res is None:
+                stress_ng_res, stress_ng_metrics = future_stress_ng.result()
+            if kirk_res is None:
+                kirk_res, kirk_metrics_path = future_kirk.result()
+
+            if stress_ng_res.returncode != 0 or kirk_res.returncode != 0:
+                yield TestResult(status=TestStatus.FAILED)
+            else:
+                yield TestResult(
+                    status=TestStatus.PASSED,
+                    command=" ".join(stress_ng_res.cmd) + " & " + " ".join(kirk_res.cmd),
+                    metrics={
+                        **stress_ng.metrics_to_json(stress_ng_metrics),
+                        **kirk.metrics_to_json(kirk_metrics_path),
+                    },
+                    started_at=started_at,
+                    ended_at=datetime.now(tz=ZoneInfo("UTC")),
+                )
 
 
 class StressNgSyscallsWithMemLoadTest(StressNgTest):
@@ -102,9 +129,32 @@ class SyscallsFullLoadTest(AbstractRunnableTimeLimitedTest):
             perf.bench,
             collection="syscall",
         )
+        perf_res = None
+        stress_ng_res = None
 
-        stress_ng_res, stress_ng_metrics = future_stress_ng.result()
-        perf_res, perf_metrics = future_perf.result()
+        while not future_stress_ng.done():
+            if future_perf.done():
+                if perf_res is None:
+                    perf_res, perf_metrics = future_perf.result()
+                future_perf = executor.submit(
+                    perf.bench,
+                    collection="syscall",
+                )
+
+        while not future_perf.done():
+            if future_stress_ng.done():
+                if stress_ng_res is None:
+                    stress_ng_res, stress_ng_metrics = future_stress_ng.result()
+                future_stress_ng = executor.submit(
+                    stress_ng.run,
+                    timeout_sec=timeout,
+                    syscall=0,
+                )
+
+        if stress_ng_res is None:
+            stress_ng_res, stress_ng_metrics = future_stress_ng.result()
+        if perf_res is None:
+            perf_res, perf_metrics = future_perf.result()
 
         yield TestResult(
             command=" ".join(stress_ng_res.cmd) + " & " + " ".join(perf_res.cmd),
