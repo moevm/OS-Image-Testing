@@ -27,7 +27,6 @@ class SyscallsWithCpuLoadTest(AbstractRunnableTimeLimitedTest):
         stress_ng = StressNg(client)
         kirk = Kirk(client)
 
-        # cpu load 50%, 60%, ..., 100%
         for cpu_percent in range(50, 101, 10):
             started_at = datetime.now(tz=ZoneInfo("UTC"))
             future_kirk = executor.submit(kirk.run, ["syscalls"])
