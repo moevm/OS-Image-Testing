@@ -156,12 +156,18 @@ class SyscallsFullLoadTest(AbstractRunnableTimeLimitedTest):
         if perf_res is None:
             perf_res, perf_metrics = future_perf.result()
 
-        yield TestResult(
-            command=" ".join(stress_ng_res.cmd) + " & " + " ".join(perf_res.cmd),
-            metrics={
-                **stress_ng.metrics_to_json(stress_ng_metrics),
-                "perf_metrics": perf.metrics_to_json(perf_metrics),
-            },
-            started_at=started_at,
-            ended_at=datetime.now(tz=ZoneInfo("UTC")),
-        )
+        if perf_res.returncode != 0 or stress_ng_res.returncode != 0:
+            yield TestResult(
+                status=TestStatus.FAILED,
+            )
+        else:
+            yield TestResult(
+                status=TestStatus.PASSED,
+                command=" ".join(stress_ng_res.cmd) + " & " + " ".join(perf_res.cmd),
+                metrics={
+                    **stress_ng.metrics_to_json(stress_ng_metrics),
+                    "perf_metrics": perf.metrics_to_json(perf_metrics),
+                },
+                started_at=started_at,
+                ended_at=datetime.now(tz=ZoneInfo("UTC")),
+            )
