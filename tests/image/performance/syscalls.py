@@ -37,7 +37,8 @@ class SyscallsWithCpuLoadTest(AbstractRunnableTimeLimitedTest):
                 syscall=0,
                 syscall_method="all",
                 cpu=0,
-                **{"cpu-load": cpu_percent},
+                cpu_method="matrixprod",
+                cpu_load=cpu_percent,
             )
             stress_ng_res, stress_ng_metrics = future_stress_ng.result()
             kirk_res, kirk_metrics_path = future_kirk.result()
