@@ -64,6 +64,8 @@ def main() -> None:
             FioDisksNightly(10),
             FioDisksDMDelay(30),
             FioDisksDMDust(30),
+            LTPSyscallsTest(),
+            StressNgEnduranceSyscallsTest(60),
             WgetEnduranceNetworkTest(5),
             Iperf3LocalTest(30),
             StressNgPerformanceCpuTest(60),
