@@ -36,6 +36,33 @@ from imgtests.runner import TestsRunner, TestsRunnerConfig
 from imgtests.suites.general.joint_bench import JointBench
 from imgtests.suites.system import SystemLoadTimeTest, SystemSlowServicesTest
 
+ALL_SUBSYSTEMS_SUITE: Final = TestsRunnerConfig(
+    description="Test suite for all subsystems.",
+    tests=(
+        SystemLoadTimeTest(),
+        SystemSlowServicesTest(),
+        JointBench(iterations=3),
+        SchedPerformanceTest(3),
+        POSIXUtilsTest(10),
+        FioDisksScalingTest(10),
+        FioDisksNightly(10),
+        FioDisksDMDelay(30),
+        FioDisksDMDust(30),
+        LTPSyscallsTest(),
+        StressNgEnduranceSyscallsTest(60),
+        WgetEnduranceNetworkTest(5),
+        Iperf3LocalTest(30),
+        StressNgPerformanceCpuTest(60),
+        ChaosbladeCPUTest(60),
+        PTSSystemTest(2),
+        StressNgConsecutiveLoadTest(30),
+        StressNgCombineLoadTest(10),
+        StressNgParallelLoadTest(30),
+        SarWithStressNGTest(60),
+    ),
+    experiment_type="all",
+    install_dependencies=True,
+)
 SYSCALLS_SUITE: Final = TestsRunnerConfig(
     description="Test suite for syscalls.",
     tests=(
@@ -48,13 +75,13 @@ SYSCALLS_SUITE: Final = TestsRunnerConfig(
     experiment_type="all",
     install_dependencies=True,
 )
-yocto_conf = (
+YOCTO_CONF: Final = (
     "SSH_YOCTO_ADDR",
     "SSH_YOCTO_USER",
     "SSH_YOCTO_PASS",
     "SSH_YOCTO_PORT",
 )
-suse_156_conf = (
+SUSE_156_CONF: Final = (
     "SSH_SUSE_ADDR_156",
     "SSH_SUSE_USER",
     "SSH_SUSE_PASS",
@@ -65,41 +92,14 @@ suse_156_conf = (
 def main() -> None:
     logger = logging.getLogger()
     set_handlers(logger, Path("processing.log"))
-    all_subsystems_suite = TestsRunnerConfig(
-        description="Test suite for all subsystems.",
-        tests=(
-            SystemLoadTimeTest(),
-            SystemSlowServicesTest(),
-            JointBench(iterations=3),
-            SchedPerformanceTest(3),
-            POSIXUtilsTest(10),
-            FioDisksScalingTest(10),
-            FioDisksNightly(10),
-            FioDisksDMDelay(30),
-            FioDisksDMDust(30),
-            LTPSyscallsTest(),
-            StressNgEnduranceSyscallsTest(60),
-            WgetEnduranceNetworkTest(5),
-            Iperf3LocalTest(30),
-            StressNgPerformanceCpuTest(60),
-            ChaosbladeCPUTest(60),
-            PTSSystemTest(2),
-            StressNgConsecutiveLoadTest(30),
-            StressNgCombineLoadTest(10),
-            StressNgParallelLoadTest(30),
-            SarWithStressNGTest(60),
-        ),
-        experiment_type="all",
-        install_dependencies=True,
-    )
     suse_runner = TestsRunner(
-        wait_remote(*suse_156_conf) or sys.exit(1),
-        all_subsystems_suite,
+        wait_remote(*SUSE_156_CONF) or sys.exit(1),
+        ALL_SUBSYSTEMS_SUITE,
     )
     suse_runner.run()
     yocto_runner = TestsRunner(
-        wait_remote(*yocto_conf) or sys.exit(1),
-        all_subsystems_suite,
+        wait_remote(*YOCTO_CONF) or sys.exit(1),
+        ALL_SUBSYSTEMS_SUITE,
     )
     yocto_runner.run()
 
