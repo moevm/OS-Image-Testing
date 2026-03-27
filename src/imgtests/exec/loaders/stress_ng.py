@@ -129,6 +129,7 @@ class StressNg(PkgMgrMixin, GenericUtil):
         class_all: int | None = None,
         cpu: int | None = None,
         cpu_method: str = "all",
+        cpu_load: int | None = None,
         vm: int | None = None,
         vm_method: str = "all",
         vm_bytes: str | None = None,
@@ -183,6 +184,7 @@ class StressNg(PkgMgrMixin, GenericUtil):
             cpu (int | None): Count of the CPU stressors. When set to 0 got count of logical
               processors.
             cpu_method (str): Stress CPU method.
+            cpu_load (int | None): Target CPU load percentage, defines active time in load cycle.
             vm (int | None): Count of the virtual memory stressors. When set to 0 got count
               of logical processors.
             vm_method (str): Stress virtual memory method.
@@ -279,6 +281,10 @@ class StressNg(PkgMgrMixin, GenericUtil):
             err_msg = f"Invalid timeout '{timeout_sec}'. Expected more or equal 0."
             raise ValueError(err_msg)
 
+        if cpu_load is not None and (cpu_load < 0 or cpu_load > 100):  # noqa: PLR2004
+            err_msg = f"Invalid cpu_load '{cpu_load}'. Expected 0-100."
+            raise ValueError(err_msg)
+
         for name, variable in params.items():
             if variable is not None and variable < 0:
                 err_msg = f"Invalid {name} count '{variable}'. Expected more or equal 0."
@@ -290,6 +296,7 @@ class StressNg(PkgMgrMixin, GenericUtil):
             *create_opt("all", class_all),
             *create_opt("cpu", cpu),
             *create_opt("cpu-method", cpu_method),
+            *create_opt("cpu-load", cpu_load),
             *create_opt("vm", vm),
             *create_opt("vm-method", vm_method),
             *create_opt("vm-bytes", vm_bytes),
