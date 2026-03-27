@@ -1,4 +1,5 @@
 from datetime import datetime
+from time import sleep
 from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
@@ -48,6 +49,7 @@ class SyscallsWithCpuLoadTest(AbstractRunnableTimeLimitedTest):
                     if kirk_res is None:
                         kirk_res, kirk_metrics_path = future_kirk.result()
                     future_kirk = executor.submit(kirk.run, ["syscalls"])
+                sleep(5)
             while not future_kirk.done():
                 if future_stress_ng.done():
                     if stress_ng_res is None:
@@ -61,13 +63,14 @@ class SyscallsWithCpuLoadTest(AbstractRunnableTimeLimitedTest):
                         cpu_method="matrixprod",
                         cpu_load=cpu_percent,
                     )
+                sleep(5)
 
             if stress_ng_res is None:
                 stress_ng_res, stress_ng_metrics = future_stress_ng.result()
             if kirk_res is None:
                 kirk_res, kirk_metrics_path = future_kirk.result()
 
-            if stress_ng_res.returncode != 0 or kirk_res.returncode != 0:
+            if stress_ng_res.returncode or kirk_res.returncode:
                 yield TestResult(status=TestStatus.FAILED)
             else:
                 yield TestResult(
@@ -140,23 +143,24 @@ class SyscallsFullLoadTest(AbstractRunnableTimeLimitedTest):
                     perf.bench,
                     collection="syscall",
                 )
-
+            sleep(5)
         while not future_perf.done():
             if future_stress_ng.done():
                 if stress_ng_res is None:
                     stress_ng_res, stress_ng_metrics = future_stress_ng.result()
                 future_stress_ng = executor.submit(
                     stress_ng.run,
-                    timeout_sec=timeout,
+                    timeout_sec=60,
                     syscall=0,
                 )
+            sleep(5)
 
         if stress_ng_res is None:
             stress_ng_res, stress_ng_metrics = future_stress_ng.result()
         if perf_res is None:
             perf_res, perf_metrics = future_perf.result()
 
-        if perf_res.returncode != 0 or stress_ng_res.returncode != 0:
+        if perf_res.returncode or stress_ng_res.returncode:
             yield TestResult(
                 status=TestStatus.FAILED,
             )
