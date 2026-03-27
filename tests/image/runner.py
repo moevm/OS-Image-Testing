@@ -1,6 +1,7 @@
 import logging
 import sys
 from pathlib import Path
+from typing import Final
 
 from image.endurance.network import WgetEnduranceNetworkTest
 from image.endurance.syscalls import (
@@ -23,6 +24,11 @@ from image.performance.stress_ng_general import (
     StressNgConsecutiveLoadTest,
     StressNgParallelLoadTest,
 )
+from image.performance.syscalls import (
+    StressNgSyscallsWithMemLoadTest,
+    SyscallsFullLoadTest,
+    SyscallsWithCpuLoadTest,
+)
 from image.performance.system import PTSSystemTest
 from imgtests.exec.exec import wait_remote
 from imgtests.logger import set_handlers
@@ -30,6 +36,18 @@ from imgtests.runner import TestsRunner, TestsRunnerConfig
 from imgtests.suites.general.joint_bench import JointBench
 from imgtests.suites.system import SystemLoadTimeTest, SystemSlowServicesTest
 
+SYSCALLS_SUITE: Final = TestsRunnerConfig(
+    description="Test suite for syscalls.",
+    tests=(
+        StressNgEnduranceSyscallsTest(60),
+        LTPSyscallsTest(),
+        SyscallsWithCpuLoadTest(600),
+        StressNgSyscallsWithMemLoadTest(60),
+        SyscallsFullLoadTest(600),
+    ),
+    experiment_type="all",
+    install_dependencies=True,
+)
 yocto_conf = (
     "SSH_YOCTO_ADDR",
     "SSH_YOCTO_USER",
@@ -59,12 +77,12 @@ def main() -> None:
             FioDisksNightly(10),
             FioDisksDMDelay(30),
             FioDisksDMDust(30),
+            LTPSyscallsTest(),
+            StressNgEnduranceSyscallsTest(60),
             WgetEnduranceNetworkTest(5),
             Iperf3LocalTest(30),
             StressNgPerformanceCpuTest(60),
             ChaosbladeCPUTest(60),
-            LTPSyscallsTest(),
-            StressNgEnduranceSyscallsTest(60),
             PTSSystemTest(2),
             StressNgConsecutiveLoadTest(30),
             StressNgCombineLoadTest(10),
