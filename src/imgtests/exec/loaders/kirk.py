@@ -1,8 +1,10 @@
 import json
 import logging
 import shlex
+from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
+from zoneinfo import ZoneInfo
 
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
@@ -127,7 +129,8 @@ class Kirk(GenericUtil):
                 )
 
         suites_str = "_".join(scenarios_list)
-        report_name = f"{suites_str}.json"
+        timestamp = datetime.now(tz=ZoneInfo("UTC")).strftime("%Y-%m-%d_%H:%M:%S")
+        report_name = f"{suites_str}_{timestamp}.json"
 
         remote_json_path = remote_results_dir / report_name
         res = self(["--run-suite", *scenarios_list, "--json-report", str(remote_json_path)])
