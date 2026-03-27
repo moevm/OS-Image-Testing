@@ -66,6 +66,16 @@ ALL_SUBSYSTEMS_SUITE: Final = TestsRunnerConfig(
     experiment_type="all",
     install_dependencies=True,
 )
+MEMORY_SUITE: Final = TestsRunnerConfig(
+    description="Test suite for virtual memory.",
+    tests=(
+        StressNgEnduranceMemoryTest(60),
+        StressNgPerformanceMemoryTest(30),
+        SarWithStressNGTest(60),
+    ),
+    experiment_type="all",
+    install_dependencies=True,
+)
 SYSCALLS_SUITE: Final = TestsRunnerConfig(
     description="Test suite for syscalls.",
     tests=(
