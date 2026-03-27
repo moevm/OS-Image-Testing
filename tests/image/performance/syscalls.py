@@ -97,7 +97,7 @@ class StressNgSyscallsWithMemLoadTest(StressNgTest):
         yield from self.run_test(
             stress_ng=stress_ng,
             executor=executor,
-            timeout_sec=timeout,
+            timeout=timeout,
             syscall=0,
             syscall_method="all",
             vm=0,
