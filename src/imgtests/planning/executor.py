@@ -10,7 +10,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 from imgtests.exec.exec import common_run_command
-from imgtests.exec.loaders.fio import Fio
+from imgtests.exec.loaders.fio import Fio, get_available_bytes
 from imgtests.exec.loaders.stress_ng import StressNg
 from imgtests.runner import BaseRunner, Subsystem
 from imgtests.sizing import bytes_to_mib_str, parse_size_to_bytes
@@ -468,7 +468,11 @@ class PlanExecutor(BaseRunner):
 
         if "size" in args:
             req = parse_size_to_bytes(str(args["size"]))
-            avail = fio.available_bytes() if created_filename is not None else None
+            avail = (
+                get_available_bytes(self.client, created_filename)
+                if created_filename is not None
+                else None
+            )
             if req is not None and avail is not None:
                 cap = max(64 * 1024**2, int(avail * 0.25))
                 safe = min(req, cap)

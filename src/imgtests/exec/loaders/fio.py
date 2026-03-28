@@ -30,6 +30,27 @@ IOEngine = Literal[
 Direct = Literal[1] | None
 
 
+def get_available_bytes(client: SSHClient, path: str | None) -> int | None:
+    with suppress(Exception):
+        res = common_run_command(
+            ["df", "--output=avail", "--block-size=1", str(path)],
+            client,
+        )
+        if res.returncode:
+            return None
+
+        out = (res.stdout or "").strip().splitlines()
+        if not out:
+            return None
+
+        try:
+            return int(out[-1].strip())
+        except (ValueError, IndexError):
+            return None
+
+    return None
+
+
 class Fio(PkgMgrMixin, GenericUtil):
     DEFAULT_WORKDIR = "/var/lib/imgtests-fio"
 
@@ -62,27 +83,6 @@ class Fio(PkgMgrMixin, GenericUtil):
 
     def default_filename(self, filename: str) -> str:
         return f"{self.ensure_default_workdir()}/{filename}"
-
-    def available_bytes(self, path: str | None = None) -> int | None:
-        target_path = path or self.ensure_default_workdir()
-        with suppress(Exception):
-            res = common_run_command(
-                ["df", "--output=avail", "--block-size=1", target_path],
-                self.ssh_client,
-            )
-            if res.returncode:
-                return None
-
-            out = (res.stdout or "").strip().splitlines()
-            if not out:
-                return None
-
-            try:
-                return int(out[-1].strip())
-            except (ValueError, IndexError):
-                return None
-
-        return None
 
     def run(  # noqa: PLR0913
         self,
