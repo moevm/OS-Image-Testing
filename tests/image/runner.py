@@ -3,6 +3,7 @@ import sys
 from pathlib import Path
 from typing import Final
 
+from image.endurance.memory import StressNgEnduranceMemoryTest
 from image.endurance.network import WgetEnduranceNetworkTest
 from image.endurance.syscalls import (
     LTPSyscallsTest,
@@ -16,7 +17,7 @@ from image.performance.fio_disks import (
     FioDisksScalingTest,
 )
 from image.performance.ipc import SchedPerformanceTest
-from image.performance.memory import SarWithStressNGTest
+from image.performance.memory import SarWithStressNGTest, StressNgPerformanceMemoryTest
 from image.performance.network import Iperf3LocalTest
 from image.performance.std_utils import POSIXUtilsTest
 from image.performance.stress_ng_general import (
@@ -59,6 +60,18 @@ ALL_SUBSYSTEMS_SUITE: Final = TestsRunnerConfig(
         StressNgConsecutiveLoadTest(30),
         StressNgCombineLoadTest(10),
         StressNgParallelLoadTest(30),
+        StressNgEnduranceMemoryTest(60),
+        StressNgPerformanceMemoryTest(30),
+        SarWithStressNGTest(60),
+    ),
+    experiment_type="all",
+    install_dependencies=True,
+)
+MEMORY_SUITE: Final = TestsRunnerConfig(
+    description="Test suite for virtual memory.",
+    tests=(
+        StressNgEnduranceMemoryTest(60),
+        StressNgPerformanceMemoryTest(30),
         SarWithStressNGTest(60),
     ),
     experiment_type="all",
