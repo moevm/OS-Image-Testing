@@ -29,9 +29,6 @@ IOEngine = Literal[
 # fmt: on
 Direct = Literal[1] | None
 
-_DF_AVAIL_COLUMN_INDEX = 3
-_DF_MIN_COLUMNS = 4
-
 
 class Fio(PkgMgrMixin, GenericUtil):
     DEFAULT_WORKDIR = "/var/lib/imgtests-fio"
@@ -69,7 +66,10 @@ class Fio(PkgMgrMixin, GenericUtil):
     def available_bytes(self, path: str | None = None) -> int | None:
         target_path = path or self.ensure_default_workdir()
         with suppress(Exception):
-            res = common_run_command(["df", "-PB1", target_path], self.ssh_client)
+            res = common_run_command(
+                ["df", "--output=avail", "--block-size=1", target_path],
+                self.ssh_client,
+            )
             if res.returncode != 0:
                 return None
 
@@ -77,17 +77,9 @@ class Fio(PkgMgrMixin, GenericUtil):
             if not out:
                 return None
 
-            last = out[-1].split()
-            if len(last) < _DF_MIN_COLUMNS:
-                return None
-
-            return int(last[_DF_AVAIL_COLUMN_INDEX])
+            return int(out[-1].strip())
 
         return None
-
-    def cleanup_file(self, path: str) -> None:
-        with suppress(Exception):
-            common_run_command(["rm", "-f", path], self.ssh_client)
 
     def run(  # noqa: PLR0913
         self,

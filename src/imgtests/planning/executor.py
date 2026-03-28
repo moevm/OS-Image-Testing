@@ -4,12 +4,14 @@ import json
 import logging
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from contextlib import suppress
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 from imgtests.exec.loaders.fio import Fio
 from imgtests.exec.loaders.stress_ng import StressNg
+from imgtests.exec.exec import common_run_command
 from imgtests.runner import BaseRunner, Subsystem
 from imgtests.sizing import bytes_to_mib_str, parse_size_to_bytes
 
@@ -490,7 +492,8 @@ class PlanExecutor(BaseRunner):
             )
         finally:
             if created_filename:
-                fio.cleanup_file(created_filename)
+                with suppress(Exception):
+                    common_run_command(["rm", "-f", created_filename], self.client)
 
         ended_at = datetime.now(UTC)
 
