@@ -48,7 +48,9 @@ def get_ram_size(client: SSHClient | None = None) -> int | None:
 class StressNgPerformanceMemoryTest(StressNgTest):
     def __init__(self, timeout: int) -> None:
         super().__init__(
-            "Stress-ng performance memory test.", frozenset({Subsystem.MEMORY}), timeout
+            "Sequential performance memory test with stress-ng.",
+            frozenset({Subsystem.MEMORY}),
+            timeout,
         )
 
     def _run(
@@ -56,6 +58,7 @@ class StressNgPerformanceMemoryTest(StressNgTest):
     ) -> Iterable[TestResult]:
         ram_size = get_ram_size(client=client)
         if ram_size is None:
+            yield TestResult(status=TestStatus.BROKEN)
             return
 
         stress_ng = StressNg(client)
