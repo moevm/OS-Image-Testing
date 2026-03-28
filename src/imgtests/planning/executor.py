@@ -460,11 +460,11 @@ class PlanExecutor(BaseRunner):
         args = dict(task.args or {})
         runtime_sec = int(args.pop("runtime_sec", stage.duration_sec))
 
-        created_filename: str | None = None
+        created_filename: Path | None = None
         if "filename" not in args and "directory" not in args:
             subsystem = getattr(task.subsystem, "value", str(task.subsystem))
-            created_filename = fio.default_filename(f"{stage.name}-{subsystem}.dat")
-            args["filename"] = created_filename
+            created_filename = fio.workdir / f"{stage.name}-{subsystem}.dat"
+            args["filename"] = str(created_filename)
 
         if "size" in args:
             req = parse_size_to_bytes(str(args["size"]))
@@ -497,7 +497,7 @@ class PlanExecutor(BaseRunner):
         finally:
             if created_filename:
                 with suppress(Exception):
-                    common_run_command(["rm", "-f", created_filename], self.client)
+                    common_run_command(["rm", "-f", str(created_filename)], self.client)
 
         ended_at = datetime.now(UTC)
 

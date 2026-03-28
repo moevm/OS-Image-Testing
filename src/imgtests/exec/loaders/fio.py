@@ -1,4 +1,5 @@
 from contextlib import suppress
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
 from imgtests.exec.base_util import GenericUtil
@@ -8,8 +9,6 @@ from imgtests.exec.pkgmgrs.pip3 import Pip3
 from imgtests.exec.utils import create_opt
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from imgtests.types import Version
 
 IOPattern = Literal[
@@ -30,7 +29,7 @@ IOEngine = Literal[
 Direct = Literal[1] | None
 
 
-def get_available_bytes(client: SSHClient, path: str | None) -> int | None:
+def get_available_bytes(client: SSHClient, path: str | Path) -> int | None:
     with suppress(Exception):
         res = common_run_command(
             ["df", "--output=avail", "--block-size=1", str(path)],
@@ -52,7 +51,7 @@ def get_available_bytes(client: SSHClient, path: str | None) -> int | None:
 
 
 class Fio(PkgMgrMixin, GenericUtil):
-    DEFAULT_WORKDIR = "/var/lib/imgtests-fio"
+    DEFAULT_WORKDIR = Path("/var/lib/imgtests-fio")
 
     def __init__(self, ssh_client: SSHClient | None = None) -> None:
         super().__init__("fio", ssh_client)
@@ -77,12 +76,13 @@ class Fio(PkgMgrMixin, GenericUtil):
             lines = lines[1:]
         return tuple(line.strip() for line in lines)
 
-    def ensure_default_workdir(self) -> str:
-        common_run_command(["mkdir", "-p", self.DEFAULT_WORKDIR], self.ssh_client)
+    @property
+    def workdir(self) -> Path:
+        common_run_command(["mkdir", "-p", str(self.DEFAULT_WORKDIR)], self.ssh_client)
         return self.DEFAULT_WORKDIR
 
     def default_filename(self, filename: str) -> str:
-        return f"{self.ensure_default_workdir()}/{filename}"
+        return f"{self.workdir}/{filename}"
 
     def run(  # noqa: PLR0913
         self,
