@@ -4,8 +4,8 @@ import logging
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-from pathlib import Path
 from enum import Enum, auto
+from pathlib import Path
 from threading import Event, Thread
 from typing import TYPE_CHECKING, Any, ClassVar, NamedTuple
 from zoneinfo import ZoneInfo

@@ -9,9 +9,9 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
+from imgtests.exec.exec import common_run_command
 from imgtests.exec.loaders.fio import Fio
 from imgtests.exec.loaders.stress_ng import StressNg
-from imgtests.exec.exec import common_run_command
 from imgtests.runner import BaseRunner, Subsystem
 from imgtests.sizing import bytes_to_mib_str, parse_size_to_bytes
 
