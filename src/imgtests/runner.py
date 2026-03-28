@@ -4,8 +4,8 @@ import logging
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-from enum import Enum
 from pathlib import Path
+from enum import Enum, auto
 from threading import Event, Thread
 from typing import TYPE_CHECKING, Any, ClassVar, NamedTuple
 from zoneinfo import ZoneInfo
@@ -20,6 +20,7 @@ from imgtests.exec.exec import SSHClient, common_run_command
 from imgtests.exec.observers.journalctl import Journalctl
 from imgtests.exec.observers.systemctl import Systemctl
 from imgtests.sysrep import get_system_info
+from imgtests.types import TestsCounts
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -38,8 +39,16 @@ class Subsystem(str, Enum):
     SYSTEM = "system"
 
 
+class TestStatus(Enum):
+    PASSED = auto()
+    FAILED = auto()
+    SKIPPED = auto()
+    BROKEN = auto()
+
+
 class TestResult(NamedTuple):
-    metrics: Any
+    status: TestStatus
+    metrics: Any = None
     command: str = ""
     started_at: datetime = datetime.now(tz=ZoneInfo("UTC"))
     ended_at: datetime = datetime.now(tz=ZoneInfo("UTC"))
@@ -214,6 +223,13 @@ class TestsRunner(BaseRunner):
             description=self.__test_config.description,
             experiment_type=self.__test_config.experiment_type,
         )
+        total_count = 0
+        counts = {
+            TestStatus.PASSED: 0,
+            TestStatus.FAILED: 0,
+            TestStatus.SKIPPED: 0,
+            TestStatus.BROKEN: 0,
+        }
         for test in self.__test_config.tests:
             if self.__client is not None:
                 self.__client.reconnect()
@@ -230,6 +246,8 @@ class TestsRunner(BaseRunner):
                     started_at=result.started_at,
                     ended_at=result.ended_at,
                 )
+                counts[result.status] += 1
+                total_count += 1
             self._collect_system_errors(
                 experiment_id=experiment.experiment_id,
                 since=test_started_at,
@@ -240,6 +258,16 @@ class TestsRunner(BaseRunner):
             is_alive_cycle.join(10)
             test_completed_event.clear()
             self.__database.update_experiment_ended_at(experiment.experiment_id)
+            self.__database.update_experiment_tests_count(
+                experiment.experiment_id,
+                TestsCounts(
+                    total_count=total_count,
+                    broken_count=counts[TestStatus.BROKEN],
+                    passed_count=counts[TestStatus.PASSED],
+                    failed_count=counts[TestStatus.FAILED],
+                    skip_count=counts[TestStatus.SKIPPED],
+                ),
+            )
         self.logger.info("All tests completed successfully.")
         if self.__client is not None:
             self.__client.close()
