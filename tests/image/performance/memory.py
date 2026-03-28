@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-HUGE_PAGE_SIZE = 2048  # Kb
+HUGE_PAGE_SIZE_KIB = 2048
 STRESSORS_LIMIT = 1024
 RAM_LOAD = 0.7
 
@@ -57,10 +57,10 @@ class StressNgPerformanceMemoryTest(StressNgTest):
 
         workers = (
             STRESSORS_LIMIT // 2
-            if ram_size < (STRESSORS_LIMIT * HUGE_PAGE_SIZE)
+            if ram_size < (STRESSORS_LIMIT * HUGE_PAGE_SIZE_KIB)
             else STRESSORS_LIMIT
         )
-        instances = int((ram_size * RAM_LOAD) / (HUGE_PAGE_SIZE * random.uniform(1, 2)))  # noqa: S311
+        instances = int((ram_size * RAM_LOAD) / (HUGE_PAGE_SIZE_KIB * random.uniform(1, 2)))  # noqa: S311
         instances = min(instances, STRESSORS_LIMIT)
 
         # Test with huge pages
