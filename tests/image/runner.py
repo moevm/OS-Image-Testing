@@ -104,7 +104,7 @@ def main() -> None:
     )
     yocto_runner.run()
 
-    client = wait_remote(*yocto_conf) or sys.exit(1)
+    client = wait_remote(*YOCTO_CONF) or sys.exit(1)
     exit_code = ProfiledPlanRunner(
         client=client,
         db=ImgtestsDatabase(),
