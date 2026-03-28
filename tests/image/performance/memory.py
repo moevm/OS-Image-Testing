@@ -27,17 +27,22 @@ tests: list[dict[str, Any]] = [
     {"vm": 4, "vm_bytes": "25%", "mmap": 4, "mmap_bytes": "25%"},
     {"vm": 4, "vm_bytes": "35%", "mmap": 4, "mmap_bytes": "35%"},
     # Fixed allocation size per instance tests
-    {"vm": 1024, "vm_bytes": "4M"},  # 4Kb each, equal to page size
-    {"vm": 1024, "vm_bytes": "1G"},  # 1Mb each, between page and huge page size
+    {"vm": 1024, "vm_bytes": "4M"},  # 4 KiB each (4096 KiB / 1024), equal to page size
+    {"vm": 1024, "vm_bytes": "1G"},  # 1 MiB each (1024 MiB / 1024), between page and huge page size
 ]
 
 
 def get_ram_size(client: SSHClient | None = None) -> int | None:
+    """Returns RAM size in KiB."""
     result = common_run_command(["grep", "MemTotal", "/proc/meminfo"], ssh_client=client)
     if result.returncode:
-        logger.error("Finding RAM size failed: '%s'", result.stderr)
+        logger.error("Finding RAM size failed.")
         return None
-    return int(result.stdout.split()[1])
+    try:
+        return int(result.stdout.split()[1])
+    except (IndexError, ValueError):
+        logger.exception("Finding RAM size failed.")
+        return None
 
 
 class StressNgPerformanceMemoryTest(StressNgTest):
