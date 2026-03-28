@@ -70,14 +70,17 @@ class Fio(PkgMgrMixin, GenericUtil):
                 ["df", "--output=avail", "--block-size=1", target_path],
                 self.ssh_client,
             )
-            if res.returncode != 0:
+            if res.returncode:
                 return None
 
             out = (res.stdout or "").strip().splitlines()
             if not out:
                 return None
 
-            return int(out[-1].strip())
+            try:
+                return int(out[-1].strip())
+            except (ValueError, IndexError):
+                return None
 
         return None
 
