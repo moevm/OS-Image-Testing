@@ -13,7 +13,7 @@ from imgtests.exec.exec import common_run_command
 from imgtests.exec.loaders.fio import Fio, get_available_bytes
 from imgtests.exec.loaders.stress_ng import StressNg
 from imgtests.runner import BaseRunner, Subsystem
-from imgtests.sizing import bytes_to_mib_str, parse_size_to_bytes
+from imgtests.sizing import parse_size_to_bytes, round_bytes_to_mib_str
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -475,7 +475,7 @@ class PlanExecutor(BaseRunner):
                 cap = max(64 * 1024**2, int(avail * 0.25))
                 safe = min(req, cap)
                 if safe < req:
-                    args["size"] = bytes_to_mib_str(safe)
+                    args["size"] = round_bytes_to_mib_str(safe)
 
         fio_name = args.pop(
             "name",

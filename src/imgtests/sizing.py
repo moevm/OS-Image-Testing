@@ -39,6 +39,6 @@ def parse_size_to_bytes(value: str) -> int | None:
         raise ValueError(err_msg) from exc
 
 
-def bytes_to_mib_str(size_bytes: int) -> str:
+def round_bytes_to_mib_str(size_bytes: int) -> str:
     mib = max(1, size_bytes // (1024**2))
     return f"{mib}MiB"
