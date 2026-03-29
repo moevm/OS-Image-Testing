@@ -69,7 +69,13 @@ METRICS_RE: Final = re.compile(
 
 
 class StressNg(PkgMgrMixin, GenericUtil):
+    INCORRECT_OPT_OR_FATAL_ISSUE_CODE = 1  # incorrect user options or OOM, etc.
+    STRESSOR_FAILED_CODE = 2
     INITIALIZATION_FAILED_CODE = 3  # ENOMEM, ENOSPC, missing or unimplemented system call.
+    STRESSOR_NOT_IMPLEMENTED_CODE = 4
+    STRESSOR_KILLED_UNEXPECTEDLY_CODE = 5
+    STRESSOR_EXITED_UNEXPECTEDLY_CODE = 6
+    BOGO_OPS_UNTRUSTWORTHY_CODE = 7
 
     def __init__(self, ssh_client: SSHClient | None = None) -> None:
         super().__init__("stress-ng", ssh_client)
