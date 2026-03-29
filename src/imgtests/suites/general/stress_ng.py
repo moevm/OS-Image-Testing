@@ -23,7 +23,11 @@ class StressNgTest(AbstractRunnableTimeLimitedTest):
         future = executor.submit(stress_ng.run, timeout_sec=timeout, **kwargs)
         result, metrics = future.result()
 
-        if result.returncode:
+        if result.returncode == stress_ng.INCORRECT_OPT_OR_FATAL_ISSUE_CODE:
+            self.logger.error("stress-ng test BROKEN")
+            yield TestResult(status=TestStatus.BROKEN)
+            return
+        elif result.returncode:
             self.logger.error("stress-ng test FAILED")
             yield TestResult(status=TestStatus.FAILED)
             return
