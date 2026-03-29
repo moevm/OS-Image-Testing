@@ -24,8 +24,6 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-_STRESS_RETRY_RETURN_CODE = 3
-
 
 @dataclass(frozen=True)
 class MetricSample:
@@ -382,7 +380,7 @@ class PlanExecutor(BaseRunner):
         args: dict[str, Any],
         exec_res: Any,
     ) -> tuple[Any, list[Any], Any] | None:
-        if exec_res.returncode != _STRESS_RETRY_RETURN_CODE:
+        if exec_res.returncode != stress.INITIALIZATION_FAILED_CODE:
             return None
 
         retry_timeout = max(5, int(timeout_sec * 0.5))
@@ -390,7 +388,7 @@ class PlanExecutor(BaseRunner):
         logger.info(
             "[PLAN] stress-ng retry stage=%s rc=%s timeout=%s->%s",
             stage_name,
-            _STRESS_RETRY_RETURN_CODE,
+            exec_res.returncode,
             timeout_sec,
             retry_timeout,
         )

@@ -69,6 +69,8 @@ METRICS_RE: Final = re.compile(
 
 
 class StressNg(PkgMgrMixin, GenericUtil):
+    INITIALIZATION_FAILED_CODE = 3  # ENOMEM, ENOSPC, missing or unimplemented system call.
+
     def __init__(self, ssh_client: SSHClient | None = None) -> None:
         super().__init__("stress-ng", ssh_client)
 
