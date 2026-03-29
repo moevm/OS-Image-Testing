@@ -82,7 +82,7 @@ class Kirk(GenericUtil):
     @staticmethod
     def _validate_fault_injection(fault_injection: int) -> None:
         if not 0 <= fault_injection <= MAX_FAULT_INJECTION:
-            err_msg = "fault_injection must be in range 0..100."
+            err_msg = f"fault_injection must be in range 0..{MAX_FAULT_INJECTION}."
             raise ValueError(err_msg)
 
     def _ensure_debugfs(self) -> ExecResult:
