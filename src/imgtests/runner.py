@@ -154,12 +154,44 @@ class AbstractRunnableTimeLimitedTest(ABC, DefaultCleanupMixin):
     ) -> Iterable[TestResult]: ...
 
 
-# Time to run, subsystems, stages (plan, risk analysis, run, cleanup, results, etc), etc
-class TestsRunnerConfig(NamedTuple):
-    description: str
-    tests: Iterable[AbstractRunnableManyTimesTest | AbstractRunnableTimeLimitedTest]
-    experiment_type: ExperimentType
-    install_dependencies: bool = False
+# Subsystems, stages (plan, risk analysis, run, cleanup, results, etc), etc
+class TestsRunnerConfig:
+    __slots__ = (
+        "description",
+        "experiment_type",
+        "install_dependencies",
+        "test_duration",
+        "tests",
+        "total_duration",
+    )
+
+    def __init__(
+        self,
+        description: str,
+        tests: Iterable[AbstractRunnableManyTimesTest | type[AbstractRunnableTimeLimitedTest]],
+        experiment_type: ExperimentType,
+        duration: int,
+        install_dependencies: bool = False,
+    ) -> None:
+        self.description = description
+        self.tests = tests
+        self.experiment_type: ExperimentType = experiment_type
+        self.total_duration = duration
+        self.install_dependencies = install_dependencies
+        time_limited_tests_cnt = sum(
+            1 for test in self.tests if not isinstance(test, AbstractRunnableManyTimesTest)
+        )
+        if time_limited_tests_cnt > self.total_duration:
+            err_msg = (
+                f"Each test cannot be run for less 1 second. "
+                f"{self.total_duration} seconds available, {time_limited_tests_cnt} tests to run. "
+                "Available time is not enough."
+            )
+            raise ValueError(err_msg)
+        if time_limited_tests_cnt > 0:
+            self.test_duration = self.total_duration // time_limited_tests_cnt
+        else:
+            self.test_duration = 0
 
 
 class TestsRunner:
@@ -190,13 +222,17 @@ class TestsRunner:
             TestStatus.SKIPPED: 0,
             TestStatus.BROKEN: 0,
         }
-        for test in self.__test_config.tests:
+        for test_class in self.__test_config.tests:
             if self.__client is not None:
                 self.__client.reconnect()
             is_alive_cycle = Thread(target=self.__is_remote_alive, args=(test_completed_event,))
             is_alive_cycle.start()
             test_started_at = datetime.now(tz=ZoneInfo("UTC"))
-            for result in test(self.__executor, self.__client):
+            if isinstance(test_class, AbstractRunnableManyTimesTest):
+                test_instance = test_class
+            else:
+                test_instance = test_class(self.__test_config.test_duration)
+            for result in test_instance(self.__executor, self.__client):
                 self.__database.insert_loader(
                     experiment_id=experiment.experiment_id,
                     # TODO: fill descriptions and adds into TestResult class
@@ -213,7 +249,7 @@ class TestsRunner:
                 since=test_started_at,
                 until=datetime.now(tz=ZoneInfo("UTC")),
             )
-            test.cleanup(self.__client, self.logger)
+            test_instance.cleanup(self.__client, self.logger)
             test_completed_event.set()
             is_alive_cycle.join(10)
             test_completed_event.clear()
