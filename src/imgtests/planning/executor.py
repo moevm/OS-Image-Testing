@@ -10,8 +10,9 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 from imgtests.exec.exec import common_run_command
-from imgtests.exec.loaders.fio import Fio, get_available_bytes
-from imgtests.exec.loaders.stress_ng import StressNg
+from imgtests.exec.loaders.fio import Fio, fio_metrics_to_samples, get_available_bytes
+from imgtests.exec.loaders.stress_ng import StressNg, stress_metrics_to_samples
+from imgtests.exec.metrics import MetricSample
 from imgtests.runner import BaseRunner, Subsystem
 from imgtests.sizing import parse_size_to_bytes, round_bytes_to_mib_str
 
@@ -23,14 +24,6 @@ if TYPE_CHECKING:
     from imgtests.planning.models import LoadTask, PlanStage, TestPlan
 
 logger = logging.getLogger(__name__)
-
-
-@dataclass(frozen=True)
-class MetricSample:
-    stage_name: str
-    subsystem: str
-    metric_name: str
-    value: float
 
 
 @dataclass(frozen=True)
@@ -57,108 +50,10 @@ class StageRunResult:
 @dataclass(frozen=True)
 class PlanExecutionResult:
     experiment_id: int
-    plan_path: Path
     started_at: datetime
     ended_at: datetime
     stage_runs: tuple[StageRunResult, ...]
     metrics: tuple[MetricSample, ...]
-
-
-def _safe_float(value: Any) -> float | None:
-    if value is None:
-        return None
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return None
-
-
-def _try_parse_json(text: str) -> dict[str, Any]:
-    if not text or not str(text).strip():
-        return {}
-    try:
-        data = json.loads(str(text).strip())
-        return data if isinstance(data, dict) else {}
-    except json.JSONDecodeError:
-        return {}
-
-
-def _stress_metric_samples(
-    stage_name: str,
-    subsystem: str,
-    metrics: list[Any],
-) -> list[MetricSample]:
-    samples: list[MetricSample] = []
-
-    for metric in metrics:
-        base_metrics = (
-            ("stress.bogo_ops", float(metric.bogo_ops)),
-            ("stress.real_time_secs", float(metric.real_time_secs)),
-            ("stress.usr_time_secs", float(metric.usr_time_secs)),
-            ("stress.sys_time_secs", float(metric.sys_time_secs)),
-            ("stress.bogo_ops_s_real_time", float(metric.bogo_ops_s_real_time)),
-            ("stress.bogo_ops_s_usr_sys_time", float(metric.bogo_ops_s_usr_sys_time)),
-            ("stress.cpu_used_per_instance", float(metric.cpu_used_per_instance)),
-        )
-        for metric_name, value in base_metrics:
-            samples.append(MetricSample(stage_name, subsystem, metric_name, value))
-
-        if metric.rss_max_kb is not None:
-            samples.append(
-                MetricSample(
-                    stage_name,
-                    subsystem,
-                    "stress.rss_max_kb",
-                    float(metric.rss_max_kb),
-                )
-            )
-
-        if metric.top10_slowest:
-            samples.append(
-                MetricSample(
-                    stage_name,
-                    subsystem,
-                    "stress.syscall_slowest_avg_ns",
-                    float(metric.top10_slowest[0].avg_ns),
-                )
-            )
-
-    return samples
-
-
-def _fio_op_samples(
-    stage_name: str,
-    subsystem: str,
-    op: str,
-    op_data: dict[str, Any],
-    wanted_p: dict[str, int],
-) -> list[MetricSample]:
-    out: list[MetricSample] = []
-
-    iops = _safe_float(op_data.get("iops"))
-    bw = _safe_float(op_data.get("bw"))
-    runtime_ms = _safe_float(op_data.get("runtime"))
-
-    clat = op_data.get("clat_ns") or {}
-    clat_mean = _safe_float(clat.get("mean")) if isinstance(clat, dict) else None
-
-    if iops is not None:
-        out.append(MetricSample(stage_name, subsystem, f"fio.{op}.iops", iops))
-    if bw is not None:
-        out.append(MetricSample(stage_name, subsystem, f"fio.{op}.bw_kib_s", bw))
-    if runtime_ms is not None:
-        out.append(MetricSample(stage_name, subsystem, f"fio.{op}.runtime_ms", runtime_ms))
-    if clat_mean is not None:
-        out.append(MetricSample(stage_name, subsystem, f"fio.{op}.clat_mean_ns", clat_mean))
-
-    pct = clat.get("percentile") if isinstance(clat, dict) else None
-    if isinstance(pct, dict):
-        for key, p_int in wanted_p.items():
-            fv = _safe_float(pct.get(key))
-            if fv is not None:
-                out.append(MetricSample(stage_name, subsystem, f"fio.{op}.clat_p{p_int}_ns", fv))
-
-    return out
 
 
 class PlanExecutor(BaseRunner):
@@ -181,12 +76,6 @@ class PlanExecutor(BaseRunner):
         results_dir.mkdir(parents=True, exist_ok=True)
         started_at = datetime.now(UTC)
 
-        plan_path = results_dir / f"plan_{plan.plan_id}.json"
-        plan_path.write_text(
-            json.dumps(plan.to_dict(), ensure_ascii=False, indent=2),
-            encoding="utf-8",
-        )
-
         experiment = self.start_experiment(
             client=self.client,
             database=self.db,
@@ -197,15 +86,6 @@ class PlanExecutor(BaseRunner):
             ended_at=started_at,
         )
         experiment_id = int(experiment.experiment_id)
-
-        self.db.insert_loader(
-            experiment_id=experiment_id,
-            command="plan.json",
-            result=plan.to_dict(),
-            description="Generated execution plan",
-            started_at=started_at,
-            ended_at=started_at,
-        )
 
         stage_runs: list[StageRunResult] = []
         collected_metrics: list[MetricSample] = []
@@ -288,7 +168,6 @@ class PlanExecutor(BaseRunner):
 
         return PlanExecutionResult(
             experiment_id=experiment_id,
-            plan_path=plan_path,
             started_at=started_at,
             ended_at=ended_at,
             stage_runs=tuple(stage_runs),
@@ -427,7 +306,7 @@ class PlanExecutor(BaseRunner):
 
         ended_at = datetime.now(UTC)
         subsystem = getattr(task.subsystem, "value", str(task.subsystem))
-        samples = _stress_metric_samples(stage.name, subsystem, metrics)
+        samples = stress_metrics_to_samples(stage.name, subsystem, metrics)
 
         summary_dict = summary._asdict() if summary else None
         logger.info(
@@ -500,7 +379,7 @@ class PlanExecutor(BaseRunner):
         ended_at = datetime.now(UTC)
 
         payload = _try_parse_json(result.stdout)
-        samples = self._fio_samples(
+        samples = fio_metrics_to_samples(
             payload=payload,
             stage_name=stage.name,
             subsystem=getattr(task.subsystem, "value", str(task.subsystem)),
@@ -523,44 +402,21 @@ class PlanExecutor(BaseRunner):
             metrics=tuple(samples),
         )
 
-    def _fio_samples(
-        self,
-        payload: dict[str, Any],
-        stage_name: str,
-        subsystem: str,
-    ) -> list[MetricSample]:
-        jobs = payload.get("jobs", [])
-        if not isinstance(jobs, list):
-            return []
 
-        wanted_p = {
-            "50.000000": 50,
-            "90.000000": 90,
-            "95.000000": 95,
-            "99.000000": 99,
-            "99.900000": 999,
-        }
+def _try_parse_json(text: str) -> dict[str, Any]:
+    if not text:
+        return {}
 
-        out: list[MetricSample] = []
-        for job in jobs:
-            if not isinstance(job, dict):
-                continue
+    raw = str(text).strip()
+    if not raw:
+        return {}
 
-            for op in ("read", "write", "trim"):
-                op_data = job.get(op, {})
-                if not isinstance(op_data, dict):
-                    continue
-                out.extend(
-                    _fio_op_samples(
-                        stage_name=stage_name,
-                        subsystem=subsystem,
-                        op=op,
-                        op_data=op_data,
-                        wanted_p=wanted_p,
-                    )
-                )
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        return {}
 
-        return out
+    return data if isinstance(data, dict) else {}
 
 
 def _resolve_experiment_type(plan: TestPlan) -> ExperimentType:

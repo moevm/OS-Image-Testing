@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any, Literal
 
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
+from imgtests.exec.metrics import MetricSample
 from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
 from imgtests.exec.pkgmgrs.pip3 import Pip3
 from imgtests.exec.utils import create_opt
@@ -205,4 +206,88 @@ class FioPlot(PkgMgrMixin, GenericUtil):
         for package in installed_packages:
             if package.name == self.name:
                 return package.version
+        return None
+
+
+def fio_metrics_to_samples(
+    payload: dict[str, Any],
+    stage_name: str,
+    subsystem: str,
+) -> list[MetricSample]:
+    jobs = payload.get("jobs", [])
+    if not isinstance(jobs, list):
+        return []
+
+    wanted_p = {
+        "50.000000": 50,
+        "90.000000": 90,
+        "95.000000": 95,
+        "99.000000": 99,
+        "99.900000": 999,
+    }
+
+    out: list[MetricSample] = []
+    for job in jobs:
+        if not isinstance(job, dict):
+            continue
+
+        for op in ("read", "write", "trim"):
+            op_data = job.get(op, {})
+            if not isinstance(op_data, dict):
+                continue
+            out.extend(
+                _fio_op_samples(
+                    stage_name=stage_name,
+                    subsystem=subsystem,
+                    op=op,
+                    op_data=op_data,
+                    wanted_p=wanted_p,
+                )
+            )
+
+    return out
+
+
+def _fio_op_samples(
+    stage_name: str,
+    subsystem: str,
+    op: str,
+    op_data: dict[str, Any],
+    wanted_p: dict[str, int],
+) -> list[MetricSample]:
+    out: list[MetricSample] = []
+
+    iops = _safe_float(op_data.get("iops"))
+    bw = _safe_float(op_data.get("bw"))
+    runtime_ms = _safe_float(op_data.get("runtime"))
+
+    clat = op_data.get("clat_ns") or {}
+    clat_mean = _safe_float(clat.get("mean")) if isinstance(clat, dict) else None
+
+    if iops is not None:
+        out.append(MetricSample(stage_name, subsystem, f"fio.{op}.iops", iops))
+    if bw is not None:
+        out.append(MetricSample(stage_name, subsystem, f"fio.{op}.bw_kib_s", bw))
+    if runtime_ms is not None:
+        out.append(MetricSample(stage_name, subsystem, f"fio.{op}.runtime_ms", runtime_ms))
+    if clat_mean is not None:
+        out.append(MetricSample(stage_name, subsystem, f"fio.{op}.clat_mean_ns", clat_mean))
+
+    pct = clat.get("percentile") if isinstance(clat, dict) else None
+    if isinstance(pct, dict):
+        for key, p_int in wanted_p.items():
+            fv = _safe_float(pct.get(key))
+            if fv is not None:
+                out.append(MetricSample(stage_name, subsystem, f"fio.{op}.clat_p{p_int}_ns", fv))
+
+    return out
+
+
+def _safe_float(value: Any) -> float | None:
+    if value is None:
+        return None
+
+    try:
+        return float(value)
+    except (TypeError, ValueError):
         return None

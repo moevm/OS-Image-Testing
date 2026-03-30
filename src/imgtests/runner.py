@@ -524,7 +524,6 @@ class ProfiledPlanRunner(BaseRunner):
             failures,
             execution.experiment_id,
         )
-        logging.getLogger(__name__).info("[PROFILED] plan=%s", execution.plan_path)
         return failures
 
     @staticmethod

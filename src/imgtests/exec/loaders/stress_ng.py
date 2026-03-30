@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any, Final, NamedTuple
 
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult
+from imgtests.exec.metrics import MetricSample
 from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
 from imgtests.exec.utils import add_flag, create_opt
 
@@ -573,3 +574,46 @@ class StressNg(PkgMgrMixin, GenericUtil):
             "stress_ng_metrics": [metric._asdict() for metric in metrics.metrics],
             "stress_ng_summary": metrics.summary._asdict() if metrics.summary else None,
         }
+
+
+def stress_metrics_to_samples(
+    stage_name: str,
+    subsystem: str,
+    metrics: list[StressNGMetrics],
+) -> list[MetricSample]:
+    samples: list[MetricSample] = []
+
+    for metric in metrics:
+        base_metrics = (
+            ("stress.bogo_ops", float(metric.bogo_ops)),
+            ("stress.real_time_secs", float(metric.real_time_secs)),
+            ("stress.usr_time_secs", float(metric.usr_time_secs)),
+            ("stress.sys_time_secs", float(metric.sys_time_secs)),
+            ("stress.bogo_ops_s_real_time", float(metric.bogo_ops_s_real_time)),
+            ("stress.bogo_ops_s_usr_sys_time", float(metric.bogo_ops_s_usr_sys_time)),
+            ("stress.cpu_used_per_instance", float(metric.cpu_used_per_instance)),
+        )
+        for metric_name, value in base_metrics:
+            samples.append(MetricSample(stage_name, subsystem, metric_name, value))
+
+        if metric.rss_max_kb is not None:
+            samples.append(
+                MetricSample(
+                    stage_name,
+                    subsystem,
+                    "stress.rss_max_kb",
+                    float(metric.rss_max_kb),
+                )
+            )
+
+        if metric.top10_slowest:
+            samples.append(
+                MetricSample(
+                    stage_name,
+                    subsystem,
+                    "stress.syscall_slowest_avg_ns",
+                    float(metric.top10_slowest[0].avg_ns),
+                )
+            )
+
+    return samples
