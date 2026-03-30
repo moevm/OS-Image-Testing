@@ -7,8 +7,9 @@ from zoneinfo import ZoneInfo
 from imgtests.exec.exec import common_run_command
 from imgtests.exec.loaders import StressNg
 from imgtests.exec.observers import Sar
-from imgtests.runner import AbstractRunnableTimeLimitedTest, Subsystem, TestResult, TestStatus
+from imgtests.runner import AbstractRunnableTimeLimitedTest, TestResult, TestStatus
 from imgtests.suites.general.stress_ng import StressNgTest
+from imgtests.types import Subsystem
 
 if TYPE_CHECKING:
     from collections.abc import Iterable

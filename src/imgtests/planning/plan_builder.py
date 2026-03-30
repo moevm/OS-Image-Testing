@@ -6,7 +6,6 @@ from imgtests.planning.models import (
     LoadPattern,
     PlanRequest,
     PlanStage,
-    Subsystem,
     TestKind,
     TestPlan,
 )
@@ -14,6 +13,8 @@ from imgtests.planning.profiles import PROFILE_LAYOUTS, build_task
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
+
+    from imgtests.types import Subsystem
 
 _ALLOC_GUARD_LIMIT = 100_000
 

@@ -10,7 +10,7 @@ from imgtests.exec.pkgmgrs.pip3 import Pip3
 from imgtests.exec.utils import create_opt
 
 if TYPE_CHECKING:
-    from imgtests.types import Version
+    from imgtests.types import Subsystem, Version
 
 IOPattern = Literal[
     "read", "write", "trim", "randread", "randwrite", "randtrim", "readwrite", "randrw", "trimwrite"
@@ -212,7 +212,7 @@ class FioPlot(PkgMgrMixin, GenericUtil):
 def fio_metrics_to_samples(
     payload: dict[str, Any],
     stage_name: str,
-    subsystem: str,
+    subsystem: Subsystem,
 ) -> list[MetricSample]:
     jobs = payload.get("jobs", [])
     if not isinstance(jobs, list):
@@ -238,7 +238,7 @@ def fio_metrics_to_samples(
             out.extend(
                 _fio_op_samples(
                     stage_name=stage_name,
-                    subsystem=subsystem,
+                    subsystem=subsystem.value,
                     op=op,
                     op_data=op_data,
                     wanted_p=wanted_p,

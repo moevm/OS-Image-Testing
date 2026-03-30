@@ -3,8 +3,9 @@ from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
 from imgtests.exec.loaders import Chaosblade, StressNg
-from imgtests.runner import AbstractRunnableTimeLimitedTest, Subsystem, TestResult, TestStatus
+from imgtests.runner import AbstractRunnableTimeLimitedTest, TestResult, TestStatus
 from imgtests.suites.general.stress_ng import StressNgTest
+from imgtests.types import Subsystem
 
 if TYPE_CHECKING:
     from collections.abc import Iterable

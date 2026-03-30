@@ -12,8 +12,9 @@ from typing import TYPE_CHECKING, Any
 from imgtests.exec.exec import common_run_command
 from imgtests.exec.loaders.fio import Fio, fio_metrics_to_samples, get_available_bytes
 from imgtests.exec.loaders.stress_ng import StressNg, stress_metrics_to_samples
-from imgtests.runner import BaseRunner, Subsystem
+from imgtests.runner import BaseRunner
 from imgtests.sizing import parse_size_to_bytes, round_bytes_to_mib_str
+from imgtests.types import Subsystem
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -382,7 +383,7 @@ class PlanExecutor(BaseRunner):
         samples = fio_metrics_to_samples(
             payload=payload,
             stage_name=stage.name,
-            subsystem=getattr(task.subsystem, "value", str(task.subsystem)),
+            subsystem=task.subsystem,
         )
 
         summary = None

@@ -6,7 +6,8 @@ from typing import TYPE_CHECKING, Final, NamedTuple
 from zoneinfo import ZoneInfo
 
 from imgtests.exec.exec import common_run_command
-from imgtests.runner import AbstractRunnableManyTimesTest, Subsystem, TestResult, TestStatus
+from imgtests.runner import AbstractRunnableManyTimesTest, TestResult, TestStatus
+from imgtests.types import Subsystem
 
 if TYPE_CHECKING:
     from collections.abc import Iterable

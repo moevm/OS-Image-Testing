@@ -3,7 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from imgtests.planning.models import LoadPattern, LoadTask, Subsystem, TestKind
+from imgtests.planning.models import LoadPattern, LoadTask, TestKind
+from imgtests.types import Subsystem
 
 
 @dataclass(frozen=True)
