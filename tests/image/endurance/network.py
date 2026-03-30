@@ -6,7 +6,7 @@ from zoneinfo import ZoneInfo
 
 from imgtests.exec.exec import SSHClient, common_run_command
 from imgtests.exec.loaders import StressNg
-from imgtests.runner import AbstractRunnableTimeLimitedTest, Subsystem, TestResult, TestStatus
+from imgtests.runner import AbstractRunnableManyTimesTest, Subsystem, TestResult, TestStatus
 from imgtests.suites.general.stress_ng import StressNgTest
 
 if TYPE_CHECKING:
@@ -40,12 +40,12 @@ class StressNgEnduranceNetworkTest(StressNgTest):
         )
 
 
-class WgetEnduranceNetworkTest(AbstractRunnableTimeLimitedTest):
+class WgetEnduranceNetworkTest(AbstractRunnableManyTimesTest):
     def __init__(self, timeout: int) -> None:
-        super().__init__("Load CPU 70% with chaosblade.", frozenset({Subsystem.NETWORK}), timeout)
+        super().__init__("Load google test with wget.", frozenset({Subsystem.NETWORK}), timeout)
 
     def _run(
-        self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int
+        self, executor: ThreadPoolExecutor, client: SSHClient | None, iterations: int
     ) -> Iterable[TestResult]:
         def run_test() -> int:
             if common_run_command(
@@ -54,7 +54,7 @@ class WgetEnduranceNetworkTest(AbstractRunnableTimeLimitedTest):
                 self.logger.error("NETWORK endurance test FAILED")
                 return 1
             result = common_run_command(
-                ["wget", f"--timeout={timeout}", "--tries=1", _GOOGLE_URL],
+                ["wget", "--timeout=5", "--tries=1", _GOOGLE_URL],
                 client,
             )
             if result.returncode:
@@ -64,11 +64,12 @@ class WgetEnduranceNetworkTest(AbstractRunnableTimeLimitedTest):
             return 0
 
         started_at = datetime.now(tz=ZoneInfo("UTC"))
-        future = executor.submit(run_test)
-        result = future.result()
-        yield TestResult(
-            metrics=result,
-            command=f"wget --timeout={timeout} --tries=1 {_GOOGLE_URL}",
-            started_at=started_at,
-            status=TestStatus.FAILED if result else TestStatus.PASSED,
-        )
+        for _ in range(iterations):
+            future = executor.submit(run_test)
+            result = future.result()
+            yield TestResult(
+                metrics=result,
+                command=f"wget --timeout=5 --tries=1 {_GOOGLE_URL}",
+                started_at=started_at,
+                status=TestStatus.FAILED if result else TestStatus.PASSED,
+            )

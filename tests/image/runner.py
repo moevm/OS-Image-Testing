@@ -46,47 +46,50 @@ ALL_SUBSYSTEMS_SUITE: Final = TestsRunnerConfig(
         JointBench(iterations=3),
         SchedPerformanceTest(3),
         POSIXUtilsTest(10),
-        FioDisksScalingTest(10),
-        FioDisksNightly(10),
-        FioDisksDMDelay(30),
-        FioDisksDMDust(30),
+        FioDisksScalingTest,
+        FioDisksNightly,
+        FioDisksDMDelay,
+        FioDisksDMDust,
         LTPSyscallsTest(),
-        StressNgEnduranceSyscallsTest(60),
-        WgetEnduranceNetworkTest(5),
-        Iperf3LocalTest(30),
-        StressNgPerformanceCpuTest(60),
-        ChaosbladeCPUTest(60),
+        StressNgEnduranceSyscallsTest,
+        WgetEnduranceNetworkTest(3),
+        Iperf3LocalTest,
+        StressNgPerformanceCpuTest,
+        ChaosbladeCPUTest,
         PTSSystemTest(2),
-        StressNgConsecutiveLoadTest(30),
-        StressNgCombineLoadTest(10),
-        StressNgParallelLoadTest(30),
-        StressNgEnduranceMemoryTest(60),
-        StressNgPerformanceMemoryTest(30),
-        SarWithStressNGTest(60),
+        StressNgConsecutiveLoadTest,
+        StressNgCombineLoadTest,
+        StressNgParallelLoadTest,
+        StressNgEnduranceMemoryTest,
+        StressNgPerformanceMemoryTest,
+        SarWithStressNGTest,
     ),
     experiment_type="all",
+    duration=200,
     install_dependencies=True,
 )
 MEMORY_SUITE: Final = TestsRunnerConfig(
     description="Test suite for virtual memory.",
     tests=(
-        StressNgEnduranceMemoryTest(60),
-        StressNgPerformanceMemoryTest(30),
-        SarWithStressNGTest(60),
+        StressNgEnduranceMemoryTest,
+        StressNgPerformanceMemoryTest,
+        SarWithStressNGTest,
     ),
     experiment_type="all",
+    duration=100,
     install_dependencies=True,
 )
 SYSCALLS_SUITE: Final = TestsRunnerConfig(
     description="Test suite for syscalls.",
     tests=(
-        StressNgEnduranceSyscallsTest(60),
+        StressNgEnduranceSyscallsTest,
         LTPSyscallsTest(),
-        SyscallsWithCpuLoadTest(600),
-        StressNgSyscallsWithMemLoadTest(60),
-        SyscallsFullLoadTest(600),
+        SyscallsWithCpuLoadTest,
+        StressNgSyscallsWithMemLoadTest,
+        SyscallsFullLoadTest,
     ),
     experiment_type="all",
+    duration=100,
     install_dependencies=True,
 )
 YOCTO_CONF: Final = (
@@ -106,16 +109,17 @@ SUSE_156_CONF: Final = (
 def main() -> None:
     logger = logging.getLogger()
     set_handlers(logger, Path("processing.log"))
-    suse_runner = TestsRunner(
-        wait_remote(*SUSE_156_CONF) or sys.exit(1),
-        ALL_SUBSYSTEMS_SUITE,
-    )
-    suse_runner.run()
-    yocto_runner = TestsRunner(
-        wait_remote(*YOCTO_CONF) or sys.exit(1),
-        ALL_SUBSYSTEMS_SUITE,
-    )
-    yocto_runner.run()
+    for suite in (MEMORY_SUITE, SYSCALLS_SUITE, ALL_SUBSYSTEMS_SUITE):
+        suse_runner = TestsRunner(
+            wait_remote(*SUSE_156_CONF) or sys.exit(1),
+            suite,
+        )
+        suse_runner.run()
+        yocto_runner = TestsRunner(
+            wait_remote(*YOCTO_CONF) or sys.exit(1),
+            suite,
+        )
+        yocto_runner.run()
 
     client = wait_remote(*YOCTO_CONF) or sys.exit(1)
     exit_code = ProfiledPlanRunner(

@@ -149,7 +149,7 @@ class ImgtestsDatabase:
         self,
         experiment_id: int,
         command: str,
-        result: dict[str, Any],
+        result: Any,
         description: str,
         started_at: datetime | None = None,
         ended_at: datetime | None = None,
