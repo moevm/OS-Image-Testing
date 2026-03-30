@@ -3,7 +3,8 @@ from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
 from imgtests.exec.loaders import PhoronixTestSuite
-from imgtests.runner import AbstractRunnableManyTimesTest, Subsystem, TestResult
+from imgtests.runner import AbstractRunnableManyTimesTest, TestResult, TestStatus
+from imgtests.types import Subsystem
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -24,7 +25,7 @@ class PTSSystemTest(AbstractRunnableManyTimesTest):
         result = future.result()
         if result.returncode:
             self.logger.error("PTS setup failed: '%s'", result.stderr)
-            return
+            return TestResult(status=TestStatus.BROKEN)
 
         for test_name in ("pts/ctx-clock", "pts/appleseed"):
             started_at = datetime.now(tz=ZoneInfo("UTC"))
@@ -32,9 +33,11 @@ class PTSSystemTest(AbstractRunnableManyTimesTest):
             result, metrics = future.result()
             if result.returncode:
                 self.logger.error("PTS test '%s' FAILED.", test_name)
+                yield TestResult(status=TestStatus.FAILED)
             else:
                 yield TestResult(
                     command=" ".join(result.cmd),
                     metrics=metrics,
                     started_at=started_at,
+                    status=TestStatus.PASSED,
                 )
