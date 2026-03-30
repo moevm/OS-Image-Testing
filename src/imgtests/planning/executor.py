@@ -346,7 +346,7 @@ class PlanExecutor(BaseRunner):
         if "size" in args:
             req = parse_size_to_bytes(str(args["size"]))
             avail = (
-                get_available_bytes(self.client, created_filename)
+                get_available_bytes(self.client, created_filename.parent)
                 if created_filename is not None
                 else None
             )
