@@ -114,6 +114,8 @@ class Kirk(GenericUtil):
         self,
         scenarios: Iterable[str],
         results_dir: str | Path = DEFAULT_LTP_RESULTS_DIR,
+        run_pattern: str | None = None,
+        timeout: int | None = None,
         fault_injection: int | None = None,
     ) -> tuple[ExecResult, Path | None]:
         """Run an LTP scenario via kirk and store results as JSON."""
@@ -175,6 +177,8 @@ class Kirk(GenericUtil):
         remote_json_path = remote_results_dir / report_name
 
         cmd = [
+            *create_opt("run-pattern", run_pattern),
+            *create_opt("suite-timeout", timeout),
             *create_opt("fault-injection", fault_injection),
             "--run-suite",
             *scenarios_list,
