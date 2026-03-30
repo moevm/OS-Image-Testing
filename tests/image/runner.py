@@ -22,6 +22,7 @@ from image.performance.stress_ng_general import (
     StressNgCombineLoadTest,
     StressNgConsecutiveLoadTest,
     StressNgParallelLoadTest,
+    StressNgIterTestIPC,
 )
 from image.performance.system import PTSSystemTest
 from imgtests.exec.exec import wait_remote
@@ -52,6 +53,7 @@ def main() -> None:
         tests=(
             SystemLoadTimeTest(),
             SystemSlowServicesTest(),
+            StressNgIterTestIPC(60),
             JointBench(iterations=3),
             SchedPerformanceTest(3),
             POSIXUtilsTest(10),
