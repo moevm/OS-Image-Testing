@@ -21,8 +21,8 @@ from image.performance.std_utils import POSIXUtilsTest
 from image.performance.stress_ng_general import (
     StressNgCombineLoadTest,
     StressNgConsecutiveLoadTest,
-    StressNgParallelLoadTest,
     StressNgIterTestIPC,
+    StressNgParallelLoadTest,
 )
 from image.performance.system import PTSSystemTest
 from imgtests.exec.exec import wait_remote

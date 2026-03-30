@@ -159,7 +159,7 @@ class StressNg(PkgMgrMixin, GenericUtil):
         sem_sysv: int | None = None,
         sem_ops: int | None = None,
         shm: int | None = None,
-        shm_sysv: int | None = None, 
+        shm_sysv: int | None = None,
         shm_ops: int | None = None,
         verify: bool = True,
         dekker: int | None = None,
@@ -229,25 +229,27 @@ class StressNg(PkgMgrMixin, GenericUtil):
             sem_ops (int | None): Number of semaphore operations per stressor.
             shm (int | None): Count of the shared memory stressors. When set to 0 got count of
               logical processors.
-            shm_sysv (int | None): Count of the System V shared memory interface stressors. 
+            shm_sysv (int | None): Count of the System V shared memory interface stressors.
               When set to 0 got count of logical processors.
             shm_ops (int | None): Number of shared memory operations per stressor.
             verify (bool): Verify results if can.
-            dekker (int | None): Count of the stressors that exercises mutex exclusion between two processes
-              using shared memory with the Dekker Algorithm. When set to 0 got count of logical processors.
-            fifo (int | None): Count of the stressors that exercise a named pipe by 
+            dekker (int | None): Count of the stressors that exercises mutex exclusion
+              between two processes using shared memory with the Dekker Algorithm.
+              When set to 0 got count of logical processors.
+            fifo (int | None): Count of the stressors that exercise a named pipe by
               transmitting 64 bit integers. When set to 0 got count of logical processors.
-            futex (int | None): Count of the stressors that rapidly exercise the futex system call. 
+            futex (int | None): Count of the stressors that rapidly exercise the futex system call.
               When set to 0 got count of logical processors.
-            msg (int | None): Count of the stressors that sender and receiver processes 
-              that continually send and receive messages using System V message IPC. 
+            msg (int | None): Count of the stressors that sender and receiver processes
+              that continually send and receive messages using System V message IPC.
               When set to 0 got count of logical processors.
-            peterson (int | None): Count of the stressors that exercises mutex exclusion between 
-              two processes using shared memory with the Peterson Algorithm. When set to 0 got count 
+            peterson (int | None): Count of the stressors that exercises mutex exclusion between
+              two processes using shared memory with the Peterson Algorithm. When set to 0 got count
               of logical processors.
-            pipeherd (int | None): Count of the stressors that pass a 64 bit token counter to/from 
+            pipeherd (int | None): Count of the stressors that pass a 64 bit token counter to/from
               100 child processes over a shared pipe. When set to 0 got count of logical processors.
-            sigq (int | None): Count of the stressors that rapidly send SIGUSR1 signals using sigqueue.
+            sigq (int | None):
+              Count of the stressors that rapidly send SIGUSR1 signals using sigqueue.
               When set to 0 got count of logical processors.
             **kwargs (dict[str, Any]): Command arguments in the free form with values.
 

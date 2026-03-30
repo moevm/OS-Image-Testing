@@ -125,15 +125,21 @@ class StressNgParallelLoadTest(StressNgTest):
 
 
 class StressNgIterTestIPC(StressNgTest):
-    """Runs stress-ng IPC subsystem tests via --class ipc with iterational incrementation of stressors amount.\n
-       IPC subsystem class consists: 
-       dekker, fifo, futex, mq, msg, peterson, pipe, pipeherd, sem, sem-sysv, shm, shm-sysv, sigq, sock\n
-       Iteration begins with 1 and goes up to magically defined number of 16
-    """
+    """Runs stress-ng IPC subsystem tests via --class ipc with iterational
+    incrementation of stressors amount.
+
+    Iteration begins with 1 and goes up to
+    magically defined number of IPC_MAX.
+
+    IPC subsystem class consists:
+    dekker, fifo, futex, mq, msg, peterson, pipe, pipeherd,
+    sem, sem-sysv, shm, shm-sysv, sigq, sock.
+    """  # noqa: D205
+
     def __init__(self, timeout: int) -> None:
         super().__init__(
             "Test stress-ng iterational IPC subsystem test.",
-            frozenset({Subsystem.IPC,}),
+            frozenset({Subsystem.IPC}),
             timeout,
         )
 
@@ -141,8 +147,22 @@ class StressNgIterTestIPC(StressNgTest):
         self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int
     ) -> Iterable[TestResult]:
         stress_ng = StressNg(client)
-        test_keys = ["dekker", "fifo", "futex", "mq", "msg", "peterson", "pipe", 
-                     "pipeherd", "sem", "sem-sysv", "shm", "shm-sysv", "sigq", "sock"]
+        test_keys = [
+            "dekker",
+            "fifo",
+            "futex",
+            "mq",
+            "msg",
+            "peterson",
+            "pipe",
+            "pipeherd",
+            "sem",
+            "sem-sysv",
+            "shm",
+            "shm-sysv",
+            "sigq",
+            "sock",
+        ]
         for param in range(1, IPC_MAX + 1):
             test_params = dict.fromkeys(test_keys, param)
             yield from self.run_test(
