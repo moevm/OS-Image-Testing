@@ -12,7 +12,6 @@ from typing import TYPE_CHECKING, Any
 from imgtests.exec.exec import common_run_command
 from imgtests.exec.loaders.fio import Fio, fio_metrics_to_samples, get_available_bytes
 from imgtests.exec.loaders.stress_ng import StressNg, stress_metrics_to_samples
-from imgtests.exec.metrics import MetricSample
 from imgtests.runner import BaseRunner, Subsystem
 from imgtests.sizing import parse_size_to_bytes, round_bytes_to_mib_str
 
@@ -21,6 +20,7 @@ if TYPE_CHECKING:
 
     from imgtests.database.database import ExperimentType, ImgtestsDatabase
     from imgtests.exec.exec import SSHClient
+    from imgtests.exec.metrics import MetricSample
     from imgtests.planning.models import LoadTask, PlanStage, TestPlan
 
 logger = logging.getLogger(__name__)
