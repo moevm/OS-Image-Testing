@@ -4,10 +4,10 @@ from typing import TYPE_CHECKING, Any, Literal
 
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
-from imgtests.exec.metrics import MetricSample
 from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
 from imgtests.exec.pkgmgrs.pip3 import Pip3
 from imgtests.exec.utils import create_opt
+from imgtests.types import MetricSample
 
 if TYPE_CHECKING:
     from imgtests.types import Subsystem, Version

@@ -14,14 +14,13 @@ from imgtests.exec.loaders.fio import Fio, fio_metrics_to_samples, get_available
 from imgtests.exec.loaders.stress_ng import StressNg, stress_metrics_to_samples
 from imgtests.runner import BaseRunner
 from imgtests.sizing import parse_size_to_bytes, round_bytes_to_mib_str
-from imgtests.types import Subsystem
+from imgtests.types import MetricSample, Subsystem
 
 if TYPE_CHECKING:
     from pathlib import Path
 
     from imgtests.database.database import ExperimentType, ImgtestsDatabase
     from imgtests.exec.exec import SSHClient
-    from imgtests.exec.metrics import MetricSample
     from imgtests.planning.models import LoadTask, PlanStage, TestPlan
 
 logger = logging.getLogger(__name__)

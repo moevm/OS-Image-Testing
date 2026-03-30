@@ -1,5 +1,6 @@
 import re
 from contextlib import suppress
+from dataclasses import dataclass
 from enum import Enum
 from functools import total_ordering
 from typing import NamedTuple
@@ -79,3 +80,11 @@ class Subsystem(str, Enum):
     NETWORK = "network"
     SYSCALLS = "syscalls"
     SYSTEM = "system"
+
+
+@dataclass(frozen=True)
+class MetricSample:
+    stage_name: str
+    subsystem: str
+    metric_name: str
+    value: float
