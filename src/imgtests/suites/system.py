@@ -2,7 +2,8 @@ from time import sleep
 from typing import TYPE_CHECKING
 
 from imgtests.exec.observers.systemd_analyze import SystemdAnalyze
-from imgtests.runner import AbstractRunnableManyTimesTest, Subsystem, TestResult, TestStatus
+from imgtests.runner import AbstractRunnableManyTimesTest, TestResult, TestStatus
+from imgtests.types import Subsystem
 
 if TYPE_CHECKING:
     import logging

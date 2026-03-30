@@ -16,7 +16,7 @@ from imgtests.exec.exec import common_run_command
 from imgtests.exec.observers.journalctl import Journalctl
 from imgtests.exec.observers.systemctl import Systemctl
 from imgtests.sysrep import get_system_info
-from imgtests.types import TestsCounts
+from imgtests.types import Subsystem, TestsCounts
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -24,15 +24,6 @@ if TYPE_CHECKING:
     from imgtests.database.database import ExperimentType
     from imgtests.exec.base_util import BaseTestUtil
     from imgtests.exec.exec import SSHClient
-
-
-class Subsystem(str, Enum):
-    FILE = "file"
-    IPC = "IPC"
-    MEMORY = "memory"
-    NETWORK = "network"
-    SYSCALLS = "syscalls"
-    SYSTEM = "system"
 
 
 class TestStatus(Enum):
