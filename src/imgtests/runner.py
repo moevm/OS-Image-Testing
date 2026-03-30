@@ -27,6 +27,7 @@ if TYPE_CHECKING:
 
     from imgtests.database.models.experiment import ExperimentBase
     from imgtests.exec.base_util import BaseTestUtil
+    from imgtests.exec.exec import SSHClient
     from imgtests.planning import LoadPattern, TestKind
 
 
