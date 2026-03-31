@@ -69,6 +69,8 @@ class FioSuiteConfig:
     size: str = "100MB"
     direct: Direct = 1
     ioengine: IOEngine = "libaio"
+    offset: str | None = None
+    offset_increment: str | None = None
 
 
 class FioSuite:
@@ -147,6 +149,8 @@ class FioSuite:
                 ioengine=self.cfg.ioengine,
                 direct=self.cfg.direct,
                 directory=testfiles_dir,
+                offset=self.cfg.offset,
+                offset_increment=self.cfg.offset_increment,
                 **extra,
             )
             yield TestResult(
