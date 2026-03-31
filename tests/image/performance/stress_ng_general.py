@@ -15,8 +15,11 @@ if TYPE_CHECKING:
 
 tests: list[dict[str, Any]] = [
     {"cpu": 0, "cpu_method": "matrixprod"},
-    {"vm": 0, "vm_bytes": "50%", "mmap": 0, "mmap_bytes": "50%"},
-    {"hdd": 0, "hdd_bytes": "50%"},
+    {"vm": 0, "vm_bytes": "90%", "mmap": 0, "mmap_bytes": "90%"},
+    {"hdd": 0, "hdd_bytes": "90%"},
+    {"sock": 0, "netdev": 0, "udp_flood": 0},
+    {"syscall": 0},
+    {"mq": 0, "pipe": 0, "sem": 0, "shm": 0},
 ]
 
 
@@ -83,8 +86,6 @@ class StressNgConsecutiveLoadTest(StressNgTest):
     ) -> Iterable[TestResult]:
         stress_ng = StressNg(client)
 
-        tests_config(client)
-
         for params in tests:
             yield from self.run_test(
                 stress_ng=stress_ng, executor=executor, timeout=timeout, **params
@@ -112,8 +113,6 @@ class StressNgCombineLoadTest(StressNgTest):
         self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int
     ) -> Iterable[TestResult]:
         stress_ng = StressNg(client)
-
-        tests_config(client)
 
         for r in range(2, len(tests)):
             for test_combination in combinations(tests, r):
@@ -144,8 +143,6 @@ class StressNgParallelLoadTest(StressNgTest):
         self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int
     ) -> Iterable[TestResult]:
         stress_ng = StressNg(client)
-
-        tests_config(client)
 
         test_params = combine_params(tests)
         yield from self.run_test(
