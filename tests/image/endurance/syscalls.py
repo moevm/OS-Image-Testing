@@ -45,6 +45,7 @@ class LTPSyscallsTest(AbstractRunnableManyTimesTest):
                 status=TestStatus.FAILED,
             )
 
+
 class LTPSyscallsIPCTest(AbstractRunnableManyTimesTest):
     def __init__(self, iterations: int = 1) -> None:
         super().__init__("Test syscalls-ipc with LTP.", frozenset({Subsystem.SYSCALLS}), iterations)

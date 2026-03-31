@@ -6,8 +6,8 @@ from typing import Final
 from image.endurance.memory import StressNgEnduranceMemoryTest
 from image.endurance.network import WgetEnduranceNetworkTest
 from image.endurance.syscalls import (
-    LTPSyscallsTest,
     LTPSyscallsIPCTest,
+    LTPSyscallsTest,
     StressNgEnduranceSyscallsTest,
 )
 from image.performance.cpu import ChaosbladeCPUTest, StressNgPerformanceCpuTest
