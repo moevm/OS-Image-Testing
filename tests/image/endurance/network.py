@@ -6,8 +6,9 @@ from zoneinfo import ZoneInfo
 
 from imgtests.exec.exec import SSHClient, common_run_command
 from imgtests.exec.loaders import StressNg
-from imgtests.runner import AbstractRunnableManyTimesTest, Subsystem, TestResult, TestStatus
+from imgtests.runner import AbstractRunnableManyTimesTest, TestResult, TestStatus
 from imgtests.suites.general.stress_ng import StressNgTest
+from imgtests.types import Subsystem
 
 if TYPE_CHECKING:
     from collections.abc import Iterable

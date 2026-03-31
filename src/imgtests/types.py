@@ -70,3 +70,12 @@ class TestsCounts(NamedTuple):
     passed_count: int = 0
     failed_count: int = 0
     skip_count: int = 0
+
+
+class Subsystem(str, Enum):
+    FILE = "file"
+    IPC = "IPC"
+    MEMORY = "memory"
+    NETWORK = "network"
+    SYSCALLS = "syscalls"
+    SYSTEM = "system"
