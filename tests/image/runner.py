@@ -14,7 +14,9 @@ from image.performance.fio_disks import (
     FioDisksDMDelay,
     FioDisksDMDust,
     FioDisksNightly,
+    FioDisksParallelLoadTest,
     FioDisksScalingTest,
+    FioDisksVariationTest,
 )
 from image.performance.ipc import SchedPerformanceTest
 from image.performance.memory import SarWithStressNGTest, StressNgPerformanceMemoryTest
@@ -91,6 +93,20 @@ SYSCALLS_SUITE: Final = TestsRunnerConfig(
     duration=100,
     install_dependencies=True,
 )
+FILE_SUITE: Final = TestsRunnerConfig(
+    description="Test suite for virtual memory.",
+    tests=(
+        FioDisksVariationTest,
+        FioDisksParallelLoadTest,
+        FioDisksNightly,
+        FioDisksScalingTest,
+        FioDisksDMDust,
+        FioDisksDMDelay,
+    ),
+    experiment_type="all",
+    duration=40,
+    install_dependencies=True,
+)
 YOCTO_CONF: Final = (
     "SSH_YOCTO_ADDR",
     "SSH_YOCTO_USER",
@@ -108,7 +124,7 @@ SUSE_156_CONF: Final = (
 def main() -> None:
     logger = logging.getLogger()
     set_handlers(logger, Path("processing.log"))
-    for suite in (MEMORY_SUITE, SYSCALLS_SUITE, ALL_SUBSYSTEMS_SUITE):
+    for suite in (FILE_SUITE, MEMORY_SUITE, SYSCALLS_SUITE, ALL_SUBSYSTEMS_SUITE):
         suse_runner = TestsRunner(
             wait_remote(*SUSE_156_CONF) or sys.exit(1),
             suite,
