@@ -94,7 +94,7 @@ SYSCALLS_SUITE: Final = TestsRunnerConfig(
     install_dependencies=True,
 )
 FILE_SUITE: Final = TestsRunnerConfig(
-    description="Test suite for virtual memory.",
+    description="Test suite for file subsystem.",
     tests=(
         FioDisksVariationTest,
         FioDisksParallelLoadTest,
