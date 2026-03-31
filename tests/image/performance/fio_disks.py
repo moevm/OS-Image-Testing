@@ -1,4 +1,5 @@
 import logging
+import queue
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -45,6 +46,20 @@ DMDUST_READ_WORKLOAD: tuple[FioWorkload, ...] = (
 )
 
 DMDUST_WRITE_WORKLOAD: tuple[FioWorkload, ...] = (FioWorkload("seq_write_1M", "write", "1M", 1.0),)
+
+SMALL_BLOCK_WORKLOAD: tuple[FioWorkload, ...] = (
+    FioWorkload("rand_write_512b", "randwrite", "512b", 1.0),
+    FioWorkload("rand_write_4k", "randwrite", "4k", 1.0),
+    FioWorkload("rand_read_512b", "randread", "512b", 1.0),
+    FioWorkload("rand_read_4k", "randread", "4k", 1.0),
+)
+
+LARGE_BLOCK_WORKLOAD: tuple[FioWorkload, ...] = (
+    FioWorkload("seq_write_1M", "write", "1M", 1.0),
+    FioWorkload("seq_write_256k", "write", "256k", 1.0),
+    FioWorkload("seq_read_1M", "read", "1M", 1.0),
+    FioWorkload("seq_read_256k", "read", "256k", 1.0),
+)
 
 
 class FioDisksScalingTest(AbstractRunnableTimeLimitedTest):
@@ -227,6 +242,70 @@ class FioDisksVariationTest(AbstractRunnableTimeLimitedTest):
             yield from _handle_fio_suite(
                 client, cfg, f"FIO variation offset={offset}, incr={offset_incr} PASSED."
             )
+
+
+class FioDisksParallelLoadTest(AbstractRunnableTimeLimitedTest):
+    """Test that runs fio parallel mixed workloads."""
+
+    def __init__(self, timeout: int) -> None:
+        super().__init__("Fio parallel load test.", frozenset({Subsystem.FILE}), timeout=timeout)
+
+    def _run(
+        self,
+        executor: ThreadPoolExecutor,
+        client: SSHClient | None,
+        timeout: int,
+    ) -> Iterable[TestResult]:
+        configs = [
+            FioSuiteConfig(
+                suite="small",
+                duration_sec=timeout,
+                results_dir=Path().home() / "fio",
+                workloads=SMALL_BLOCK_WORKLOAD,
+            ),
+            FioSuiteConfig(
+                suite="large",
+                duration_sec=timeout,
+                results_dir=Path().home() / "fio",
+                workloads=LARGE_BLOCK_WORKLOAD,
+            ),
+            FioSuiteConfig(
+                suite="small-with-offset",
+                duration_sec=timeout,
+                results_dir=Path().home() / "fio",
+                workloads=SMALL_BLOCK_WORKLOAD,
+                offset="512b",
+                offset_increment="3k",
+            ),
+            FioSuiteConfig(
+                suite="large-with-offset",
+                duration_sec=timeout,
+                results_dir=Path().home() / "fio",
+                workloads=LARGE_BLOCK_WORKLOAD,
+                offset_increment="3k",
+            ),
+        ]
+        q = queue.Queue()
+        for cfg in configs:
+            futures = [
+                executor.submit(
+                    _enqueue_fio_results, client, cfg, "FIO parallel load test PASSED.", q
+                )
+            ]
+
+        while any(not f.done() for f in futures) or not q.empty():
+            try:
+                r = q.get(timeout=0.5)
+            except queue.Empty:
+                continue
+            yield r
+
+
+def _enqueue_fio_results(
+    client: SSHClient | None, cfg: FioSuiteConfig, msg: str, q: queue.Queue[TestResult]
+) -> Iterable[TestResult]:
+    for result in _handle_fio_suite(client, cfg, msg):
+        q.put(result)
 
 
 def _handle_fio_suite(
