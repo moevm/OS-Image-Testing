@@ -188,6 +188,47 @@ class FioDisksDMDust(AbstractRunnableTimeLimitedTest):
         dm.remove_dm_device(device_name="dust1")
 
 
+class FioDisksvariationTest(AbstractRunnableTimeLimitedTest):
+    """Test that runs fio on a disk with variations of bs, rw and offset."""
+
+    def __init__(self, timeout: int) -> None:
+        super().__init__(
+            "Fio parameter variation test.", frozenset({Subsystem.FILE}), timeout=timeout
+        )
+
+    def _run(
+        self,
+        executor: ThreadPoolExecutor,  # noqa: ARG002
+        client: SSHClient | None,
+        timeout: int,
+    ) -> Iterable[TestResult]:
+        bs_values = ["512b", "4k", "256k", "1m", "2m", "4m"]
+        rw_values = ["write", "read", "randread", "randwrite"]
+        offset_cases = [
+            ("0", "0"),
+            ("512b", None),
+            ("0", "3k"),
+        ]
+
+        for offset, offset_incr in offset_cases:
+            workloads = tuple(
+                FioWorkload(f"{rw}_{bs}", rw=rw, bs=bs, weight=1.0)
+                for bs in bs_values
+                for rw in rw_values
+            )
+            cfg = FioSuiteConfig(
+                suite=f"variation-offset-{offset}-{offset_incr or 'none'}",
+                duration_sec=timeout,
+                results_dir=Path().home() / "fio",
+                workloads=workloads,
+                offset=offset,
+                offset_increment=offset_incr,
+            )
+            yield from _handle_fio_suite(
+                client, cfg, f"FIO variation offset={offset}, incr={offset_incr} PASSED."
+            )
+
+
 def _handle_fio_suite(
     client: SSHClient | None, cfg: FioSuiteConfig, msg: str
 ) -> Iterable[TestResult]:
