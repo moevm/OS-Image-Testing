@@ -30,6 +30,7 @@ class PhoronixTestSuite(PkgMgrMixin, GenericUtil):
             "make",
             "autoconf",
             "Mesa-demo-x",
+            "hdparm",
         ]
         return self._install_packages(packages)
 
@@ -64,16 +65,80 @@ class PhoronixTestSuite(PkgMgrMixin, GenericUtil):
                 return
         logger.info("PTS test '%s' removed", test_name)
 
-    def run_test(self, test_name: str, run_count: int) -> ExecResult:
+    def run_test(self, test_name: str, run_count: int) -> ExecResult:  # noqa: PLR0912, C901
         """Runs a given test with set amount of iterations."""
         ret = self.install_test(test_name)
         if not ret:
             logger.error("Error installing PTS test: %s", test_name)
         logger.info("PTS test '%s' started", test_name)
-        result = common_run_command(
-            [f"FORCE_TIMES_TO_RUN={run_count}", self.name, "batch-run", test_name],
-            ssh_client=self.ssh_client,
-        )
+        if "pts/hdparm-read" in test_name:
+            setup_answers = "y\n" + "n\n" * 6
+            commands = [
+                ["echo", "-e", f'"{setup_answers}"'],
+                ["sudo", "phoronix-test-suite", "batch-setup"],
+            ]
+            logger.info("Setting up PTS for %s test.", test_name)
+            for result in pipeline(cmds=commands, ssh_client=self.ssh_client, pass_output=True):
+                if result.returncode:
+                    logger.error("PTS setup failed: '%s'", result.stderr)
+                    return result
+            inst_res = common_run_command(
+                ["sudo", self.name, "install", test_name],
+                ssh_client=self.ssh_client,
+            )
+            if inst_res.returncode:
+                logger.error("Installation of PTS test %s failed. %s", test_name, inst_res.stderr)
+            result = common_run_command(
+                ["sudo", f"FORCE_TIMES_TO_RUN={run_count}", self.name, "batch-run", test_name],
+                ssh_client=self.ssh_client,
+            )
+            last_result = None
+            for r in pipeline(
+                [
+                    ["sudo", self.name, "list-results"],
+                    ["grep", "-oE", "'[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{4}'"],
+                    ["tail", "-1"],
+                ],
+                self.ssh_client,
+                pass_output=True,
+            ):
+                if r.returncode:
+                    logger.warning("PTS results are missing")
+                last_result = r
+            if last_result is not None:
+                get_home_result = common_run_command(["echo", "$HOME"])
+                if get_home_result.returncode:
+                    logger.warning("Failed to copy %s test results.", test_name)
+                copy_result = common_run_command(
+                    [
+                        "sudo",
+                        "cp",
+                        "-r",
+                        f"/var/lib/phoronix-test-suite/test-results/{last_result.stdout}",
+                        f"{get_home_result.stdout}/.phoronix-test-suite/test-results/",
+                    ],
+                    ssh_client=self.ssh_client,
+                )
+                if copy_result.returncode:
+                    logger.warning("Failed to copy %s test results.", test_name)
+        elif "pts/appleseed" in test_name:
+            result = common_run_command(
+                [
+                    "echo",
+                    "1",
+                    "|",
+                    f"FORCE_TIMES_TO_RUN={run_count}",
+                    self.name,
+                    "batch-run",
+                    test_name,
+                ],
+                ssh_client=self.ssh_client,
+            )
+        else:
+            result = common_run_command(
+                [f"FORCE_TIMES_TO_RUN={run_count}", self.name, "batch-run", test_name],
+                ssh_client=self.ssh_client,
+            )
         if result.returncode:
             logger.warning("PTS test '%s' failed", test_name)
         else:
