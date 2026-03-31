@@ -224,13 +224,13 @@ class FioDisksVariationTest(AbstractRunnableTimeLimitedTest):
             ("512b", None),
             ("0", "3k"),
         ]
+        workloads = tuple(
+            FioWorkload(f"{rw}_{bs}", rw=rw, bs=bs, weight=1.0)
+            for bs in bs_values
+            for rw in rw_values
+        )
 
         for offset, offset_incr in offset_cases:
-            workloads = tuple(
-                FioWorkload(f"{rw}_{bs}", rw=rw, bs=bs, weight=1.0)
-                for bs in bs_values
-                for rw in rw_values
-            )
             cfg = FioSuiteConfig(
                 suite=f"variation-offset-{offset}-{offset_incr or 'none'}",
                 duration_sec=timeout,
