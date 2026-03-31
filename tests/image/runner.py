@@ -3,6 +3,7 @@ import sys
 from pathlib import Path
 from typing import Final
 
+from image.endurance.fault_injection import FaultInjectionEnduranceTest
 from image.endurance.memory import StressNgEnduranceMemoryTest
 from image.endurance.network import WgetEnduranceNetworkTest
 from image.endurance.syscalls import (
@@ -62,6 +63,7 @@ ALL_SUBSYSTEMS_SUITE: Final = TestsRunnerConfig(
         StressNgEnduranceMemoryTest,
         StressNgPerformanceMemoryTest,
         SarWithStressNGTest,
+        FaultInjectionEnduranceTest,
     ),
     experiment_type="all",
     duration=200,
