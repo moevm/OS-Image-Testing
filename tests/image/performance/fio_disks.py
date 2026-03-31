@@ -238,6 +238,7 @@ class FioDisksVariationTest(AbstractRunnableTimeLimitedTest):
                 workloads=workloads,
                 offset=offset,
                 offset_increment=offset_incr,
+                size="50%",
             )
             yield from _handle_fio_suite(
                 client, cfg, f"FIO variation offset={offset}, incr={offset_incr} PASSED."
@@ -262,12 +263,14 @@ class FioDisksParallelLoadTest(AbstractRunnableTimeLimitedTest):
                 duration_sec=timeout,
                 results_dir=Path().home() / "fio",
                 workloads=SMALL_BLOCK_WORKLOAD,
+                size="20%",
             ),
             FioSuiteConfig(
                 suite="large",
                 duration_sec=timeout,
                 results_dir=Path().home() / "fio",
                 workloads=LARGE_BLOCK_WORKLOAD,
+                size="20%",
             ),
             FioSuiteConfig(
                 suite="small-with-offset",
@@ -276,6 +279,7 @@ class FioDisksParallelLoadTest(AbstractRunnableTimeLimitedTest):
                 workloads=SMALL_BLOCK_WORKLOAD,
                 offset="512b",
                 offset_increment="3k",
+                size="20%",
             ),
             FioSuiteConfig(
                 suite="large-with-offset",
@@ -283,6 +287,7 @@ class FioDisksParallelLoadTest(AbstractRunnableTimeLimitedTest):
                 results_dir=Path().home() / "fio",
                 workloads=LARGE_BLOCK_WORKLOAD,
                 offset_increment="3k",
+                size="20%",
             ),
         ]
         q = queue.Queue()
