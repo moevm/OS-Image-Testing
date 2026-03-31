@@ -94,6 +94,16 @@ SYSCALLS_SUITE: Final = TestsRunnerConfig(
     duration=100,
     install_dependencies=True,
 )
+IPC_SUITE: Final = TestsRunnerConfig(
+    description="Test suite for IPC subsystem.",
+    tests=(
+        LTPSyscallsTest(),
+        StressNgIterTestIPC,
+    ),
+    experiment_type="all",
+    duration=100,
+    install_dependencies=True,
+)
 YOCTO_CONF: Final = (
     "SSH_YOCTO_ADDR",
     "SSH_YOCTO_USER",
@@ -111,7 +121,7 @@ SUSE_156_CONF: Final = (
 def main() -> None:
     logger = logging.getLogger()
     set_handlers(logger, Path("processing.log"))
-    for suite in (MEMORY_SUITE, SYSCALLS_SUITE, ALL_SUBSYSTEMS_SUITE):
+    for suite in (MEMORY_SUITE, SYSCALLS_SUITE, IPC_SUITE, ALL_SUBSYSTEMS_SUITE):
         suse_runner = TestsRunner(
             wait_remote(*SUSE_156_CONF) or sys.exit(1),
             suite,

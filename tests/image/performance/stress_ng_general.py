@@ -148,24 +148,24 @@ class StressNgIterTestIPC(StressNgTest):
         self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int
     ) -> Iterable[TestResult]:
         stress_ng = StressNg(client)
-        test_keys = [
-            "dekker",
-            "fifo",
-            "futex",
-            "mq",
-            "msg",
-            "peterson",
-            "pipe",
-            "pipeherd",
-            "sem",
-            "sem-sysv",
-            "shm",
-            "shm-sysv",
-            "sigq",
-            "sock",
-        ]
+
         for param in range(1, IPC_MAX + 1):
-            test_params = dict.fromkeys(test_keys, param)
+            test_params = dict(  # noqa: C408
+                dekker=param,
+                fifo=param,
+                futex=param,
+                mq=param,
+                msg=param,
+                peterson=param,
+                pipe=param,
+                pipeherd=param,
+                sem=param,
+                sem_sysv=param,
+                shm=param,
+                shm_sysv=param,
+                sigq=param,
+                sock=param,
+            )
             yield from self.run_test(
                 stress_ng=stress_ng, executor=executor, timeout=timeout, **test_params
             )
