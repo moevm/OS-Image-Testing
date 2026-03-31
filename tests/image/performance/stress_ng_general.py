@@ -21,7 +21,6 @@ tests: list[dict[str, Any]] = [
     {"syscall": 0},
     {"mq": 4, "pipe": 4, "sem": 4, "shm": 4},
 ]
-IPC_MAX = 16
 
 
 def combine_params(test_combination: list[dict[str, Any]]) -> dict[str, Any]:
@@ -149,7 +148,8 @@ class StressNgIterTestIPC(StressNgTest):
     ) -> Iterable[TestResult]:
         stress_ng = StressNg(client)
 
-        for param in range(1, IPC_MAX + 1):
+        ipc_max = int(client(["nproc"]).stdout)
+        for param in range(1, ipc_max + 1):
             test_params = dict(  # noqa: C408
                 dekker=param,
                 fifo=param,

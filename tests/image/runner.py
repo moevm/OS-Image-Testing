@@ -7,6 +7,7 @@ from image.endurance.memory import StressNgEnduranceMemoryTest
 from image.endurance.network import WgetEnduranceNetworkTest
 from image.endurance.syscalls import (
     LTPSyscallsTest,
+    LTPSyscallsIPCTest,
     StressNgEnduranceSyscallsTest,
 )
 from image.performance.cpu import ChaosbladeCPUTest, StressNgPerformanceCpuTest
@@ -97,7 +98,7 @@ SYSCALLS_SUITE: Final = TestsRunnerConfig(
 IPC_SUITE: Final = TestsRunnerConfig(
     description="Test suite for IPC subsystem.",
     tests=(
-        LTPSyscallsTest(),
+        LTPSyscallsIPCTest(),
         StressNgIterTestIPC,
     ),
     experiment_type="all",

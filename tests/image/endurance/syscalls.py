@@ -45,6 +45,37 @@ class LTPSyscallsTest(AbstractRunnableManyTimesTest):
                 status=TestStatus.FAILED,
             )
 
+class LTPSyscallsIPCTest(AbstractRunnableManyTimesTest):
+    def __init__(self, iterations: int = 1) -> None:
+        super().__init__("Test syscalls-ipc with LTP.", frozenset({Subsystem.SYSCALLS}), iterations)
+
+    def _run(
+        self,
+        executor: ThreadPoolExecutor,  # noqa: ARG002
+        client: SSHClient | None,
+        iterations: int,  # noqa: ARG002
+    ) -> Iterable[TestResult]:
+        kirk = Kirk(client)
+        available_suites = kirk.list_suites()
+        if "syscalls-ipc" not in available_suites:
+            self.logger.warning("'syscalls-ipc' suite not available for the image with LTP.")
+            return TestResult(status=TestStatus.SKIPPED)
+        started_at = datetime.now(tz=ZoneInfo("UTC"))
+        res, metrics_path = kirk.run(["syscalls-ipc"])
+        if metrics_path:
+            yield TestResult(
+                command=" ".join(res.cmd),
+                metrics=kirk.metrics_to_json(metrics_path),
+                started_at=started_at,
+                status=TestStatus.PASSED,
+            )
+        else:
+            yield TestResult(
+                command=" ".join(res.cmd),
+                started_at=started_at,
+                status=TestStatus.FAILED,
+            )
+
 
 class StressNgEnduranceSyscallsTest(StressNgTest):
     def __init__(self, timeout: int) -> None:
