@@ -122,13 +122,13 @@ def main() -> None:
         yocto_runner.run()
 
     client = wait_remote(*YOCTO_CONF) or sys.exit(1)
-    exit_code = ProfiledPlanRunner(
+    has_failures = ProfiledPlanRunner(
         client=client,
         db=ImgtestsDatabase(),
     ).run_from_env()
     client.close()
 
-    sys.exit(exit_code)
+    sys.exit(1 if has_failures else 0)
 
 
 if __name__ == "__main__":

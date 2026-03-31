@@ -15,19 +15,16 @@ def parse_size_to_bytes(value: str) -> int | None:
         raise ValueError(err_msg)
 
     suffix = normalized[-1].lower()
+    number = normalized[:-1]
     match suffix:
         case "k":
             multiplier = 1024
-            number = normalized[:-1]
         case "m":
             multiplier = 1024**2
-            number = normalized[:-1]
         case "g":
             multiplier = 1024**3
-            number = normalized[:-1]
         case "t":
             multiplier = 1024**4
-            number = normalized[:-1]
         case _:
             multiplier = 1
             number = normalized

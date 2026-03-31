@@ -422,7 +422,7 @@ class ProfiledPlanRunner(BaseRunner):
         self.db = db
         self.executor = PlanExecutor(client=client, db=db)
 
-    def run_from_env(self) -> int:
+    def run_from_env(self) -> bool:
         subsystems = self._parse_subsystems(env_var_to_type("PLAN_SUBSYSTEMS", str, "all"))
         results_root = env_var_to_type("PLAN_RESULTS_DIR", Path, Path("results/profiled"))
         pattern = self._parse_pattern(env_var_to_type("PLAN_PATTERN", str, ""))
@@ -444,7 +444,7 @@ class ProfiledPlanRunner(BaseRunner):
             pattern=pattern,
             config_id=config_id,
         )
-        return 1 if failures else 0
+        return failures > 0
 
     def _run_matrix(
         self,
@@ -453,7 +453,7 @@ class ProfiledPlanRunner(BaseRunner):
         results_root: Path,
         pattern: LoadPattern | None,
         config_id: int,
-    ) -> int:
+    ) -> bool:
         total_failures = 0
         default_duration = env_var_to_type("PLAN_DURATION_SEC", int, 120)
 
@@ -477,7 +477,7 @@ class ProfiledPlanRunner(BaseRunner):
                 config_id=config_id,
             )
 
-        return 1 if total_failures else 0
+        return total_failures > 0
 
     def _run_one(  # noqa: PLR0913
         self,
