@@ -188,7 +188,7 @@ class FioDisksDMDust(AbstractRunnableTimeLimitedTest):
         dm.remove_dm_device(device_name="dust1")
 
 
-class FioDisksvariationTest(AbstractRunnableTimeLimitedTest):
+class FioDisksVariationTest(AbstractRunnableTimeLimitedTest):
     """Test that runs fio on a disk with variations of bs, rw and offset."""
 
     def __init__(self, timeout: int) -> None:
