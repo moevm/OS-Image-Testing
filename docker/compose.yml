@@ -118,6 +118,8 @@ services:
       PGPORT: ${POSTGRES_PORT}
     ports:
       - ${POSTGRES_PORT}:${POSTGRES_PORT}
+    volumes:
+      - imgtests-postgres-data:/var/lib/postgresql/data
     networks:
       yocto-network:
         ipv4_address: ${POSTGRES_ADDRESS}
@@ -166,6 +168,8 @@ volumes:
   imgtests-open-suse-files:
     external: true
   imgtests-vmetrics-data:
+    external: true
+  imgtests-postgres-data:
     external: true
 
 networks:
