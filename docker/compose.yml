@@ -119,7 +119,7 @@ services:
     ports:
       - ${POSTGRES_PORT}:${POSTGRES_PORT}
     volumes:
-      - imgtests-postgres-data:/var/lib/postgresql/data
+      - ${DOCKER_POSTGRES_VOLUME}:/var/lib/postgresql/data
     networks:
       yocto-network:
         ipv4_address: ${POSTGRES_ADDRESS}
