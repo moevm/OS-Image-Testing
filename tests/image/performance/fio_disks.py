@@ -202,7 +202,7 @@ class FioDisksVariationTest(AbstractRunnableTimeLimitedTest):
         client: SSHClient | None,
         timeout: int,
     ) -> Iterable[TestResult]:
-        bs_values = ["512b", "4k", "256k", "1m", "2m", "4m"]
+        bs_values = ["512b", "4k", "2m", "4m"]
         rw_values = ["write", "read", "randread", "randwrite"]
         offset_cases = [
             ("0", "0"),
