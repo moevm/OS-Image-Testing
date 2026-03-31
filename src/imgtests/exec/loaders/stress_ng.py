@@ -384,7 +384,7 @@ class StressNg(PkgMgrMixin, GenericUtil):
             *create_opt("sem-sysv", sem_sysv),
             *create_opt("sem-ops", sem_ops),
             *create_opt("shm", shm),
-            *create_opt("shm-sys", shm_sysv),
+            *create_opt("shm_sysv", shm_sysv),
             *create_opt("shm-ops", shm_ops),
             *create_opt("verify", verify),
             *create_opt("dekker", dekker),
