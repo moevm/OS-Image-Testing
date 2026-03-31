@@ -104,7 +104,7 @@ FILE_SUITE: Final = TestsRunnerConfig(
         FioDisksDMDelay,
     ),
     experiment_type="all",
-    duration=40,
+    duration=300,
     install_dependencies=True,
 )
 YOCTO_CONF: Final = (
