@@ -1,9 +1,11 @@
 from typing import TYPE_CHECKING
 
+from imgtests.exec.exec import ExecResult
+from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
 from imgtests.exec.utils import add_flag, create_opt, extract_version
 
 if TYPE_CHECKING:
-    from imgtests.exec.exec import ExecResult, SSHClient
+    from imgtests.exec.exec import SSHClient
     from imgtests.types import Version
 from imgtests.exec.base_util import BaseTestUtil, GenericUtil
 
@@ -13,9 +15,9 @@ class Lsblk(GenericUtil):
         super().__init__("lsblk", ssh_client)
 
 
-class Lshw(BaseTestUtil):
-    def __init__(self, ssh_client: SSHClient | None = None) -> None:
-        super().__init__("lshw", ssh_client)
+class Lshw(BaseTestUtil, PkgMgrMixin):
+    def __init__(self, ssh_client: SSHClient | None = None, use_sudo: bool = True) -> None:
+        super().__init__("lshw", ssh_client, use_sudo=use_sudo)
 
     def run(
         self,
@@ -58,3 +60,11 @@ class Lshw(BaseTestUtil):
         if result.returncode:
             return None
         return extract_version(result.stdout.strip())
+
+    def install(self) -> ExecResult:
+        """Install lshw via the system package manager."""
+        if self.path:
+            return ExecResult(
+                cmd=(), stderr=f"{self.name} already has been installed.", returncode=0
+            )
+        return self._install_packages(["lshw"])

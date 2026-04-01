@@ -63,7 +63,7 @@ class ImgtestsDatabase:
                     idx = line.find("=")
                     to_dict_tuple = (line[0:idx], line[idx + 1 :])
                     db_kconf[line[0:idx]] = line[idx + 1 :]
-        return self.insert_configuration(db_os, db_pkgs, db_cinfo, db_kconf)
+        return self.insert_configuration(db_os, db_pkgs, db_cinfo, db_kconf, sys_info.hardware)
 
     def insert_configuration(
         self,
@@ -71,12 +71,14 @@ class ImgtestsDatabase:
         packages: dict[str, Any] | None = None,
         core_info: str | None = None,
         core_config: dict[str, Any] | None = None,
+        hardware: dict[str, Any] | None = None,
     ) -> ConfigurationBase:
         configuration_object = ConfigurationBase(
             os=os,
             packages=packages,
             core_info=core_info,
             core_config=core_config,
+            hardware=hardware,
         )
 
         self._check_session()

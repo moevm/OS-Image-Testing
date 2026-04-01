@@ -269,7 +269,7 @@ class TestsRunner:
             PhoronixTestSuite,
             StressNg,
         )
-        from imgtests.exec.observers import NodeExporter, Sar, Time  # noqa: PLC0415
+        from imgtests.exec.observers import Lshw, NodeExporter, Sar, Time  # noqa: PLC0415
 
         self.logger.info("Installing dependencies. This may take a while.")
         for tool in (
@@ -283,6 +283,7 @@ class TestsRunner:
             Time,
             NodeExporter,
             Sar,
+            Lshw,
         ):
             tool_instance: BaseTestUtil = tool(self.__client)
             try:

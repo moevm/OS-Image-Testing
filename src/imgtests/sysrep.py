@@ -1,3 +1,4 @@
+import json
 from typing import TYPE_CHECKING, Any, NamedTuple
 
 from deepdiff import DeepDiff
@@ -12,6 +13,7 @@ from imgtests.exec.loaders import (
     PhoronixTestSuite,
     StressNg,
 )
+from imgtests.exec.observers import Lshw
 from imgtests.exec.observers.uname import Uname, UnameInfo
 from imgtests.exec.observers.zcat import Zcat
 from imgtests.exec.osinfo import get_os_release
@@ -47,6 +49,7 @@ class SystemInfo(NamedTuple):
     kernel_config: tuple[str, ...]
     package_list: tuple[str, ...]
     tools_versions: ToolsVersions
+    hardware: dict[str, Any]
 
 
 class SystemInfoDiff(NamedTuple):
@@ -85,6 +88,7 @@ def get_system_info(
             PhoronixTestSuite(ssh_client).version() or Version(""),
             Iperf3(ssh_client).version() or Version(""),
         ),
+        hardware=json.loads(Lshw(ssh_client).run(json=True).stdout.strip() or "{}"),
     )
 
 
