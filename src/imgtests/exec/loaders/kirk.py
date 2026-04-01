@@ -1,12 +1,16 @@
+import json
 import logging
 import shlex
+from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
+from zoneinfo import ZoneInfo
 
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
 from imgtests.exec.osinfo import get_os_release
 from imgtests.exec.pkgmgrs.zypper import Zypper
+from imgtests.exec.utils import create_opt
 from imgtests.types import Distro
 
 if TYPE_CHECKING:
@@ -15,6 +19,8 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 DEFAULT_LTP_RESULTS_DIR = Path("/var/tmp/ltp-results")  # noqa: S108
+DEBUGFS_MOUNTPOINT = Path("/sys/kernel/debug")
+MAX_FAULT_INJECTION = 100
 
 
 class Kirk(GenericUtil):
@@ -75,10 +81,40 @@ class Kirk(GenericUtil):
 
         return tuple(line.strip() for line in res.stdout.splitlines() if line.strip())
 
+    @staticmethod
+    def _validate_fault_injection(fault_injection: int) -> None:
+        if not 0 <= fault_injection <= MAX_FAULT_INJECTION:
+            err_msg = f"fault_injection must be in range 0..{MAX_FAULT_INJECTION}."
+            raise ValueError(err_msg)
+
+    def _ensure_debugfs(self) -> ExecResult:
+        debugfs_path = str(DEBUGFS_MOUNTPOINT)
+        result = common_run_command(("sudo", "mkdir", "-p", debugfs_path), self.ssh_client)
+        if result.returncode:
+            return result
+        mount_pattern = f"[[:space:]]{debugfs_path}[[:space:]]debugfs[[:space:]]"
+        result = common_run_command(
+            ("sudo", "grep", "-qs", mount_pattern, "/proc/mounts"),
+            self.ssh_client,
+        )
+        if result.returncode == 0 or result.returncode != 1:
+            return result
+        logger.info("Mounting debugfs to '%s'.", debugfs_path)
+        result = common_run_command(
+            ("sudo", "mount", "-t", "debugfs", "debugfs", debugfs_path),
+            self.ssh_client,
+        )
+
+        if result.returncode:
+            logger.info("Unmounting debugfs from '%s'.", debugfs_path)
+            common_run_command(("sudo", "umount", debugfs_path), self.ssh_client)
+        return result
+
     def run(  # noqa: PLR0911
         self,
         scenarios: Iterable[str],
         results_dir: str | Path = DEFAULT_LTP_RESULTS_DIR,
+        fault_injection: int | None = None,
     ) -> tuple[ExecResult, Path | None]:
         """Run an LTP scenario via kirk and store results as JSON."""
         results_dir_path = Path(results_dir)
@@ -87,6 +123,13 @@ class Kirk(GenericUtil):
         if not scenarios_list:
             scenarios_empty_msg = "scenarios must not be empty"
             raise ValueError(scenarios_empty_msg)
+
+        if fault_injection is not None:
+            self._validate_fault_injection(fault_injection)
+
+            debugfs_res = self._ensure_debugfs()
+            if debugfs_res.returncode:
+                return debugfs_res, None
 
         if self.ssh_client is None:
             try:
@@ -126,10 +169,20 @@ class Kirk(GenericUtil):
                 )
 
         suites_str = "_".join(scenarios_list)
-        report_name = f"{suites_str}.json"
+        timestamp = datetime.now(tz=ZoneInfo("UTC")).strftime("%Y-%m-%d_%H:%M:%S")
+        report_name = f"{suites_str}_{timestamp}.json"
 
         remote_json_path = remote_results_dir / report_name
-        res = self(["--run-suite", *scenarios_list, "--json-report", str(remote_json_path)])
+
+        cmd = [
+            *create_opt("fault-injection", fault_injection),
+            "--run-suite",
+            *scenarios_list,
+            "--json-report",
+            str(remote_json_path),
+        ]
+
+        res = self(cmd)
         if res.returncode:
             return res, None
 
@@ -160,3 +213,42 @@ class Kirk(GenericUtil):
             return res, None
 
         return res, local_json_path
+
+    @staticmethod
+    def metrics_to_bmf(metrics: Any) -> dict[str, dict[str, dict[str, Any]]]:
+        result: dict[str, dict[str, dict[str, Any]]] = {}
+        for test in metrics["results"]:
+            test_name = test["test_fqn"]
+            test_info = test["test"]
+
+            if not test_name or not test_info:
+                continue
+
+            arguments = test_info["arguments"]
+            arguments_str = " ".join(arguments) if arguments else ""
+
+            retval = test_info["retval"]
+            retval_str = retval[0] if retval else ""
+
+            bmf_data: dict[str, dict[str, Any]] = {
+                "status": {"value": test["status"]},
+                "command": {"value": test_info["command"]},
+                "arguments": {"value": arguments_str},
+                "log": {"value": test_info["log"]},
+                "retval": {"value": retval_str},
+                "duration": {"value": test_info["duration"]},
+                "failed": {"value": test_info["failed"]},
+                "passed": {"value": test_info["passed"]},
+                "broken": {"value": test_info["broken"]},
+                "skipped": {"value": test_info["skipped"]},
+                "warnings": {"value": test_info["warnings"]},
+                "result": {"value": test_info["result"]},
+            }
+
+            result[test_name] = bmf_data
+
+        return result
+
+    @staticmethod
+    def metrics_to_json(metrics: Path) -> dict[str, Any]:
+        return json.loads(metrics.read_text())

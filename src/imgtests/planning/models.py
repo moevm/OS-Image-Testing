@@ -3,16 +3,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from enum import Enum
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
-
-class Subsystem(str, Enum):
-    CPU = "cpu"
-    MEMORY = "memory"
-    DISK = "disk"
-    NETWORK = "network"
-    SYSCALL = "syscall"
+if TYPE_CHECKING:
+    from imgtests.types import Subsystem
 
 
 class TestKind(str, Enum):
@@ -68,7 +63,7 @@ class PlanStage:
 @dataclass(frozen=True)
 class PlanRequest:
     duration_sec: int
-    subsystems: tuple[Subsystem, ...]
+    subsystems: frozenset[Subsystem]
     test_kind: TestKind
     pattern: LoadPattern | None = None
 
@@ -78,14 +73,14 @@ class TestPlan:
     plan_id: str
     created_at: datetime
     duration_sec: int
-    subsystems: tuple[Subsystem, ...]
+    subsystems: frozenset[Subsystem]
     test_kind: TestKind
     stages: tuple[PlanStage, ...]
 
     @staticmethod
     def new(
         duration_sec: int,
-        subsystems: tuple[Subsystem, ...],
+        subsystems: frozenset[Subsystem],
         test_kind: TestKind,
         stages: tuple[PlanStage, ...],
     ) -> TestPlan:
@@ -103,7 +98,7 @@ class TestPlan:
             "plan_id": self.plan_id,
             "created_at": self.created_at.isoformat(),
             "duration_sec": self.duration_sec,
-            "subsystems": [x.value for x in self.subsystems],
+            "subsystems": [x.value for x in sorted(self.subsystems, key=lambda item: item.value)],
             "test_kind": self.test_kind.value,
             "stages": [stage.to_dict() for stage in self.stages],
         }

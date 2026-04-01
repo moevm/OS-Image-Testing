@@ -16,6 +16,7 @@ services:
       - ${DOCKER_SSTATE_VOLUME}:${POKY_DIR}/sstate-cache
       - ${HOST_CONF_PATH}/local.conf:${BUILD_DIR}/conf/local.conf
       - ${HOST_CONF_PATH}/packages.conf:${BUILD_DIR}/conf/packages.conf
+      - ${HOST_CONF_PATH}/added_packages.conf:${BUILD_DIR}/conf/added_packages.conf
       - ${HOST_LAYERS_PATH}/meta-image-tests:${POKY_DIR}/meta-image-tests
       - ${HOST_SCRIPTS_PATH}/add-layers.sh:${POKY_DIR}/add-layers.sh
     environment:
@@ -82,7 +83,7 @@ services:
       SSH_SUSE_PASS: ${PASSWORD}
       SSH_SUSE_PORT_156: ${SSH_SUSE_PORT_156}
       SSH_SUSE_ADDR_156: ${SUSE_ADDRESS_156}
-      SSH_POSTGRES_PORT: ${SSH_POSTGRES_PORT}
+      POSTGRES_PORT: ${POSTGRES_PORT}
       VMETRICS_ADDRESS: ${VMETRICS_ADDRESS}
       VMETRICS_PORT: ${VMETRICS_PORT}
     networks:
@@ -114,15 +115,15 @@ services:
       POSTGRES_USER: ${USER}
       POSTGRES_PASSWORD: ${PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-      PGPORT: ${SSH_POSTGRES_PORT}
+      PGPORT: ${POSTGRES_PORT}
     ports:
-      - ${SSH_POSTGRES_PORT}:${SSH_POSTGRES_PORT}
+      - ${POSTGRES_PORT}:${POSTGRES_PORT}
     networks:
       yocto-network:
         ipv4_address: ${POSTGRES_ADDRESS}
-    command: -p ${SSH_POSTGRES_PORT}
+    command: -p ${POSTGRES_PORT}
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${USER} -d ${POSTGRES_DB} -p ${SSH_POSTGRES_PORT}"]
+      test: ["CMD-SHELL", "pg_isready -U ${USER} -d ${POSTGRES_DB} -p ${POSTGRES_PORT}"]
       interval: 10s
       timeout: 5s
       retries: 5

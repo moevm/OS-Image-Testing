@@ -1,15 +1,16 @@
+from contextlib import suppress
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
 from imgtests.exec.base_util import GenericUtil
-from imgtests.exec.exec import ExecResult, SSHClient
+from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
 from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
 from imgtests.exec.pkgmgrs.pip3 import Pip3
 from imgtests.exec.utils import create_opt
+from imgtests.types import MetricSample
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
-    from imgtests.types import Version
+    from imgtests.types import Subsystem, Version
 
 IOPattern = Literal[
     "read", "write", "trim", "randread", "randwrite", "randtrim", "readwrite", "randrw", "trimwrite"
@@ -29,7 +30,30 @@ IOEngine = Literal[
 Direct = Literal[1] | None
 
 
+def get_available_bytes(client: SSHClient, path: str | Path) -> int | None:
+    with suppress(Exception):
+        res = common_run_command(
+            ["df", "--output=avail", "--block-size=1", str(path)],
+            client,
+        )
+        if res.returncode:
+            return None
+
+        out = (res.stdout or "").strip().splitlines()
+        if not out:
+            return None
+
+        try:
+            return int(out[-1].strip())
+        except (ValueError, IndexError):
+            return None
+
+    return None
+
+
 class Fio(PkgMgrMixin, GenericUtil):
+    DEFAULT_WORKDIR = Path("/var/lib/imgtests-fio")
+
     def __init__(self, ssh_client: SSHClient | None = None) -> None:
         super().__init__("fio", ssh_client)
 
@@ -53,12 +77,20 @@ class Fio(PkgMgrMixin, GenericUtil):
             lines = lines[1:]
         return tuple(line.strip() for line in lines)
 
+    @property
+    def workdir(self) -> Path:
+        common_run_command(["mkdir", "-p", str(self.DEFAULT_WORKDIR)], self.ssh_client)
+        return self.DEFAULT_WORKDIR
+
+    def default_filename(self, filename: str) -> str:
+        return f"{self.workdir}/{filename}"
+
     def run(  # noqa: PLR0913
         self,
         name: str | None = None,
         loops: int | None = None,
         numjobs: int | None = None,
-        filename: str | None = None,
+        filename: Path | None = None,
         size: str | None = None,
         readwrite: IOPattern | None = None,
         ioengine: IOEngine | None = None,
@@ -72,7 +104,7 @@ class Fio(PkgMgrMixin, GenericUtil):
             name (str | None): Name of the job.
             loops (int | None): Number of iterations of this job.
             numjobs (int | None): Number of fio jobs.
-            filename (str | None): Output filename or block device.
+            filename (Path | None): Output filename or block device.
             size (str | None): The total size of file I/O for each thread of this job.
             readwrite (IOPattern | None): Type of I/O pattern.
             ioengine (IOEngine| None): How the job issues I/O.
@@ -106,6 +138,55 @@ class Fio(PkgMgrMixin, GenericUtil):
             **kwargs,
         )
 
+    @staticmethod
+    def metrics_to_bmf(metrics: dict[str, Any]) -> dict[str, Any]:  # noqa: PLR0912, C901
+        result: dict[str, Any] = {}
+        for job in metrics.get("jobs", []):
+            name = job["jobname"]
+            for op in ["read", "write"]:
+                if op not in job:
+                    continue
+                job_res = job[op]
+                fio_metrics = {}
+                for metric in [
+                    "io_bytes",
+                    "io_kbytes",
+                    "bw_bytes",
+                    "bw",
+                    "runtime",
+                    "total_ios",
+                    "iops",
+                ]:
+                    if metric in job_res:
+                        fio_metrics[metric] = {"value": job_res[metric]}
+                for metric in ["bw", "iops"]:
+                    if (
+                        f"{metric}_mean" in job_res
+                        and f"{metric}_min" in job_res
+                        and f"{metric}_max" in job_res
+                    ):
+                        fio_metrics[f"{metric}_mean"] = {
+                            "value": job_res[f"{metric}_mean"],
+                            "lower_value": job_res[f"{metric}_min"],
+                            "upper_value": job_res[f"{metric}_max"],
+                        }
+                for lat in ["slat_ns", "clat_ns", "lat_ns"]:
+                    if lat in job_res and all(k in job_res[lat] for k in ["mean", "min", "max"]):
+                        fio_metrics[lat] = {
+                            "value": job_res[lat]["mean"],
+                            "lower_value": job_res[lat]["min"],
+                            "upper_value": job_res[lat]["max"],
+                        }
+                        if fio_metrics:
+                            result[f"{name}_{op}"] = fio_metrics
+            cpu = {}
+            for metric in ["usr_cpu", "sys_cpu", "ctx"]:
+                if metric in job:
+                    cpu[metric] = {"value": job[metric]}
+            if cpu:
+                result[f"{name}_cpu"] = cpu
+        return result
+
 
 class FioPlot(PkgMgrMixin, GenericUtil):
     def __init__(self, ssh_client: SSHClient | None = None) -> None:
@@ -125,4 +206,88 @@ class FioPlot(PkgMgrMixin, GenericUtil):
         for package in installed_packages:
             if package.name == self.name:
                 return package.version
+        return None
+
+
+def fio_metrics_to_samples(
+    payload: dict[str, Any],
+    stage_name: str,
+    subsystem: Subsystem,
+) -> list[MetricSample]:
+    jobs = payload.get("jobs", [])
+    if not isinstance(jobs, list):
+        return []
+
+    wanted_p = {
+        "50.000000": 50,
+        "90.000000": 90,
+        "95.000000": 95,
+        "99.000000": 99,
+        "99.900000": 999,
+    }
+
+    out: list[MetricSample] = []
+    for job in jobs:
+        if not isinstance(job, dict):
+            continue
+
+        for op in ("read", "write", "trim"):
+            op_data = job.get(op, {})
+            if not isinstance(op_data, dict):
+                continue
+            out.extend(
+                _fio_op_samples(
+                    stage_name=stage_name,
+                    subsystem=subsystem.value,
+                    op=op,
+                    op_data=op_data,
+                    wanted_p=wanted_p,
+                )
+            )
+
+    return out
+
+
+def _fio_op_samples(
+    stage_name: str,
+    subsystem: str,
+    op: str,
+    op_data: dict[str, Any],
+    wanted_p: dict[str, int],
+) -> list[MetricSample]:
+    out: list[MetricSample] = []
+
+    iops = _safe_float(op_data.get("iops"))
+    bw = _safe_float(op_data.get("bw"))
+    runtime_ms = _safe_float(op_data.get("runtime"))
+
+    clat = op_data.get("clat_ns") or {}
+    clat_mean = _safe_float(clat.get("mean")) if isinstance(clat, dict) else None
+
+    if iops is not None:
+        out.append(MetricSample(stage_name, subsystem, f"fio.{op}.iops", iops))
+    if bw is not None:
+        out.append(MetricSample(stage_name, subsystem, f"fio.{op}.bw_kib_s", bw))
+    if runtime_ms is not None:
+        out.append(MetricSample(stage_name, subsystem, f"fio.{op}.runtime_ms", runtime_ms))
+    if clat_mean is not None:
+        out.append(MetricSample(stage_name, subsystem, f"fio.{op}.clat_mean_ns", clat_mean))
+
+    pct = clat.get("percentile") if isinstance(clat, dict) else None
+    if isinstance(pct, dict):
+        for key, p_int in wanted_p.items():
+            fv = _safe_float(pct.get(key))
+            if fv is not None:
+                out.append(MetricSample(stage_name, subsystem, f"fio.{op}.clat_p{p_int}_ns", fv))
+
+    return out
+
+
+def _safe_float(value: Any) -> float | None:
+    if value is None:
+        return None
+
+    try:
+        return float(value)
+    except (TypeError, ValueError):
         return None

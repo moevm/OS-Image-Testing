@@ -8,5 +8,4 @@ from .kirk import Kirk as Kirk
 from .perf import Perf as Perf
 from .perf import PerfBenchMetrics as PerfBenchMetrics
 from .pts import PhoronixTestSuite as PhoronixTestSuite
-from .pts import setup_pts as setup_pts
 from .stress_ng import StressNg as StressNg

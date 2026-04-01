@@ -56,10 +56,8 @@ class PhoronixTestSuite(PkgMgrMixin, GenericUtil):
                 return
         logger.info("PTS test '%s' removed", test_name)
 
-    def run_test(self, test_name: str, run_count: int) -> ExecResult | None:
+    def run_test(self, test_name: str, run_count: int) -> ExecResult:
         """Runs a given test with set amount of iterations."""
-        if not self.install_test(test_name=test_name):
-            return None
         logger.info("PTS test '%s' started", test_name)
         result = common_run_command(
             [f"FORCE_TIMES_TO_RUN={run_count}", self.name, "batch-run", test_name],
@@ -95,23 +93,19 @@ class PhoronixTestSuite(PkgMgrMixin, GenericUtil):
             last_result = result
         return last_result.stdout.strip() if last_result is not None else None
 
-    def get_result_json(self, result_name: str | None = None) -> dict[str, Any]:
+    def get_result_json(self, result_name: str | None = None) -> dict[str, Any] | None:
         """Creates and returns a json file if result name exists.
 
         Args:
             result_name (str | None): Specific results or latest by default.
 
-        Raises:
-            ValueError: When there are no test results or JSON is corrupted.
-
         Returns:
-            JSON file with raw output.
+            dict[str, Any] json object with raw output or None if can't.
         """
         if result_name is None:
             latest_result_name = self.get_latest_result_name()
             if latest_result_name is None:
-                error_message = "Test results are missing"
-                raise ValueError(error_message)
+                return None
             result_name = latest_result_name
 
         self(["result-file-to-json", result_name])
@@ -232,7 +226,7 @@ class PhoronixTestSuite(PkgMgrMixin, GenericUtil):
 
         return PhoronixTestSuite.format_test_results(metrics)
 
-    def run(self, test_name: str, run_count: int) -> str:
+    def run(self, test_name: str, run_count: int) -> tuple[ExecResult, dict[str, Any] | None]:
         """Runs a given test and parses results.
 
         Args:
@@ -240,39 +234,37 @@ class PhoronixTestSuite(PkgMgrMixin, GenericUtil):
             run_count (int): Amount of iterations of given test.
 
         Returns:
-            Formatted readable output.
+            tuple[ExecResult, dict[str, Any] | None]: Result of test and metrics.
         """
-        self.run_test(test_name=test_name, run_count=run_count)
+        result = self.run_test(test_name=test_name, run_count=run_count)
+        json_data = self.get_result_json()
+        return result, json_data
 
-        try:
-            json_data = self.get_result_json()
-        except ValueError as e:
-            return f"Error while processing results: {e}"
+    def prepare(self) -> ExecResult:
+        """Prepares PTS for running tests.
 
-        return self.parse_metrics(json_data)
-
-
-def setup_pts(ssh_client: SSHClient | None = None) -> ExecResult:
-    """Prepares PTS for running tests.
-
-    Sets up Google DNS server and turns off interactive questions in the future tests.
-    """
-    result = common_run_command(
-        cmd=["sudo", "echo", "'nameserver 8.8.8.8'", ">", "/etc/resolv.conf"],
-        ssh_client=ssh_client,
-    )
-    if result.returncode:
+        Sets up Google DNS server and turns off interactive questions in the future tests.
+        """
+        setup_answers = "y\n" + "n\n" * 6
+        commands = [
+            [
+                "echo",
+                "'nameserver 8.8.8.8'",
+                "|",
+                "sudo",
+                "tee",
+                "-a",
+                "/etc/resolv.conf",
+                ">",
+                "/dev/null",
+            ],
+            ["phoronix-test-suite", "openbenchmarking-refresh"],
+            ["echo", "-e", f'"{setup_answers}"'],
+            ["phoronix-test-suite", "batch-setup"],
+        ]
+        for result in pipeline(cmds=commands, ssh_client=self.ssh_client, pass_output=True):
+            if result.returncode:
+                logger.error("PTS setup failed: '%s'", result.stderr)
+                return result
+        logger.info("PTS setup successful")
         return result
-
-    common_run_command(
-        cmd=["phoronix-test-suite", "openbenchmarking-refresh"],
-        ssh_client=ssh_client,
-    )
-
-    setup_answers = "y\n" + "n\n" * 6
-    commands = [["echo", "-e", f'"{setup_answers}"'], ["phoronix-test-suite", "batch-setup"]]
-    for result in pipeline(cmds=commands, ssh_client=ssh_client, pass_output=True):
-        if result.returncode:
-            return result
-    logger.info("PTS setup successful")
-    return result

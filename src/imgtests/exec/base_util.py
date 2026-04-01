@@ -5,6 +5,7 @@ from imgtests.exec.exec import ExecResult, SSHClient, common_run_command, which
 from imgtests.exec.utils import extract_version, kwargs_to_cmd_args
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from pathlib import Path
 
     from imgtests.types import Version
@@ -33,11 +34,13 @@ class BaseTestUtil(ABC):
         self.use_sudo = use_sudo
         self.path = which(self.name, ssh_client)
 
-    def __call__(self, cmd: list[str | Path] | None = None, **kwargs: dict[str, Any]) -> ExecResult:
+    def __call__(
+        self, cmd: Sequence[str | Path] | None = None, **kwargs: dict[str, Any]
+    ) -> ExecResult:
         """Executes the utility with the provided command.
 
         Args:
-            cmd (list[str | Path] | None): Command arguments to pass to the utility.
+            cmd (Sequence[str | Path] | None): Command arguments to pass to the utility.
             **kwargs (dict[str, Any]): Command arguments in the free form with values.
 
         Raises:
@@ -73,6 +76,27 @@ class BaseTestUtil(ABC):
         """
         not_implemented_message = f"The '{self.name}' install logic is not implemented."
         raise NotImplementedError(not_implemented_message)
+
+    @staticmethod
+    def metrics_to_json(metrics: Any) -> Any:
+        """Converts the metrics provided by the utility into JSON.
+
+        Args:
+            metrics (Any): Metrics in the format provided by the specific utility.
+
+        Returns:
+            str: JSON like object.
+        """
+        return metrics
+
+    @staticmethod
+    def metrics_to_bmf(metrics: Any) -> Any:
+        """Converts the metrics provided by the utility into BMF."""
+        return metrics
+
+    def prepare(self) -> ExecResult:
+        """Prepare before running the utility, if necessary."""
+        return ExecResult((), "", "", 0)
 
     @abstractmethod
     def version(self) -> Version | None:

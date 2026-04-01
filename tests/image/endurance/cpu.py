@@ -2,21 +2,26 @@ from typing import TYPE_CHECKING
 
 from imgtests.exec.loaders import StressNg
 from imgtests.suites.general.stress_ng import StressNgTest
+from imgtests.types import Subsystem
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
     from concurrent.futures import ThreadPoolExecutor
 
     from imgtests.exec.exec import SSHClient
+    from imgtests.runner import TestResult
 
 
 class StressNgEnduranceCpuTest(StressNgTest):
     def __init__(self, timeout: int) -> None:
         super().__init__(
             "Stress-ng endurance CPU test.",
-            {"system"},
+            frozenset({Subsystem.SYSTEM}),
             timeout,
         )
 
-    def _run(self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int) -> None:
+    def _run(
+        self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int
+    ) -> Iterable[TestResult]:
         stress_ng = StressNg(client)
-        self.run_test(stress_ng=stress_ng, executor=executor, timeout=timeout, cpu=0)
+        yield from self.run_test(stress_ng=stress_ng, executor=executor, timeout=timeout, cpu=0)
