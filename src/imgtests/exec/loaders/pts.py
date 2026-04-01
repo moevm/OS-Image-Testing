@@ -14,8 +14,8 @@ logger = logging.getLogger(__name__)
 
 
 class PhoronixTestSuite(PkgMgrMixin, GenericUtil):
-    def __init__(self, ssh_client: SSHClient | None = None) -> None:
-        super().__init__("phoronix-test-suite", ssh_client)
+    def __init__(self, ssh_client: SSHClient | None = None, use_sudo: bool = True) -> None:
+        super().__init__("phoronix-test-suite", ssh_client, use_sudo=use_sudo)
 
     def install(self) -> ExecResult:
         """Install phoronix-test-suite via the system package manager."""
@@ -25,6 +25,7 @@ class PhoronixTestSuite(PkgMgrMixin, GenericUtil):
             )
         packages = [
             "phoronix-test-suite",
+            # TODO: Install all below dependencies only when test requires.
             "gcc",
             "gcc-c++",
             "make",
@@ -43,7 +44,10 @@ class PhoronixTestSuite(PkgMgrMixin, GenericUtil):
     def install_test(self, test_name: str) -> bool:
         """Installs a given test."""
         retries = "y\n" * 2 + "n\n"
-        commands = [["echo", "-e", f'"{retries}"'], ["phoronix-test-suite", "install", test_name]]
+        commands: list[list[str]] = [
+            ["echo", "-e", f'"{retries}"'],
+            (["sudo"] if self.use_sudo else []) + [self.name, "install", test_name],
+        ]
         for result in pipeline(cmds=commands, ssh_client=self.ssh_client, pass_output=True):
             if result.returncode:
                 logger.error("Installation of PTS test %s failed. %s", test_name, result.stderr)
@@ -55,6 +59,13 @@ class PhoronixTestSuite(PkgMgrMixin, GenericUtil):
             return False
         logger.info("PTS test '%s' installed", test_name)
         return True
+
+    def batch_run(self, test_name: str, iterations: int = 1) -> ExecResult:
+        return common_run_command(
+            (["sudo"] if self.use_sudo else [])
+            + [f"FORCE_TIMES_TO_RUN={iterations}", self.name, "batch-run", test_name],
+            ssh_client=self.ssh_client,
+        )
 
     def remove_test(self, test_name: str) -> None:
         """Removes a given test."""
@@ -75,23 +86,17 @@ class PhoronixTestSuite(PkgMgrMixin, GenericUtil):
             setup_answers = "y\n" + "n\n" * 6
             commands = [
                 ["echo", "-e", f'"{setup_answers}"'],
-                ["sudo", "phoronix-test-suite", "batch-setup"],
+                ["sudo", self.name, "batch-setup"],
             ]
             logger.info("Setting up PTS for %s test.", test_name)
             for result in pipeline(cmds=commands, ssh_client=self.ssh_client, pass_output=True):
                 if result.returncode:
                     logger.error("PTS setup failed: '%s'", result.stderr)
                     return result
-            inst_res = common_run_command(
-                ["sudo", self.name, "install", test_name],
-                ssh_client=self.ssh_client,
-            )
-            if inst_res.returncode:
-                logger.error("Installation of PTS test %s failed. %s", test_name, inst_res.stderr)
-            result = common_run_command(
-                ["sudo", f"FORCE_TIMES_TO_RUN={run_count}", self.name, "batch-run", test_name],
-                ssh_client=self.ssh_client,
-            )
+            result = self.batch_run(test_name, run_count)
+            if result.returncode:
+                logger.error("PTS test %s failed.", test_name)
+                return result
             last_result = None
             for r in pipeline(
                 [
@@ -125,7 +130,7 @@ class PhoronixTestSuite(PkgMgrMixin, GenericUtil):
             result = common_run_command(
                 [
                     "echo",
-                    "1",
+                    "4",
                     "|",
                     f"FORCE_TIMES_TO_RUN={run_count}",
                     self.name,
@@ -135,10 +140,7 @@ class PhoronixTestSuite(PkgMgrMixin, GenericUtil):
                 ssh_client=self.ssh_client,
             )
         else:
-            result = common_run_command(
-                [f"FORCE_TIMES_TO_RUN={run_count}", self.name, "batch-run", test_name],
-                ssh_client=self.ssh_client,
-            )
+            result = self.batch_run(test_name, run_count)
         if result.returncode:
             logger.warning("PTS test '%s' failed", test_name)
         else:
@@ -334,9 +336,9 @@ class PhoronixTestSuite(PkgMgrMixin, GenericUtil):
                 ">",
                 "/dev/null",
             ],
-            ["phoronix-test-suite", "openbenchmarking-refresh"],
+            [self.name, "openbenchmarking-refresh"],
             ["echo", "-e", f'"{setup_answers}"'],
-            ["phoronix-test-suite", "batch-setup"],
+            [self.name, "batch-setup"],
         ]
         for result in pipeline(cmds=commands, ssh_client=self.ssh_client, pass_output=True):
             if result.returncode:
