@@ -6,7 +6,6 @@ from imgtests.planning.models import (
     LoadPattern,
     PlanRequest,
     PlanStage,
-    Subsystem,
     TestKind,
     TestPlan,
 )
@@ -14,6 +13,8 @@ from imgtests.planning.profiles import PROFILE_LAYOUTS, build_task
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
+
+    from imgtests.types import Subsystem
 
 _ALLOC_GUARD_LIMIT = 100_000
 
@@ -27,18 +28,19 @@ def build_plan(request: PlanRequest) -> TestPlan:
         msg = "At least one subsystem must be provided."
         raise ValueError(msg)
 
+    ordered_subsystems = tuple(sorted(request.subsystems, key=lambda item: item.value))
     stages: list[PlanStage] = []
 
     if request.pattern is not None:
         if request.test_kind == TestKind.ISOLATED:
             stages = _build_isolated_stages(
                 request.duration_sec,
-                request.subsystems,
+                ordered_subsystems,
                 pattern=request.pattern,
             )
         else:
             tasks = tuple(
-                build_task(s, request.pattern, request.duration_sec) for s in request.subsystems
+                build_task(s, request.pattern, request.duration_sec) for s in ordered_subsystems
             )
             stages = [
                 PlanStage(
@@ -50,7 +52,7 @@ def build_plan(request: PlanRequest) -> TestPlan:
                 )
             ]
     elif request.test_kind == TestKind.ISOLATED:
-        stages = _build_isolated_stages(request.duration_sec, request.subsystems)
+        stages = _build_isolated_stages(request.duration_sec, ordered_subsystems)
     else:
         templates = PROFILE_LAYOUTS[request.test_kind]
         durations = _allocate_durations(
@@ -60,7 +62,7 @@ def build_plan(request: PlanRequest) -> TestPlan:
 
         offset = 0
         for tpl, dur in zip(templates, durations, strict=True):
-            tasks = tuple(build_task(s, tpl.pattern, dur) for s in request.subsystems)
+            tasks = tuple(build_task(s, tpl.pattern, dur) for s in ordered_subsystems)
             stages.append(
                 PlanStage(
                     name=tpl.name,

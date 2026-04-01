@@ -3,7 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from imgtests.planning.models import LoadPattern, LoadTask, Subsystem, TestKind
+from imgtests.planning.models import LoadPattern, LoadTask, TestKind
+from imgtests.types import Subsystem
 
 
 @dataclass(frozen=True)
@@ -144,8 +145,11 @@ def build_task(subsystem: Subsystem, pattern: LoadPattern, stage_duration_sec: i
 
 def build_stage_tasks(
     _test_kind: TestKind,
-    subsystems: tuple[Subsystem, ...],
+    subsystems: frozenset[Subsystem],
     pattern: LoadPattern,
     stage_duration_sec: int,
 ) -> tuple[LoadTask, ...]:
-    return tuple(build_task(ss, pattern, stage_duration_sec) for ss in subsystems)
+    return tuple(
+        build_task(ss, pattern, stage_duration_sec)
+        for ss in sorted(subsystems, key=lambda item: item.value)
+    )

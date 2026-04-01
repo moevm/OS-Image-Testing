@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, NamedTuple
+from typing import TYPE_CHECKING, Any, NamedTuple
 
 from imgtests.exec.base_util import GenericUtil
 
@@ -115,3 +115,7 @@ class SystemdAnalyze(GenericUtil):
                 res[key] = float(part_time[:-1])
 
         return res
+
+    @staticmethod
+    def metrics_to_json(metrics: tuple[SlowService, ...]) -> Any:
+        return [slow_service._asdict() for slow_service in metrics]

@@ -1,9 +1,10 @@
 import logging
-import os
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Literal, get_args
 from zoneinfo import ZoneInfo
 
+from pydantic import Field
+from pydantic_settings import BaseSettings
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -15,27 +16,32 @@ from imgtests.database.models.observer import ObserverBase
 
 if TYPE_CHECKING:
     from imgtests.sysrep import SystemInfo
+    from imgtests.types import TestsCounts
 
 logger = logging.getLogger(__name__)
 Table = Literal["configurations", "experiments", "loaders", "observers"]
 ExperimentType = Literal["performance", "endurance", "all"]
 
 
+class PostgresCreds(BaseSettings):
+    user: str = Field(validation_alias="POSTGRES_USER")
+    password: str = Field(validation_alias="POSTGRES_PASSWORD")
+    database_name: str = Field(validation_alias="POSTGRES_DB")
+    host: str = Field(validation_alias="POSTGRES_HOST")
+    port: int = Field(validation_alias="POSTGRES_PORT")
+
+
 class ImgtestsDatabase:
     def __init__(self, database: str = "postgres") -> None:
         if database == "postgres":
-            self.initialize_postgres()
+            creds = PostgresCreds()
+            self.initialize_postgres(creds)
         else:
             logger.error("Incorrect database name.")
 
-    def initialize_postgres(self) -> None:
-        user = os.environ["POSTGRES_USER"].strip()
-        password = os.environ["POSTGRES_PASSWORD"].strip()
-        db_name = os.environ["POSTGRES_DB"].strip()
-        host = os.environ["POSTGRES_HOST"].strip()
-        port = os.environ["SSH_POSTGRES_PORT"].strip()
+    def initialize_postgres(self, creds: PostgresCreds) -> None:
         self.engine = create_engine(
-            f"postgresql+psycopg://{user}:{password}@{host}:{port}/{db_name}"
+            f"postgresql+psycopg://{creds.user}:{creds.password}@{creds.host}:{creds.port}/{creds.database_name}"
         )
         self.session = sessionmaker(self.engine)
         Base.metadata.create_all(self.engine)
@@ -143,7 +149,7 @@ class ImgtestsDatabase:
         self,
         experiment_id: int,
         command: str,
-        result: dict[str, Any],
+        result: Any,
         description: str,
         started_at: datetime | None = None,
         ended_at: datetime | None = None,
@@ -181,6 +187,17 @@ class ImgtestsDatabase:
         with self.session() as session:
             experiment = session.query(ExperimentBase).filter_by(experiment_id=experiment_id).one()
             experiment.ended_at = ended_at
+            session.commit()
+
+    def update_experiment_tests_count(self, experiment_id: int, counts: TestsCounts) -> None:
+        self._check_session()
+        with self.session() as session:
+            experiment = session.query(ExperimentBase).filter_by(experiment_id=experiment_id).one()
+            experiment.tests_total = counts.total_count
+            experiment.tests_passed = counts.passed_count
+            experiment.tests_failed = counts.failed_count
+            experiment.tests_broken = counts.broken_count
+            experiment.tests_skipped = counts.skip_count
             session.commit()
 
     def return_table(self, table_name: Table) -> list[Any]:

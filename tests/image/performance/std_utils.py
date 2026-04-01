@@ -6,7 +6,8 @@ from typing import TYPE_CHECKING, Final, NamedTuple
 from zoneinfo import ZoneInfo
 
 from imgtests.exec.exec import common_run_command
-from imgtests.runner import AbstractRunnableManyTimesTest, Subsystem, TestResult
+from imgtests.runner import AbstractRunnableManyTimesTest, TestResult, TestStatus
+from imgtests.types import Subsystem
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -71,10 +72,7 @@ class POSIXUtilsTest(AbstractRunnableManyTimesTest):
                 else:
                     final_results[tool] = {}
 
-        yield TestResult(
-            started_at=started_at,
-            metrics=final_results,
-        )
+        yield TestResult(started_at=started_at, metrics=final_results, status=TestStatus.PASSED)
 
     def test_utils_for_files(  # noqa: PLR0912, C901
         self, client: SSHClient | None, iterations: int

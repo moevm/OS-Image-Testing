@@ -93,23 +93,19 @@ class PhoronixTestSuite(PkgMgrMixin, GenericUtil):
             last_result = result
         return last_result.stdout.strip() if last_result is not None else None
 
-    def get_result_json(self, result_name: str | None = None) -> dict[str, Any]:
+    def get_result_json(self, result_name: str | None = None) -> dict[str, Any] | None:
         """Creates and returns a json file if result name exists.
 
         Args:
             result_name (str | None): Specific results or latest by default.
 
-        Raises:
-            ValueError: When there are no test results or JSON is corrupted.
-
         Returns:
-            JSON file with raw output.
+            dict[str, Any] json object with raw output or None if can't.
         """
         if result_name is None:
             latest_result_name = self.get_latest_result_name()
             if latest_result_name is None:
-                error_message = "Test results are missing"
-                raise ValueError(error_message)
+                return None
             result_name = latest_result_name
 
         self(["result-file-to-json", result_name])
@@ -230,18 +226,15 @@ class PhoronixTestSuite(PkgMgrMixin, GenericUtil):
 
         return PhoronixTestSuite.format_test_results(metrics)
 
-    def run(self, test_name: str, run_count: int) -> tuple[ExecResult, dict[str, Any]]:
+    def run(self, test_name: str, run_count: int) -> tuple[ExecResult, dict[str, Any] | None]:
         """Runs a given test and parses results.
 
         Args:
             test_name (str): Name of PTS test.
             run_count (int): Amount of iterations of given test.
 
-        Raises:
-            ValueError: When there are no test results or JSON is corrupted.
-
         Returns:
-            tuple[ExecResult, dict[str, Any]]: Result of test and metrics.
+            tuple[ExecResult, dict[str, Any] | None]: Result of test and metrics.
         """
         result = self.run_test(test_name=test_name, run_count=run_count)
         json_data = self.get_result_json()
@@ -254,7 +247,17 @@ class PhoronixTestSuite(PkgMgrMixin, GenericUtil):
         """
         setup_answers = "y\n" + "n\n" * 6
         commands = [
-            ["sudo", "echo", "'nameserver 8.8.8.8'", ">", "/etc/resolv.conf"],
+            [
+                "echo",
+                "'nameserver 8.8.8.8'",
+                "|",
+                "sudo",
+                "tee",
+                "-a",
+                "/etc/resolv.conf",
+                ">",
+                "/dev/null",
+            ],
             ["phoronix-test-suite", "openbenchmarking-refresh"],
             ["echo", "-e", f'"{setup_answers}"'],
             ["phoronix-test-suite", "batch-setup"],

@@ -18,7 +18,6 @@ class DeviceMapperSetup(GenericUtil):
     def create_dm_delay_device(  # noqa: PLR0913
         self,
         device_name: str = "delay1",
-        target_type: str = "delay",
         start: int = 0,
         sectors: int = 1048576,
         block_path: str = "/dev/loop0",
@@ -31,7 +30,6 @@ class DeviceMapperSetup(GenericUtil):
 
         Args:
             device_name (str): The name of the created dm-delay device.
-            target_type (str): The device-mapper target type.
             start (int): Starting sector for create operation.
             sectors (int): The amount of used sectors (512-byte each). Counted by dividing
               total given memory by amount of blocks.
@@ -48,6 +46,7 @@ class DeviceMapperSetup(GenericUtil):
         if device_name in result.stdout:
             return result
 
+        target_type = "delay"
         return self(
             [
                 "create",
@@ -64,7 +63,6 @@ class DeviceMapperSetup(GenericUtil):
     def create_dm_dust_device(  # noqa: PLR0913
         self,
         device_name: str = "dust1",
-        target_type: str = "dust",
         start: int = 0,
         sectors: int = 1048576,
         block_path: str = "/dev/loop0",
@@ -75,7 +73,6 @@ class DeviceMapperSetup(GenericUtil):
 
         Args:
             device_name (str): The name of the created dm-dust device.
-            target_type (str): The device-mapper target type.
             start (int): Starting sector for create operation.
             sectors (int): Amount of used sectors (512-byte each). Counted by dividing total
               given memory by amount of blocks.
@@ -90,6 +87,7 @@ class DeviceMapperSetup(GenericUtil):
         if device_name in result.stdout:
             return result
 
+        target_type = "dust"
         return self(
             [
                 "create",
@@ -99,7 +97,7 @@ class DeviceMapperSetup(GenericUtil):
             ]
         )
 
-    def add_bad_blocks(self, device_name: str, block_numbers: list[int]) -> ExecResult | None:
+    def add_bad_blocks(self, device_name: str, block_numbers: list[int]) -> ExecResult:
         """Adds invalid blocks to given device.
 
         Args:
@@ -109,17 +107,20 @@ class DeviceMapperSetup(GenericUtil):
         Returns:
             ExecResult | None: Result in case of error and None otherwise.
         """
-        result = self(["message", device_name, 0, "enable"])
-        if result.returncode:
-            return result
-
-        self(["message", device_name, 0, "clearbadblocks"])
+        for cmd in (
+            ["message", device_name, "0", "enable"],
+            ["message", device_name, "0", "clearbadblocks"],
+        ):
+            result = self(cmd)
+            if result.returncode:
+                return result
 
         for block_number in block_numbers:
-            result = self(["message", device_name, 0, "addbadblock", block_number])
+            result = self(["message", device_name, "0", "addbadblock", str(block_number)])
             if result.returncode:
                 logger.error("Failed to add block %s.", block_number)
-        return None
+                return result
+        return result
 
     def remove_dm_device(self, device_name: str) -> ExecResult:
         """Removes given dm device."""

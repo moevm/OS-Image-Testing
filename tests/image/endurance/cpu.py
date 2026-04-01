@@ -1,14 +1,15 @@
 from typing import TYPE_CHECKING
 
 from imgtests.exec.loaders import StressNg
-from imgtests.runner import Subsystem, TestResult
 from imgtests.suites.general.stress_ng import StressNgTest
+from imgtests.types import Subsystem
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
     from concurrent.futures import ThreadPoolExecutor
 
     from imgtests.exec.exec import SSHClient
+    from imgtests.runner import TestResult
 
 
 class StressNgEnduranceCpuTest(StressNgTest):

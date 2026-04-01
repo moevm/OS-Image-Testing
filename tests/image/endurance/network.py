@@ -6,8 +6,9 @@ from zoneinfo import ZoneInfo
 
 from imgtests.exec.exec import SSHClient, common_run_command
 from imgtests.exec.loaders import StressNg
-from imgtests.runner import AbstractRunnableTimeLimitedTest, Subsystem, TestResult
+from imgtests.runner import AbstractRunnableManyTimesTest, TestResult, TestStatus
 from imgtests.suites.general.stress_ng import StressNgTest
+from imgtests.types import Subsystem
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -40,32 +41,36 @@ class StressNgEnduranceNetworkTest(StressNgTest):
         )
 
 
-class WgetEnduranceNetworkTest(AbstractRunnableTimeLimitedTest):
+class WgetEnduranceNetworkTest(AbstractRunnableManyTimesTest):
     def __init__(self, timeout: int) -> None:
-        super().__init__("Load CPU 70% with chaosblade.", frozenset({Subsystem.NETWORK}), timeout)
+        super().__init__("Load google test with wget.", frozenset({Subsystem.NETWORK}), timeout)
 
     def _run(
-        self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int
+        self, executor: ThreadPoolExecutor, client: SSHClient | None, iterations: int
     ) -> Iterable[TestResult]:
-        def run_test() -> None:
+        def run_test() -> int:
             if common_run_command(
                 ["sudo", "echo", "nameserver", _DNS_SERVER, ">>", "/etc/resolv.conf"], client
             ).returncode:
                 self.logger.error("NETWORK endurance test FAILED")
-                return
+                return 1
             result = common_run_command(
-                ["wget", f"--timeout={timeout}", "--tries=1", _GOOGLE_URL],
+                ["wget", "--timeout=5", "--tries=1", _GOOGLE_URL],
                 client,
             )
             if result.returncode:
                 self.logger.error("NETWORK endurance test FAILED")
-                return
+                return 1
             self.logger.info("NETWORK endurance test PASSED")
+            return 0
 
         started_at = datetime.now(tz=ZoneInfo("UTC"))
-        future = executor.submit(run_test)
-        yield TestResult(
-            metrics=future.result(),
-            command=f"wget --timeout={timeout} --tries=1 {_GOOGLE_URL}",
-            started_at=started_at,
-        )
+        for _ in range(iterations):
+            future = executor.submit(run_test)
+            result = future.result()
+            yield TestResult(
+                metrics=result,
+                command=f"wget --timeout=5 --tries=1 {_GOOGLE_URL}",
+                started_at=started_at,
+                status=TestStatus.FAILED if result else TestStatus.PASSED,
+            )
