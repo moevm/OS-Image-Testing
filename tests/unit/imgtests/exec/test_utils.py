@@ -13,26 +13,35 @@ class TEnum(Enum):
 
 
 @pytest.mark.parametrize(
-    ("key", "value", "use_equals", "expected"),
+    ("key", "value", "use_equals", "use_one_dash", "expected"),
     [
-        ("", None, False, []),
-        ("flag", True, False, ["--flag"]),
-        ("flag", False, False, []),
-        ("str", "text", True, ["--str=text"]),
-        ("int", 42, True, ["--int=42"]),
-        ("float", 3.14, False, ["--float", "3.14"]),
-        ("enumval1", TEnum.VALUE1, True, ["--enumval1=value1"]),
-        ("enumval2", TEnum.VALUE2, False, ["--enumval2", "2"]),
+        ("", None, False, False, []),
+        ("flag", True, False, False, ["--flag"]),
+        ("flag", False, False, False, []),
+        ("str", "text", True, True, ["-str=text"]),
+        ("int", 42, True, True, ["-int=42"]),
+        ("float", 3.14, False, False, ["--float", "3.14"]),
+        ("enumval1", TEnum.VALUE1, True, False, ["--enumval1=value1"]),
+        ("enumval2", TEnum.VALUE2, False, True, ["-enumval2", "2"]),
     ],
 )
-def test_create_opt(key: str, value: Any | None, expected: list[str], use_equals: bool) -> None:
-    result = create_opt(key, value, use_equals=use_equals)
+def test_create_opt(
+    key: str, value: Any | None, expected: list[str], use_equals: bool, use_one_dash: bool
+) -> None:
+    result = create_opt(key, value, use_equals=use_equals, use_one_dash=use_one_dash)
     assert result == expected
 
 
-def test_add_flag() -> None:
-    result = add_flag("flag")
-    assert result == ["--flag"]
+@pytest.mark.parametrize(
+    ("key", "use_one_dash", "expected"),
+    [
+        ("flag", True, ["-flag"]),
+        ("flag", False, ["--flag"]),
+    ],
+)
+def test_add_flag(key: str, use_one_dash: bool, expected: list[str]) -> None:
+    result = add_flag(key, use_one_dash=use_one_dash)
+    assert result == expected
 
 
 @pytest.mark.parametrize(

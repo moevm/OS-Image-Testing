@@ -4,7 +4,8 @@ from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
 from imgtests.exec.loaders import Iperf3
-from imgtests.runner import AbstractRunnableTimeLimitedTest, Subsystem, TestResult
+from imgtests.runner import AbstractRunnableTimeLimitedTest, TestResult, TestStatus
+from imgtests.types import Subsystem
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -35,7 +36,7 @@ class Iperf3LocalTest(AbstractRunnableTimeLimitedTest):
             if ret.returncode:
                 self.logger.error("Error occurred while launching iperf3 client.")
                 server_future.result(timeout=5)
-                return
+                return TestResult(status=TestStatus.FAILED)
             server_result = server_future.result(timeout=5)
             yield TestResult(
                 command=" ".join(ret.cmd),
@@ -44,4 +45,5 @@ class Iperf3LocalTest(AbstractRunnableTimeLimitedTest):
                     "server": iperf3.metrics_to_json(server_result.stdout.strip()),
                 },
                 started_at=started_at,
+                status=TestStatus.PASSED,
             )

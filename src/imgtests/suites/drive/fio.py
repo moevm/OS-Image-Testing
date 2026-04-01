@@ -14,7 +14,7 @@ from zoneinfo import ZoneInfo
 from imgtests.exec.exec import common_run_command
 from imgtests.exec.loaders.fio import Direct, Fio, FioPlot, IOEngine, IOPattern
 from imgtests.exec.user_commands import MkDir, Rm
-from imgtests.runner import TestResult
+from imgtests.runner import TestResult, TestStatus
 from imgtests.suites.duration import EIGHT_HOURS_SEC, HOUR_SEC, TEN_MIN_SEC, TWO_MIN_SEC
 
 if TYPE_CHECKING:
@@ -69,6 +69,8 @@ class FioSuiteConfig:
     size: str = "100MB"
     direct: Direct = 1
     ioengine: IOEngine = "libaio"
+    offset: str | None = None
+    offset_increment: str | None = None
 
 
 class FioSuite:
@@ -147,15 +149,15 @@ class FioSuite:
                 ioengine=self.cfg.ioengine,
                 direct=self.cfg.direct,
                 directory=testfiles_dir,
+                offset=self.cfg.offset,
+                offset_increment=self.cfg.offset_increment,
                 **extra,
             )
-            if res.returncode:
-                err_msg = res.stderr or res.stdout or "fio failed"
-                raise RuntimeError(err_msg)
             yield TestResult(
                 metrics=common_run_command(["cat", str(extra["output"])], self.client).stdout,
                 command=" ".join(res.cmd),
                 started_at=started_at,
+                status=TestStatus.FAILED if res.returncode else TestStatus.PASSED,
             )
 
         if self.client:

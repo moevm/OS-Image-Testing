@@ -69,6 +69,14 @@ METRICS_RE: Final = re.compile(
 
 
 class StressNg(PkgMgrMixin, GenericUtil):
+    INCORRECT_OPT_OR_FATAL_ISSUE_CODE = 1  # incorrect user options or OOM, etc.
+    STRESSOR_FAILED_CODE = 2
+    INITIALIZATION_FAILED_CODE = 3  # ENOMEM, ENOSPC, missing or unimplemented system call.
+    STRESSOR_NOT_IMPLEMENTED_CODE = 4
+    STRESSOR_KILLED_UNEXPECTEDLY_CODE = 5
+    STRESSOR_EXITED_UNEXPECTEDLY_CODE = 6
+    BOGO_OPS_UNTRUSTWORTHY_CODE = 7
+
     def __init__(self, ssh_client: SSHClient | None = None) -> None:
         super().__init__("stress-ng", ssh_client)
 
@@ -124,13 +132,24 @@ class StressNg(PkgMgrMixin, GenericUtil):
     def run(  # noqa: PLR0913
         self,
         timeout_sec: int = 0,
+        class_name: str | None = None,
+        class_sequential: int | None = None,
+        class_all: int | None = None,
         cpu: int | None = None,
         cpu_method: str = "all",
+        cpu_load: int | None = None,
         vm: int | None = None,
         vm_method: str = "all",
         vm_bytes: str | None = None,
+        vm_populate: bool | None = None,
+        memrate: int | None = None,
+        memrate_rd_mbs: int | None = None,
+        memrate_wr_mbs: int | None = None,
         mmap: int | None = None,
         mmap_bytes: str | None = None,
+        mmaphuge: int | None = None,
+        mmaptorture: int | None = None,
+        mmaptorture_bytes: str | None = None,
         cache: int | None = None,
         cache_ops: int | None = None,
         hdd: int | None = None,
@@ -167,17 +186,32 @@ class StressNg(PkgMgrMixin, GenericUtil):
         Args:
             timeout_sec (int): Execution time of stressors work. When set to 0 run 1 day
               stress test.
+            class_name(str | None): Run only stressors from the specified class.
+            class_sequential (int | None): Run stressors from the specified class sequentially.
+            class_all (int | None): Run stressors from the specified class in parallel.
             cpu (int | None): Count of the CPU stressors. When set to 0 got count of logical
               processors.
             cpu_method (str): Stress CPU method.
+            cpu_load (int | None): Target CPU load percentage, defines active time in load cycle.
             vm (int | None): Count of the virtual memory stressors. When set to 0 got count
               of logical processors.
             vm_method (str): Stress virtual memory method.
             vm_bytes (str | None): Utilized memory as value or percent of all available memory.
+            vm_populate (bool): Populate page tables for the memory mappings to stress swapping.
+            memrate (int | None): Count of the memory read/write stressors. When set to 0 got
+              count of logical processors.
+            memrate_rd_mbs (int | None): Read rate in MB/sec.
+            memrate_wr_mbs (int | None): Write rate in MB/sec.
             mmap (int | None): Count of the memory mapping stressors. When set to 0 got count
               of logical processors.
             mmap_bytes (str | None): Utilized memory mapping as value or percent of all available
               memory.
+            mmaphuge (int | None): Count of the memory mapping stressors with huge mappings. When
+              set to 0 got count of logical processors.
+            mmaptorture (int | None): Count of the stressors torturing page mappings. When set
+            to 0 got count of logical processors.
+            mmaptorture_bytes (str | None): Utilized memory mapping torture as value or percent
+              of all available memory.
             cache (int | None): Count of the cache stressors. When set to 0 got count of logical
               processors.
             cache_ops (int | None): Number of cache operations per stressor.
@@ -229,9 +263,14 @@ class StressNg(PkgMgrMixin, GenericUtil):
             tuple[ExecResult, StressNGResult]: Result of stress test work and parsed metrics.
         """
         params = {
+            "sequential": class_sequential,
+            "all": class_all,
             "cpu": cpu,
             "vm": vm,
+            "memrate": memrate,
             "mmap": mmap,
+            "mmaphuge": mmaphuge,
+            "mmaptorture": mmaptorture,
             "cache": cache,
             "hdd": hdd,
             "sock": sock,
@@ -250,19 +289,33 @@ class StressNg(PkgMgrMixin, GenericUtil):
             err_msg = f"Invalid timeout '{timeout_sec}'. Expected more or equal 0."
             raise ValueError(err_msg)
 
+        if cpu_load is not None and (cpu_load < 0 or cpu_load > 100):  # noqa: PLR2004
+            err_msg = f"Invalid cpu_load '{cpu_load}'. Expected 0-100."
+            raise ValueError(err_msg)
+
         for name, variable in params.items():
             if variable is not None and variable < 0:
                 err_msg = f"Invalid {name} count '{variable}'. Expected more or equal 0."
                 raise ValueError(err_msg)
         opts = [
             *create_opt("timeout", timeout_sec),
+            *create_opt("class", class_name),
+            *create_opt("sequential", class_sequential),
+            *create_opt("all", class_all),
             *create_opt("cpu", cpu),
             *create_opt("cpu-method", cpu_method),
+            *create_opt("cpu-load", cpu_load),
             *create_opt("vm", vm),
             *create_opt("vm-method", vm_method),
             *create_opt("vm-bytes", vm_bytes),
+            *create_opt("memrate", memrate),
+            *create_opt("memrate-rd-mbs", memrate_rd_mbs),
+            *create_opt("memrate-wr-mbs", memrate_wr_mbs),
             *create_opt("mmap", mmap),
             *create_opt("mmap-bytes", mmap_bytes),
+            *create_opt("mmaphuge", mmaphuge),
+            *create_opt("mmaptorture", mmaptorture),
+            *create_opt("mmaptorture-bytes", mmaptorture_bytes),
             *create_opt("cache", cache),
             *create_opt("cache-ops", cache_ops),
             *create_opt("hdd", hdd),
@@ -296,6 +349,9 @@ class StressNg(PkgMgrMixin, GenericUtil):
         ]
         if syscall is not None:
             opts.extend(create_opt("syscall-top", 0))
+
+        if vm_populate is not None:
+            opts.extend(add_flag("vm-populate"))
 
         result = self(opts, **kwargs)
 
