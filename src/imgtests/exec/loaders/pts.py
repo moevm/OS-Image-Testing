@@ -1,14 +1,18 @@
 import json
 import logging
+import re
 from typing import TYPE_CHECKING, Any
 
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult, SSHClient, common_run_command, pipeline
 from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
-from imgtests.exec.utils import extract_version
+from imgtests.exec.utils import add_sudo, extract_version
 
 if TYPE_CHECKING:
     from imgtests.types import Version
+
+
+SAVE_RESULT_PATH_PATTERN = re.compile("/[^:]*")
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +50,7 @@ class PhoronixTestSuite(PkgMgrMixin, GenericUtil):
         retries = "y\n" * 2 + "n\n"
         commands: list[list[str]] = [
             ["echo", "-e", f'"{retries}"'],
-            (["sudo"] if self.use_sudo else []) + [self.name, "install", test_name],
+            [*add_sudo(self.use_sudo), self.name, "install", test_name],
         ]
         for result in pipeline(cmds=commands, ssh_client=self.ssh_client, pass_output=True):
             if result.returncode:
@@ -62,8 +66,13 @@ class PhoronixTestSuite(PkgMgrMixin, GenericUtil):
 
     def batch_run(self, test_name: str, iterations: int = 1) -> ExecResult:
         return common_run_command(
-            (["sudo"] if self.use_sudo else [])
-            + [f"FORCE_TIMES_TO_RUN={iterations}", self.name, "batch-run", test_name],
+            [
+                *add_sudo(self.use_sudo),
+                f"FORCE_TIMES_TO_RUN={iterations}",
+                self.name,
+                "batch-run",
+                test_name,
+            ],
             ssh_client=self.ssh_client,
         )
 
@@ -76,7 +85,7 @@ class PhoronixTestSuite(PkgMgrMixin, GenericUtil):
                 return
         logger.info("PTS test '%s' removed", test_name)
 
-    def run_test(self, test_name: str, run_count: int) -> ExecResult:  # noqa: PLR0912, C901
+    def run_test(self, test_name: str, run_count: int) -> ExecResult:
         """Runs a given test with set amount of iterations."""
         ret = self.install_test(test_name)
         if not ret:
@@ -86,7 +95,7 @@ class PhoronixTestSuite(PkgMgrMixin, GenericUtil):
             setup_answers = "y\n" + "n\n" * 6
             commands = [
                 ["echo", "-e", f'"{setup_answers}"'],
-                ["sudo", self.name, "batch-setup"],
+                [*add_sudo(self.use_sudo), self.name, "batch-setup"],
             ]
             logger.info("Setting up PTS for %s test.", test_name)
             for result in pipeline(cmds=commands, ssh_client=self.ssh_client, pass_output=True):
@@ -97,29 +106,17 @@ class PhoronixTestSuite(PkgMgrMixin, GenericUtil):
             if result.returncode:
                 logger.error("PTS test %s failed.", test_name)
                 return result
-            last_result = None
-            for r in pipeline(
-                [
-                    ["sudo", self.name, "list-results"],
-                    ["grep", "-oE", "'[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{4}'"],
-                    ["tail", "-1"],
-                ],
-                self.ssh_client,
-                pass_output=True,
-            ):
-                if r.returncode:
-                    logger.warning("PTS results are missing")
-                last_result = r
+            last_result = self.get_latest_result_name()
             if last_result is not None:
                 get_home_result = common_run_command(["echo", "$HOME"])
                 if get_home_result.returncode:
                     logger.warning("Failed to copy %s test results.", test_name)
                 copy_result = common_run_command(
                     [
-                        "sudo",
+                        *add_sudo(self.use_sudo),
                         "cp",
                         "-r",
-                        f"/var/lib/phoronix-test-suite/test-results/{last_result.stdout}",
+                        f"/var/lib/phoronix-test-suite/test-results/{last_result}",
                         f"{get_home_result.stdout}/.phoronix-test-suite/test-results/",
                     ],
                     ssh_client=self.ssh_client,
@@ -158,7 +155,7 @@ class PhoronixTestSuite(PkgMgrMixin, GenericUtil):
         last_result = None
         for result in pipeline(
             [
-                [self.name, "list-results"],
+                [*add_sudo(self.use_sudo), self.name, "list-results"],
                 ["grep", "-oE", "'[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{4}'"],
                 ["tail", "-1"],
             ],
@@ -186,9 +183,18 @@ class PhoronixTestSuite(PkgMgrMixin, GenericUtil):
                 return None
             result_name = latest_result_name
 
-        self(["result-file-to-json", result_name])
-        result = common_run_command(["cat", f"{result_name}.json"], self.ssh_client)
-        common_run_command(["rm", "-f", f"{result_name}.json"], self.ssh_client)
+        result = self(["result-file-to-json", result_name])
+        if result.returncode:
+            return None
+        path = SAVE_RESULT_PATH_PATTERN.search(result.stdout.strip())
+        if path is None:
+            return None
+        result = common_run_command(
+            [*add_sudo(self.use_sudo), "cat", path.group()], self.ssh_client
+        )
+        if result.returncode:
+            return None
+        common_run_command([*add_sudo(self.use_sudo), "rm", "-f", path.group()], self.ssh_client)
         try:
             return json.loads(result.stdout)
         except Exception as e:

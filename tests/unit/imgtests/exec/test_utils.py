@@ -3,7 +3,7 @@ from typing import Any
 
 import pytest
 
-from imgtests.exec.utils import add_flag, create_opt, extract_version, kwargs_to_cmd_args
+from imgtests.exec.utils import add_flag, add_sudo, create_opt, extract_version, kwargs_to_cmd_args
 from imgtests.types import Version
 
 
@@ -42,6 +42,17 @@ def test_create_opt(
 def test_add_flag(key: str, use_one_dash: bool, expected: list[str]) -> None:
     result = add_flag(key, use_one_dash=use_one_dash)
     assert result == expected
+
+
+@pytest.mark.parametrize(
+    ("use_sudo", "expected"),
+    [
+        (True, ["sudo"]),
+        (False, []),
+    ],
+)
+def test_add_sudo(use_sudo: bool, expected: list[str]) -> None:
+    assert add_sudo(use_sudo) == expected
 
 
 @pytest.mark.parametrize(
