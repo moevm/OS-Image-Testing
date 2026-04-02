@@ -111,13 +111,22 @@ class PhoronixTestSuite(PkgMgrMixin, GenericUtil):
                 get_home_result = common_run_command(["echo", "$HOME"])
                 if get_home_result.returncode:
                     logger.warning("Failed to copy %s test results.", test_name)
+                common_run_command(
+                    [
+                        *add_sudo(self.use_sudo),
+                        "mkdir",
+                        "-p",
+                        f"{get_home_result.stdout}/.{self.name}/test-results",
+                    ],
+                    ssh_client=self.ssh_client,
+                )
                 copy_result = common_run_command(
                     [
                         *add_sudo(self.use_sudo),
                         "cp",
                         "-r",
-                        f"/var/lib/phoronix-test-suite/test-results/{last_result}",
-                        f"{get_home_result.stdout}/.phoronix-test-suite/test-results/",
+                        f"/var/lib/{self.name}/test-results/{last_result}",
+                        f"{get_home_result.stdout}/.{self.name}/test-results/",
                     ],
                     ssh_client=self.ssh_client,
                 )
