@@ -111,7 +111,7 @@ class SSHClient:
         stderr = stderr.read().decode("utf-8").strip()
 
         # journalctl returns 1 on "No entries" case
-        if retval and stdout != '-- No entries --':
+        if retval and stdout != "-- No entries --":
             logger.error("Command '%s' completed with errors on the remote.", cmd_str.strip())
             if stderr:
                 logger.error(stderr)
