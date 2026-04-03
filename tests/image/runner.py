@@ -34,8 +34,12 @@ from image.performance.system import PTSSystemTest
 from imgtests.exec.exec import wait_remote
 from imgtests.logger import set_handlers
 from imgtests.runner import TestsRunner, TestsRunnerConfig
+from imgtests.suites.fault_injection import FaultInjectionEnduranceTest
 from imgtests.suites.general.joint_bench import JointBench
-from imgtests.suites.system import SystemLoadTimeTest, SystemSlowServicesTest
+from imgtests.suites.system import (
+    SystemLoadTimeTest,
+    SystemSlowServicesTest,
+)
 
 ALL_SUBSYSTEMS_SUITE: Final = TestsRunnerConfig(
     description="Test suite for all subsystems.",
@@ -62,6 +66,7 @@ ALL_SUBSYSTEMS_SUITE: Final = TestsRunnerConfig(
         StressNgEnduranceMemoryTest,
         StressNgPerformanceMemoryTest,
         SarWithStressNGTest,
+        FaultInjectionEnduranceTest,
     ),
     experiment_type="all",
     duration=200,
