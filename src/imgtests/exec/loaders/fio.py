@@ -64,6 +64,8 @@ class Fio(PkgMgrMixin, GenericUtil):
         ioengine: IOEngine | None = None,
         direct: Direct = None,
         directory: Path | None = None,
+        offset: str | None = None,
+        offset_increment: str | None = None,
         **kwargs: dict[str, Any],
     ) -> ExecResult:
         """Runs the fio util with provided options.
@@ -78,6 +80,8 @@ class Fio(PkgMgrMixin, GenericUtil):
             ioengine (IOEngine| None): How the job issues I/O.
             direct (Direct): Use non-buffered I/O (when set) or not.
             directory (Path | None): Directory for saving test files.
+            offset (str | None): Start offset in bytes or percentage of file size.
+            offset_increment (str | None): Per-job offset step added to base offset for each thread.
             **kwargs (dict[str, Any]): Command arguments in the free form with values.
 
         Raises:
@@ -102,6 +106,8 @@ class Fio(PkgMgrMixin, GenericUtil):
                 *create_opt("ioengine", ioengine),
                 *create_opt("direct", direct),
                 *create_opt("directory", directory),
+                *create_opt("offset", offset),
+                *create_opt("offset_increment", offset_increment),
             ],
             **kwargs,
         )

@@ -49,6 +49,14 @@ class DefaultCleanupMixin:
                 logger.warning("Failed to cleanup folder '%s'.", path)
             else:
                 logger.info("Cleaned up folder '%s'.", path)
+        self.__clean_pages_cache(client, logger)
+
+    def __clean_pages_cache(self, client: SSHClient | None, logger: logging.Logger) -> None:
+        commands = [["sudo", "sync"], ["sudo", "echo", "3", ">", "/proc/sys/vm/drop_caches"]]
+        for command in commands:
+            result = common_run_command(command, client)
+            if result.returncode:
+                logger.warning("Cache cleanup failed.")
 
 
 class AbstractRunnableManyTimesTest(ABC, DefaultCleanupMixin):
@@ -269,7 +277,7 @@ class TestsRunner:
             PhoronixTestSuite,
             StressNg,
         )
-        from imgtests.exec.observers import NodeExporter, Sar, Time  # noqa: PLC0415
+        from imgtests.exec.observers import Lshw, NodeExporter, Sar, Time  # noqa: PLC0415
 
         self.logger.info("Installing dependencies. This may take a while.")
         for tool in (
@@ -283,6 +291,7 @@ class TestsRunner:
             Time,
             NodeExporter,
             Sar,
+            Lshw,
         ):
             tool_instance: BaseTestUtil = tool(self.__client)
             try:
