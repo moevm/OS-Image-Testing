@@ -6,6 +6,7 @@ from typing import Final
 from image.endurance.memory import StressNgEnduranceMemoryTest
 from image.endurance.network import WgetEnduranceNetworkTest
 from image.endurance.syscalls import (
+    LTPSyscallsIPCTest,
     LTPSyscallsTest,
     StressNgEnduranceSyscallsTest,
 )
@@ -23,6 +24,7 @@ from image.performance.std_utils import POSIXUtilsTest
 from image.performance.stress_ng_general import (
     StressNgCombineLoadTest,
     StressNgConsecutiveLoadTest,
+    StressNgIterTestIPC,
     StressNgParallelLoadTest,
 )
 from image.performance.syscalls import (
@@ -40,6 +42,7 @@ from imgtests.suites.system import (
     SystemLoadTimeTest,
     SystemSlowServicesTest,
 )
+from imgtests.types import Subsystem
 
 ALL_SUBSYSTEMS_SUITE: Final = TestsRunnerConfig(
     description="Test suite for all subsystems.",
@@ -60,6 +63,7 @@ ALL_SUBSYSTEMS_SUITE: Final = TestsRunnerConfig(
         StressNgPerformanceCpuTest,
         ChaosbladeCPUTest,
         PTSSystemTest(2),
+        StressNgIterTestIPC,
         StressNgConsecutiveLoadTest,
         StressNgCombineLoadTest,
         StressNgParallelLoadTest,
@@ -91,6 +95,18 @@ SYSCALLS_SUITE: Final = TestsRunnerConfig(
         SyscallsWithCpuLoadTest,
         StressNgSyscallsWithMemLoadTest,
         SyscallsFullLoadTest,
+        StressNgIterTestIPC,
+    ),
+    experiment_type="all",
+    duration=100,
+    install_dependencies=True,
+)
+IPC_SUITE: Final = TestsRunnerConfig(
+    description="Test suite for IPC subsystem.",
+    tests=(
+        LTPSyscallsIPCTest(),
+        JointBench(subsystems=frozenset({Subsystem.IPC}), iterations=3),
+        StressNgIterTestIPC,
     ),
     experiment_type="all",
     duration=100,
@@ -113,7 +129,7 @@ SUSE_156_CONF: Final = (
 def main() -> None:
     logger = logging.getLogger()
     set_handlers(logger, Path("processing.log"))
-    for suite in (MEMORY_SUITE, SYSCALLS_SUITE, ALL_SUBSYSTEMS_SUITE):
+    for suite in (MEMORY_SUITE, SYSCALLS_SUITE, IPC_SUITE, ALL_SUBSYSTEMS_SUITE):
         suse_runner = TestsRunner(
             wait_remote(*SUSE_156_CONF) or sys.exit(1),
             suite,
