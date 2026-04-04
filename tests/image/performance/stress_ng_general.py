@@ -1,7 +1,9 @@
 from itertools import combinations
 from typing import TYPE_CHECKING, Any
 
+from imgtests.exec.exec import common_run_command
 from imgtests.exec.loaders import StressNg
+from imgtests.runner import TestResult, TestStatus
 from imgtests.suites.general.stress_ng import StressNgTest
 from imgtests.types import Subsystem
 
@@ -10,7 +12,6 @@ if TYPE_CHECKING:
     from concurrent.futures import ThreadPoolExecutor
 
     from imgtests.exec.exec import SSHClient
-    from imgtests.runner import TestResult
 
 
 tests: list[dict[str, Any]] = [
@@ -125,16 +126,14 @@ class StressNgParallelLoadTest(StressNgTest):
 
 
 class StressNgIterTestIPC(StressNgTest):
-    """Runs stress-ng IPC subsystem tests via --class ipc with iterational
-    incrementation of stressors amount.
+    """Runs stress-ng IPC subsystem tests with iterational increment of stressors amount.
 
-    Iteration begins with 1 and goes up to
-    magically defined number of IPC_MAX.
+    Iteration begins with 1 and goes up to nprocs.
 
     IPC subsystem class consists:
     dekker, fifo, futex, mq, msg, peterson, pipe, pipeherd,
     sem, sem-sysv, shm, shm-sysv, sigq, sock.
-    """  # noqa: D205
+    """
 
     def __init__(self, timeout: int) -> None:
         super().__init__(
@@ -148,7 +147,11 @@ class StressNgIterTestIPC(StressNgTest):
     ) -> Iterable[TestResult]:
         stress_ng = StressNg(client)
 
-        ipc_max = int(client(["nproc"]).stdout)
+        result = common_run_command(["nproc"], client)
+        if result.returncode:
+            yield TestResult(status=TestStatus.BROKEN)
+            return
+        ipc_max = int(result.stdout)
         for param in range(1, ipc_max + 1):
             test_params = dict(  # noqa: C408
                 dekker=param,

@@ -42,6 +42,7 @@ from imgtests.suites.system import (
     SystemLoadTimeTest,
     SystemSlowServicesTest,
 )
+from imgtests.types import Subsystem
 
 ALL_SUBSYSTEMS_SUITE: Final = TestsRunnerConfig(
     description="Test suite for all subsystems.",
@@ -104,6 +105,7 @@ IPC_SUITE: Final = TestsRunnerConfig(
     description="Test suite for IPC subsystem.",
     tests=(
         LTPSyscallsIPCTest(),
+        JointBench(subsystems=frozenset({Subsystem.IPC}), iterations=3),
         StressNgIterTestIPC,
     ),
     experiment_type="all",
