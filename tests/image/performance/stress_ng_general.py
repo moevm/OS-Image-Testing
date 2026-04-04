@@ -153,7 +153,10 @@ class StressNgIterTestIPC(StressNgTest):
             return
         ipc_max = int(result.stdout)
         for param in range(1, ipc_max + 1):
-            test_params = dict(  # noqa: C408
+            yield from self.run_test(
+                stress_ng=stress_ng,
+                executor=executor,
+                timeout=timeout,
                 dekker=param,
                 fifo=param,
                 futex=param,
@@ -168,7 +171,4 @@ class StressNgIterTestIPC(StressNgTest):
                 shm_sysv=param,
                 sigq=param,
                 sock=param,
-            )
-            yield from self.run_test(
-                stress_ng=stress_ng, executor=executor, timeout=timeout, **test_params
             )

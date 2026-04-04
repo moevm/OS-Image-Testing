@@ -188,7 +188,7 @@ class StressNg(PkgMgrMixin, GenericUtil):
         peterson: int | None = None,
         pipeherd: int | None = None,
         sigq: int | None = None,
-        **kwargs: dict[str, Any],
+        **kwargs: str | float | bool | None,
     ) -> tuple[ExecResult, StressNGResult]:
         """Runs the stress-ng util stressors.
 
@@ -285,7 +285,7 @@ class StressNg(PkgMgrMixin, GenericUtil):
             sigq (int | None):
               Count of the stressors that rapidly send SIGUSR1 signals using sigqueue.
               When set to 0 got count of logical processors.
-            **kwargs (dict[str, Any]): Command arguments in the free form with values.
+            **kwargs: Command arguments in the free form with values.
 
         Raises:
             ValueError: When invalid parameters provided or repeated.
