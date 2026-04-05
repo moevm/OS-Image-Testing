@@ -52,7 +52,7 @@ class DefaultCleanupMixin:
         self.__clean_pages_cache(client, logger)
 
     def __clean_pages_cache(self, client: SSHClient | None, logger: logging.Logger) -> None:
-        commands = [["sudo", "sync"], ["sudo", "echo", "3", ">", "/proc/sys/vm/drop_caches"]]
+        commands = [["sudo", "sync"], ["sudo", "sh", "-c", "'echo 3 > /proc/sys/vm/drop_caches'"]]
         for command in commands:
             result = common_run_command(command, client)
             if result.returncode:
