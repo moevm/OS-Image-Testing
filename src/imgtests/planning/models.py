@@ -18,6 +18,7 @@ class TestKind(str, Enum):
     VOLUME = "volume"
     ISOLATED = "isolated"
     SPIKE = "spike"
+    DIAGNOSTIC = "diagnostic"
 
 
 class LoadPattern(str, Enum):
@@ -26,6 +27,7 @@ class LoadPattern(str, Enum):
     INTENSE = "intense"
     EXTREME = "extreme"
     SPIKE = "spike"
+    DIAGNOSTIC = "diagnostic"
 
 
 @dataclass(frozen=True)
