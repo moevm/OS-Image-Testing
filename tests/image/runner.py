@@ -130,24 +130,21 @@ SUSE_156_CONF: Final = (
 def main() -> None:
     logger = logging.getLogger()
     set_handlers(logger, Path("processing.log"))
+    database = ImgtestsDatabase()
+    suse_client = wait_remote(*SUSE_156_CONF) or sys.exit(1)
+    poky_client = wait_remote(*YOCTO_CONF) or sys.exit(1)
     for suite in (MEMORY_SUITE, SYSCALLS_SUITE, IPC_SUITE, ALL_SUBSYSTEMS_SUITE):
-        suse_runner = TestsRunner(
-            wait_remote(*SUSE_156_CONF) or sys.exit(1),
-            suite,
-        )
+        suse_runner = TestsRunner(suse_client, database, suite)
         suse_runner.run()
-        yocto_runner = TestsRunner(
-            wait_remote(*YOCTO_CONF) or sys.exit(1),
-            suite,
-        )
+        yocto_runner = TestsRunner(poky_client, database, suite)
         yocto_runner.run()
 
-    client = wait_remote(*YOCTO_CONF) or sys.exit(1)
     has_failures = ProfiledPlanRunner(
-        client=client,
-        db=ImgtestsDatabase(),
+        client=poky_client,
+        db=database,
     ).run_from_env()
-    client.close()
+    suse_client.close()
+    poky_client.close()
 
     sys.exit(1 if has_failures else 0)
 
