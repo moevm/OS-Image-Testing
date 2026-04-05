@@ -32,16 +32,17 @@ class BaseTestUtil(ABC):
         self.name = name
         self.ssh_client = ssh_client
         self.use_sudo = use_sudo
-        self.path = which(self.name, ssh_client)
+        self.path = which(self.name, ssh_client, use_sudo=use_sudo)
 
     def __call__(
-        self, cmd: Sequence[str | Path] | None = None, **kwargs: dict[str, Any]
+        self, cmd: Sequence[str | Path] | None = None, **kwargs: str | float | bool | None
     ) -> ExecResult:
         """Executes the utility with the provided command.
 
         Args:
             cmd (Sequence[str | Path] | None): Command arguments to pass to the utility.
-            **kwargs (dict[str, Any]): Command arguments in the free form with values.
+            **kwargs (str | float | bool | None): Command arguments in the free form
+              with values.
 
         Raises:
             ValueError: When parameters repeated.

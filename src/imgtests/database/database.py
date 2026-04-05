@@ -3,9 +3,10 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any, Literal, get_args
 from zoneinfo import ZoneInfo
 
+from deepdiff import DeepDiff
 from pydantic import Field
 from pydantic_settings import BaseSettings
-from sqlalchemy import create_engine
+from sqlalchemy import and_, create_engine
 from sqlalchemy.orm import sessionmaker
 
 from imgtests.database.models.base import Base
@@ -63,7 +64,7 @@ class ImgtestsDatabase:
                     idx = line.find("=")
                     to_dict_tuple = (line[0:idx], line[idx + 1 :])
                     db_kconf[line[0:idx]] = line[idx + 1 :]
-        return self.insert_configuration(db_os, db_pkgs, db_cinfo, db_kconf)
+        return self.insert_configuration(db_os, db_pkgs, db_cinfo, db_kconf, sys_info.hardware)
 
     def insert_configuration(
         self,
@@ -71,12 +72,36 @@ class ImgtestsDatabase:
         packages: dict[str, Any] | None = None,
         core_info: str | None = None,
         core_config: dict[str, Any] | None = None,
+        hardware: dict[str, Any] | None = None,
     ) -> ConfigurationBase:
+        with self.session() as session:
+            configuration_objects = (
+                session.query(ConfigurationBase)
+                .filter(
+                    and_(
+                        ConfigurationBase.os == os,
+                        ConfigurationBase.core_info == core_info,
+                    )
+                )
+                .all()
+            )
+            for configuration_object in configuration_objects:
+                if (
+                    configuration_object.packages == packages
+                    and configuration_object.core_config == core_config
+                    and len(DeepDiff(configuration_object.hardware, hardware)) == 0
+                ):
+                    logger.info(
+                        "Configuration already exists, returning existing object with id %d.",
+                        configuration_object.config_id,
+                    )
+                    return configuration_object
         configuration_object = ConfigurationBase(
             os=os,
             packages=packages,
             core_info=core_info,
             core_config=core_config,
+            hardware=hardware,
         )
 
         self._check_session()

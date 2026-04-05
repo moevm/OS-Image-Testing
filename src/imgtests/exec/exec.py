@@ -185,16 +185,26 @@ def wait_remote(
     return None
 
 
-def which(util: str, ssh_client: SSHClient | None = None) -> Path | None:
+def which(util: str, ssh_client: SSHClient | None = None, use_sudo: bool = False) -> Path | None:
     call_func = run_command if ssh_client is None else ssh_client
-    result = call_func(["which", util])
-    if result.returncode:
-        # if which can't find path but tool is installed
-        result = call_func(["type", "-p", util])
-        if not result.returncode:
-            return Path(util)
-        return None
-    return Path(result.stdout.strip())
+    for cmd in (
+        ["which", util],
+        *([["sudo", "which", util]] if use_sudo else []),
+    ):
+        result = call_func(cmd)
+        if result.returncode:
+            continue
+        return Path(result.stdout.strip())
+    # if which can't find path but tool is installed
+    for cmd in (
+        ["type", "-p", util],
+        *([["sudo", "type", "-p", util]] if use_sudo else []),
+    ):
+        result = call_func(cmd)
+        if result.returncode:
+            continue
+        return Path(util)
+    return None
 
 
 def pipeline(
