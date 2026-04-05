@@ -12,9 +12,11 @@ from zoneinfo import ZoneInfo
 
 import paramiko
 import paramiko.ssh_exception
+from pydantic import Field
+from pydantic_settings import BaseSettings
 
 from imgtests.constant import LIB_NAME
-from imgtests.environment import env_var_to_type
+from imgtests.database.database import ExperimentType, ImgtestsDatabase
 from imgtests.exec.exec import SSHClient, common_run_command
 from imgtests.exec.observers.journalctl import Journalctl
 from imgtests.exec.observers.systemctl import Systemctl
@@ -196,6 +198,42 @@ class TestsRunnerConfig:
             self.test_duration = self.total_duration // time_limited_tests_cnt
         else:
             self.test_duration = 0
+
+
+class ProfiledPlanRunnerSettings(BaseSettings):
+    subsystems: str = Field(default="all", validation_alias="PLAN_SUBSYSTEMS")
+    results_dir: Path = Field(
+        default=Path("results/profiled"),
+        validation_alias="PLAN_RESULTS_DIR",
+    )
+    pattern: str = Field(default="", validation_alias="PLAN_PATTERN")
+    run_matrix: bool = Field(default=False, validation_alias="PLAN_RUN_MATRIX")
+    profile: str = Field(default="load", validation_alias="PLAN_PROFILE")
+    duration_sec: int = Field(default=120, validation_alias="PLAN_DURATION_SEC")
+    matrix_profiles: str = Field(default="all", validation_alias="PLAN_MATRIX_PROFILES")
+    duration_load: int | None = Field(default=None, validation_alias="PLAN_DURATION_LOAD")
+    duration_stress: int | None = Field(default=None, validation_alias="PLAN_DURATION_STRESS")
+    duration_stability: int | None = Field(default=None, validation_alias="PLAN_DURATION_STABILITY")
+    duration_scalability: int | None = Field(
+        default=None,
+        validation_alias="PLAN_DURATION_SCALABILITY",
+    )
+    duration_volume: int | None = Field(default=None, validation_alias="PLAN_DURATION_VOLUME")
+    duration_isolated: int | None = Field(default=None, validation_alias="PLAN_DURATION_ISOLATED")
+    duration_spike: int | None = Field(default=None, validation_alias="PLAN_DURATION_SPIKE")
+
+    def duration_for(self, profile: TestKind) -> int:
+        durations = {
+            "load": self.duration_load,
+            "stress": self.duration_stress,
+            "stability": self.duration_stability,
+            "scalability": self.duration_scalability,
+            "volume": self.duration_volume,
+            "isolated": self.duration_isolated,
+            "spike": self.duration_spike,
+        }
+        duration = durations[profile.value]
+        return self.duration_sec if duration is None else duration
 
 
 class BaseRunner:
@@ -414,7 +452,7 @@ class TestsRunner(BaseRunner):
 
 
 class ProfiledPlanRunner(BaseRunner):
-    __slots__ = ("client", "db", "executor")
+    __slots__ = ("client", "db", "executor", "logger")
 
     _SUBSYSTEM_ALIASES: ClassVar[dict[str, Subsystem]] = {
         "cpu": Subsystem.SYSTEM,
@@ -432,24 +470,27 @@ class ProfiledPlanRunner(BaseRunner):
         self.client = client
         self.db = db
         self.executor = PlanExecutor(client=client, db=db)
+        self.logger = logging.getLogger(f"{LIB_NAME}.profiled_plan_runner")
 
     def run_from_env(self) -> bool:
-        subsystems = self._parse_subsystems(env_var_to_type("PLAN_SUBSYSTEMS", str, "all"))
-        results_root = env_var_to_type("PLAN_RESULTS_DIR", Path, Path("results/profiled"))
-        pattern = self._parse_pattern(env_var_to_type("PLAN_PATTERN", str, ""))
+        settings = ProfiledPlanRunnerSettings()
+        subsystems = self._parse_subsystems(settings.subsystems)
+        results_root = settings.results_dir
+        pattern = self._parse_pattern(settings.pattern)
         config_id = self.resolve_config_id(self.client, self.db)
 
-        if env_var_to_type("PLAN_RUN_MATRIX", bool, default=False):
+        if settings.run_matrix:
             return self._run_matrix(
                 subsystems=subsystems,
                 results_root=results_root,
                 pattern=pattern,
                 config_id=config_id,
+                settings=settings,
             )
 
         failures = self._run_one(
-            profile=self._parse_profile(env_var_to_type("PLAN_PROFILE", str, "load")),
-            duration_sec=env_var_to_type("PLAN_DURATION_SEC", int, 120),
+            profile=self._parse_profile(settings.profile),
+            duration_sec=settings.duration_sec,
             subsystems=subsystems,
             results_root=results_root,
             pattern=pattern,
@@ -464,21 +505,15 @@ class ProfiledPlanRunner(BaseRunner):
         results_root: Path,
         pattern: LoadPattern | None,
         config_id: int,
+        settings: ProfiledPlanRunnerSettings,
     ) -> bool:
         total_failures = 0
-        default_duration = env_var_to_type("PLAN_DURATION_SEC", int, 120)
 
-        for index, profile in enumerate(
-            self._parse_profiles(env_var_to_type("PLAN_MATRIX_PROFILES", str, "all"))
-        ):
+        for index, profile in enumerate(self._parse_profiles(settings.matrix_profiles)):
             if index > 0:
                 self.client.reconnect()
 
-            duration_sec = env_var_to_type(
-                f"PLAN_DURATION_{profile.value.upper()}",
-                int,
-                default_duration,
-            )
+            duration_sec = settings.duration_for(profile)
             total_failures += self._run_one(
                 profile=profile,
                 duration_sec=duration_sec,
@@ -519,7 +554,7 @@ class ProfiledPlanRunner(BaseRunner):
             1 for stage in execution.stage_runs for task in stage.tasks if task.returncode != 0
         )
 
-        logging.getLogger(__name__).info(
+        self.logger.info(
             "[PROFILED] DONE profile=%s pattern=%s duration=%ss failures=%d experiment_id=%s",
             profile.value,
             pattern.value if pattern else "auto",
