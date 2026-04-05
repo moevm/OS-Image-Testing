@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Any
 from imgtests.exec.exec import common_run_command
 from imgtests.exec.loaders.fio import Fio, fio_metrics_to_samples, get_available_bytes
 from imgtests.exec.loaders.stress_ng import StressNg, stress_metrics_to_samples
+from imgtests.exec.observers.systemd_analyze import SystemdAnalyze
 from imgtests.exec.user_commands import Nproc
 from imgtests.planning.profiles import CPU_SCALE_ARG_PREFIX, FIO_SIZE_RATIO_ARG_PREFIX
 from imgtests.runner import BaseRunner
@@ -238,6 +239,9 @@ class PlanExecutor(BaseRunner):
         if tool == "fio":
             return self._run_fio(stage, task, started_at)
 
+        if tool == "systemd-analyze":
+            return self._run_systemd_analyze(stage, task, started_at)
+
         now = datetime.now(UTC)
         return TaskRunResult(
             task=task,
@@ -461,6 +465,80 @@ class PlanExecutor(BaseRunner):
 
         self._cpu_count_cache = cpu_count
         return self._cpu_count_cache
+
+    def _run_systemd_analyze(
+        self,
+        stage: PlanStage,
+        task: LoadTask,
+        started_at: datetime,
+    ) -> TaskRunResult:
+        opt = task.args.get("opt", "time")
+        systemd_analyze = SystemdAnalyze(self.client)
+        stdout, stderr, summary, samples = "", "", None, ()
+        returncode = 0
+
+        if opt == "time":
+            result = systemd_analyze.time()
+            sleep_time_sec = 5
+            wait_timeout_sec = stage.duration_sec
+
+            while result.total_time < 0 and wait_timeout_sec > 0:
+                self.logger.info(
+                    "Waiting for system to be ready to analyze boot time, %d seconds left.",
+                    wait_timeout_sec,
+                )
+                time.sleep(sleep_time_sec)
+                wait_timeout_sec -= sleep_time_sec
+                result = systemd_analyze.time()
+
+            if result.total_time < 0:
+                stderr = "Failed to get boot time, system might not be ready."
+                returncode = 1
+                self.logger.error(stderr)
+            else:
+                summary = result._asdict()
+                samples = tuple(
+                    MetricSample(
+                        stage_name=stage.name,
+                        subsystem=task.subsystem.value,
+                        metric_name=key,
+                        value=value,
+                    )
+                    for key, value in result._asdict().items()
+                    if value >= 0
+                )
+            stdout = str(result)
+
+        elif opt == "critical-chain":
+            services = systemd_analyze.slow_load_services()
+            summary = SystemdAnalyze.metrics_to_json(services)
+            stdout = str(services)
+            samples = tuple(
+                MetricSample(
+                    stage_name=stage.name,
+                    subsystem=task.subsystem.value,
+                    metric_name=service.service_name,
+                    value=service.slow_time_s,
+                )
+                for service in services
+            )
+
+        else:
+            returncode = 1
+            stderr = f"Unknown systemd-analyze option: {opt}"
+            self.logger.error(stderr)
+
+        return TaskRunResult(
+            task=task,
+            started_at=started_at,
+            ended_at=datetime.now(UTC),
+            command=f"{systemd_analyze.name} {opt}",
+            returncode=returncode,
+            stdout=stdout,
+            stderr=stderr,
+            summary=summary,
+            metrics=samples,
+        )
 
 
 def _try_parse_json(text: str) -> dict[str, Any]:
