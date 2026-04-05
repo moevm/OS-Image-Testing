@@ -180,7 +180,7 @@ def build_stage_tasks(
     pattern: LoadPattern,
     stage_duration_sec: int,
 ) -> tuple[LoadTask, ...]:
-    if _test_kind == TestKind.DIAGNOSTIC:
+    if _test_kind == TestKind.DIAGNOSTIC or pattern == LoadPattern.DIAGNOSTIC:
         return (
             LoadTask(subsystem=Subsystem.SYSTEM, tool="systemd-analyze", args={"opt": "time"}),
             LoadTask(
