@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from concurrent.futures import TimeoutError
+from concurrent.futures import TimeoutError as FuturesTimeoutError
 from datetime import datetime
 from time import monotonic, sleep
 from typing import TYPE_CHECKING, Final, NamedTuple
@@ -128,10 +128,8 @@ class Iperf3PacketRateScalingTest(AbstractRunnableTimeLimitedTest):
                 interval=1,
                 udp=True,
                 version4=True,
-                **{
-                    "bitrate": profile.bitrate_bps,
-                    "length": profile.datagram_size_bytes,
-                },
+                bitrate=profile.bitrate_bps,
+                length=profile.datagram_size_bytes,
             )
 
             if result.returncode:
@@ -146,9 +144,11 @@ class Iperf3PacketRateScalingTest(AbstractRunnableTimeLimitedTest):
                     ),
                 )
                 server_result = server_future.result(timeout=server_wait_timeout)
-            except TimeoutError:
+            except FuturesTimeoutError:
                 stop_iperf3_server(client)
-                self.logger.error("Iperf3 UDP packet-rate scaling test FAILED: server timed out")
+                self.logger.exception(
+                    "Iperf3 UDP packet-rate scaling test FAILED: server timed out"
+                )
                 yield TestResult(
                     status=TestStatus.FAILED,
                     started_at=started_at,
