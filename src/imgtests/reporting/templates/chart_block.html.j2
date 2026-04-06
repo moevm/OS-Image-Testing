@@ -1,0 +1,8 @@
+{% macro render_chart(asset) -%}
+{% if asset %}
+    <h3>{{ asset.title }}</h3>
+    <img src="{{ asset.relative_path }}" alt="{{ asset.title }}">
+{% else %}
+    <p>No visualization was generated.</p>
+{% endif %}
+{%- endmacro%}
