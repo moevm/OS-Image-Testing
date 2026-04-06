@@ -16,9 +16,9 @@ from imgtests.exec.loaders.stress_ng import StressNg, stress_metrics_to_samples
 from imgtests.exec.observers.systemd_analyze import SystemdAnalyze
 from imgtests.exec.user_commands import Nproc
 from imgtests.planning.profiles import CPU_SCALE_ARG_PREFIX, FIO_SIZE_RATIO_ARG_PREFIX
-from imgtests.runner import BaseRunner
+from imgtests.runner import BaseRunner, TestStatus
 from imgtests.sizing import parse_size_to_bytes, round_bytes_to_mib_str
-from imgtests.types import MetricSample, Subsystem
+from imgtests.types import MetricSample, Subsystem, TestsCounts
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -44,6 +44,7 @@ class TaskRunResult:
     stderr: str
     summary: dict[str, Any] | None
     metrics: tuple[MetricSample, ...]
+    status: TestStatus
 
 
 @dataclass(frozen=True)
@@ -97,7 +98,13 @@ class PlanExecutor(BaseRunner):
 
         stage_runs: list[StageRunResult] = []
         collected_metrics: list[MetricSample] = []
-
+        total_count = 0
+        counts = {
+            TestStatus.PASSED: 0,
+            TestStatus.FAILED: 0,
+            TestStatus.SKIPPED: 0,
+            TestStatus.BROKEN: 0,
+        }
         for stage in plan.stages:
             self._wait_for_stage_offset(
                 plan_started_at=started_at,
@@ -132,6 +139,9 @@ class PlanExecutor(BaseRunner):
                 )
                 collected_metrics.extend(task_run.metrics)
 
+                counts[task_run.status] += 1
+                total_count += 1
+
                 self.db.insert_loader(
                     experiment_id=experiment_id,
                     command=full_cmd,
@@ -165,6 +175,16 @@ class PlanExecutor(BaseRunner):
         self.db.update_experiment_ended_at(
             experiment_id=experiment_id,
             ended_at=ended_at,
+        )
+        self.db.update_experiment_tests_count(
+            experiment.experiment_id,
+            TestsCounts(
+                total_count=total_count,
+                broken_count=counts[TestStatus.BROKEN],
+                passed_count=counts[TestStatus.PASSED],
+                failed_count=counts[TestStatus.FAILED],
+                skip_count=counts[TestStatus.SKIPPED],
+            ),
         )
 
         return PlanExecutionResult(
@@ -253,6 +273,7 @@ class PlanExecutor(BaseRunner):
             stderr=f"Unknown tool: {tool}",
             summary={"error": f"Unknown tool: {tool}"},
             metrics=(),
+            status=TestStatus.SKIPPED,
         )
 
     def _retry_stress_run_if_needed(
