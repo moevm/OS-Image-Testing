@@ -123,7 +123,7 @@ def test_perf_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, Any
                             }
                         ],
                         "version": "iperf 3.18",
-                        "system_info": "Linux qemux86-64 6.12.47-yocto-standard #1 SMP PREEMPT_DYNAMIC Mon Sep 15 02:39:40 UTC 2025 x86_64",
+                        "system_info": "Linux qemux86-64 6.12.47-yocto-standard x86_64",
                         "timestamp": {
                             "time": "Sun, 05 Apr 2026 22:05:53 GMT",
                             "timesecs": 1775426753,
@@ -255,7 +255,7 @@ def test_perf_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, Any
                             }
                         ],
                         "version": "iperf 3.18",
-                        "system_info": "Linux qemux86-64 6.12.47-yocto-standard #1 SMP PREEMPT_DYNAMIC Mon Sep 15 02:39:40 UTC 2025 x86_64",
+                        "system_info": "Linux qemux86-64 6.12.47-yocto-standard x86_64",
                         "target_bitrate": 1048576,
                         "timestamp": {
                             "time": "Sun, 05 Apr 2026 22:05:53 GMT",
@@ -518,7 +518,7 @@ def test_iperf3_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, A
                         "identifier": "2026-04-05 22:06",
                         "hardware": {
                             "Processor": "Intel Xeon E3-12xx v2 (4 Cores)",
-                            "Motherboard": "QEMU Standard PC (Q35 + ICH9 2009) (rel-1.16.3-0-ga6ed6b701f0a-prebuilt.qemu.org BIOS)",
+                            "Motherboard": "QEMU Standard PC (Q35 + ICH9 2009)",
                             "Chipset": "Intel 82G33/G31/P35/P31 + ICH9",
                             "Memory": "1 x 2 GB RAM QEMU",
                             "Disk": "10GB",
@@ -538,9 +538,9 @@ def test_iperf3_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, A
                         "timestamp": "2026-04-05 22:07:04",
                         "client_version": "10.8.4",
                         "data": {
-                            "compiler-configuration": "--bindir=/usr/bin --build=x86_64-linux --datadir=/usr/share --disable-bootstrap --disable-dependency-tracking --disable-install-libiberty --disable-libssp --disable-silent-rules --disable-static --enable-__cxa_atexit --enable-c99 --enable-cheaders=c_global --enable-checking=release --enable-default-pie --enable-initfini-array --enable-languages=c,c++ --enable-libitm --enable-libstdcxx-pch --enable-long-long --enable-lto --enable-multilib --enable-nls --enable-shared --enable-symvers=gnu --enable-threads=posix --exec_prefix=/usr --host=x86_64-poky-linux --includedir=/usr/include --localstatedir=/var --mandir=/usr/share/man --oldincludedir=/usr/include --program-prefix=x86_64-poky-linux- --sbindir=/usr/sbin --sharedstatedir=/com --sysconfdir=/etc --target=x86_64-poky-linux --with-arch=core2 --with-build-sysroot=/ --with-glibc-version=2.28 --with-gnu-ld --with-gxx-libcxx-include-dir=/usr/include/c++/v1 --with-linker-hash-style=gnu --with-ppl=no --without-isl --without-local-prefix",
+                            "compiler-configuration": "",
                             "cpu-microcode": "0x1",
-                            "security": "gather_data_sampling: Not affected + indirect_target_selection: Mitigation of Aligned branch/return thunks + itlb_multihit: vulnerable + l1tf: Mitigation of PTE Inversion + mds: Vulnerable: Clear buffers attempted no microcode; SMT Host state unknown + meltdown: Mitigation of PTI + mmio_stale_data: Unknown: No mitigations + reg_file_data_sampling: Not affected + retbleed: Not affected + spec_rstack_overflow: Not affected + spec_store_bypass: Vulnerable + spectre_v1: Mitigation of usercopy/swapgs barriers and __user pointer sanitization + spectre_v2: Mitigation of Retpolines; STIBP: disabled; RSB filling; PBRSB-eIBRS: Not affected; BHI: Retpoline + srbds: Unknown: Dependent on hypervisor status + tsa: Not affected + tsx_async_abort: Not affected + vmscape: Not affected",
+                            "security": "",
                         },
                     }
                 },
