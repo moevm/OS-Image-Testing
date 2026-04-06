@@ -36,7 +36,11 @@ from imgtests.exec.adapter import IPerfAdapter, PerfAdapter, PTSAdapter, StressN
                 "test_type": {
                     "stressor": "cpu",
                 },
-                "time": {"real_time_secs": 1.14, "usr_time_secs": 4.14, "sys_time_secs": 0.18},
+                "time": {
+                    "real_time_secs": 1.14,
+                    "usr_time_secs": 4.14,
+                    "sys_time_secs": 0.18,
+                },
                 "metrics": {
                     "bogo_ops": 276,
                     "bogo_ops_s_real_time": 242.15,
@@ -45,7 +49,12 @@ from imgtests.exec.adapter import IPerfAdapter, PerfAdapter, PTSAdapter, StressN
                     "rss_max_kb": 6212,
                     "top10_slowest": None,
                 },
-                "summary": {"skipped": 0, "passed": 4, "failed": 0, "metrics_untrustworthy": 0},
+                "summary": {
+                    "skipped": 0,
+                    "passed": 4,
+                    "failed": 0,
+                    "metrics_untrustworthy": 0,
+                },
             },
         ),
     ],
@@ -76,8 +85,13 @@ def test_stress_ng_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str
                 "test_type": {
                     "benchmark": "sched/pipe",
                 },
-                "time": {"total_time": 198.97},
-                "metrics": {"usecs_per_op": 198.970091, "ops_per_sec": 5025},
+                "time": {
+                    "total_time": 198.97,
+                },
+                "metrics": {
+                    "usecs_per_op": 198.970091,
+                    "ops_per_sec": 5025,
+                },
                 "summary": {},
             },
         ),
@@ -541,8 +555,14 @@ def test_iperf3_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, A
                         "results": {
                             "2026-04-05 22:06": {
                                 "value": 19585,
-                                "raw_values": [19573, 19596],
-                                "test_run_times": [154.03, 150.62],
+                                "raw_values": [
+                                    19573,
+                                    19596,
+                                ],
+                                "test_run_times": [
+                                    154.03,
+                                    150.62,
+                                ],
                                 "details": {
                                     "compiler-options": {
                                         "compiler-type": "CC",
@@ -567,8 +587,14 @@ def test_iperf3_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, A
                 },
                 "metrics": {
                     "value": 19585,
-                    "raw_values": [19573, 19596],
-                    "test_run_times": [154.03, 150.62],
+                    "raw_values": [
+                        19573,
+                        19596,
+                    ],
+                    "test_run_times": [
+                        154.03,
+                        150.62,
+                    ],
                 },
                 "summary": {},
             },
