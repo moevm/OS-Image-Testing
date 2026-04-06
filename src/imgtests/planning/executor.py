@@ -350,6 +350,7 @@ class PlanExecutor(BaseRunner):
             stderr=exec_res.stderr,
             summary=summary_dict,
             metrics=tuple(samples),
+            status=TestStatus.PASSED if exec_res.returncode == 0 else TestStatus.FAILED,
         )
 
     def _run_fio(
@@ -430,6 +431,7 @@ class PlanExecutor(BaseRunner):
             stderr=result.stderr,
             summary=summary,
             metrics=tuple(samples),
+            status=TestStatus.PASSED if result.returncode == 0 else TestStatus.FAILED,
         )
 
     def _resolve_stress_args(self, args: dict[str, Any]) -> dict[str, Any]:
@@ -497,6 +499,7 @@ class PlanExecutor(BaseRunner):
         systemd_analyze = SystemdAnalyze(self.client)
         stdout, stderr, summary, samples = "", "", None, ()
         returncode = 0
+        status = TestStatus.SKIPPED
 
         if opt == "time":
             result = systemd_analyze.time()
@@ -516,6 +519,7 @@ class PlanExecutor(BaseRunner):
                 stderr = "Failed to get boot time, system might not be ready."
                 returncode = 1
                 self.logger.error(stderr)
+                status = TestStatus.FAILED
             else:
                 summary = result._asdict()
                 samples = tuple(
@@ -528,6 +532,7 @@ class PlanExecutor(BaseRunner):
                     for key, value in result._asdict().items()
                     if value >= 0
                 )
+                status = TestStatus.PASSED
             stdout = str(result)
 
         elif opt == "critical-chain":
@@ -543,6 +548,7 @@ class PlanExecutor(BaseRunner):
                 )
                 for service in services
             )
+            status = TestStatus.PASSED
 
         else:
             returncode = 1
@@ -559,6 +565,7 @@ class PlanExecutor(BaseRunner):
             stderr=stderr,
             summary=summary,
             metrics=samples,
+            status=status,
         )
 
 
