@@ -5,7 +5,7 @@ import logging
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import suppress
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
@@ -122,34 +122,27 @@ class PlanExecutor(BaseRunner):
                     "value",
                     str(task_run.task.subsystem),
                 )
+                collected_metrics.extend(task_run.metrics)
 
                 self.db.insert_loader(
                     experiment_id=experiment_id,
                     command=full_cmd,
                     result={
+                        "stage_name": stage.name,
+                        "subsystem": subsystem_value,
+                        "tool": task_run.task.tool,
+                        "utility": task_run.task.tool,
+                        "command": list(task_run.command),
                         "returncode": task_run.returncode,
+                        "stdout": task_run.stdout,
+                        "stderr": task_run.stderr,
                         "summary": task_run.summary,
+                        "metrics": [asdict(sample) for sample in task_run.metrics],
                     },
-                    description=f"Task result stage={stage.name} subsystem={subsystem_value}",
+                    description=f"Task result for stage={stage.name}",
                     started_at=task_run.started_at,
                     ended_at=task_run.ended_at,
                 )
-
-                for sample in task_run.metrics:
-                    collected_metrics.append(sample)
-                    self.db.insert_observer(
-                        experiment_id=experiment_id,
-                        command=f"{task_run.task.tool}:{sample.metric_name}",
-                        result={
-                            "value": sample.value,
-                        },
-                        description=(
-                            f"Observed numeric metric stage={sample.stage_name} "
-                            f"subsystem={sample.subsystem}"
-                        ),
-                        started_at=task_run.started_at,
-                        ended_at=task_run.ended_at,
-                    )
 
             stage_runs.append(
                 StageRunResult(

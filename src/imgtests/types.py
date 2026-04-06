@@ -88,3 +88,4 @@ class MetricSample:
     subsystem: str
     metric_name: str
     value: float
+    label: str = ""

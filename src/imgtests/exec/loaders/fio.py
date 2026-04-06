@@ -28,6 +28,13 @@ IOEngine = Literal[
 ]
 # fmt: on
 Direct = Literal[1] | None
+FIO_CLAT_PERCENTILES: dict[str, tuple[str, str]] = {
+    "50.000000": ("50", "50"),
+    "90.000000": ("90", "90"),
+    "95.000000": ("95", "95"),
+    "99.000000": ("99", "99"),
+    "99.900000": ("999", "99.9"),
+}
 
 
 def get_available_bytes(client: SSHClient, path: str | Path) -> int | None:
@@ -224,14 +231,6 @@ def fio_metrics_to_samples(
     if not isinstance(jobs, list):
         return []
 
-    wanted_p = {
-        "50.000000": 50,
-        "90.000000": 90,
-        "95.000000": 95,
-        "99.000000": 99,
-        "99.900000": 999,
-    }
-
     out: list[MetricSample] = []
     for job in jobs:
         if not isinstance(job, dict):
@@ -247,7 +246,7 @@ def fio_metrics_to_samples(
                     subsystem=subsystem.value,
                     op=op,
                     op_data=op_data,
-                    wanted_p=wanted_p,
+                    percentiles=FIO_CLAT_PERCENTILES,
                 )
             )
 
@@ -259,9 +258,10 @@ def _fio_op_samples(
     subsystem: str,
     op: str,
     op_data: dict[str, Any],
-    wanted_p: dict[str, int],
+    percentiles: dict[str, tuple[str, str]],
 ) -> list[MetricSample]:
     out: list[MetricSample] = []
+    op_label = op.capitalize()
 
     iops = _safe_float(op_data.get("iops"))
     bw = _safe_float(op_data.get("bw"))
@@ -271,20 +271,54 @@ def _fio_op_samples(
     clat_mean = _safe_float(clat.get("mean")) if isinstance(clat, dict) else None
 
     if iops is not None:
-        out.append(MetricSample(stage_name, subsystem, f"fio.{op}.iops", iops))
+        out.append(
+            MetricSample(stage_name, subsystem, f"fio.{op}.iops", iops, label=f"{op_label} IOPS")
+        )
     if bw is not None:
-        out.append(MetricSample(stage_name, subsystem, f"fio.{op}.bw_kib_s", bw))
+        out.append(
+            MetricSample(
+                stage_name,
+                subsystem,
+                f"fio.{op}.bw_kib_s",
+                bw,
+                label=f"{op_label} bandwidth, KiB/s",
+            )
+        )
     if runtime_ms is not None:
-        out.append(MetricSample(stage_name, subsystem, f"fio.{op}.runtime_ms", runtime_ms))
+        out.append(
+            MetricSample(
+                stage_name,
+                subsystem,
+                f"fio.{op}.runtime_ms",
+                runtime_ms,
+                label=f"{op_label} runtime, ms",
+            )
+        )
     if clat_mean is not None:
-        out.append(MetricSample(stage_name, subsystem, f"fio.{op}.clat_mean_ns", clat_mean))
+        out.append(
+            MetricSample(
+                stage_name,
+                subsystem,
+                f"fio.{op}.clat_mean_ns",
+                clat_mean,
+                label=f"{op_label} clat mean, ns",
+            )
+        )
 
     pct = clat.get("percentile") if isinstance(clat, dict) else None
     if isinstance(pct, dict):
-        for key, p_int in wanted_p.items():
+        for key, (metric_suffix, percentile_label) in percentiles.items():
             fv = _safe_float(pct.get(key))
             if fv is not None:
-                out.append(MetricSample(stage_name, subsystem, f"fio.{op}.clat_p{p_int}_ns", fv))
+                out.append(
+                    MetricSample(
+                        stage_name,
+                        subsystem,
+                        f"fio.{op}.clat_p{metric_suffix}_ns",
+                        fv,
+                        label=f"{op_label} clat p{percentile_label}, ns",
+                    )
+                )
 
     return out
 

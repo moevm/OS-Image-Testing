@@ -634,16 +634,28 @@ def stress_metrics_to_samples(
 
     for metric in metrics:
         base_metrics = (
-            ("stress.bogo_ops", float(metric.bogo_ops)),
-            ("stress.real_time_secs", float(metric.real_time_secs)),
-            ("stress.usr_time_secs", float(metric.usr_time_secs)),
-            ("stress.sys_time_secs", float(metric.sys_time_secs)),
-            ("stress.bogo_ops_s_real_time", float(metric.bogo_ops_s_real_time)),
-            ("stress.bogo_ops_s_usr_sys_time", float(metric.bogo_ops_s_usr_sys_time)),
-            ("stress.cpu_used_per_instance", float(metric.cpu_used_per_instance)),
+            ("stress.bogo_ops", float(metric.bogo_ops), "Bogo ops"),
+            ("stress.real_time_secs", float(metric.real_time_secs), "Real time, s"),
+            ("stress.usr_time_secs", float(metric.usr_time_secs), "User time, s"),
+            ("stress.sys_time_secs", float(metric.sys_time_secs), "System time, s"),
+            (
+                "stress.bogo_ops_s_real_time",
+                float(metric.bogo_ops_s_real_time),
+                "Bogo ops/s",
+            ),
+            (
+                "stress.bogo_ops_s_usr_sys_time",
+                float(metric.bogo_ops_s_usr_sys_time),
+                "Bogo ops/s CPU",
+            ),
+            (
+                "stress.cpu_used_per_instance",
+                float(metric.cpu_used_per_instance),
+                "CPU used, %",
+            ),
         )
-        for metric_name, value in base_metrics:
-            samples.append(MetricSample(stage_name, subsystem, metric_name, value))
+        for metric_name, value, label in base_metrics:
+            samples.append(MetricSample(stage_name, subsystem, metric_name, value, label=label))
 
         if metric.rss_max_kb is not None:
             samples.append(
@@ -652,6 +664,7 @@ def stress_metrics_to_samples(
                     subsystem,
                     "stress.rss_max_kb",
                     float(metric.rss_max_kb),
+                    label="RSS max, KB",
                 )
             )
 
@@ -662,6 +675,7 @@ def stress_metrics_to_samples(
                     subsystem,
                     "stress.syscall_slowest_avg_ns",
                     float(metric.top10_slowest[0].avg_ns),
+                    label="Slowest syscall avg, ns",
                 )
             )
 
