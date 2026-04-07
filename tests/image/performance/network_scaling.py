@@ -6,7 +6,6 @@ from time import monotonic, sleep
 from typing import TYPE_CHECKING, Final, NamedTuple
 from zoneinfo import ZoneInfo
 
-from imgtests.exec.exec import common_run_command
 from imgtests.exec.loaders import Iperf3, StressNg
 from imgtests.runner import AbstractRunnableTimeLimitedTest, TestResult, TestStatus
 from imgtests.suites.general.stress_ng import StressNgTest
@@ -18,9 +17,9 @@ if TYPE_CHECKING:
 
     from imgtests.exec.exec import SSHClient
 
-IPERF3_PACKET_RATE_START_PPS: Final = 2_000
-IPERF3_PACKET_RATE_STOP_PPS: Final = 8_000
-IPERF3_PACKET_RATE_STEP_PPS: Final = 2_000
+IPERF3_START_PPS: Final = 2_000
+IPERF3_STOP_PPS: Final = 8_000
+IPERF3_STEP_PPS: Final = 2_000
 IPERF3_DATAGRAM_SIZES_BYTES: Final = (64, 512, 1400)
 IPERF3_SERVER_STARTUP_SEC: Final = 1
 IPERF3_SUBTEST_OVERHEAD_SEC: Final = 1
@@ -43,9 +42,9 @@ def build_iperf3_packet_rate_profiles() -> tuple[Iperf3PacketRateProfile, ...]:
             bitrate_bps=packet_rate_pps * datagram_size_bytes * 8,
         )
         for packet_rate_pps in range(
-            IPERF3_PACKET_RATE_START_PPS,
-            IPERF3_PACKET_RATE_STOP_PPS + IPERF3_PACKET_RATE_STEP_PPS,
-            IPERF3_PACKET_RATE_STEP_PPS,
+            IPERF3_START_PPS,
+            IPERF3_STOP_PPS + IPERF3_STEP_PPS,
+            IPERF3_STEP_PPS,
         )
         for datagram_size_bytes in IPERF3_DATAGRAM_SIZES_BYTES
     )
@@ -56,10 +55,6 @@ def get_subtest_timeout(timeout: int, subtests_count: int, reserved_overhead_sec
     if available_timeout < subtests_count:
         return 0
     return available_timeout // subtests_count
-
-
-def stop_iperf3_server(client: SSHClient | None) -> None:
-    common_run_command(["pkill", "-f", "iperf3.*--server"], client)
 
 
 class Iperf3PacketRateScalingTest(AbstractRunnableTimeLimitedTest):
@@ -133,7 +128,7 @@ class Iperf3PacketRateScalingTest(AbstractRunnableTimeLimitedTest):
             )
 
             if result.returncode:
-                stop_iperf3_server(client)
+                iperf3.stop_server()
 
             try:
                 server_wait_timeout = max(
@@ -145,7 +140,7 @@ class Iperf3PacketRateScalingTest(AbstractRunnableTimeLimitedTest):
                 )
                 server_result = server_future.result(timeout=server_wait_timeout)
             except FuturesTimeoutError:
-                stop_iperf3_server(client)
+                iperf3.stop_server()
                 self.logger.exception(
                     "Iperf3 UDP packet-rate scaling test FAILED: server timed out"
                 )
