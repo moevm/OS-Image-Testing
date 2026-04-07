@@ -31,6 +31,7 @@ class Journalctl(GenericUtil):
         since: str | AlternativeDate | None = None,
         until: str | AlternativeDate | None = None,
         output: str | None = None,
+        log_errors: bool = True,
         **kwargs: dict[str, Any],
     ) -> ExecResult:
         """Runs journalctl with provided arguments.
@@ -39,12 +40,14 @@ class Journalctl(GenericUtil):
             boot (bool): Show messages from a specific boot. Defaults to False.
             priority (SyslogLevel | str | None): Filter output by message priorities or priority
               ranges. Defaults to None.
-            grep(str): Filter output to entries where the message field matches the specified
-              pattern.
-            case_sensitive(CaseSensitive): Make pattern matching case sensitive or case insensitive.
-            since(str): Show entries from start date.
-            until(str): Show entries to until date.
-            output(str): Controls how journal records are printed.
+            grep (str | None): Filter output to entries where the message field matches
+              the specified pattern.
+            case_sensitive (CaseSensitive): Make pattern matching case sensitive or
+              case insensitive.
+            since (str | AlternativeDate | None): Show entries from start date.
+            until (str | AlternativeDate | None): Show entries to until date.
+            output (str | None): Controls how journal records are printed.
+            log_errors (bool): Show or hide error messages in the logs.
             **kwargs (dict[str, Any]): Command arguments in the free form with values.
         """
         if since is not None:
@@ -64,7 +67,7 @@ class Journalctl(GenericUtil):
         if until:
             opts.extend(create_opt("until", f"'{until}'"))
 
-        return self(opts, **kwargs)
+        return self(opts, log_errors=log_errors, **kwargs)
 
     systemd_only_records = partialmethod(run, grep="systemd", case_sensitive="no")
     oom_records = partialmethod(run, grep="'Out of memory|OOM'", case_sensitive="no")

@@ -338,6 +338,7 @@ class TestsRunner:
         oom_r = journalctl.oom_records(
             since=since.strftime(journalctl.DATE_FORMAT),
             until=until.strftime(journalctl.DATE_FORMAT),
+            log_errors=False,
         )
         oom_m = journalctl.calc_records_cnt(oom_r.stdout)
         self.logger.info("OOM records %d", oom_m)
@@ -355,6 +356,7 @@ class TestsRunner:
             since=since.strftime(journalctl.DATE_FORMAT),
             until=until.strftime(journalctl.DATE_FORMAT),
             priority="err",
+            log_errors=False,
         )
         sstmd_err_m = journalctl.calc_records_cnt(sstmd_err_r.stdout)
         self.logger.info(
