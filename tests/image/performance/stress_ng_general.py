@@ -16,11 +16,11 @@ if TYPE_CHECKING:
 
 tests: list[dict[str, Any]] = [
     {"cpu": 0, "cpu_method": "matrixprod"},
-    {"vm": 3, "vm_bytes": "2G", "mmap": 3, "mmap_bytes": "2G"},
-    {"hdd": 0, "hdd_bytes": "2G"},
-    {"sock": 2, "netdev": 2, "udp_flood": 2},
+    {"vm": 0, "vm_bytes": "90%", "mmap": 0, "mmap_bytes": "90%"},
+    {"hdd": 0, "hdd_bytes": "90%"},
+    {"sock": 0, "netdev": 0, "udp_flood": 0},
     {"syscall": 0},
-    {"mq": 4, "pipe": 4, "sem": 4, "shm": 4},
+    {"mq": 0, "pipe": 0, "sem": 0, "shm": 0},
 ]
 
 

@@ -139,6 +139,7 @@ def main() -> None:
         yocto_runner = TestsRunner(poky_client, database, suite)
         yocto_runner.run()
 
+    poky_client.reconnect()
     has_failures = ProfiledPlanRunner(
         client=poky_client,
         db=database,

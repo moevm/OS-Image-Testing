@@ -107,7 +107,7 @@ services:
       - "--storageDataPath=/storage"
       - "--promscrape.config=/etc/prometheus/vmetrics-conf.yml"
       - "--httpListenAddr=:${VMETRICS_PORT}"
-    restart: always
+    restart: on-failure
 
   imgtests-postgres:
     image: postgres:17.7
