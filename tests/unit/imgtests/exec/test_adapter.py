@@ -2,7 +2,12 @@ from typing import Any
 
 import pytest
 
-from imgtests.exec.adapter import IPerfAdapter, PerfAdapter, PTSAdapter, StressNgAdapter
+from imgtests.exec.loaders import (
+    Iperf3Adapter,
+    PerfAdapter,
+    PhoronixTestSuiteAdapter,
+    StressNgAdapter,
+)
 
 
 @pytest.mark.parametrize(
@@ -500,7 +505,7 @@ def test_perf_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, Any
     ],
 )
 def test_iperf3_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, Any]) -> None:
-    adapter = IPerfAdapter()
+    adapter = Iperf3Adapter()
     result = adapter(raw_metrics)
     assert result == expected
 
@@ -605,6 +610,6 @@ def test_iperf3_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, A
     ],
 )
 def test_pts_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, Any]) -> None:
-    adapter = PTSAdapter()
+    adapter = PhoronixTestSuiteAdapter()
     result = adapter(raw_metrics)
     assert result == expected
