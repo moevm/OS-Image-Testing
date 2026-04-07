@@ -3,9 +3,10 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any, Literal, get_args
 from zoneinfo import ZoneInfo
 
+from deepdiff import DeepDiff
 from pydantic import Field
 from pydantic_settings import BaseSettings
-from sqlalchemy import create_engine
+from sqlalchemy import and_, create_engine
 from sqlalchemy.orm import sessionmaker
 
 from imgtests.database.models.base import Base
@@ -73,6 +74,28 @@ class ImgtestsDatabase:
         core_config: dict[str, Any] | None = None,
         hardware: dict[str, Any] | None = None,
     ) -> ConfigurationBase:
+        with self.session() as session:
+            configuration_objects = (
+                session.query(ConfigurationBase)
+                .filter(
+                    and_(
+                        ConfigurationBase.os == os,
+                        ConfigurationBase.core_info == core_info,
+                    )
+                )
+                .all()
+            )
+            for configuration_object in configuration_objects:
+                if (
+                    configuration_object.packages == packages
+                    and configuration_object.core_config == core_config
+                    and len(DeepDiff(configuration_object.hardware, hardware)) == 0
+                ):
+                    logger.info(
+                        "Configuration already exists, returning existing object with id %d.",
+                        configuration_object.config_id,
+                    )
+                    return configuration_object
         configuration_object = ConfigurationBase(
             os=os,
             packages=packages,

@@ -38,14 +38,14 @@ class BaseTestUtil(ABC):
         self,
         cmd: Sequence[str | Path] | None = None,
         log_errors: bool = True,
-        **kwargs: dict[str, Any],
+        **kwargs: str | float | bool | None,
     ) -> ExecResult:
         """Executes the utility with the provided command.
 
         Args:
             cmd (Sequence[str | Path] | None): Command arguments to pass to the utility.
             log_errors (bool): Show or hide error messages in the logs.
-            **kwargs (dict[str, Any]): Command arguments in the free form with values.
+            **kwargs (str | float | bool | None): Command arguments in the free form with values.
 
         Raises:
             ValueError: When parameters repeated.

@@ -61,6 +61,10 @@ def add_flag(key: str, use_one_dash: bool = False) -> list[str]:
     return create_opt(key=key, value=True, use_one_dash=use_one_dash)
 
 
+def add_sudo(use_sudo: bool) -> list[str]:
+    return ["sudo"] if use_sudo else []
+
+
 def extract_version(out: str, pattern: re.Pattern[str] = VER_PATTERN) -> Version | None:
     match = pattern.search(out)
     if match is None:
@@ -68,7 +72,7 @@ def extract_version(out: str, pattern: re.Pattern[str] = VER_PATTERN) -> Version
     return Version(match.group())
 
 
-def kwargs_to_cmd_args(**kwargs: dict[str, Any]) -> list[str]:
+def kwargs_to_cmd_args(**kwargs: str | float | bool | None) -> list[str]:
     args: list[str] = []
     for k, w in kwargs.items():
         args.extend(create_opt(k, w))
