@@ -35,7 +35,7 @@
     Total tasks: <b>{{ total_tasks }}</b> |
     Failed: <b class="{{ 'bad' if has_failures else 'ok' }}">{{ failed_tasks }}</b>
   </p>
-  <p>Plan file: <code>{{ plan_path }}</code></p>
+  {{ chart.render_chart(test_stats) }}
 
   <h2>1) Plan Timeline</h2>
   <table>

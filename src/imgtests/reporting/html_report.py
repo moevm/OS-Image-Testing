@@ -62,27 +62,27 @@ def generate_html_report(plan: TestPlan, execution: PlanExecutionResult, out_dir
     per_stage_rows = _compute_stats(metrics, by_stage=True)
     plot_assets = _build_boxplots(metrics, out_dir=out_dir, plots_dir=plots_dir)
 
-    total_tasks = sum(len(stage.tasks) for stage in execution.stage_runs)
-    failed_tasks = sum(
-        1 for stage in execution.stage_runs for task in stage.tasks if task.returncode != 0
-    )
-
     template = _template_environment().get_template("load_test_report.html.j2")
     report_path = out_dir / "report.html"
     report_path.write_text(
         template.render(
             ended_at=execution.ended_at.isoformat(),
             experiment_id=execution.experiment_id,
-            failed_tasks=failed_tasks,
-            has_failures=failed_tasks > 0,
+            failed_tasks=execution.tests_counts.failed_count,
+            has_failures=execution.tests_counts.failed_count > 0,
             overall_rows=overall_rows,
             per_stage_rows=per_stage_rows,
             plan_id=plan.plan_id,
-            plan_path=str(execution.plan_path),
             plot_assets=plot_assets,
             started_at=execution.started_at.isoformat(),
             timeline_rows=_build_timeline_rows(plan, execution),
-            total_tasks=total_tasks,
+            total_tasks=execution.tests_counts.total_count,
+            test_stats=_build_piechart(
+                {k: v for k, v in execution.tests_counts._asdict().items() if k != "total_count"},
+                out_dir=out_dir,
+                plots_dir=plots_dir,
+                title="Test stats",
+            ),
         ),
         encoding="utf-8",
     )
@@ -227,6 +227,39 @@ def _build_boxplots(
         )
 
     return plot_assets
+
+
+def _build_piechart(
+    metrics: dict,
+    *,
+    out_dir: Path,
+    plots_dir: Path,
+    title: str,
+) -> PlotAsset:
+    fig = Figure(figsize=(8, 6))
+    FigureCanvasAgg(fig)
+    ax = fig.add_subplot(1, 1, 1)
+    values = list(metrics.values())
+    wedges, _, _ = ax.pie(
+        values,
+        startangle=90,
+        autopct=lambda pct: f"{round(pct / 100 * sum(values))}",
+        textprops={"color": "white", "weight": "bold"},
+    )
+    ax.legend(
+        wedges,
+        list(metrics.keys()),
+        loc="center left",
+        bbox_to_anchor=(1, 0, 0.5, 1),
+    )
+    ax.set_title(title)
+    out_path = plots_dir / f"{_safe_filename(title)}.png"
+    fig.tight_layout()
+    fig.savefig(out_path)
+    return PlotAsset(
+        title=title,
+        relative_path=str(out_path.relative_to(out_dir)),
+    )
 
 
 def _format_float(value: float) -> str:
