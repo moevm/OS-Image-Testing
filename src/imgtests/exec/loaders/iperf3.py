@@ -1,6 +1,7 @@
 import json
 from typing import TYPE_CHECKING, Any
 
+from imgtests.adapter import ResultAdapter
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult
 from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
@@ -103,3 +104,42 @@ class Iperf3(PkgMgrMixin, GenericUtil):
     @staticmethod
     def metrics_to_json(metrics: str) -> Any:
         return json.loads(metrics)
+
+
+class Iperf3Adapter(ResultAdapter):
+    def __init__(self) -> None:
+        self.tool = "iperf3"
+
+    def split_result(
+        self,
+        raw_result: dict[str, Any],
+        test_index: int = 0,  # noqa: ARG002
+    ) -> dict[str, Any]:
+        client_metrics = raw_result.get("client", {})
+        server_metrics = raw_result.get("server", {})
+        test_info = client_metrics.get("start", {}).get("test_start", {})
+        client_results = client_metrics.get("end", {})
+        server_results = server_metrics.get("end", {})
+
+        test_type = {"protocol": test_info.get("protocol", "")}
+        time = {"duration_sec": float(test_info.get("duration", 0.0))}
+
+        metrics = {
+            "client": {
+                "sum_sent": client_results.get("sum_sent", {}),
+                "sum_received": client_results.get("sum_received", {}),
+                "cpu_utilization_percent": client_results.get("cpu_utilization_percent", {}),
+            },
+            "server": {
+                "sum_sent": server_results.get("sum_sent", {}),
+                "sum_received": server_results.get("sum_received", {}),
+                "cpu_utilization_percent": server_results.get("cpu_utilization_percent", {}),
+            },
+        }
+
+        return {
+            "test_type": test_type,
+            "time": time,
+            "metrics": metrics,
+            "summary": {},
+        }

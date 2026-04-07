@@ -2,6 +2,7 @@ import logging
 import re
 from typing import Any, Final, Literal, NamedTuple
 
+from imgtests.adapter import ResultAdapter
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult, SSHClient
 from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
@@ -184,3 +185,23 @@ class Perf(PkgMgrMixin, GenericUtil):
                 result[metric.benchmark][key] = {"value": value}
 
         return result
+
+
+class PerfAdapter(ResultAdapter):
+    def __init__(self) -> None:
+        self.tool = "perf"
+
+    def split_result(self, raw_result: dict[str, Any], test_index: int = 0) -> dict[str, Any]:
+        metrics = raw_result[test_index]
+        test_type = {"benchmark": metrics.get("benchmark", "")}
+        time = {"total_time": metrics.get("total_time", 0)}
+
+        excluded_fields = [*test_type.keys(), *time.keys()]
+        metrics = self.drop_fields(metrics, excluded_fields)
+
+        return {
+            "test_type": test_type,
+            "time": time,
+            "metrics": metrics,
+            "summary": {},
+        }

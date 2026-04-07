@@ -3,6 +3,7 @@ import logging
 import re
 from typing import TYPE_CHECKING, Any
 
+from imgtests.adapter import ResultAdapter
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult, SSHClient, common_run_command, pipeline
 from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
@@ -361,3 +362,35 @@ class PhoronixTestSuite(PkgMgrMixin, GenericUtil):
                 return result
         logger.info("PTS setup successful")
         return result
+
+
+class PhoronixTestSuiteAdapter(ResultAdapter):
+    def __init__(self) -> None:
+        self.tool = "pts"
+
+    def split_result(self, raw_result: dict[str, Any], test_index: int = 0) -> dict[str, Any]:
+        system_info = raw_result.get("systems", {})
+        system_info = system_info.get(next(iter(system_info.keys())), {})
+
+        test_results = raw_result.get("results", {})
+        test_results = test_results.get(list(test_results.keys())[test_index], {})
+
+        test_metrics = test_results.get("results", {})
+        test_metrics = test_metrics.get(next(iter(test_metrics.keys())), {})
+        test_metrics = self.drop_fields(test_metrics, ["details"])
+
+        test_type = {
+            "identifier": test_results.get("identifier", ""),
+            "title": test_results.get("title", ""),
+            "description": test_results.get("description", ""),
+        }
+        time = {
+            "timestamp": system_info.get("timestamp", ""),
+        }
+
+        return {
+            "test_type": test_type,
+            "time": time,
+            "metrics": test_metrics,
+            "summary": {},
+        }

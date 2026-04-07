@@ -2,6 +2,7 @@ import logging
 import re
 from typing import TYPE_CHECKING, Any, Final, NamedTuple
 
+from imgtests.adapter import ResultAdapter
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult
 from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
@@ -621,4 +622,38 @@ class StressNg(PkgMgrMixin, GenericUtil):
         return {
             "stress_ng_metrics": [metric._asdict() for metric in metrics.metrics],
             "stress_ng_summary": metrics.summary._asdict() if metrics.summary else None,
+        }
+
+
+class StressNgAdapter(ResultAdapter):
+    def __init__(self) -> None:
+        self.tool = "stress-ng"
+
+    def split_result(self, raw_result: dict[str, Any], test_index: int = 0) -> dict[str, Any]:
+        metrics = raw_result.get("stress_ng_metrics", [])
+        if not metrics:
+            return {
+                "test_type": "",
+                "time": {},
+                "metrics": {},
+                "summary": raw_result.get("stress_ng_summary", {}),
+            }
+
+        test_metrics = metrics[test_index]
+        test_type = {"stressor": test_metrics.get("stressor", "")}
+        time = {
+            "real_time_secs": test_metrics.get("real_time_secs", 0),
+            "usr_time_secs": test_metrics.get("usr_time_secs", 0),
+            "sys_time_secs": test_metrics.get("sys_time_secs", 0),
+        }
+
+        excluded_fields = [*test_type.keys(), *time.keys()]
+        test_metrics = self.drop_fields(test_metrics, excluded_fields)
+
+        summary = raw_result.get("stress_ng_summary", {})
+        return {
+            "test_type": test_type,
+            "time": time,
+            "metrics": test_metrics,
+            "summary": summary,
         }

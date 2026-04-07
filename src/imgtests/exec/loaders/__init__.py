@@ -4,8 +4,12 @@ from .fio import Fio as Fio
 from .fio import FioPlot as FioPlot
 from .fwts import Fwts as Fwts
 from .iperf3 import Iperf3 as Iperf3
+from .iperf3 import Iperf3Adapter as Iperf3Adapter
 from .kirk import Kirk as Kirk
 from .perf import Perf as Perf
+from .perf import PerfAdapter as PerfAdapter
 from .perf import PerfBenchMetrics as PerfBenchMetrics
 from .pts import PhoronixTestSuite as PhoronixTestSuite
+from .pts import PhoronixTestSuiteAdapter as PhoronixTestSuiteAdapter
 from .stress_ng import StressNg as StressNg
+from .stress_ng import StressNgAdapter as StressNgAdapter
