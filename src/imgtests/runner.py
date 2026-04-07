@@ -11,7 +11,6 @@ import paramiko
 import paramiko.ssh_exception
 
 from imgtests.constant import LIB_NAME
-from imgtests.database.database import ImgtestsDatabase
 from imgtests.exec.exec import common_run_command
 from imgtests.exec.observers.journalctl import Journalctl
 from imgtests.exec.observers.systemctl import Systemctl
@@ -21,7 +20,7 @@ from imgtests.types import Subsystem, TestsCounts
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
-    from imgtests.database.database import ExperimentType
+    from imgtests.database.database import ExperimentType, ImgtestsDatabase
     from imgtests.exec.base_util import BaseTestUtil
     from imgtests.exec.exec import SSHClient
 
@@ -196,10 +195,12 @@ class TestsRunnerConfig:
 class TestsRunner:
     __slots__ = ("__client", "__database", "__executor", "__test_config", "logger")
 
-    def __init__(self, client: SSHClient | None, test_config: TestsRunnerConfig) -> None:
+    def __init__(
+        self, client: SSHClient | None, database: ImgtestsDatabase, test_config: TestsRunnerConfig
+    ) -> None:
         self.__executor = ThreadPoolExecutor()
         self.__client = client
-        self.__database = ImgtestsDatabase()
+        self.__database = database
         self.__test_config = test_config
         self.logger = logging.getLogger(f"{LIB_NAME}.tests_runner")
 
