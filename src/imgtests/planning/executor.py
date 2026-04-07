@@ -62,6 +62,7 @@ class PlanExecutionResult:
     ended_at: datetime
     stage_runs: tuple[StageRunResult, ...]
     metrics: tuple[MetricSample, ...]
+    tests_counts: TestsCounts
 
 
 class PlanExecutor(BaseRunner):
@@ -176,15 +177,16 @@ class PlanExecutor(BaseRunner):
             experiment_id=experiment_id,
             ended_at=ended_at,
         )
+        tests_counts = TestsCounts(
+            total_count=total_count,
+            broken_count=counts[TestStatus.BROKEN],
+            passed_count=counts[TestStatus.PASSED],
+            failed_count=counts[TestStatus.FAILED],
+            skip_count=counts[TestStatus.SKIPPED],
+        )
         self.db.update_experiment_tests_count(
             experiment.experiment_id,
-            TestsCounts(
-                total_count=total_count,
-                broken_count=counts[TestStatus.BROKEN],
-                passed_count=counts[TestStatus.PASSED],
-                failed_count=counts[TestStatus.FAILED],
-                skip_count=counts[TestStatus.SKIPPED],
-            ),
+            tests_counts,
         )
 
         return PlanExecutionResult(
@@ -193,6 +195,7 @@ class PlanExecutor(BaseRunner):
             ended_at=ended_at,
             stage_runs=tuple(stage_runs),
             metrics=tuple(collected_metrics),
+            tests_counts=tests_counts,
         )
 
     def _wait_for_stage_offset(
