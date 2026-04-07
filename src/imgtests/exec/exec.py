@@ -23,7 +23,10 @@ class ExecResult(NamedTuple):
 
 
 def common_run_command(
-    cmd: Sequence[str], ssh_client: SSHClient | None = None, input_: str | None = None
+    cmd: Sequence[str],
+    ssh_client: SSHClient | None = None,
+    input_: str | None = None,
+    log_errors: bool = True,
 ) -> ExecResult:
     """Executes a command locally or over SSH, depending on the provided client.
 
@@ -39,6 +42,7 @@ def common_run_command(
                                        If None, the command runs locally.
         input_ (str | None): Input string to be passed to the command's stdin,
                              useful for interactive commands.
+        log_errors (bool): Show or hide error messages in the logs.
 
     Examples:
         >>> result = common_run_command(["echo", "Hello"])
@@ -46,10 +50,14 @@ def common_run_command(
         Hello
     """
     call_func = run_command if ssh_client is None else ssh_client
-    return call_func(cmd=cmd, input_=input_)
+    return call_func(cmd=cmd, input_=input_, log_errors=log_errors)
 
 
-def run_command(cmd: Sequence[str], input_: str | None = None) -> ExecResult:
+def run_command(
+    cmd: Sequence[str],
+    input_: str | None = None,
+    log_errors: bool = True,
+) -> ExecResult:
     """Executes a command locally."""
     logger.debug("Running command '%s'.", " ".join(cmd))
     result = subprocess.run(  # noqa: S603
@@ -66,7 +74,7 @@ def run_command(cmd: Sequence[str], input_: str | None = None) -> ExecResult:
         stderr=result.stderr.strip(),
         returncode=result.returncode,
     )
-    if result.returncode:
+    if log_errors and result.returncode:
         logger.error("Command '%s' completed with errors on the local.", " ".join(result.cmd))
         if result.stderr:
             logger.error(result.stderr)
@@ -92,6 +100,7 @@ class SSHClient:
         self,
         cmd: Sequence[str],
         input_: str | None = None,
+        log_errors: bool = True,
     ) -> ExecResult:
         session = self.ssh_session.open_channel(kind="session")
         stdout = session.makefile("rb")
@@ -110,8 +119,7 @@ class SSHClient:
         stdout = stdout.read().decode("utf-8").strip()
         stderr = stderr.read().decode("utf-8").strip()
 
-        # journalctl returns 1 on "No entries" case
-        if retval and stdout != "-- No entries --":
+        if log_errors and retval:
             logger.error("Command '%s' completed with errors on the remote.", cmd_str.strip())
             if stderr:
                 logger.error(stderr)
