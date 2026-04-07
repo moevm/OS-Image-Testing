@@ -9,12 +9,17 @@ from datetime import UTC, datetime
 from itertools import product
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
+from zoneinfo import ZoneInfo
 
+from imgtests.exec.exec import common_run_command
 from imgtests.exec.loaders.fio import Direct, Fio, FioPlot, IOEngine, IOPattern
 from imgtests.exec.user_commands import MkDir, Rm
+from imgtests.runner import TestResult, TestStatus
 from imgtests.suites.duration import EIGHT_HOURS_SEC, HOUR_SEC, TEN_MIN_SEC, TWO_MIN_SEC
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     from imgtests.exec.exec import SSHClient
 
 logger = logging.getLogger(__name__)
@@ -64,6 +69,8 @@ class FioSuiteConfig:
     size: str = "100MB"
     direct: Direct = 1
     ioengine: IOEngine = "libaio"
+    offset: str | None = None
+    offset_increment: str | None = None
 
 
 class FioSuite:
@@ -71,7 +78,7 @@ class FioSuite:
         self.client = client
         self.cfg = cfg
 
-    def run(self) -> Path:
+    def run(self) -> Iterable[TestResult]:
         if self.cfg.duration_sec <= 0:
             err_msg = f"duration_sec must be > 0, got {self.cfg.duration_sec}"
             raise ValueError(err_msg)
@@ -132,6 +139,7 @@ class FioSuite:
             if timing.ramp_time_sec > 0:
                 extra["ramp_time"] = timing.ramp_time_sec
 
+            started_at = datetime.now(tz=ZoneInfo("UTC"))
             res = fio.run(
                 name=case.workload.name,
                 numjobs=case.numjobs,
@@ -141,11 +149,16 @@ class FioSuite:
                 ioengine=self.cfg.ioengine,
                 direct=self.cfg.direct,
                 directory=testfiles_dir,
+                offset=self.cfg.offset,
+                offset_increment=self.cfg.offset_increment,
                 **extra,
             )
-            if res.returncode:
-                err_msg = res.stderr or res.stdout or "fio failed"
-                raise RuntimeError(err_msg)
+            yield TestResult(
+                metrics=common_run_command(["cat", str(extra["output"])], self.client).stdout,
+                command=" ".join(res.cmd),
+                started_at=started_at,
+                status=TestStatus.FAILED if res.returncode else TestStatus.PASSED,
+            )
 
         if self.client:
             _remote_tar(self.client, suite_root, suite_tgz)
@@ -163,7 +176,7 @@ class FioSuite:
             local_suite_root = suite_root
         self._plot(local_suite_root, stamp)
         logger.info("fio done: %s", local_suite_root)
-        return local_suite_root
+        return
 
     def _plot(self, local_suite_root: Path, stamp: str) -> None:
         fio_plot = FioPlot()

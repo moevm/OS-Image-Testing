@@ -1,10 +1,12 @@
 import logging
-import os
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Literal, get_args
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import create_engine
+from deepdiff import DeepDiff
+from pydantic import Field
+from pydantic_settings import BaseSettings
+from sqlalchemy import and_, create_engine
 from sqlalchemy.orm import sessionmaker
 
 from imgtests.database.models.base import Base
@@ -15,27 +17,32 @@ from imgtests.database.models.observer import ObserverBase
 
 if TYPE_CHECKING:
     from imgtests.sysrep import SystemInfo
+    from imgtests.types import TestsCounts
 
 logger = logging.getLogger(__name__)
 Table = Literal["configurations", "experiments", "loaders", "observers"]
 ExperimentType = Literal["performance", "endurance", "all"]
 
 
+class PostgresCreds(BaseSettings):
+    user: str = Field(validation_alias="POSTGRES_USER")
+    password: str = Field(validation_alias="POSTGRES_PASSWORD")
+    database_name: str = Field(validation_alias="POSTGRES_DB")
+    host: str = Field(validation_alias="POSTGRES_HOST")
+    port: int = Field(validation_alias="POSTGRES_PORT")
+
+
 class ImgtestsDatabase:
     def __init__(self, database: str = "postgres") -> None:
         if database == "postgres":
-            self.initialize_postgres()
+            creds = PostgresCreds()
+            self.initialize_postgres(creds)
         else:
             logger.error("Incorrect database name.")
 
-    def initialize_postgres(self) -> None:
-        user = os.environ["POSTGRES_USER"].strip()
-        password = os.environ["POSTGRES_PASSWORD"].strip()
-        db_name = os.environ["POSTGRES_DB"].strip()
-        host = os.environ["POSTGRES_HOST"].strip()
-        port = os.environ["SSH_POSTGRES_PORT"].strip()
+    def initialize_postgres(self, creds: PostgresCreds) -> None:
         self.engine = create_engine(
-            f"postgresql+psycopg://{user}:{password}@{host}:{port}/{db_name}"
+            f"postgresql+psycopg://{creds.user}:{creds.password}@{creds.host}:{creds.port}/{creds.database_name}"
         )
         self.session = sessionmaker(self.engine)
         Base.metadata.create_all(self.engine)
@@ -57,7 +64,7 @@ class ImgtestsDatabase:
                     idx = line.find("=")
                     to_dict_tuple = (line[0:idx], line[idx + 1 :])
                     db_kconf[line[0:idx]] = line[idx + 1 :]
-        return self.insert_configuration(db_os, db_pkgs, db_cinfo, db_kconf)
+        return self.insert_configuration(db_os, db_pkgs, db_cinfo, db_kconf, sys_info.hardware)
 
     def insert_configuration(
         self,
@@ -65,12 +72,36 @@ class ImgtestsDatabase:
         packages: dict[str, Any] | None = None,
         core_info: str | None = None,
         core_config: dict[str, Any] | None = None,
+        hardware: dict[str, Any] | None = None,
     ) -> ConfigurationBase:
+        with self.session() as session:
+            configuration_objects = (
+                session.query(ConfigurationBase)
+                .filter(
+                    and_(
+                        ConfigurationBase.os == os,
+                        ConfigurationBase.core_info == core_info,
+                    )
+                )
+                .all()
+            )
+            for configuration_object in configuration_objects:
+                if (
+                    configuration_object.packages == packages
+                    and configuration_object.core_config == core_config
+                    and len(DeepDiff(configuration_object.hardware, hardware)) == 0
+                ):
+                    logger.info(
+                        "Configuration already exists, returning existing object with id %d.",
+                        configuration_object.config_id,
+                    )
+                    return configuration_object
         configuration_object = ConfigurationBase(
             os=os,
             packages=packages,
             core_info=core_info,
             core_config=core_config,
+            hardware=hardware,
         )
 
         self._check_session()
@@ -143,7 +174,7 @@ class ImgtestsDatabase:
         self,
         experiment_id: int,
         command: str,
-        result: dict[str, Any],
+        result: Any,
         description: str,
         started_at: datetime | None = None,
         ended_at: datetime | None = None,
@@ -174,6 +205,17 @@ class ImgtestsDatabase:
         with self.session() as session:
             experiment = session.query(ExperimentBase).filter_by(experiment_id=experiment_id).one()
             experiment.ended_at = datetime.now(tz=ZoneInfo("UTC"))
+            session.commit()
+
+    def update_experiment_tests_count(self, experiment_id: int, counts: TestsCounts) -> None:
+        self._check_session()
+        with self.session() as session:
+            experiment = session.query(ExperimentBase).filter_by(experiment_id=experiment_id).one()
+            experiment.tests_total = counts.total_count
+            experiment.tests_passed = counts.passed_count
+            experiment.tests_failed = counts.failed_count
+            experiment.tests_broken = counts.broken_count
+            experiment.tests_skipped = counts.skip_count
             session.commit()
 
     def return_table(self, table_name: Table) -> list[Any]:

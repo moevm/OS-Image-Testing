@@ -5,6 +5,7 @@ from imgtests.exec.exec import ExecResult, SSHClient, common_run_command, which
 from imgtests.exec.utils import extract_version, kwargs_to_cmd_args
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from pathlib import Path
 
     from imgtests.types import Version
@@ -31,14 +32,20 @@ class BaseTestUtil(ABC):
         self.name = name
         self.ssh_client = ssh_client
         self.use_sudo = use_sudo
-        self.path = which(self.name, ssh_client)
+        self.path = which(self.name, ssh_client, use_sudo=use_sudo)
 
-    def __call__(self, cmd: list[str | Path] | None = None, **kwargs: dict[str, Any]) -> ExecResult:
+    def __call__(
+        self,
+        cmd: Sequence[str | Path] | None = None,
+        log_errors: bool = True,
+        **kwargs: str | float | bool | None,
+    ) -> ExecResult:
         """Executes the utility with the provided command.
 
         Args:
-            cmd (list[str | Path] | None): Command arguments to pass to the utility.
-            **kwargs (dict[str, Any]): Command arguments in the free form with values.
+            cmd (Sequence[str | Path] | None): Command arguments to pass to the utility.
+            log_errors (bool): Show or hide error messages in the logs.
+            **kwargs (str | float | bool | None): Command arguments in the free form with values.
 
         Raises:
             ValueError: When parameters repeated.
@@ -59,7 +66,7 @@ class BaseTestUtil(ABC):
         final_cmd = [str(self.path), *(str(arg) for arg in cmd), *kwargs_to_cmd_args(**kwargs)]
         if self.use_sudo:
             final_cmd = ["sudo", *final_cmd]
-        return common_run_command(final_cmd, self.ssh_client)
+        return common_run_command(final_cmd, self.ssh_client, log_errors=log_errors)
 
     def install(self) -> ExecResult:
         """Installs the utility.

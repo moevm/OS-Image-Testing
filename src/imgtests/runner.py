@@ -1,9 +1,8 @@
-import inspect
 import logging
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-from enum import Enum
+from enum import Enum, auto
 from threading import Event, Thread
 from typing import TYPE_CHECKING, Any, NamedTuple
 from zoneinfo import ZoneInfo
@@ -12,31 +11,30 @@ import paramiko
 import paramiko.ssh_exception
 
 from imgtests.constant import LIB_NAME
-from imgtests.database.database import ImgtestsDatabase
 from imgtests.exec.exec import common_run_command
 from imgtests.exec.observers.journalctl import Journalctl
 from imgtests.exec.observers.systemctl import Systemctl
 from imgtests.sysrep import get_system_info
+from imgtests.types import Subsystem, TestsCounts
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
-    from imgtests.database.database import ExperimentType
+    from imgtests.database.database import ExperimentType, ImgtestsDatabase
     from imgtests.exec.base_util import BaseTestUtil
     from imgtests.exec.exec import SSHClient
 
 
-class Subsystem(str, Enum):
-    FILE = "file"
-    IPC = "IPC"
-    MEMORY = "memory"
-    NETWORK = "network"
-    SYSCALLS = "syscalls"
-    SYSTEM = "system"
+class TestStatus(Enum):
+    PASSED = auto()
+    FAILED = auto()
+    SKIPPED = auto()
+    BROKEN = auto()
 
 
 class TestResult(NamedTuple):
-    metrics: Any
+    status: TestStatus
+    metrics: Any = None
     command: str = ""
     started_at: datetime = datetime.now(tz=ZoneInfo("UTC"))
     ended_at: datetime = datetime.now(tz=ZoneInfo("UTC"))
@@ -50,6 +48,14 @@ class DefaultCleanupMixin:
                 logger.warning("Failed to cleanup folder '%s'.", path)
             else:
                 logger.info("Cleaned up folder '%s'.", path)
+        self.__clean_pages_cache(client, logger)
+
+    def __clean_pages_cache(self, client: SSHClient | None, logger: logging.Logger) -> None:
+        commands = [["sudo", "sync"], ["sudo", "sh", "-c", "'echo 3 > /proc/sys/vm/drop_caches'"]]
+        for command in commands:
+            result = common_run_command(command, client)
+            if result.returncode:
+                logger.warning("Cache cleanup failed.")
 
 
 class AbstractRunnableManyTimesTest(ABC, DefaultCleanupMixin):
@@ -87,11 +93,7 @@ class AbstractRunnableManyTimesTest(ABC, DefaultCleanupMixin):
         self, executor: ThreadPoolExecutor, client: SSHClient | None = None
     ) -> Iterable[TestResult]:
         self.logger.info("Starting '%s' test '%d' times.", self.description, self.iterations)
-        # TODO: make all tests return a generator
-        if inspect.isgeneratorfunction(self._run):
-            yield from self._run(executor, client, self.iterations)
-        else:
-            self._run(executor, client, self.iterations)
+        yield from self._run(executor, client, self.iterations)
         self.logger.info("'%s' test finished.", self.description)
 
     @abstractmethod
@@ -138,11 +140,7 @@ class AbstractRunnableTimeLimitedTest(ABC, DefaultCleanupMixin):
         self, executor: ThreadPoolExecutor, client: SSHClient | None = None
     ) -> Iterable[TestResult]:
         self.logger.info("Starting '%s' test with '%d' timeout.", self.description, self.timeout)
-        # TODO: make all tests return a generator
-        if inspect.isgeneratorfunction(self._run):
-            yield from self._run(executor, client, self.timeout)
-        else:
-            self._run(executor, client, self.timeout)
+        yield from self._run(executor, client, self.timeout)
         self.logger.info("'%s' test finished.", self.description)
 
     @abstractmethod
@@ -154,21 +152,55 @@ class AbstractRunnableTimeLimitedTest(ABC, DefaultCleanupMixin):
     ) -> Iterable[TestResult]: ...
 
 
-# Time to run, subsystems, stages (plan, risk analysis, run, cleanup, results, etc), etc
-class TestsRunnerConfig(NamedTuple):
-    description: str
-    tests: Iterable[AbstractRunnableManyTimesTest | AbstractRunnableTimeLimitedTest]
-    experiment_type: ExperimentType
-    install_dependencies: bool = False
+# Subsystems, stages (plan, risk analysis, run, cleanup, results, etc), etc
+class TestsRunnerConfig:
+    __slots__ = (
+        "description",
+        "experiment_type",
+        "install_dependencies",
+        "test_duration",
+        "tests",
+        "total_duration",
+    )
+
+    def __init__(
+        self,
+        description: str,
+        tests: Iterable[AbstractRunnableManyTimesTest | type[AbstractRunnableTimeLimitedTest]],
+        experiment_type: ExperimentType,
+        duration: int,
+        install_dependencies: bool = False,
+    ) -> None:
+        self.description = description
+        self.tests = tests
+        self.experiment_type: ExperimentType = experiment_type
+        self.total_duration = duration
+        self.install_dependencies = install_dependencies
+        time_limited_tests_cnt = sum(
+            1 for test in self.tests if not isinstance(test, AbstractRunnableManyTimesTest)
+        )
+        if time_limited_tests_cnt > self.total_duration:
+            err_msg = (
+                f"Each test cannot be run for less 1 second. "
+                f"{self.total_duration} seconds available, {time_limited_tests_cnt} tests to run. "
+                "Available time is not enough."
+            )
+            raise ValueError(err_msg)
+        if time_limited_tests_cnt > 0:
+            self.test_duration = self.total_duration // time_limited_tests_cnt
+        else:
+            self.test_duration = 0
 
 
 class TestsRunner:
     __slots__ = ("__client", "__database", "__executor", "__test_config", "logger")
 
-    def __init__(self, client: SSHClient | None, test_config: TestsRunnerConfig) -> None:
+    def __init__(
+        self, client: SSHClient | None, database: ImgtestsDatabase, test_config: TestsRunnerConfig
+    ) -> None:
         self.__executor = ThreadPoolExecutor()
         self.__client = client
-        self.__database = ImgtestsDatabase()
+        self.__database = database
         self.__test_config = test_config
         self.logger = logging.getLogger(f"{LIB_NAME}.tests_runner")
 
@@ -183,36 +215,55 @@ class TestsRunner:
             description=self.__test_config.description,
             experiment_type=self.__test_config.experiment_type,
         )
-        for test in self.__test_config.tests:
+        total_count = 0
+        counts = {
+            TestStatus.PASSED: 0,
+            TestStatus.FAILED: 0,
+            TestStatus.SKIPPED: 0,
+            TestStatus.BROKEN: 0,
+        }
+        for test_class in self.__test_config.tests:
             if self.__client is not None:
                 self.__client.reconnect()
             is_alive_cycle = Thread(target=self.__is_remote_alive, args=(test_completed_event,))
             is_alive_cycle.start()
             test_started_at = datetime.now(tz=ZoneInfo("UTC"))
-            # TODO: make all tests return a generator
-            if inspect.isgeneratorfunction(test._run):  # noqa: SLF001
-                for result in test(self.__executor, self.__client):
-                    self.__database.insert_loader(
-                        experiment_id=experiment.experiment_id,
-                        # TODO: fill descriptions and adds into TestResult class
-                        description="",
-                        result=result.metrics,
-                        command=result.command,
-                        started_at=result.started_at,
-                        ended_at=result.ended_at,
-                    )
+            if isinstance(test_class, AbstractRunnableManyTimesTest):
+                test_instance = test_class
             else:
-                list(test(self.__executor, self.__client))
+                test_instance = test_class(self.__test_config.test_duration)
+            for result in test_instance(self.__executor, self.__client):
+                self.__database.insert_loader(
+                    experiment_id=experiment.experiment_id,
+                    # TODO: fill descriptions and adds into TestResult class
+                    description="",
+                    result=result.metrics,
+                    command=result.command,
+                    started_at=result.started_at,
+                    ended_at=result.ended_at,
+                )
+                counts[result.status] += 1
+                total_count += 1
             self._collect_system_errors(
                 experiment_id=experiment.experiment_id,
                 since=test_started_at,
                 until=datetime.now(tz=ZoneInfo("UTC")),
             )
-            test.cleanup(self.__client, self.logger)
+            test_instance.cleanup(self.__client, self.logger)
             test_completed_event.set()
             is_alive_cycle.join(10)
             test_completed_event.clear()
             self.__database.update_experiment_ended_at(experiment.experiment_id)
+            self.__database.update_experiment_tests_count(
+                experiment.experiment_id,
+                TestsCounts(
+                    total_count=total_count,
+                    broken_count=counts[TestStatus.BROKEN],
+                    passed_count=counts[TestStatus.PASSED],
+                    failed_count=counts[TestStatus.FAILED],
+                    skip_count=counts[TestStatus.SKIPPED],
+                ),
+            )
         self.logger.info("All tests completed successfully.")
         if self.__client is not None:
             self.__client.close()
@@ -227,7 +278,7 @@ class TestsRunner:
             PhoronixTestSuite,
             StressNg,
         )
-        from imgtests.exec.observers import NodeExporter, Time  # noqa: PLC0415
+        from imgtests.exec.observers import Lshw, NodeExporter, Sar, Time  # noqa: PLC0415
 
         self.logger.info("Installing dependencies. This may take a while.")
         for tool in (
@@ -240,6 +291,8 @@ class TestsRunner:
             PhoronixTestSuite,
             Time,
             NodeExporter,
+            Sar,
+            Lshw,
         ):
             tool_instance: BaseTestUtil = tool(self.__client)
             try:
@@ -285,6 +338,7 @@ class TestsRunner:
         oom_r = journalctl.oom_records(
             since=since.strftime(journalctl.DATE_FORMAT),
             until=until.strftime(journalctl.DATE_FORMAT),
+            log_errors=False,
         )
         oom_m = journalctl.calc_records_cnt(oom_r.stdout)
         self.logger.info("OOM records %d", oom_m)
@@ -302,6 +356,7 @@ class TestsRunner:
             since=since.strftime(journalctl.DATE_FORMAT),
             until=until.strftime(journalctl.DATE_FORMAT),
             priority="err",
+            log_errors=False,
         )
         sstmd_err_m = journalctl.calc_records_cnt(sstmd_err_r.stdout)
         self.logger.info(

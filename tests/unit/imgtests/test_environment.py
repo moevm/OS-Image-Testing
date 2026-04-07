@@ -55,3 +55,15 @@ class TestEnvVarToType:
         os.environ[variable] = value
         assert env_var_to_type(variable, type_) == expected
         del os.environ[variable]
+
+    @pytest.mark.parametrize(
+        ("value", "type_", "default"),
+        [
+            ("123", int, 123),
+            ("12.58", float, 12.58),
+            ("hello", str, "hello"),
+            ("/home/foobar", Path, Path("/home/foobar")),
+        ],
+    )
+    def test_env_var_to_type_check_default(self, value: str, type_: type[T], default: T) -> None:
+        assert env_var_to_type(value, type_, default) == default

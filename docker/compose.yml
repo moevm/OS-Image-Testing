@@ -83,7 +83,7 @@ services:
       SSH_SUSE_PASS: ${PASSWORD}
       SSH_SUSE_PORT_156: ${SSH_SUSE_PORT_156}
       SSH_SUSE_ADDR_156: ${SUSE_ADDRESS_156}
-      SSH_POSTGRES_PORT: ${SSH_POSTGRES_PORT}
+      POSTGRES_PORT: ${POSTGRES_PORT}
       VMETRICS_ADDRESS: ${VMETRICS_ADDRESS}
       VMETRICS_PORT: ${VMETRICS_PORT}
     networks:
@@ -107,7 +107,7 @@ services:
       - "--storageDataPath=/storage"
       - "--promscrape.config=/etc/prometheus/vmetrics-conf.yml"
       - "--httpListenAddr=:${VMETRICS_PORT}"
-    restart: always
+    restart: on-failure
 
   imgtests-postgres:
     image: postgres:17.7
@@ -115,15 +115,17 @@ services:
       POSTGRES_USER: ${USER}
       POSTGRES_PASSWORD: ${PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-      PGPORT: ${SSH_POSTGRES_PORT}
+      PGPORT: ${POSTGRES_PORT}
     ports:
-      - ${SSH_POSTGRES_PORT}:${SSH_POSTGRES_PORT}
+      - ${POSTGRES_PORT}:${POSTGRES_PORT}
+    volumes:
+      - ${DOCKER_POSTGRES_VOLUME}:/var/lib/postgresql/data
     networks:
       yocto-network:
         ipv4_address: ${POSTGRES_ADDRESS}
-    command: -p ${SSH_POSTGRES_PORT}
+    command: -p ${POSTGRES_PORT}
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${USER} -d ${POSTGRES_DB} -p ${SSH_POSTGRES_PORT}"]
+      test: ["CMD-SHELL", "pg_isready -U ${USER} -d ${POSTGRES_DB} -p ${POSTGRES_PORT}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -166,6 +168,8 @@ volumes:
   imgtests-open-suse-files:
     external: true
   imgtests-vmetrics-data:
+    external: true
+  imgtests-postgres-data:
     external: true
 
 networks:
