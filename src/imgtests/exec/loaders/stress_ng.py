@@ -669,14 +669,31 @@ def stress_metrics_to_samples(
             )
 
         if metric.top10_slowest:
-            samples.append(
-                MetricSample(
-                    stage_name,
-                    subsystem,
-                    "stress.syscall_slowest_avg_ns",
-                    float(metric.top10_slowest[0].avg_ns),
-                    label="Slowest syscall avg, ns",
+            for syscall in metric.top10_slowest:
+                samples.extend(
+                    (
+                        MetricSample(
+                            stage_name,
+                            subsystem,
+                            f"stress.syscall.{syscall.name}.avg_ns",
+                            float(syscall.avg_ns),
+                            label=f"Syscall {syscall.name} avg, ns",
+                        ),
+                        MetricSample(
+                            stage_name,
+                            subsystem,
+                            f"stress.syscall.{syscall.name}.min_ns",
+                            float(syscall.min_ns),
+                            label=f"Syscall {syscall.name} min, ns",
+                        ),
+                        MetricSample(
+                            stage_name,
+                            subsystem,
+                            f"stress.syscall.{syscall.name}.max_ns",
+                            float(syscall.max_ns),
+                            label=f"Syscall {syscall.name} max, ns",
+                        ),
+                    )
                 )
-            )
 
     return samples

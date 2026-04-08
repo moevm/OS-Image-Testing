@@ -1,4 +1,3 @@
-from contextlib import suppress
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
@@ -38,24 +37,21 @@ FIO_CLAT_PERCENTILES: dict[str, tuple[str, str]] = {
 
 
 def get_available_bytes(client: SSHClient, path: str | Path) -> int | None:
-    with suppress(Exception):
-        res = common_run_command(
-            ["df", "--output=avail", "--block-size=1", str(path)],
-            client,
-        )
-        if res.returncode:
-            return None
+    res = common_run_command(
+        ["df", "--output=avail", "--block-size=1", str(path)],
+        client,
+    )
+    if res.returncode:
+        return None
 
-        out = (res.stdout or "").strip().splitlines()
-        if not out:
-            return None
+    out = (res.stdout or "").strip().splitlines()
+    if not out:
+        return None
 
-        try:
-            return int(out[-1].strip())
-        except (ValueError, IndexError):
-            return None
-
-    return None
+    try:
+        return int(out[-1].strip())
+    except (ValueError, IndexError):
+        return None
 
 
 class Fio(PkgMgrMixin, GenericUtil):
