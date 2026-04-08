@@ -202,13 +202,122 @@ class StressNgMaxNetworkLoadTest(StressNgTest):
         self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int
     ) -> Iterable[TestResult]:
         stress_ng = StressNg(client)
-        yield from self.run_test(
-            stress_ng=stress_ng,
-            executor=executor,
-            timeout=timeout,
+        iperf3 = Iperf3(client)
+
+        reserved_overhead_sec = IPERF3_SERVER_STARTUP_SEC + IPERF3_SERVER_SHUTDOWN_TIMEOUT_SEC
+        run_timeout = timeout - reserved_overhead_sec
+        if run_timeout < 1:
+            yield TestResult(
+                status=TestStatus.BROKEN,
+                metrics={
+                    "provided_timeout_sec": timeout,
+                    "required_timeout_sec": reserved_overhead_sec + 1,
+                },
+            )
+            return
+
+        deadline = monotonic() + timeout
+        started_at = datetime.now(tz=ZoneInfo("UTC"))
+
+        server_future = executor.submit(iperf3.run, server=True, one_off=True, version4=True)
+        sleep(IPERF3_SERVER_STARTUP_SEC)
+
+        stress_ng_future = executor.submit(
+            stress_ng.run,
+            timeout_sec=run_timeout,
             sock=0,
             netdev=0,
             udp_flood=0,
             maximize=True,
             seed=STRESS_NG_RANDOM_SEED,
+        )
+
+        iperf3_result = iperf3.run(
+            client="localhost",
+            time=run_timeout,
+            interval=1,
+            version4=True,
+        )
+
+        if iperf3_result.returncode:
+            iperf3.stop_server()
+
+        try:
+            stress_ng_result, stress_ng_metrics = stress_ng_future.result(
+                timeout=max(0, deadline - monotonic())
+            )
+        except FuturesTimeoutError:
+            iperf3.stop_server()
+            self.logger.error("Stress-ng maximum network load test FAILED: stress-ng timed out")
+            yield TestResult(
+                status=TestStatus.FAILED,
+                started_at=started_at,
+                command=" ".join(iperf3_result.cmd),
+                metrics={
+                    "iperf3_client_returncode": iperf3_result.returncode,
+                    "error": "stress-ng timed out",
+                },
+            )
+            return
+
+        try:
+            server_result = server_future.result(
+                timeout=max(0, min(IPERF3_SERVER_SHUTDOWN_TIMEOUT_SEC, deadline - monotonic()))
+            )
+        except FuturesTimeoutError:
+            iperf3.stop_server()
+            self.logger.error("Stress-ng maximum network load test FAILED: iperf3 server timed out")
+            yield TestResult(
+                status=TestStatus.FAILED,
+                started_at=started_at,
+                command=" ".join(stress_ng_result.cmd) + " & " + " ".join(iperf3_result.cmd),
+                metrics={
+                    "stress_ng_returncode": stress_ng_result.returncode,
+                    "iperf3_client_returncode": iperf3_result.returncode,
+                    "error": "iperf3 server timed out",
+                },
+            )
+            return
+
+        command = " ".join(stress_ng_result.cmd) + " & " + " ".join(iperf3_result.cmd)
+
+        if stress_ng_result.returncode == stress_ng.INCORRECT_OPT_OR_FATAL_ISSUE_CODE:
+            self.logger.error("Stress-ng maximum network load test BROKEN")
+            yield TestResult(
+                status=TestStatus.BROKEN,
+                started_at=started_at,
+                command=command,
+                metrics={
+                    "stress_ng_returncode": stress_ng_result.returncode,
+                    "iperf3_client_returncode": iperf3_result.returncode,
+                    "iperf3_server_returncode": server_result.returncode,
+                },
+            )
+            return
+
+        if stress_ng_result.returncode or iperf3_result.returncode or server_result.returncode:
+            self.logger.error("Stress-ng maximum network load test FAILED")
+            yield TestResult(
+                status=TestStatus.FAILED,
+                started_at=started_at,
+                command=command,
+                metrics={
+                    "stress_ng_returncode": stress_ng_result.returncode,
+                    "iperf3_client_returncode": iperf3_result.returncode,
+                    "iperf3_server_returncode": server_result.returncode,
+                },
+            )
+            return
+
+        yield TestResult(
+            status=TestStatus.PASSED,
+            started_at=started_at,
+            command=command,
+            metrics={
+                **stress_ng.metrics_to_json(stress_ng_metrics),
+                "iperf3": {
+                    "client": iperf3.metrics_to_json(iperf3_result.stdout.strip()),
+                    "server": iperf3.metrics_to_json(server_result.stdout.strip()),
+                },
+            },
         )
