@@ -57,7 +57,7 @@ ALL_SUBSYSTEMS_SUITE: Final = TestsRunnerConfig(
         FioDisksNightly,
         FioDisksDMDelay,
         FioDisksDMDust,
-        LTPSyscallsTest(),
+        LTPSyscallsTest,
         StressNgEnduranceSyscallsTest,
         WgetEnduranceNetworkTest(3),
         Iperf3LocalTest,
@@ -92,20 +92,20 @@ SYSCALLS_SUITE: Final = TestsRunnerConfig(
     description="Test suite for syscalls.",
     tests=(
         StressNgEnduranceSyscallsTest,
-        LTPSyscallsTest(),
+        LTPSyscallsTest,
         SyscallsWithCpuLoadTest,
         StressNgSyscallsWithMemLoadTest,
         SyscallsFullLoadTest,
         StressNgIterTestIPC,
     ),
     experiment_type="all",
-    duration=100,
+    duration=200,
     install_dependencies=True,
 )
 IPC_SUITE: Final = TestsRunnerConfig(
     description="Test suite for IPC subsystem.",
     tests=(
-        LTPSyscallsIPCTest(),
+        LTPSyscallsIPCTest,
         JointBench(subsystems=frozenset({Subsystem.IPC}), iterations=3),
         StressNgIterTestIPC,
     ),
@@ -134,8 +134,10 @@ def main() -> None:
     poky_client = wait_remote(*YOCTO_CONF) or sys.exit(1)
     database = ImgtestsDatabase()
     for suite in (MEMORY_SUITE, SYSCALLS_SUITE, IPC_SUITE, ALL_SUBSYSTEMS_SUITE):
+        suse_client.reconnect()
         suse_runner = TestsRunner(suse_client, database, suite)
         suse_runner.run()
+        poky_client.reconnect()
         yocto_runner = TestsRunner(poky_client, database, suite)
         yocto_runner.run()
     suse_client.close()
