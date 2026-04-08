@@ -21,9 +21,13 @@ IPERF3_START_PPS: Final = 2_000
 IPERF3_STOP_PPS: Final = 8_000
 IPERF3_STEP_PPS: Final = 2_000
 IPERF3_DATAGRAM_SIZES_BYTES: Final = (64, 512, 1400)
+# Give the iperf3 server a small buffer to bind the socket and start accepting clients.
 IPERF3_SERVER_STARTUP_SEC: Final = 1
+# Reserve a small gap per subtest for server startup, teardown, and scheduling jitter.
 IPERF3_SUBTEST_OVERHEAD_SEC: Final = 1
+# Do not schedule subtests shorter than this to avoid meaningless or flaky measurements.
 IPERF3_MIN_SUBTEST_DURATION_SEC: Final = 1
+# Wait briefly for the one-off iperf3 server to exit after the client finishes.
 IPERF3_SERVER_SHUTDOWN_TIMEOUT_SEC: Final = 2
 STRESS_NG_RANDOM_SEED: Final = 0x5EED_1234
 
@@ -248,7 +252,7 @@ class StressNgMaxNetworkLoadTest(StressNgTest):
             )
         except FuturesTimeoutError:
             iperf3.stop_server()
-            self.logger.error("Stress-ng maximum network load test FAILED: stress-ng timed out")
+            self.logger.exception("Stress-ng maximum network load test FAILED: stress-ng timed out")
             yield TestResult(
                 status=TestStatus.FAILED,
                 started_at=started_at,
@@ -266,7 +270,9 @@ class StressNgMaxNetworkLoadTest(StressNgTest):
             )
         except FuturesTimeoutError:
             iperf3.stop_server()
-            self.logger.error("Stress-ng maximum network load test FAILED: iperf3 server timed out")
+            self.logger.exception(
+                "Stress-ng maximum network load test FAILED: iperf3 server timed out"
+            )
             yield TestResult(
                 status=TestStatus.FAILED,
                 started_at=started_at,
