@@ -3,6 +3,7 @@ import queue
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from imgtests.exec.exec import common_run_command
 from imgtests.exec.loaders.dmsetup import DeviceMapperSetup, setup_block_device
 from imgtests.exec.osinfo import get_os_release
 from imgtests.runner import AbstractRunnableTimeLimitedTest, TestResult, TestStatus
@@ -238,7 +239,7 @@ class FioDisksVariationTest(AbstractRunnableTimeLimitedTest):
                 workloads=workloads,
                 offset=offset,
                 offset_increment=offset_incr,
-                size="50%",
+                size=_calculate_fio_ram_percent(50, client),
             )
             yield from _handle_fio_suite(
                 client, cfg, f"FIO variation offset={offset}, incr={offset_incr} PASSED."
@@ -257,20 +258,21 @@ class FioDisksParallelLoadTest(AbstractRunnableTimeLimitedTest):
         client: SSHClient | None,
         timeout: int,
     ) -> Iterable[TestResult]:
+        size = _calculate_fio_ram_percent(20, client)
         configs = [
             FioSuiteConfig(
                 suite="small",
                 duration_sec=timeout,
                 results_dir=Path().home() / "fio",
                 workloads=SMALL_BLOCK_WORKLOAD,
-                size="20%",
+                size=size,
             ),
             FioSuiteConfig(
                 suite="large",
                 duration_sec=timeout,
                 results_dir=Path().home() / "fio",
                 workloads=LARGE_BLOCK_WORKLOAD,
-                size="20%",
+                size=size,
             ),
             FioSuiteConfig(
                 suite="small-with-offset",
@@ -279,7 +281,7 @@ class FioDisksParallelLoadTest(AbstractRunnableTimeLimitedTest):
                 workloads=SMALL_BLOCK_WORKLOAD,
                 offset="512b",
                 offset_increment="3k",
-                size="20%",
+                size=size,
             ),
             FioSuiteConfig(
                 suite="large-with-offset",
@@ -287,7 +289,7 @@ class FioDisksParallelLoadTest(AbstractRunnableTimeLimitedTest):
                 results_dir=Path().home() / "fio",
                 workloads=LARGE_BLOCK_WORKLOAD,
                 offset_increment="3k",
-                size="20%",
+                size=size,
             ),
         ]
         q = queue.Queue()
@@ -322,3 +324,15 @@ def _handle_fio_suite(
         next(fio_gen)
     except StopIteration:
         logger.info(msg)
+
+
+def _calculate_fio_ram_percent(percent: int, client: SSHClient | None = None) -> str:
+    if percent <= 0 or percent > 100:  #  noqa: PLR2004
+        return "100MB"
+    res = common_run_command(
+        ["awk '/MemAvailable/ {print $2}' /proc/meminfo"],
+        ssh_client=client,
+    )
+    if res.returncode == 0 and res.stdout.isdigit():
+        return f"{round(int(res.stdout) // 1024 * percent // 100)}MB"
+    return "100MB"
