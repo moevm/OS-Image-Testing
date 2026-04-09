@@ -308,7 +308,7 @@ class FioDisksParallelLoadTest(AbstractRunnableTimeLimitedTest):
 
 def _enqueue_fio_results(
     client: SSHClient | None, cfg: FioSuiteConfig, msg: str, q: queue.Queue[TestResult]
-) -> Iterable[TestResult]:
+) -> None:
     for result in _handle_fio_suite(client, cfg, msg):
         q.put(result)
 
