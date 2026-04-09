@@ -175,11 +175,20 @@ class StressNg(PkgMgrMixin, GenericUtil):
         pipe: int | None = None,
         pipe_ops: int | None = None,
         sem: int | None = None,
+        sem_sysv: int | None = None,
         sem_ops: int | None = None,
         shm: int | None = None,
+        shm_sysv: int | None = None,
         shm_ops: int | None = None,
         verify: bool = True,
-        **kwargs: dict[str, Any],
+        dekker: int | None = None,
+        fifo: int | None = None,
+        futex: int | None = None,
+        msg: int | None = None,
+        peterson: int | None = None,
+        pipeherd: int | None = None,
+        sigq: int | None = None,
+        **kwargs: str | float | bool | None,
     ) -> tuple[ExecResult, StressNGResult]:
         """Runs the stress-ng util stressors.
 
@@ -249,12 +258,34 @@ class StressNg(PkgMgrMixin, GenericUtil):
             pipe_ops (int | None): Number of pipe operations per stressor.
             sem (int | None): Count of the semaphore stressors. When set to 0 got count of logical
               processors.
+            sem_sysv (int | None): Count of the stressors that perform System V
+              semaphore wait and post operations. When set to 0 got count of logical processors.
             sem_ops (int | None): Number of semaphore operations per stressor.
             shm (int | None): Count of the shared memory stressors. When set to 0 got count of
               logical processors.
+            shm_sysv (int | None): Count of the System V shared memory interface stressors.
+              When set to 0 got count of logical processors.
             shm_ops (int | None): Number of shared memory operations per stressor.
             verify (bool): Verify results if can.
-            **kwargs (dict[str, Any]): Command arguments in the free form with values.
+            dekker (int | None): Count of the stressors that exercises mutex exclusion
+              between two processes using shared memory with the Dekker Algorithm.
+              When set to 0 got count of logical processors.
+            fifo (int | None): Count of the stressors that exercise a named pipe by
+              transmitting 64 bit integers. When set to 0 got count of logical processors.
+            futex (int | None): Count of the stressors that rapidly exercise the futex system call.
+              When set to 0 got count of logical processors.
+            msg (int | None): Count of the stressors that sender and receiver processes
+              that continually send and receive messages using System V message IPC.
+              When set to 0 got count of logical processors.
+            peterson (int | None): Count of the stressors that exercises mutex exclusion between
+              two processes using shared memory with the Peterson Algorithm. When set to 0 got count
+              of logical processors.
+            pipeherd (int | None): Count of the stressors that pass a 64 bit token counter to/from
+              100 child processes over a shared pipe. When set to 0 got count of logical processors.
+            sigq (int | None):
+              Count of the stressors that rapidly send SIGUSR1 signals using sigqueue.
+              When set to 0 got count of logical processors.
+            **kwargs: Command arguments in the free form with values.
 
         Raises:
             ValueError: When invalid parameters provided or repeated.
@@ -283,7 +314,16 @@ class StressNg(PkgMgrMixin, GenericUtil):
             "mq": mq,
             "pipe": pipe,
             "sem": sem,
+            "sem-sysv": sem_sysv,
             "shm": shm,
+            "shm-sysv": shm_sysv,
+            "dekker": dekker,
+            "fifo": fifo,
+            "futex": futex,
+            "msg": msg,
+            "peterson": peterson,
+            "pipeherd": pipeherd,
+            "sigq": sigq,
         }
         if timeout_sec < 0:
             err_msg = f"Invalid timeout '{timeout_sec}'. Expected more or equal 0."
@@ -341,10 +381,19 @@ class StressNg(PkgMgrMixin, GenericUtil):
             *create_opt("pipe", pipe),
             *create_opt("pipe-ops", pipe_ops),
             *create_opt("sem", sem),
+            *create_opt("sem-sysv", sem_sysv),
             *create_opt("sem-ops", sem_ops),
             *create_opt("shm", shm),
+            *create_opt("shm-sysv", shm_sysv),
             *create_opt("shm-ops", shm_ops),
             *create_opt("verify", verify),
+            *create_opt("dekker", dekker),
+            *create_opt("fifo", fifo),
+            *create_opt("futex", futex),
+            *create_opt("msg", msg),
+            *create_opt("peterson", peterson),
+            *create_opt("pipeherd", pipeherd),
+            *create_opt("sigq", sigq),
             *add_flag("metrics"),
         ]
         if syscall is not None:

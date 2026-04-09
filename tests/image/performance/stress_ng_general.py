@@ -1,7 +1,9 @@
 from itertools import combinations
 from typing import TYPE_CHECKING, Any
 
+from imgtests.exec.exec import common_run_command
 from imgtests.exec.loaders import StressNg
+from imgtests.runner import TestResult, TestStatus
 from imgtests.suites.general.stress_ng import StressNgTest
 from imgtests.types import Subsystem
 
@@ -10,16 +12,15 @@ if TYPE_CHECKING:
     from concurrent.futures import ThreadPoolExecutor
 
     from imgtests.exec.exec import SSHClient
-    from imgtests.runner import TestResult
 
 
 tests: list[dict[str, Any]] = [
     {"cpu": 0, "cpu_method": "matrixprod"},
-    {"vm": 3, "vm_bytes": "2G", "mmap": 3, "mmap_bytes": "2G"},
-    {"hdd": 0, "hdd_bytes": "2G"},
-    {"sock": 2, "netdev": 2, "udp_flood": 2},
+    {"vm": 0, "vm_bytes": "90%", "mmap": 0, "mmap_bytes": "90%"},
+    {"hdd": 0, "hdd_bytes": "90%"},
+    {"sock": 0, "netdev": 0, "udp_flood": 0},
     {"syscall": 0},
-    {"mq": 4, "pipe": 4, "sem": 4, "shm": 4},
+    {"mq": 0, "pipe": 0, "sem": 0, "shm": 0},
 ]
 
 
@@ -122,3 +123,52 @@ class StressNgParallelLoadTest(StressNgTest):
         yield from self.run_test(
             stress_ng=stress_ng, executor=executor, timeout=timeout, **test_params
         )
+
+
+class StressNgIterTestIPC(StressNgTest):
+    """Runs stress-ng IPC subsystem tests with iterational increment of stressors amount.
+
+    Iteration begins with 1 and goes up to nprocs.
+
+    IPC subsystem class consists:
+    dekker, fifo, futex, mq, msg, peterson, pipe, pipeherd,
+    sem, sem-sysv, shm, shm-sysv, sigq, sock.
+    """
+
+    def __init__(self, timeout: int) -> None:
+        super().__init__(
+            "Test stress-ng iterational IPC subsystem test.",
+            frozenset({Subsystem.IPC}),
+            timeout,
+        )
+
+    def _run(
+        self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int
+    ) -> Iterable[TestResult]:
+        stress_ng = StressNg(client)
+
+        result = common_run_command(["nproc"], client)
+        if result.returncode:
+            yield TestResult(status=TestStatus.BROKEN)
+            return
+        ipc_max = int(result.stdout)
+        for param in range(1, ipc_max + 1):
+            yield from self.run_test(
+                stress_ng=stress_ng,
+                executor=executor,
+                timeout=timeout,
+                dekker=param,
+                fifo=param,
+                futex=param,
+                mq=param,
+                msg=param,
+                peterson=param,
+                pipe=param,
+                pipeherd=param,
+                sem=param,
+                sem_sysv=param,
+                shm=param,
+                shm_sysv=param,
+                sigq=param,
+                sock=param,
+            )

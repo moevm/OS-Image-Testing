@@ -56,7 +56,14 @@ class Kirk(GenericUtil):
         self,
         ltp_root: str | Path = "/opt/ltp",
     ) -> tuple[str, ...]:
-        """Return a list of available LTP suites."""
+        """Return a list of available LTP suites.
+
+        Args:
+            ltp_root (str | Path): Path to directory with LTP suites.
+
+        Returns:
+            tuple[str, ...]: Available LTP suites for kirk.
+        """
         ltp_root_path = Path(ltp_root)
         runtest_dir = ltp_root_path / "runtest"
 
@@ -83,11 +90,13 @@ class Kirk(GenericUtil):
 
     @staticmethod
     def _validate_fault_injection(fault_injection: int) -> None:
+        """Checks if fault injection probability is in between borders."""
         if not 0 <= fault_injection <= MAX_FAULT_INJECTION:
             err_msg = f"fault_injection must be in range 0..{MAX_FAULT_INJECTION}."
             raise ValueError(err_msg)
 
     def _ensure_debugfs(self) -> ExecResult:
+        """Ensures that debugfs is created and mounted."""
         debugfs_path = str(DEBUGFS_MOUNTPOINT)
         result = common_run_command(("sudo", "mkdir", "-p", debugfs_path), self.ssh_client)
         if result.returncode:
@@ -114,9 +123,23 @@ class Kirk(GenericUtil):
         self,
         scenarios: Iterable[str],
         results_dir: str | Path = DEFAULT_LTP_RESULTS_DIR,
+        run_pattern: str | None = None,
+        timeout: int | None = None,
         fault_injection: int | None = None,
     ) -> tuple[ExecResult, Path | None]:
-        """Run an LTP scenario via kirk and store results as JSON."""
+        """Run an LTP scenario via kirk and store results as JSON.
+
+        Args:
+            scenarios (Iterable[str]): List of suites to be run by kirk.
+            results_dir (str | Path): Directory for saving kirk test results.
+            run_pattern (str | None): Runs tests from suite, which matches
+             the given regex pattern.
+            timeout (int | None): Timeout before stopping the suite.
+            fault_injection (int | None): Probability of failure, ranges from 0 to 100.
+
+        Returns:
+            tuple[ExecResult, Path | None]: Result of kirk test work and result path.
+        """
         results_dir_path = Path(results_dir)
         scenarios_list = list(scenarios)
 
@@ -175,6 +198,8 @@ class Kirk(GenericUtil):
         remote_json_path = remote_results_dir / report_name
 
         cmd = [
+            *create_opt("run-pattern", run_pattern),
+            *create_opt("suite-timeout", timeout),
             *create_opt("fault-injection", fault_injection),
             "--run-suite",
             *scenarios_list,

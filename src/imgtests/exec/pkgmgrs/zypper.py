@@ -15,6 +15,8 @@ logger = logging.getLogger(__name__)
 class Zypper(GenericUtil):
     """Wrapper around the zypper package manager, working over SSH or locally."""
 
+    REFRESH_BUILD_CACHE_CODE = 4
+
     def __init__(
         self,
         ssh_client: SSHClient | None = None,
@@ -26,6 +28,9 @@ class Zypper(GenericUtil):
         """Refresh repository metadata (zypper refresh)."""
         logger.info("Refreshing zypper repositories...")
         result = self._run(["refresh"])
+        if result.returncode == self.REFRESH_BUILD_CACHE_CODE:
+            self._run(["clean", "--all"])
+            result = self._run(["refresh"])
         if result.returncode:
             logger.error("zypper refresh failed: %s", result.stderr)
         return result
@@ -65,6 +70,9 @@ class Zypper(GenericUtil):
         else:
             logger.info("Successfully installed packages: %s", ", ".join(pkgs))
         return result
+
+    def addrepo(self, url: str) -> ExecResult:
+        return self._run(["addrepo", url])
 
     def is_installed(self, package: str) -> bool:
         """Check whether a package is installed."""

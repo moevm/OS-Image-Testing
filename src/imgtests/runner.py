@@ -11,7 +11,6 @@ import paramiko
 import paramiko.ssh_exception
 
 from imgtests.constant import LIB_NAME
-from imgtests.database.database import ImgtestsDatabase
 from imgtests.exec.exec import common_run_command
 from imgtests.exec.observers.journalctl import Journalctl
 from imgtests.exec.observers.systemctl import Systemctl
@@ -21,7 +20,7 @@ from imgtests.types import Subsystem, TestsCounts
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
-    from imgtests.database.database import ExperimentType
+    from imgtests.database.database import ExperimentType, ImgtestsDatabase
     from imgtests.exec.base_util import BaseTestUtil
     from imgtests.exec.exec import SSHClient
 
@@ -49,6 +48,14 @@ class DefaultCleanupMixin:
                 logger.warning("Failed to cleanup folder '%s'.", path)
             else:
                 logger.info("Cleaned up folder '%s'.", path)
+        self.__clean_pages_cache(client, logger)
+
+    def __clean_pages_cache(self, client: SSHClient | None, logger: logging.Logger) -> None:
+        commands = [["sudo", "sync"], ["sudo", "sh", "-c", "'echo 3 > /proc/sys/vm/drop_caches'"]]
+        for command in commands:
+            result = common_run_command(command, client)
+            if result.returncode:
+                logger.warning("Cache cleanup failed.")
 
 
 class AbstractRunnableManyTimesTest(ABC, DefaultCleanupMixin):
@@ -188,10 +195,12 @@ class TestsRunnerConfig:
 class TestsRunner:
     __slots__ = ("__client", "__database", "__executor", "__test_config", "logger")
 
-    def __init__(self, client: SSHClient | None, test_config: TestsRunnerConfig) -> None:
+    def __init__(
+        self, client: SSHClient | None, database: ImgtestsDatabase, test_config: TestsRunnerConfig
+    ) -> None:
         self.__executor = ThreadPoolExecutor()
         self.__client = client
-        self.__database = ImgtestsDatabase()
+        self.__database = database
         self.__test_config = test_config
         self.logger = logging.getLogger(f"{LIB_NAME}.tests_runner")
 
@@ -269,7 +278,7 @@ class TestsRunner:
             PhoronixTestSuite,
             StressNg,
         )
-        from imgtests.exec.observers import NodeExporter, Sar, Time  # noqa: PLC0415
+        from imgtests.exec.observers import Lshw, NodeExporter, Sar, Time  # noqa: PLC0415
 
         self.logger.info("Installing dependencies. This may take a while.")
         for tool in (
@@ -283,6 +292,7 @@ class TestsRunner:
             Time,
             NodeExporter,
             Sar,
+            Lshw,
         ):
             tool_instance: BaseTestUtil = tool(self.__client)
             try:
@@ -328,6 +338,7 @@ class TestsRunner:
         oom_r = journalctl.oom_records(
             since=since.strftime(journalctl.DATE_FORMAT),
             until=until.strftime(journalctl.DATE_FORMAT),
+            log_errors=False,
         )
         oom_m = journalctl.calc_records_cnt(oom_r.stdout)
         self.logger.info("OOM records %d", oom_m)
@@ -345,6 +356,7 @@ class TestsRunner:
             since=since.strftime(journalctl.DATE_FORMAT),
             until=until.strftime(journalctl.DATE_FORMAT),
             priority="err",
+            log_errors=False,
         )
         sstmd_err_m = journalctl.calc_records_cnt(sstmd_err_r.stdout)
         self.logger.info(

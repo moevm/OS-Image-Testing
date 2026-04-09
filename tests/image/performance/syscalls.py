@@ -5,6 +5,7 @@ from zoneinfo import ZoneInfo
 
 from imgtests.exec.loaders import Kirk, Perf, StressNg
 from imgtests.runner import AbstractRunnableTimeLimitedTest, TestResult, TestStatus
+from imgtests.suites.duration import ONE_MIN_SEC
 from imgtests.suites.general.stress_ng import StressNgTest
 from imgtests.types import Subsystem
 
@@ -29,10 +30,15 @@ class SyscallsWithCpuLoadTest(AbstractRunnableTimeLimitedTest):
         stress_ng = StressNg(client)
         kirk = Kirk(client)
 
-        for cpu_percent in range(50, 101, 10):
+        cpu_loads = (50, 60, 70, 80, 90, 100)
+        subtest_timeout = timeout // len(cpu_loads)
+        if subtest_timeout == 0:
+            err_msg = f"Timeout '{timeout}' is too small for the number of subtests."
+            raise ValueError(err_msg)
+        for cpu_percent in cpu_loads:
             self.logger.info("Running test with %d cpu load...", cpu_percent)
             started_at = datetime.now(tz=ZoneInfo("UTC"))
-            future_kirk = executor.submit(kirk.run, ["syscalls"])
+            future_kirk = executor.submit(kirk.run, ["syscalls"], timeout=timeout)
             future_stress_ng = executor.submit(
                 stress_ng.run,
                 timeout_sec=timeout,
@@ -49,7 +55,7 @@ class SyscallsWithCpuLoadTest(AbstractRunnableTimeLimitedTest):
                 if future_kirk.done():
                     if kirk_res is None:
                         kirk_res, kirk_metrics_path = future_kirk.result()
-                    future_kirk = executor.submit(kirk.run, ["syscalls"])
+                    future_kirk = executor.submit(kirk.run, ["syscalls"], timeout=ONE_MIN_SEC)
                 sleep(5)
             while not future_kirk.done():
                 if future_stress_ng.done():
@@ -57,7 +63,7 @@ class SyscallsWithCpuLoadTest(AbstractRunnableTimeLimitedTest):
                         stress_ng_res, stress_ng_metrics = future_stress_ng.result()
                     future_stress_ng = executor.submit(
                         stress_ng.run,
-                        timeout_sec=60,
+                        timeout_sec=ONE_MIN_SEC,
                         syscall=0,
                         syscall_method="all",
                         cpu=0,
@@ -151,7 +157,7 @@ class SyscallsFullLoadTest(AbstractRunnableTimeLimitedTest):
                     stress_ng_res, stress_ng_metrics = future_stress_ng.result()
                 future_stress_ng = executor.submit(
                     stress_ng.run,
-                    timeout_sec=60,
+                    timeout_sec=ONE_MIN_SEC,
                     syscall=0,
                 )
             sleep(5)
