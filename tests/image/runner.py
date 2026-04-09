@@ -74,7 +74,7 @@ ALL_SUBSYSTEMS_SUITE: Final = TestsRunnerConfig(
         FaultInjectionEnduranceTest,
     ),
     experiment_type="all",
-    duration=200,
+    duration=1200,
     install_dependencies=True,
 )
 MEMORY_SUITE: Final = TestsRunnerConfig(

@@ -24,8 +24,10 @@ tests: list[dict[str, Any]] = [
 ]
 
 
-def combine_params(test_combination: list[dict[str, Any]]) -> dict[str, Any]:
-    """Combines params from list of dictionaries into single dictionary.
+def combine_params(
+    test_combination: tuple[dict[str, Any], ...] | list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Combines params into single dictionary.
 
     Args:
         test_combination (list): List of test scenarios.
@@ -61,9 +63,18 @@ class StressNgConsecutiveLoadTest(StressNgTest):
     ) -> Iterable[TestResult]:
         stress_ng = StressNg(client)
 
+        subtest_timeout = timeout // len(tests)
+        if subtest_timeout == 0:
+            err_msg = "Invalid timeout for subtests. Needs increase timeout."
+            raise ValueError(err_msg)
+        self.logger.info(
+            "Each subtest running time: %d. Count of subtests: %s.",
+            subtest_timeout,
+            len(tests),
+        )
         for params in tests:
             yield from self.run_test(
-                stress_ng=stress_ng, executor=executor, timeout=timeout, **params
+                stress_ng=stress_ng, executor=executor, timeout=subtest_timeout, **params
             )
 
 
@@ -89,12 +100,25 @@ class StressNgCombineLoadTest(StressNgTest):
     ) -> Iterable[TestResult]:
         stress_ng = StressNg(client)
 
-        for r in range(2, len(tests)):
-            for test_combination in combinations(tests, r):
-                test_params = combine_params(test_combination)
-                yield from self.run_test(
-                    stress_ng=stress_ng, executor=executor, timeout=timeout, **test_params
-                )
+        test_combinations = [
+            test_combination
+            for r in range(2, len(tests))
+            for test_combination in combinations(tests, r)
+        ]
+        combination_timeout = timeout // len(test_combinations)
+        if combination_timeout == 0:
+            err_msg = "Insufficient timeout for all combinations. Needs increase timeout."
+            raise ValueError(err_msg)
+        self.logger.info(
+            "Each subtest running time: %d. Count of subtests: %s.",
+            combination_timeout,
+            len(test_combinations),
+        )
+        for test_combination in test_combinations:
+            test_params = combine_params(test_combination)
+            yield from self.run_test(
+                stress_ng=stress_ng, executor=executor, timeout=combination_timeout, **test_params
+            )
 
 
 class StressNgParallelLoadTest(StressNgTest):
@@ -152,11 +176,15 @@ class StressNgIterTestIPC(StressNgTest):
             yield TestResult(status=TestStatus.BROKEN)
             return
         ipc_max = int(result.stdout)
+        subtest_timeout = timeout // ipc_max
+        if subtest_timeout == 0:
+            err_msg = "Invalid timeout for IPC stress-ng test. Needs increase timeout."
+            raise ValueError(err_msg)
         for param in range(1, ipc_max + 1):
             yield from self.run_test(
                 stress_ng=stress_ng,
                 executor=executor,
-                timeout=timeout,
+                timeout=subtest_timeout,
                 dekker=param,
                 fifo=param,
                 futex=param,
