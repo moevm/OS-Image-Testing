@@ -230,6 +230,7 @@ class FioDisksVariationTest(AbstractRunnableTimeLimitedTest):
             for bs in bs_values
             for rw in rw_values
         )
+        size = _calculate_fio_ram_percent(50, client)
 
         for offset, offset_incr in offset_cases:
             cfg = FioSuiteConfig(
@@ -239,7 +240,7 @@ class FioDisksVariationTest(AbstractRunnableTimeLimitedTest):
                 workloads=workloads,
                 offset=offset,
                 offset_increment=offset_incr,
-                size=_calculate_fio_ram_percent(50, client),
+                size=size,
             )
             yield from _handle_fio_suite(
                 client, cfg, f"FIO variation offset={offset}, incr={offset_incr} PASSED."
