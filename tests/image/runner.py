@@ -149,7 +149,7 @@ def main() -> None:
     suse_client = wait_remote(*SUSE_156_CONF) or sys.exit(1)
     poky_client = wait_remote(*YOCTO_CONF) or sys.exit(1)
     database = ImgtestsDatabase()
-    for suite in (MEMORY_SUITE, SYSCALLS_SUITE, IPC_SUITE, ALL_SUBSYSTEMS_SUITE):
+    for suite in (FILE_SUITE, MEMORY_SUITE, SYSCALLS_SUITE, IPC_SUITE, ALL_SUBSYSTEMS_SUITE):
         suse_client.reconnect()
         suse_runner = TestsRunner(suse_client, database, suite)
         suse_runner.run()

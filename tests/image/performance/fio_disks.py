@@ -258,7 +258,7 @@ class FioDisksParallelLoadTest(AbstractRunnableTimeLimitedTest):
         client: SSHClient | None,
         timeout: int,
     ) -> Iterable[TestResult]:
-        size = _calculate_fio_ram_percent(20, client)
+        size = _calculate_fio_ram_percent(10, client)
         configs = [
             FioSuiteConfig(
                 suite="small",
