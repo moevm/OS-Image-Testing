@@ -15,7 +15,9 @@ from image.performance.fio_disks import (
     FioDisksDMDelay,
     FioDisksDMDust,
     FioDisksNightly,
+    FioDisksParallelLoadTest,
     FioDisksScalingTest,
+    FioDisksVariationTest,
 )
 from image.performance.ipc import SchedPerformanceTest
 from image.performance.memory import SarWithStressNGTest, StressNgPerformanceMemoryTest
@@ -113,6 +115,20 @@ IPC_SUITE: Final = TestsRunnerConfig(
     duration=100,
     install_dependencies=True,
 )
+FILE_SUITE: Final = TestsRunnerConfig(
+    description="Test suite for file subsystem.",
+    tests=(
+        FioDisksVariationTest,
+        FioDisksParallelLoadTest,
+        FioDisksNightly,
+        FioDisksScalingTest,
+        FioDisksDMDust,
+        FioDisksDMDelay,
+    ),
+    experiment_type="all",
+    duration=300,
+    install_dependencies=True,
+)
 YOCTO_CONF: Final = (
     "SSH_YOCTO_ADDR",
     "SSH_YOCTO_USER",
@@ -133,7 +149,7 @@ def main() -> None:
     suse_client = wait_remote(*SUSE_156_CONF) or sys.exit(1)
     poky_client = wait_remote(*YOCTO_CONF) or sys.exit(1)
     database = ImgtestsDatabase()
-    for suite in (MEMORY_SUITE, SYSCALLS_SUITE, IPC_SUITE, ALL_SUBSYSTEMS_SUITE):
+    for suite in (FILE_SUITE, MEMORY_SUITE, SYSCALLS_SUITE, IPC_SUITE, ALL_SUBSYSTEMS_SUITE):
         suse_client.reconnect()
         suse_runner = TestsRunner(suse_client, database, suite)
         suse_runner.run()
