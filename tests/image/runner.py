@@ -153,9 +153,11 @@ def main() -> None:
         suse_client.reconnect()
         suse_runner = TestsRunner(suse_client, database, suite)
         suse_runner.run()
+        suse_runner.close()
         poky_client.reconnect()
         yocto_runner = TestsRunner(poky_client, database, suite)
         yocto_runner.run()
+        yocto_runner.close()
 
     poky_client.reconnect()
     ProfiledPlanRunner(

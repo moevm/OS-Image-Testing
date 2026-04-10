@@ -274,6 +274,9 @@ class BaseRunner:
             ended_at=ended_at,
         )
 
+    def close(self) -> None:
+        self._executor.shutdown(wait=False)
+
 
 class TestsRunner(BaseRunner):
     def __init__(
