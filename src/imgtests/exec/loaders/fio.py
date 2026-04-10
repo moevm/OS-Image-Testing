@@ -36,7 +36,7 @@ FIO_CLAT_PERCENTILES: dict[str, tuple[str, str]] = {
 }
 
 
-def get_available_bytes(client: SSHClient, path: str | Path) -> int | None:
+def get_available_bytes(client: SSHClient | None, path: str | Path) -> int | None:
     res = common_run_command(
         ["df", "--output=avail", "--block-size=1", str(path)],
         client,

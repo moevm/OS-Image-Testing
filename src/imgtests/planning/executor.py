@@ -59,7 +59,7 @@ class PlanExecutionResult:
 class PlanExecutor(BaseRunner):
     def __init__(
         self,
-        client: SSHClient,
+        client: SSHClient | None,
         db: ImgtestsDatabase,
     ) -> None:
         self.client = client

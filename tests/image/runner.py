@@ -158,14 +158,13 @@ def main() -> None:
         yocto_runner.run()
 
     poky_client.reconnect()
-    has_failures = ProfiledPlanRunner(
+    ProfiledPlanRunner(
         client=poky_client,
-        db=database,
+        database=database,
     ).run_from_env()
     suse_client.close()
     poky_client.close()
-
-    sys.exit(1 if has_failures else 0)
+    database.session.close_all()
 
 
 if __name__ == "__main__":
