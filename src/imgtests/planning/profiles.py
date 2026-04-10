@@ -6,12 +6,65 @@ from typing import Any
 from imgtests.planning.models import LoadPattern, LoadTask, TestKind
 from imgtests.types import Subsystem
 
+CPU_SCALE_ARG_PREFIX = "@cpu:"
+FIO_SIZE_RATIO_ARG_PREFIX = "@avail_ratio:"
+
 
 @dataclass(frozen=True)
 class StageTemplate:
     name: str
     pattern: LoadPattern
     weight: float
+
+
+_CPU_INSTANCE_SCALES: dict[LoadPattern, float] = {
+    LoadPattern.SOFT: 0.25,
+    LoadPattern.BALANCED: 0.50,
+    LoadPattern.INTENSE: 1.00,
+    LoadPattern.EXTREME: 1.50,
+    LoadPattern.SPIKE: 2.00,
+}
+
+_VM_BYTES: dict[LoadPattern, str] = {
+    LoadPattern.SOFT: "10%",
+    LoadPattern.BALANCED: "20%",
+    LoadPattern.INTENSE: "35%",
+    LoadPattern.EXTREME: "50%",
+    LoadPattern.SPIKE: "55%",
+}
+
+_VM_POPULATE_PATTERNS = frozenset({LoadPattern.EXTREME, LoadPattern.SPIKE})
+
+_SOCK_OPS: dict[LoadPattern, int] = {
+    LoadPattern.SOFT: 50_000,
+    LoadPattern.BALANCED: 150_000,
+    LoadPattern.INTENSE: 250_000,
+    LoadPattern.EXTREME: 350_000,
+    LoadPattern.SPIKE: 500_000,
+}
+
+_FIO_SIZE_RATIOS: dict[LoadPattern, float] = {
+    LoadPattern.SOFT: 0.025,
+    LoadPattern.BALANCED: 0.050,
+    LoadPattern.INTENSE: 0.075,
+    LoadPattern.EXTREME: 0.100,
+    LoadPattern.SPIKE: 0.100,
+}
+
+
+def _cpu_scaled_arg(pattern: LoadPattern) -> str:
+    return f"{CPU_SCALE_ARG_PREFIX}{_CPU_INSTANCE_SCALES[pattern]}"
+
+
+def _avail_ratio_arg(pattern: LoadPattern) -> str:
+    return f"{FIO_SIZE_RATIO_ARG_PREFIX}{_FIO_SIZE_RATIOS[pattern]}"
+
+
+def _cpu_scaled_stressors(*arg_names: str) -> dict[LoadPattern, dict[str, Any]]:
+    return {
+        pattern: {arg_name: _cpu_scaled_arg(pattern) for arg_name in arg_names}
+        for pattern in LoadPattern
+    }
 
 
 PROFILE_LAYOUTS: dict[TestKind, tuple[StageTemplate, ...]] = {
@@ -52,44 +105,21 @@ _STRESS_ARGS: dict[Subsystem, dict[LoadPattern, dict[str, Any]]] = {
         LoadPattern.EXTREME: {"cpu": 0, "cpu_method": "all"},
         LoadPattern.SPIKE: {"cpu": 0, "cpu_method": "all"},
     },
-    Subsystem.IPC: {
-        LoadPattern.SOFT: {"mq": 1, "pipe": 1, "sem": 1, "shm": 1},
-        LoadPattern.BALANCED: {"mq": 2, "pipe": 2, "sem": 2, "shm": 2},
-        LoadPattern.INTENSE: {"mq": 4, "pipe": 4, "sem": 4, "shm": 4},
-        LoadPattern.EXTREME: {"mq": 6, "pipe": 6, "sem": 6, "shm": 6},
-        LoadPattern.SPIKE: {"mq": 8, "pipe": 8, "sem": 8, "shm": 8},
-    },
+    Subsystem.IPC: _cpu_scaled_stressors("mq", "pipe", "sem", "shm"),
     Subsystem.MEMORY: {
-        LoadPattern.SOFT: {"vm": 1, "vm_method": "all", "vm_bytes": "10%"},
-        LoadPattern.BALANCED: {"vm": 2, "vm_method": "all", "vm_bytes": "20%"},
-        LoadPattern.INTENSE: {"vm": 4, "vm_method": "all", "vm_bytes": "35%"},
-        LoadPattern.EXTREME: {
-            "vm": 8,
+        pattern: {
+            "vm": _cpu_scaled_arg(pattern),
             "vm_method": "all",
-            "vm_bytes": "50%",
-            "vm-populate": True,
-        },
-        LoadPattern.SPIKE: {
-            "vm": 8,
-            "vm_method": "all",
-            "vm_bytes": "55%",
-            "vm-populate": True,
-        },
+            "vm_bytes": _VM_BYTES[pattern],
+            **({"vm-populate": True} if pattern in _VM_POPULATE_PATTERNS else {}),
+        }
+        for pattern in LoadPattern
     },
     Subsystem.NETWORK: {
-        LoadPattern.SOFT: {"sock": 1, "sock_ops": 50_000},
-        LoadPattern.BALANCED: {"sock": 2, "sock_ops": 150_000},
-        LoadPattern.INTENSE: {"sock": 4, "sock_ops": 250_000},
-        LoadPattern.EXTREME: {"sock": 6, "sock_ops": 350_000},
-        LoadPattern.SPIKE: {"sock": 8, "sock_ops": 500_000},
+        pattern: {"sock": _cpu_scaled_arg(pattern), "sock_ops": _SOCK_OPS[pattern]}
+        for pattern in LoadPattern
     },
-    Subsystem.SYSCALLS: {
-        LoadPattern.SOFT: {"syscall": 1},
-        LoadPattern.BALANCED: {"syscall": 2},
-        LoadPattern.INTENSE: {"syscall": 4},
-        LoadPattern.EXTREME: {"syscall": 6},
-        LoadPattern.SPIKE: {"syscall": 8},
-    },
+    Subsystem.SYSCALLS: _cpu_scaled_stressors("syscall"),
 }
 
 _FIO_ARGS: dict[LoadPattern, dict[str, Any]] = {
@@ -98,35 +128,35 @@ _FIO_ARGS: dict[LoadPattern, dict[str, Any]] = {
         "bs": "128k",
         "numjobs": 1,
         "iodepth": 1,
-        "size": "256M",
+        "size": _avail_ratio_arg(LoadPattern.SOFT),
     },
     LoadPattern.BALANCED: {
         "readwrite": "randrw",
         "bs": "16k",
         "numjobs": 2,
         "iodepth": 4,
-        "size": "512M",
+        "size": _avail_ratio_arg(LoadPattern.BALANCED),
     },
     LoadPattern.INTENSE: {
         "readwrite": "randrw",
         "bs": "4k",
         "numjobs": 4,
         "iodepth": 16,
-        "size": "768M",
+        "size": _avail_ratio_arg(LoadPattern.INTENSE),
     },
     LoadPattern.EXTREME: {
         "readwrite": "randwrite",
         "bs": "4k",
         "numjobs": 6,
         "iodepth": 24,
-        "size": "1G",
+        "size": _avail_ratio_arg(LoadPattern.EXTREME),
     },
     LoadPattern.SPIKE: {
         "readwrite": "randwrite",
         "bs": "4k",
         "numjobs": 6,
         "iodepth": 24,
-        "size": "1G",
+        "size": _avail_ratio_arg(LoadPattern.SPIKE),
     },
 }
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import suppress
@@ -12,6 +13,7 @@ from typing import TYPE_CHECKING, Any
 from imgtests.exec.exec import common_run_command
 from imgtests.exec.loaders.fio import Fio, fio_metrics_to_samples, get_available_bytes
 from imgtests.exec.loaders.stress_ng import StressNg, stress_metrics_to_samples
+from imgtests.planning.profiles import CPU_SCALE_ARG_PREFIX, FIO_SIZE_RATIO_ARG_PREFIX
 from imgtests.runner import BaseRunner
 from imgtests.sizing import parse_size_to_bytes, round_bytes_to_mib_str
 from imgtests.types import MetricSample, Subsystem
@@ -24,6 +26,9 @@ if TYPE_CHECKING:
     from imgtests.planning.models import LoadTask, PlanStage, TestPlan
 
 logger = logging.getLogger(__name__)
+
+_MIN_FIO_SIZE_BYTES = 64 * 1024**2
+_MAX_FIO_SIZE_RATIO = 0.25
 
 
 @dataclass(frozen=True)
@@ -64,6 +69,7 @@ class PlanExecutor(BaseRunner):
     ) -> None:
         self.client = client
         self.db = db
+        self._cpu_count_cache: int | None = None
 
     def execute(
         self,
@@ -284,6 +290,7 @@ class PlanExecutor(BaseRunner):
         args = dict(task.args or {})
         timeout_sec = int(args.pop("timeout_sec", stage.duration_sec))
         args.pop("verify", None)
+        args = self._resolve_stress_args(args)
 
         exec_res, (metrics, summary) = stress.run(timeout_sec=timeout_sec, **args)
 
@@ -337,17 +344,21 @@ class PlanExecutor(BaseRunner):
             args["filename"] = str(created_filename)
 
         if "size" in args:
-            req = parse_size_to_bytes(str(args["size"]))
             avail = (
                 get_available_bytes(self.client, created_filename.parent)
                 if created_filename is not None
                 else None
             )
-            if req is not None and avail is not None:
-                cap = max(64 * 1024**2, int(avail * 0.25))
-                safe = min(req, cap)
-                if safe < req:
-                    args["size"] = round_bytes_to_mib_str(safe)
+            size_value = str(args["size"])
+            if size_value.startswith(FIO_SIZE_RATIO_ARG_PREFIX):
+                args["size"] = self._resolve_dynamic_fio_size(size_value, avail)
+            else:
+                req = parse_size_to_bytes(size_value)
+                if req is not None and avail is not None:
+                    cap = max(_MIN_FIO_SIZE_BYTES, int(avail * _MAX_FIO_SIZE_RATIO))
+                    safe = min(req, cap)
+                    if safe < req:
+                        args["size"] = round_bytes_to_mib_str(safe)
 
         fio_name = args.pop(
             "name",
@@ -395,6 +406,61 @@ class PlanExecutor(BaseRunner):
             metrics=tuple(samples),
         )
 
+    def _resolve_stress_args(self, args: dict[str, Any]) -> dict[str, Any]:
+        resolved: dict[str, Any] = {}
+        cpu_count: int | None = None
+
+        for key, value in args.items():
+            if isinstance(value, str) and value.startswith(CPU_SCALE_ARG_PREFIX):
+                if cpu_count is None:
+                    cpu_count = self._resolve_cpu_count()
+                scale = _parse_dynamic_float(value, CPU_SCALE_ARG_PREFIX)
+                resolved[key] = max(1, math.ceil(cpu_count * scale))
+                continue
+
+            resolved[key] = value
+
+        return resolved
+
+    def _resolve_dynamic_fio_size(
+        self,
+        raw_value: str,
+        available_bytes: int | None,
+    ) -> str:
+        ratio = _parse_dynamic_float(raw_value, FIO_SIZE_RATIO_ARG_PREFIX)
+        if available_bytes is None:
+            err = (
+                "Cannot resolve dynamic fio size: available bytes are unknown. "
+                "Provide a concrete size or ensure free space can be detected."
+            )
+            raise ValueError(err)
+
+        requested = max(_MIN_FIO_SIZE_BYTES, int(available_bytes * ratio))
+        cap = max(_MIN_FIO_SIZE_BYTES, int(available_bytes * _MAX_FIO_SIZE_RATIO))
+        return round_bytes_to_mib_str(min(requested, cap))
+
+    def _resolve_cpu_count(self) -> int:
+        if self._cpu_count_cache is not None:
+            return self._cpu_count_cache
+
+        result = common_run_command(["nproc"], self.client)
+        if result.returncode != 0:
+            err = "Cannot resolve CPU count for dynamic stress args: 'nproc' failed."
+            raise ValueError(err)
+
+        try:
+            cpu_count = int((result.stdout or "").strip())
+        except (TypeError, ValueError) as exc:
+            err = "Cannot resolve CPU count for dynamic stress args: invalid 'nproc' output."
+            raise ValueError(err) from exc
+
+        if cpu_count <= 0:
+            err = f"Cannot resolve CPU count for dynamic stress args: got {cpu_count}."
+            raise ValueError(err)
+
+        self._cpu_count_cache = cpu_count
+        return self._cpu_count_cache
+
 
 def _try_parse_json(text: str) -> dict[str, Any]:
     if not text:
@@ -410,6 +476,20 @@ def _try_parse_json(text: str) -> dict[str, Any]:
         return {}
 
     return data if isinstance(data, dict) else {}
+
+
+def _parse_dynamic_float(raw_value: str, prefix: str) -> float:
+    try:
+        value = float(raw_value.removeprefix(prefix))
+    except ValueError as exc:
+        err = f"Invalid dynamic value '{raw_value}'."
+        raise ValueError(err) from exc
+
+    if value <= 0:
+        err = f"Dynamic value must be > 0, got '{raw_value}'."
+        raise ValueError(err)
+
+    return value
 
 
 def _resolve_experiment_type(plan: TestPlan) -> ExperimentType:
