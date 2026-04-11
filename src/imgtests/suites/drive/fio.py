@@ -185,7 +185,6 @@ class FioSuite:
             local_suite_root = self.cfg.results_dir / f"{self.cfg.suite}-{stamp}"
         else:
             local_suite_root = suite_root
-        self._plot(local_suite_root, stamp)
         logger.info("fio done: %s", local_suite_root)
         return
 

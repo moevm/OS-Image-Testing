@@ -18,8 +18,7 @@ if TYPE_CHECKING:
 import numpy as np
 import numpy.typing as npt
 
-from imgtests.exec.observers.time import Time, Times
-from imgtests.exec.user_commands import Dd, Rm
+from imgtests.exec.user_commands import Dd, Rm, Time, Times
 
 TEST_FILE1: Final = Path(tempfile.gettempdir()) / "test_file1"
 TEST_FILE2: Final = Path(tempfile.gettempdir()) / "test_file2"

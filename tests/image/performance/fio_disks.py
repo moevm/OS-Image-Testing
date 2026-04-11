@@ -3,8 +3,8 @@ import queue
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from imgtests.exec.exec import common_run_command
 from imgtests.exec.loaders.dmsetup import DeviceMapperSetup, setup_block_device
+from imgtests.exec.observers.resource import get_available_ram_size
 from imgtests.exec.osinfo import get_os_release
 from imgtests.runner import AbstractRunnableTimeLimitedTest, TestResult, TestStatus
 from imgtests.suites.drive.fio import FioSuite, FioSuiteConfig, FioWorkload
@@ -330,10 +330,7 @@ def _handle_fio_suite(
 def _calculate_fio_ram_percent(percent: int, client: SSHClient | None = None) -> str:
     if percent <= 0 or percent > 100:  #  noqa: PLR2004
         return "100MB"
-    res = common_run_command(
-        ["awk '/MemAvailable/ {print $2}' /proc/meminfo"],
-        ssh_client=client,
-    )
-    if res.returncode == 0 and res.stdout.isdigit():
-        return f"{round(int(res.stdout) // 1024 * percent // 100)}MB"
+    ram_size = get_available_ram_size(client)
+    if ram_size is not None:
+        return f"{round(ram_size // 1024 * percent // 100)}MB"
     return "100MB"

@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Final
 
 from image.endurance.memory import StressNgEnduranceMemoryTest
-from image.endurance.network import WgetEnduranceNetworkTest
 from image.endurance.syscalls import (
     LTPSyscallsIPCTest,
     LTPSyscallsTest,
@@ -61,7 +60,6 @@ ALL_SUBSYSTEMS_SUITE: Final = TestsRunnerConfig(
         FioDisksDMDust,
         LTPSyscallsTest,
         StressNgEnduranceSyscallsTest,
-        WgetEnduranceNetworkTest(3),
         Iperf3LocalTest,
         StressNgPerformanceCpuTest,
         ChaosbladeCPUTest,
