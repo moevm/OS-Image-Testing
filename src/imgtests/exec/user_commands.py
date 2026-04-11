@@ -23,3 +23,8 @@ class Dd(GenericUtil):
 class Mdadm(GenericUtil):
     def __init__(self, ssh_client: SSHClient | None = None) -> None:
         super().__init__("mdadm", ssh_client)
+
+
+class Nproc(GenericUtil):
+    def __init__(self, ssh_client: SSHClient | None = None) -> None:
+        super().__init__("nproc", ssh_client)
