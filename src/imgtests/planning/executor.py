@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Any
 from imgtests.exec.exec import common_run_command
 from imgtests.exec.loaders.fio import Fio, fio_metrics_to_samples, get_available_bytes
 from imgtests.exec.loaders.stress_ng import StressNg, stress_metrics_to_samples
+from imgtests.exec.user_commands import Nproc
 from imgtests.planning.profiles import CPU_SCALE_ARG_PREFIX, FIO_SIZE_RATIO_ARG_PREFIX
 from imgtests.runner import BaseRunner
 from imgtests.sizing import parse_size_to_bytes, round_bytes_to_mib_str
@@ -443,7 +444,7 @@ class PlanExecutor(BaseRunner):
         if self._cpu_count_cache is not None:
             return self._cpu_count_cache
 
-        result = common_run_command(["nproc"], self.client)
+        result = Nproc(self.client)()
         if result.returncode != 0:
             err = "Cannot resolve CPU count for dynamic stress args: 'nproc' failed."
             raise ValueError(err)
