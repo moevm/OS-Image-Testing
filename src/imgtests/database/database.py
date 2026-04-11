@@ -200,11 +200,18 @@ class ImgtestsDatabase:
             session.refresh(observer_object)
         return observer_object
 
-    def update_experiment_ended_at(self, experiment_id: int) -> None:
+    def update_experiment_ended_at(
+        self,
+        experiment_id: int,
+        ended_at: datetime | None = None,
+    ) -> None:
+        if ended_at is None:
+            ended_at = datetime.now(tz=ZoneInfo("UTC"))
+
         self._check_session()
         with self.session() as session:
             experiment = session.query(ExperimentBase).filter_by(experiment_id=experiment_id).one()
-            experiment.ended_at = datetime.now(tz=ZoneInfo("UTC"))
+            experiment.ended_at = ended_at
             session.commit()
 
     def update_experiment_tests_count(self, experiment_id: int, counts: TestsCounts) -> None:

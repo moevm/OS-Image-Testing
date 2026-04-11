@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Final
 
 from image.endurance.memory import StressNgEnduranceMemoryTest
-from image.endurance.network import WgetEnduranceNetworkTest
 from image.endurance.syscalls import (
     LTPSyscallsIPCTest,
     LTPSyscallsTest,
@@ -15,7 +14,9 @@ from image.performance.fio_disks import (
     FioDisksDMDelay,
     FioDisksDMDust,
     FioDisksNightly,
+    FioDisksParallelLoadTest,
     FioDisksScalingTest,
+    FioDisksVariationTest,
 )
 from image.performance.ipc import SchedPerformanceTest
 from image.performance.memory import SarWithStressNGTest, StressNgPerformanceMemoryTest
@@ -33,9 +34,10 @@ from image.performance.syscalls import (
     SyscallsWithCpuLoadTest,
 )
 from image.performance.system import PTSSystemTest
+from imgtests.database.database import ImgtestsDatabase
 from imgtests.exec.exec import wait_remote
 from imgtests.logger import set_handlers
-from imgtests.runner import TestsRunner, TestsRunnerConfig
+from imgtests.runner import ProfiledPlanRunner, TestsRunner, TestsRunnerConfig
 from imgtests.suites.fault_injection import FaultInjectionEnduranceTest
 from imgtests.suites.general.joint_bench import JointBench
 from imgtests.suites.system import (
@@ -56,9 +58,8 @@ ALL_SUBSYSTEMS_SUITE: Final = TestsRunnerConfig(
         FioDisksNightly,
         FioDisksDMDelay,
         FioDisksDMDust,
-        LTPSyscallsTest(),
+        LTPSyscallsTest,
         StressNgEnduranceSyscallsTest,
-        WgetEnduranceNetworkTest(3),
         Iperf3LocalTest,
         StressNgPerformanceCpuTest,
         ChaosbladeCPUTest,
@@ -73,7 +74,7 @@ ALL_SUBSYSTEMS_SUITE: Final = TestsRunnerConfig(
         FaultInjectionEnduranceTest,
     ),
     experiment_type="all",
-    duration=200,
+    duration=1200,
     install_dependencies=True,
 )
 MEMORY_SUITE: Final = TestsRunnerConfig(
@@ -91,25 +92,39 @@ SYSCALLS_SUITE: Final = TestsRunnerConfig(
     description="Test suite for syscalls.",
     tests=(
         StressNgEnduranceSyscallsTest,
-        LTPSyscallsTest(),
+        LTPSyscallsTest,
         SyscallsWithCpuLoadTest,
         StressNgSyscallsWithMemLoadTest,
         SyscallsFullLoadTest,
         StressNgIterTestIPC,
     ),
     experiment_type="all",
-    duration=100,
+    duration=200,
     install_dependencies=True,
 )
 IPC_SUITE: Final = TestsRunnerConfig(
     description="Test suite for IPC subsystem.",
     tests=(
-        LTPSyscallsIPCTest(),
+        LTPSyscallsIPCTest,
         JointBench(subsystems=frozenset({Subsystem.IPC}), iterations=3),
         StressNgIterTestIPC,
     ),
     experiment_type="all",
     duration=100,
+    install_dependencies=True,
+)
+FILE_SUITE: Final = TestsRunnerConfig(
+    description="Test suite for file subsystem.",
+    tests=(
+        FioDisksVariationTest,
+        FioDisksParallelLoadTest,
+        FioDisksNightly,
+        FioDisksScalingTest,
+        FioDisksDMDust,
+        FioDisksDMDelay,
+    ),
+    experiment_type="all",
+    duration=300,
     install_dependencies=True,
 )
 YOCTO_CONF: Final = (
@@ -129,17 +144,27 @@ SUSE_156_CONF: Final = (
 def main() -> None:
     logger = logging.getLogger()
     set_handlers(logger, Path("processing.log"))
-    for suite in (MEMORY_SUITE, SYSCALLS_SUITE, IPC_SUITE, ALL_SUBSYSTEMS_SUITE):
-        suse_runner = TestsRunner(
-            wait_remote(*SUSE_156_CONF) or sys.exit(1),
-            suite,
-        )
+    suse_client = wait_remote(*SUSE_156_CONF) or sys.exit(1)
+    poky_client = wait_remote(*YOCTO_CONF) or sys.exit(1)
+    database = ImgtestsDatabase()
+    for suite in (FILE_SUITE, MEMORY_SUITE, SYSCALLS_SUITE, IPC_SUITE, ALL_SUBSYSTEMS_SUITE):
+        suse_client.reconnect()
+        suse_runner = TestsRunner(suse_client, database, suite)
         suse_runner.run()
-        yocto_runner = TestsRunner(
-            wait_remote(*YOCTO_CONF) or sys.exit(1),
-            suite,
-        )
+        suse_runner.close()
+        poky_client.reconnect()
+        yocto_runner = TestsRunner(poky_client, database, suite)
         yocto_runner.run()
+        yocto_runner.close()
+
+    poky_client.reconnect()
+    ProfiledPlanRunner(
+        client=poky_client,
+        database=database,
+    ).run_from_env()
+    suse_client.close()
+    poky_client.close()
+    database.session.close_all()
 
 
 if __name__ == "__main__":
