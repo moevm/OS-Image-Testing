@@ -27,7 +27,6 @@ class LoadPattern(StrEnum):
     INTENSE = "intense"
     EXTREME = "extreme"
     SPIKE = "spike"
-    DIAGNOSTIC = "diagnostic"
 
 
 @dataclass(frozen=True)
