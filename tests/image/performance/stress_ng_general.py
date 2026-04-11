@@ -1,8 +1,8 @@
 from itertools import combinations
 from typing import TYPE_CHECKING, Any
 
-from imgtests.exec.exec import common_run_command
 from imgtests.exec.loaders import StressNg
+from imgtests.exec.user_commands import Nproc
 from imgtests.runner import TestResult, TestStatus
 from imgtests.suites.general.stress_ng import StressNgTest
 from imgtests.types import Subsystem
@@ -171,7 +171,7 @@ class StressNgIterTestIPC(StressNgTest):
     ) -> Iterable[TestResult]:
         stress_ng = StressNg(client)
 
-        result = common_run_command(["nproc"], client)
+        result = Nproc(client)()
         if result.returncode:
             yield TestResult(status=TestStatus.BROKEN)
             return
