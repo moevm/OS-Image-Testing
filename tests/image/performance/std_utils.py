@@ -1,5 +1,4 @@
 import tempfile
-from concurrent.futures import as_completed
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Final, NamedTuple
@@ -11,7 +10,7 @@ from imgtests.types import Subsystem
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
-    from concurrent.futures import Future, ThreadPoolExecutor
+    from concurrent.futures import ThreadPoolExecutor
 
     from imgtests.exec.exec import SSHClient
 
@@ -43,35 +42,37 @@ class POSIXUtilsTest(AbstractRunnableManyTimesTest):
 
     def _run(
         self,
-        executor: ThreadPoolExecutor,
+        executor: ThreadPoolExecutor,  # noqa: ARG002
         client: SSHClient | None,
         iterations: int,
     ) -> Iterable[TestResult]:
-        final_results: dict[str, dict[str, list[float]]] = {}
-        started_at = datetime.now(tz=ZoneInfo("UTC"))
-        futures: list[Future[ToolsTimes]] = [
-            executor.submit(func, client, iterations)
-            for func in [
-                self.test_net_utils,
-                self.test_utils_for_files,
-                self.test_utils_for_dirs,
-                self.test_other_tools,
-            ]
-        ]
-        for future in as_completed(futures):
-            result = future.result()
-            for tool, metrics in result.items():
+        for func in [
+            self.test_net_utils,
+            self.test_utils_for_files,
+            self.test_utils_for_dirs,
+            self.test_other_tools,
+        ]:
+            started_at = datetime.now(tz=ZoneInfo("UTC"))
+            result = func(client, iterations)
+            for cmd, metrics in result.items():
                 if metrics:
-                    final_results[tool] = {
-                        "mean": metrics.mean.tolist(),
-                        "median": metrics.median.tolist(),
-                        "std": metrics.std.tolist(),
-                        "var": metrics.var.tolist(),
-                    }
+                    yield TestResult(
+                        started_at=started_at,
+                        command=cmd,
+                        metrics={
+                            "mean": metrics.mean.tolist(),
+                            "median": metrics.median.tolist(),
+                            "std": metrics.std.tolist(),
+                            "var": metrics.var.tolist(),
+                        },
+                        status=TestStatus.PASSED,
+                    )
                 else:
-                    final_results[tool] = {}
-
-        yield TestResult(started_at=started_at, metrics=final_results, status=TestStatus.PASSED)
+                    yield TestResult(
+                        started_at=started_at,
+                        command=cmd,
+                        status=TestStatus.BROKEN,
+                    )
 
     def test_utils_for_files(  # noqa: PLR0912, C901
         self, client: SSHClient | None, iterations: int
@@ -172,8 +173,8 @@ class POSIXUtilsTest(AbstractRunnableManyTimesTest):
                 cmd = f"{tool} -cf {TEST_FILE1}.tar {TEST_FILE1}"
             elif tool in {"md5sum", "sha256sum"}:
                 cmd = f"{tool} {TEST_FILE1} {TEST_FILE2}"
-            results[tool] = time_cmd_many(time, cmd, iterations, client)
-            self.logger.info("Results for %s: %s", tool, results[tool])
+            results[cmd] = time_cmd_many(time, cmd, iterations, client)
+            self.logger.info("Results for '%s': %s.", cmd, results[cmd])
         return results
 
     def test_net_utils(self, client: SSHClient | None, iterations: int) -> ToolsTimes:
@@ -184,8 +185,8 @@ class POSIXUtilsTest(AbstractRunnableManyTimesTest):
             cmd = tool
             if tool == "ping":
                 cmd = f"{tool} -c 20 localhost"
-            results[tool] = time_cmd_many(time, cmd, iterations, client)
-            self.logger.info("Results for %s: %s", tool, results[tool])
+            results[cmd] = time_cmd_many(time, cmd, iterations, client)
+            self.logger.info("Results for '%s': %s.", cmd, results[cmd])
         return results
 
     def test_utils_for_dirs(self, client: SSHClient | None, iterations: int) -> ToolsTimes:
@@ -218,8 +219,8 @@ class POSIXUtilsTest(AbstractRunnableManyTimesTest):
                 rm([str(tmpdir / f"file{j}") for j in range(1, 101)])
             elif tool == "realpath":
                 cmd = f"{tool} {path}"
-            results[tool] = time_cmd_many(time, cmd, iterations, client)
-            self.logger.info("Results for %s: %s", tool, results[tool])
+            results[cmd] = time_cmd_many(time, cmd, iterations, client)
+            self.logger.debug("Results for '%s': %s.", cmd, results[cmd])
         return results
 
     def test_other_tools(self, client: SSHClient | None, iterations: int) -> ToolsTimes:
@@ -249,8 +250,8 @@ class POSIXUtilsTest(AbstractRunnableManyTimesTest):
             elif tool in {"echo", "printf"}:
                 string = "a" * 1000
                 cmd = f"{tool} {string}"
-            results[tool] = time_cmd_many(time, cmd, iterations)
-            self.logger.info("Results for %s: %s", tool, results[tool])
+            results[cmd] = time_cmd_many(time, cmd, iterations)
+            self.logger.debug("Results for '%s': %s.", cmd, results[cmd])
         return results
 
 
