@@ -1,15 +1,15 @@
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
 from imgtests.exec.base_util import GenericUtil
-from imgtests.exec.exec import ExecResult, SSHClient
+from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
 from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
 from imgtests.exec.pkgmgrs.pip3 import Pip3
 from imgtests.exec.utils import create_opt
+from imgtests.types import MetricSample
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
-    from imgtests.types import Version
+    from imgtests.types import Subsystem, Version
 
 IOPattern = Literal[
     "read", "write", "trim", "randread", "randwrite", "randtrim", "readwrite", "randrw", "trimwrite"
@@ -27,9 +27,36 @@ IOEngine = Literal[
 ]
 # fmt: on
 Direct = Literal[1] | None
+FIO_CLAT_PERCENTILES: dict[str, tuple[str, str]] = {
+    "50.000000": ("50", "50"),
+    "90.000000": ("90", "90"),
+    "95.000000": ("95", "95"),
+    "99.000000": ("99", "99"),
+    "99.900000": ("999", "99.9"),
+}
+
+
+def get_available_bytes(client: SSHClient | None, path: str | Path) -> int | None:
+    res = common_run_command(
+        ["df", "--output=avail", "--block-size=1", str(path)],
+        client,
+    )
+    if res.returncode:
+        return None
+
+    out = (res.stdout or "").strip().splitlines()
+    if not out:
+        return None
+
+    try:
+        return int(out[-1].strip())
+    except (ValueError, IndexError):
+        return None
 
 
 class Fio(PkgMgrMixin, GenericUtil):
+    DEFAULT_WORKDIR = Path("/var/lib/imgtests-fio")
+
     def __init__(self, ssh_client: SSHClient | None = None) -> None:
         super().__init__("fio", ssh_client)
 
@@ -52,6 +79,14 @@ class Fio(PkgMgrMixin, GenericUtil):
         if ":" in lines[0]:
             lines = lines[1:]
         return tuple(line.strip() for line in lines)
+
+    @property
+    def workdir(self) -> Path:
+        common_run_command(["mkdir", "-p", str(self.DEFAULT_WORKDIR)], self.ssh_client)
+        return self.DEFAULT_WORKDIR
+
+    def default_filename(self, filename: str) -> str:
+        return f"{self.workdir}/{filename}"
 
     def run(  # noqa: PLR0913
         self,
@@ -180,4 +215,115 @@ class FioPlot(PkgMgrMixin, GenericUtil):
         for package in installed_packages:
             if package.name == self.name:
                 return package.version
+        return None
+
+
+def fio_metrics_to_samples(
+    payload: dict[str, Any],
+    stage_name: str,
+    subsystem: Subsystem,
+) -> list[MetricSample]:
+    jobs = payload.get("jobs", [])
+    if not isinstance(jobs, list):
+        return []
+
+    out: list[MetricSample] = []
+    for job in jobs:
+        if not isinstance(job, dict):
+            continue
+
+        for op in ("read", "write", "trim"):
+            op_data = job.get(op, {})
+            if not isinstance(op_data, dict):
+                continue
+            out.extend(
+                _fio_op_samples(
+                    stage_name=stage_name,
+                    subsystem=subsystem.value,
+                    op=op,
+                    op_data=op_data,
+                    percentiles=FIO_CLAT_PERCENTILES,
+                )
+            )
+
+    return out
+
+
+def _fio_op_samples(
+    stage_name: str,
+    subsystem: str,
+    op: str,
+    op_data: dict[str, Any],
+    percentiles: dict[str, tuple[str, str]],
+) -> list[MetricSample]:
+    out: list[MetricSample] = []
+    op_label = op.capitalize()
+
+    iops = _safe_float(op_data.get("iops"))
+    bw = _safe_float(op_data.get("bw"))
+    runtime_ms = _safe_float(op_data.get("runtime"))
+
+    clat = op_data.get("clat_ns") or {}
+    clat_mean = _safe_float(clat.get("mean")) if isinstance(clat, dict) else None
+
+    if iops is not None:
+        out.append(
+            MetricSample(stage_name, subsystem, f"fio.{op}.iops", iops, label=f"{op_label} IOPS")
+        )
+    if bw is not None:
+        out.append(
+            MetricSample(
+                stage_name,
+                subsystem,
+                f"fio.{op}.bw_kib_s",
+                bw,
+                label=f"{op_label} bandwidth, KiB/s",
+            )
+        )
+    if runtime_ms is not None:
+        out.append(
+            MetricSample(
+                stage_name,
+                subsystem,
+                f"fio.{op}.runtime_ms",
+                runtime_ms,
+                label=f"{op_label} runtime, ms",
+            )
+        )
+    if clat_mean is not None:
+        out.append(
+            MetricSample(
+                stage_name,
+                subsystem,
+                f"fio.{op}.clat_mean_ns",
+                clat_mean,
+                label=f"{op_label} clat mean, ns",
+            )
+        )
+
+    pct = clat.get("percentile") if isinstance(clat, dict) else None
+    if isinstance(pct, dict):
+        for key, (metric_suffix, percentile_label) in percentiles.items():
+            fv = _safe_float(pct.get(key))
+            if fv is not None:
+                out.append(
+                    MetricSample(
+                        stage_name,
+                        subsystem,
+                        f"fio.{op}.clat_p{metric_suffix}_ns",
+                        fv,
+                        label=f"{op_label} clat p{percentile_label}, ns",
+                    )
+                )
+
+    return out
+
+
+def _safe_float(value: Any) -> float | None:
+    if value is None:
+        return None
+
+    try:
+        return float(value)
+    except (TypeError, ValueError):
         return None

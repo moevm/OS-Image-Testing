@@ -37,7 +37,7 @@ from image.performance.system import PTSSystemTest
 from imgtests.database.database import ImgtestsDatabase
 from imgtests.exec.exec import wait_remote
 from imgtests.logger import set_handlers
-from imgtests.runner import TestsRunner, TestsRunnerConfig
+from imgtests.runner import ProfiledPlanRunner, TestsRunner, TestsRunnerConfig
 from imgtests.suites.fault_injection import FaultInjectionEnduranceTest
 from imgtests.suites.general.joint_bench import JointBench
 from imgtests.suites.system import (
@@ -151,11 +151,20 @@ def main() -> None:
         suse_client.reconnect()
         suse_runner = TestsRunner(suse_client, database, suite)
         suse_runner.run()
+        suse_runner.close()
         poky_client.reconnect()
         yocto_runner = TestsRunner(poky_client, database, suite)
         yocto_runner.run()
+        yocto_runner.close()
+
+    poky_client.reconnect()
+    ProfiledPlanRunner(
+        client=poky_client,
+        database=database,
+    ).run_from_env()
     suse_client.close()
     poky_client.close()
+    database.session.close_all()
 
 
 if __name__ == "__main__":
