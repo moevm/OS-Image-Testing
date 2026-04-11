@@ -6,7 +6,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from jinja2 import Environment, FileSystemLoader, StrictUndefined, select_autoescape
 from matplotlib.backends.backend_agg import FigureCanvasAgg
@@ -14,7 +14,7 @@ from matplotlib.figure import Figure
 
 if TYPE_CHECKING:
     from imgtests.planning.executor import MetricSample, PlanExecutionResult
-    from imgtests.planning.models import TestPlan
+    from imgtests.planning.models import TestKind, TestPlan
 
 
 @dataclass(frozen=True)
@@ -58,35 +58,55 @@ def generate_html_report(plan: TestPlan, execution: PlanExecutionResult, out_dir
     plots_dir.mkdir(parents=True, exist_ok=True)
 
     metrics = list(execution.metrics)
-    overall_rows = _compute_stats(metrics, by_stage=False)
-    per_stage_rows = _compute_stats(metrics, by_stage=True)
-    plot_assets = _build_boxplots(metrics, out_dir=out_dir, plots_dir=plots_dir)
+
+    report_data = {
+        "header": {
+            "test_kind": plan.test_kind,
+            "plan_id": plan.plan_id,
+            "experiment_id": execution.experiment_id,
+            "started_at": execution.started_at.isoformat(),
+            "ended_at": execution.ended_at.isoformat(),
+            "tests_counts": execution.tests_counts,
+            "tests_stats": _build_piechart(
+                {k: v for k, v in execution.tests_counts._asdict().items() if k != "total_count"},
+                out_dir=out_dir,
+                plots_dir=plots_dir,
+                title="Test result statistics",
+            ),
+        },
+        "timeline": {
+            "overall_rows": _compute_stats(metrics, by_stage=False),
+            "per_stage_rows": _compute_stats(metrics, by_stage=True),
+            "timeline_rows": _build_timeline_rows(plan, execution),
+        },
+        "visualizations": _collect_test_visualizations(
+            plan.test_kind,
+            execution,
+            out_dir=out_dir,
+            plots_dir=plots_dir,
+        ),
+    }
 
     template = _template_environment().get_template("load_test_report.html.j2")
     report_path = out_dir / "report.html"
     report_path.write_text(
         template.render(
-            ended_at=execution.ended_at.isoformat(),
-            experiment_id=execution.experiment_id,
-            failed_tasks=execution.tests_counts.failed_count,
-            has_failures=execution.tests_counts.failed_count > 0,
-            overall_rows=overall_rows,
-            per_stage_rows=per_stage_rows,
-            plan_id=plan.plan_id,
-            plot_assets=plot_assets,
-            started_at=execution.started_at.isoformat(),
-            timeline_rows=_build_timeline_rows(plan, execution),
-            total_tasks=execution.tests_counts.total_count,
-            test_stats=_build_piechart(
-                {k: v for k, v in execution.tests_counts._asdict().items() if k != "total_count"},
-                out_dir=out_dir,
-                plots_dir=plots_dir,
-                title="Test stats",
-            ),
+            report_data,
         ),
         encoding="utf-8",
     )
     return report_path
+
+
+def _collect_test_visualizations(
+    test_kind: TestKind,  #  noqa: ARG001
+    execution: PlanExecutionResult,
+    out_dir: Path,
+    plots_dir: Path,
+) -> dict[str, Any]:
+    return {
+        "booxplot": _build_boxplots(list(execution.metrics), out_dir=out_dir, plots_dir=plots_dir),
+    }
 
 
 @lru_cache(maxsize=1)
