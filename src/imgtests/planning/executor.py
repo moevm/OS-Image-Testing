@@ -236,6 +236,7 @@ class PlanExecutor(BaseRunner):
                         stderr=str(exc),
                         summary={"error": str(exc)},
                         metrics=(),
+                        status=TestStatus.FAILED,
                     )
 
         return [results_by_idx[i] for i in range(len(stage.tasks))]
