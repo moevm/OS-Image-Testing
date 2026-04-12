@@ -13,11 +13,12 @@ from typing import TYPE_CHECKING, Any
 from imgtests.exec.exec import common_run_command
 from imgtests.exec.loaders.fio import Fio, fio_metrics_to_samples, get_available_bytes
 from imgtests.exec.loaders.stress_ng import StressNg, stress_metrics_to_samples
+from imgtests.exec.observers.systemd_analyze import SystemdAnalyze
 from imgtests.exec.user_commands import Nproc
 from imgtests.planning.profiles import CPU_SCALE_ARG_PREFIX, FIO_SIZE_RATIO_ARG_PREFIX
-from imgtests.runner import BaseRunner
+from imgtests.runner import BaseRunner, TestStatus
 from imgtests.sizing import parse_size_to_bytes, round_bytes_to_mib_str
-from imgtests.types import MetricSample, Subsystem
+from imgtests.types import MetricSample, Subsystem, TestsCounts
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -43,6 +44,7 @@ class TaskRunResult:
     stderr: str
     summary: dict[str, Any] | None
     metrics: tuple[MetricSample, ...]
+    status: TestStatus
 
 
 @dataclass(frozen=True)
@@ -96,7 +98,13 @@ class PlanExecutor(BaseRunner):
 
         stage_runs: list[StageRunResult] = []
         collected_metrics: list[MetricSample] = []
-
+        total_count = 0
+        counts = {
+            TestStatus.PASSED: 0,
+            TestStatus.FAILED: 0,
+            TestStatus.SKIPPED: 0,
+            TestStatus.BROKEN: 0,
+        }
         for stage in plan.stages:
             self._wait_for_stage_offset(
                 plan_started_at=started_at,
@@ -131,6 +139,9 @@ class PlanExecutor(BaseRunner):
                 )
                 collected_metrics.extend(task_run.metrics)
 
+                counts[task_run.status] += 1
+                total_count += 1
+
                 self.db.insert_loader(
                     experiment_id=experiment_id,
                     command=full_cmd,
@@ -164,6 +175,16 @@ class PlanExecutor(BaseRunner):
         self.db.update_experiment_ended_at(
             experiment_id=experiment_id,
             ended_at=ended_at,
+        )
+        self.db.update_experiment_tests_count(
+            experiment.experiment_id,
+            TestsCounts(
+                total_count=total_count,
+                broken_count=counts[TestStatus.BROKEN],
+                passed_count=counts[TestStatus.PASSED],
+                failed_count=counts[TestStatus.FAILED],
+                skip_count=counts[TestStatus.SKIPPED],
+            ),
         )
 
         return PlanExecutionResult(
@@ -215,6 +236,7 @@ class PlanExecutor(BaseRunner):
                         stderr=str(exc),
                         summary={"error": str(exc)},
                         metrics=(),
+                        status=TestStatus.FAILED,
                     )
 
         return [results_by_idx[i] for i in range(len(stage.tasks))]
@@ -232,24 +254,27 @@ class PlanExecutor(BaseRunner):
             stage.duration_sec,
         )
 
-        if tool in {"stress-ng", "stressng"}:
-            return self._run_stress_ng(stage, task, started_at)
-
-        if tool == "fio":
-            return self._run_fio(stage, task, started_at)
-
-        now = datetime.now(UTC)
-        return TaskRunResult(
-            task=task,
-            started_at=started_at,
-            ended_at=now,
-            command=("unknown-tool", tool),
-            returncode=1,
-            stdout="",
-            stderr=f"Unknown tool: {tool}",
-            summary={"error": f"Unknown tool: {tool}"},
-            metrics=(),
-        )
+        match tool:
+            case "stress-ng":
+                return self._run_stress_ng(stage, task, started_at)
+            case "fio":
+                return self._run_fio(stage, task, started_at)
+            case "systemd-analyze":
+                return self._run_systemd_analyze(stage, task, started_at)
+            case _:
+                now = datetime.now(UTC)
+                return TaskRunResult(
+                    task=task,
+                    started_at=started_at,
+                    ended_at=now,
+                    command=("unknown-tool", tool),
+                    returncode=1,
+                    stdout="",
+                    stderr=f"Unknown tool: {tool}",
+                    summary={"error": f"Unknown tool: {tool}"},
+                    metrics=(),
+                    status=TestStatus.SKIPPED,
+                )
 
     def _retry_stress_run_if_needed(
         self,
@@ -325,6 +350,7 @@ class PlanExecutor(BaseRunner):
             stderr=exec_res.stderr,
             summary=summary_dict,
             metrics=tuple(samples),
+            status=TestStatus.PASSED if exec_res.returncode == 0 else TestStatus.FAILED,
         )
 
     def _run_fio(
@@ -405,6 +431,7 @@ class PlanExecutor(BaseRunner):
             stderr=result.stderr,
             summary=summary,
             metrics=tuple(samples),
+            status=TestStatus.PASSED if result.returncode == 0 else TestStatus.FAILED,
         )
 
     def _resolve_stress_args(self, args: dict[str, Any]) -> dict[str, Any]:
@@ -461,6 +488,85 @@ class PlanExecutor(BaseRunner):
 
         self._cpu_count_cache = cpu_count
         return self._cpu_count_cache
+
+    def _run_systemd_analyze(
+        self,
+        stage: PlanStage,
+        task: LoadTask,
+        started_at: datetime,
+    ) -> TaskRunResult:
+        opt = task.args.get("opt", "time")
+        systemd_analyze = SystemdAnalyze(self.client)
+        stdout, stderr, summary, samples = "", "", None, ()
+        returncode = 0
+        status = TestStatus.SKIPPED
+
+        if opt == "time":
+            result = systemd_analyze.time()
+            sleep_time_sec = 5
+            wait_timeout_sec = stage.duration_sec
+
+            while result.total_time < 0 and wait_timeout_sec > 0:
+                self._logger.info(
+                    "Waiting for system to be ready to analyze boot time, %d seconds left.",
+                    wait_timeout_sec,
+                )
+                time.sleep(sleep_time_sec)
+                wait_timeout_sec -= sleep_time_sec
+                result = systemd_analyze.time()
+
+            if result.total_time < 0:
+                stderr = "Failed to get boot time, system might not be ready."
+                returncode = 1
+                self._logger.error(stderr)
+                status = TestStatus.FAILED
+            else:
+                summary = result._asdict()
+                samples = tuple(
+                    MetricSample(
+                        stage_name=stage.name,
+                        subsystem=task.subsystem.value,
+                        metric_name=key,
+                        value=value,
+                    )
+                    for key, value in result._asdict().items()
+                    if value >= 0
+                )
+                status = TestStatus.PASSED
+            stdout = str(result)
+
+        elif opt == "critical-chain":
+            services = systemd_analyze.slow_load_services()
+            summary = SystemdAnalyze.metrics_to_json(services)
+            stdout = str(services)
+            samples = tuple(
+                MetricSample(
+                    stage_name=stage.name,
+                    subsystem=task.subsystem.value,
+                    metric_name=service.service_name,
+                    value=service.slow_time_s,
+                )
+                for service in services
+            )
+            status = TestStatus.PASSED
+
+        else:
+            returncode = 1
+            stderr = f"Unknown systemd-analyze option: {opt}"
+            self._logger.error(stderr)
+
+        return TaskRunResult(
+            task=task,
+            started_at=started_at,
+            ended_at=datetime.now(UTC),
+            command=(systemd_analyze.name, opt),
+            returncode=returncode,
+            stdout=stdout,
+            stderr=stderr,
+            summary=summary,
+            metrics=samples,
+            status=status,
+        )
 
 
 def _try_parse_json(text: str) -> dict[str, Any]:

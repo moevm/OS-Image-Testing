@@ -18,6 +18,7 @@ class TestKind(str, Enum):
     VOLUME = "volume"
     ISOLATED = "isolated"
     SPIKE = "spike"
+    DIAGNOSTIC = "diagnostic"
 
 
 class LoadPattern(str, Enum):

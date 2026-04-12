@@ -95,6 +95,7 @@ PROFILE_LAYOUTS: dict[TestKind, tuple[StageTemplate, ...]] = {
         StageTemplate("baseline_2", LoadPattern.SOFT, 0.45),
     ),
     TestKind.ISOLATED: (StageTemplate("tools_smoke", LoadPattern.SOFT, 1.00),),
+    TestKind.DIAGNOSTIC: (StageTemplate("systemd_boot", LoadPattern.SOFT, 1.00),),
 }
 
 _STRESS_ARGS: dict[Subsystem, dict[LoadPattern, dict[str, Any]]] = {
@@ -179,6 +180,13 @@ def build_stage_tasks(
     pattern: LoadPattern,
     stage_duration_sec: int,
 ) -> tuple[LoadTask, ...]:
+    if _test_kind == TestKind.DIAGNOSTIC:
+        return (
+            LoadTask(subsystem=Subsystem.SYSTEM, tool="systemd-analyze", args={"opt": "time"}),
+            LoadTask(
+                subsystem=Subsystem.SYSTEM, tool="systemd-analyze", args={"opt": "critical-chain"}
+            ),
+        )
     return tuple(
         build_task(ss, pattern, stage_duration_sec)
         for ss in sorted(subsystems, key=lambda item: item.value)

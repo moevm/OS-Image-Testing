@@ -9,7 +9,7 @@ from imgtests.planning.models import (
     TestKind,
     TestPlan,
 )
-from imgtests.planning.profiles import PROFILE_LAYOUTS, build_task
+from imgtests.planning.profiles import PROFILE_LAYOUTS, build_stage_tasks, build_task
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -39,8 +39,11 @@ def build_plan(request: PlanRequest) -> TestPlan:
                 pattern=request.pattern,
             )
         else:
-            tasks = tuple(
-                build_task(s, request.pattern, request.duration_sec) for s in ordered_subsystems
+            tasks = build_stage_tasks(
+                request.test_kind,
+                request.subsystems,
+                request.pattern,
+                request.duration_sec,
             )
             stages = [
                 PlanStage(
@@ -62,7 +65,12 @@ def build_plan(request: PlanRequest) -> TestPlan:
 
         offset = 0
         for tpl, dur in zip(templates, durations, strict=True):
-            tasks = tuple(build_task(s, tpl.pattern, dur) for s in ordered_subsystems)
+            tasks = build_stage_tasks(
+                request.test_kind,
+                request.subsystems,
+                tpl.pattern,
+                dur,
+            )
             stages.append(
                 PlanStage(
                     name=tpl.name,
