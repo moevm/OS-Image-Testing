@@ -630,32 +630,29 @@ class StressNgAdapter(JSONAdapter):
     def __init__(self) -> None:
         self.tool = "stress-ng"
 
-    def split_result(self, raw_result: dict[str, Any], test_index: int = 0) -> dict[str, Any]:
+    def split_result(
+        self,
+        raw_result: dict[str, Any],
+        test_index: int = 0,  # noqa: ARG002
+    ) -> dict[str, Any]:
         metrics = raw_result.get("stress_ng_metrics", [])
-        if not metrics:
-            return {
-                "test_type": "",
-                "time": {},
-                "metrics": {},
-                "summary": raw_result.get("stress_ng_summary", {}),
-            }
 
-        test_metrics = metrics[test_index]
-        test_type = {"stressor": test_metrics.get("stressor", "")}
+        test_type = {"stressor": "mixed"}
+
         time = {
-            "real_time_secs": test_metrics.get("real_time_secs", 0),
-            "usr_time_secs": test_metrics.get("usr_time_secs", 0),
-            "sys_time_secs": test_metrics.get("sys_time_secs", 0),
+            "real_time_secs": 0.0,
+            "usr_time_secs": 0.0,
+            "sys_time_secs": 0.0,
         }
 
-        excluded_fields = [*test_type.keys(), *time.keys()]
-        test_metrics = self.drop_fields(test_metrics, excluded_fields)
-
+        for test_metrics in metrics:
+            for key in time:
+                time[key] += round(test_metrics.get(key, 0.0), 2)
         summary = raw_result.get("stress_ng_summary", {})
         return {
             "test_type": test_type,
             "time": time,
-            "metrics": test_metrics,
+            "metrics": metrics,
             "summary": summary,
         }
 

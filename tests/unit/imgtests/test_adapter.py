@@ -41,21 +41,27 @@ from imgtests.exec.loaders import (
             {
                 "tool": "stress-ng",
                 "test_type": {
-                    "stressor": "cpu",
+                    "stressor": "mixed",
                 },
                 "time": {
                     "real_time_secs": 1.14,
                     "usr_time_secs": 4.14,
                     "sys_time_secs": 0.18,
                 },
-                "metrics": {
-                    "bogo_ops": 276,
-                    "bogo_ops_s_real_time": 242.15,
-                    "bogo_ops_s_usr_sys_time": 63.93,
-                    "cpu_used_per_instance": 94.7,
-                    "rss_max_kb": 6212,
-                    "top10_slowest": None,
-                },
+                "metrics": [
+                    {
+                        "bogo_ops": 276,
+                        "bogo_ops_s_real_time": 242.15,
+                        "bogo_ops_s_usr_sys_time": 63.93,
+                        "cpu_used_per_instance": 94.7,
+                        "real_time_secs": 1.14,
+                        "rss_max_kb": 6212,
+                        "stressor": "cpu",
+                        "sys_time_secs": 0.18,
+                        "top10_slowest": None,
+                        "usr_time_secs": 4.14,
+                    },
+                ],
                 "summary": {
                     "skipped": 0,
                     "passed": 4,
