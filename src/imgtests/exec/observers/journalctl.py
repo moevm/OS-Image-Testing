@@ -73,7 +73,9 @@ class Journalctl(GenericUtil):
     oom_records = partialmethod(run, grep="'Out of memory|OOM'", case_sensitive="no")
 
     def by_priority_range(
-        self, lower_bound: int | str, upper_bound: int | str | None = None
+        self,
+        lower_bound: int | str,
+        upper_bound: int | str | None = None,
     ) -> list[str]:
         """Returns logs by priority range from `a` to `b`."""
         if upper_bound is None:

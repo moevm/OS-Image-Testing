@@ -30,10 +30,16 @@ class StressNgEnduranceMemoryTest(StressNgTest):
         )
 
     def _run(
-        self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int
+        self,
+        executor: ThreadPoolExecutor,
+        client: SSHClient | None,
+        timeout: int,
     ) -> Iterable[TestResult]:
         stress_ng = StressNg(client)
         for params in tests:
             yield from self.run_test(
-                stress_ng=stress_ng, executor=executor, timeout=timeout, **params
+                stress_ng=stress_ng,
+                executor=executor,
+                timeout=timeout,
+                **params,
             )

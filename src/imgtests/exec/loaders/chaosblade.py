@@ -51,7 +51,9 @@ class Chaosblade(GenericUtil):
         """
         if self.path:
             return ExecResult(
-                cmd=(), stderr=f"{self.name} already has been installed.", returncode=0
+                cmd=(),
+                stderr=f"{self.name} already has been installed.",
+                returncode=0,
             )
 
         os_id = get_os_release(self.ssh_client).id
@@ -126,7 +128,10 @@ class Chaosblade(GenericUtil):
         return result, self._extract_result(result)
 
     def create_cpu_exp(
-        self, cpu_percent: int | None = None, timeout_sec: int = 0, **kwargs: dict[str, Any]
+        self,
+        cpu_percent: int | None = None,
+        timeout_sec: int = 0,
+        **kwargs: dict[str, Any],
     ) -> tuple[ExecResult, ChaosResponse]:
         """Create CPU load experiment.
 
@@ -240,7 +245,10 @@ class Chaosblade(GenericUtil):
             raise ValueError(err_msg)
 
     def _validate_memory_flags_compatibility(
-        self, mem_mode: MemoryMode, rate_mbps: int | None, include_buffer_cache: bool
+        self,
+        mem_mode: MemoryMode,
+        rate_mbps: int | None,
+        include_buffer_cache: bool,
     ) -> None:
         if mem_mode == "cache" and rate_mbps is not None:
             err_msg = "--rate is only available in 'ram' mode"
@@ -636,7 +644,10 @@ class Chaosblade(GenericUtil):
         except json.JSONDecodeError as e:
             logger.warning("Failed to parse chaosblade result: '%s'. Error: %s", result, str(e))
             return ChaosResponse(
-                code=500, success=False, result=None, error=f"Failed to parse: {result}"
+                code=500,
+                success=False,
+                result=None,
+                error=f"Failed to parse: {result}",
             )
         return ChaosResponse(
             code=data.get("code", 0),

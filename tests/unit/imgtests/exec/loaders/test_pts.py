@@ -40,7 +40,7 @@ from imgtests.exec.loaders.pts import PhoronixTestSuite
                             "cpu-microcode": "0x1",
                             "python": "Python 3.13.4",
                         },
-                    }
+                    },
                 },
                 "results": {
                     "fa95c59f61f38f7b8191e913fa323e51b9368538": {
@@ -52,7 +52,7 @@ from imgtests.exec.loaders.pts import PhoronixTestSuite
                         "proportion": "LIB",
                         "display_format": "BAR_GRAPH",
                         "results": {},
-                    }
+                    },
                 },
             },
             (
@@ -105,7 +105,7 @@ from imgtests.exec.loaders.pts import PhoronixTestSuite
                             "cpu-microcode": "0x1",
                             "python": "Python 3.13.4",
                         },
-                    }
+                    },
                 },
                 "results": {
                     "fa95c59f61f38f7b8191e913fa323e51b9368538": {
@@ -117,9 +117,9 @@ from imgtests.exec.loaders.pts import PhoronixTestSuite
                         "proportion": "LIB",
                         "display_format": "BAR_GRAPH",
                         "results": {
-                            "2025-12-12 22:22": {"value": 19504, "test_run_times": [500.33]}
+                            "2025-12-12 22:22": {"value": 19504, "test_run_times": [500.33]},
                         },
-                    }
+                    },
                 },
             },
             (

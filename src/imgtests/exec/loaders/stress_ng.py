@@ -65,7 +65,7 @@ METRICS_RE: Final = re.compile(
     r"([\d.]+)\s+"  # bogo ops/s (real time)
     r"([\d.]+)\s+"  # bogo ops/s (usr+sys time)
     r"([\d.]+)"  # CPU used per instance
-    r"(?:\s+([\d]+))?$"  # RSS Max
+    r"(?:\s+([\d]+))?$",  # RSS Max
 )
 
 
@@ -85,7 +85,9 @@ class StressNg(PkgMgrMixin, GenericUtil):
         """Install stress-ng via the system package manager."""
         if self.path:
             return ExecResult(
-                cmd=(), stderr=f"{self.name} already has been installed.", returncode=0
+                cmd=(),
+                stderr=f"{self.name} already has been installed.",
+                returncode=0,
             )
         return self._install_packages(["stress-ng"])
 
@@ -475,7 +477,7 @@ class StressNg(PkgMgrMixin, GenericUtil):
                         "bogo_ops_s_usr_sys_time": bogo_usrsys_v,
                         "cpu_used_per_instance": cpu_used_v,
                         "rss_max_kb": rss_v,
-                    }
+                    },
                 )
                 current_stressor = stressor_name
                 continue
@@ -505,7 +507,7 @@ class StressNg(PkgMgrMixin, GenericUtil):
                     },
                 )
                 metrics_map[target]["syscall_calls"].append(
-                    StressNGSyscallTiming(name, avg, mn, mx)
+                    StressNGSyscallTiming(name, avg, mn, mx),
                 )
                 current_stressor = target
                 continue
@@ -554,7 +556,9 @@ class StressNg(PkgMgrMixin, GenericUtil):
                 )
             except (ValueError, TypeError) as e:
                 logger.warning(
-                    "Failed to construct StressNGMetrics for '%s'. Error: %s", stressor, str(e)
+                    "Failed to construct StressNGMetrics for '%s'. Error: %s",
+                    stressor,
+                    str(e),
                 )
                 continue
             metrics.append(sm)
@@ -600,7 +604,7 @@ class StressNg(PkgMgrMixin, GenericUtil):
                 "bogo_ops_s_real_time": {"value": metrics.bogo_ops_s_real_time},
                 "bogo_ops_s_usr_sys_time": {"value": metrics.bogo_ops_s_usr_sys_time},
                 "cpu_used_per_instance": {"value": metrics.cpu_used_per_instance},
-            }
+            },
         }
 
         if metrics.rss_max_kb is not None:
@@ -665,7 +669,7 @@ def stress_metrics_to_samples(
                     "stress.rss_max_kb",
                     float(metric.rss_max_kb),
                     label="RSS max, KB",
-                )
+                ),
             )
 
         if metric.top10_slowest:
@@ -693,7 +697,7 @@ def stress_metrics_to_samples(
                             float(syscall.max_ns),
                             label=f"Syscall {syscall.name} max, ns",
                         ),
-                    )
+                    ),
                 )
 
     return samples

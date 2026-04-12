@@ -18,7 +18,7 @@ from imgtests.exec.osinfo import _parse_os_release
                 NAME="openSUSE Leap"
                 VERSION_ID="15.5"
                 PRETTY_NAME="openSUSE Leap 15.5"
-                """
+                """,
             ),
             {
                 "ID": "opensuse-leap",
@@ -37,7 +37,7 @@ from imgtests.exec.osinfo import _parse_os_release
                 # indented comment
                 NAME=Ubuntu
 
-                """
+                """,
             ),
             {
                 "ID": "ubuntu",
@@ -50,7 +50,7 @@ from imgtests.exec.osinfo import _parse_os_release
                 ID=arch
                 THIS IS MALFORMED
                 NAME=Arch Linux
-                """
+                """,
             ),
             {
                 "ID": "arch",

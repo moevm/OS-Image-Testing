@@ -42,7 +42,7 @@ class ImgtestsDatabase:
 
     def initialize_postgres(self, creds: PostgresCreds) -> None:
         self.engine = create_engine(
-            f"postgresql+psycopg://{creds.user}:{creds.password}@{creds.host}:{creds.port}/{creds.database_name}"
+            f"postgresql+psycopg://{creds.user}:{creds.password}@{creds.host}:{creds.port}/{creds.database_name}",
         )
         self.session = sessionmaker(self.engine)
         Base.metadata.create_all(self.engine)
@@ -81,7 +81,7 @@ class ImgtestsDatabase:
                     and_(
                         ConfigurationBase.os == os,
                         ConfigurationBase.core_info == core_info,
-                    )
+                    ),
                 )
                 .all()
             )
@@ -234,7 +234,8 @@ class ImgtestsDatabase:
         self._check_session()
         with self.session() as session:
             models: dict[
-                Table, type[ConfigurationBase | ExperimentBase | LoaderBase | ObserverBase]
+                Table,
+                type[ConfigurationBase | ExperimentBase | LoaderBase | ObserverBase],
             ] = {
                 "configurations": ConfigurationBase,
                 "experiments": ExperimentBase,

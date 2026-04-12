@@ -68,7 +68,9 @@ class FioDisksScalingTest(AbstractRunnableTimeLimitedTest):
 
     def __init__(self, timeout: int) -> None:
         super().__init__(
-            "Scaling load drives with fio.", frozenset({Subsystem.FILE}), timeout=timeout
+            "Scaling load drives with fio.",
+            frozenset({Subsystem.FILE}),
+            timeout=timeout,
         )
 
     def _run(
@@ -152,7 +154,9 @@ class FioDisksDMDust(AbstractRunnableTimeLimitedTest):
 
     def __init__(self, timeout: int) -> None:
         super().__init__(
-            "Dm-dust fio test with errors on read.", frozenset({Subsystem.FILE}), timeout
+            "Dm-dust fio test with errors on read.",
+            frozenset({Subsystem.FILE}),
+            timeout,
         )
 
     def _run(
@@ -209,7 +213,9 @@ class FioDisksVariationTest(AbstractRunnableTimeLimitedTest):
 
     def __init__(self, timeout: int) -> None:
         super().__init__(
-            "Fio parameter variation test.", frozenset({Subsystem.FILE}), timeout=timeout
+            "Fio parameter variation test.",
+            frozenset({Subsystem.FILE}),
+            timeout=timeout,
         )
 
     def _run(
@@ -243,7 +249,9 @@ class FioDisksVariationTest(AbstractRunnableTimeLimitedTest):
                 size=size,
             )
             yield from _handle_fio_suite(
-                client, cfg, f"FIO variation offset={offset}, incr={offset_incr} PASSED."
+                client,
+                cfg,
+                f"FIO variation offset={offset}, incr={offset_incr} PASSED.",
             )
 
 
@@ -297,8 +305,12 @@ class FioDisksParallelLoadTest(AbstractRunnableTimeLimitedTest):
         for cfg in configs:
             futures = [
                 executor.submit(
-                    _enqueue_fio_results, client, cfg, "FIO parallel load test PASSED.", q
-                )
+                    _enqueue_fio_results,
+                    client,
+                    cfg,
+                    "FIO parallel load test PASSED.",
+                    q,
+                ),
             ]
 
         while any(not f.done() for f in futures) or not q.empty():
@@ -310,14 +322,19 @@ class FioDisksParallelLoadTest(AbstractRunnableTimeLimitedTest):
 
 
 def _enqueue_fio_results(
-    client: SSHClient | None, cfg: FioSuiteConfig, msg: str, q: queue.Queue[TestResult]
+    client: SSHClient | None,
+    cfg: FioSuiteConfig,
+    msg: str,
+    q: queue.Queue[TestResult],
 ) -> None:
     for result in _handle_fio_suite(client, cfg, msg):
         q.put(result)
 
 
 def _handle_fio_suite(
-    client: SSHClient | None, cfg: FioSuiteConfig, msg: str
+    client: SSHClient | None,
+    cfg: FioSuiteConfig,
+    msg: str,
 ) -> Iterable[TestResult]:
     fio_gen = FioSuite(client, cfg).run()
     yield from fio_gen

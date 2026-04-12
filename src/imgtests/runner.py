@@ -96,7 +96,9 @@ class AbstractRunnableManyTimesTest(ABC, DefaultCleanupMixin):
         self.logger = logging.getLogger(f"{LIB_NAME}.runnable_test")
 
     def __call__(
-        self, executor: ThreadPoolExecutor, client: SSHClient | None = None
+        self,
+        executor: ThreadPoolExecutor,
+        client: SSHClient | None = None,
     ) -> Iterable[TestResult]:
         self.logger.info("Starting '%s' test '%d' times.", self.description, self.iterations)
         yield from self._run(executor, client, self.iterations)
@@ -143,7 +145,9 @@ class AbstractRunnableTimeLimitedTest(ABC, DefaultCleanupMixin):
         self.logger = logging.getLogger(f"{LIB_NAME}.runnable_test")
 
     def __call__(
-        self, executor: ThreadPoolExecutor, client: SSHClient | None = None
+        self,
+        executor: ThreadPoolExecutor,
+        client: SSHClient | None = None,
     ) -> Iterable[TestResult]:
         self.logger.info("Starting '%s' test with '%d' timeout.", self.description, self.timeout)
         yield from self._run(executor, client, self.timeout)
@@ -280,7 +284,10 @@ class BaseRunner:
 
 class TestsRunner(BaseRunner):
     def __init__(
-        self, client: SSHClient | None, database: ImgtestsDatabase, test_config: TestsRunnerConfig
+        self,
+        client: SSHClient | None,
+        database: ImgtestsDatabase,
+        test_config: TestsRunnerConfig,
     ) -> None:
         self.__test_config = test_config
         super().__init__("tests_runner", client, database)
@@ -380,12 +387,15 @@ class TestsRunner(BaseRunner):
                 tool_instance.install()
             except NotImplementedError:
                 self._logger.exception(
-                    "Failed to install dependencies for the '%s'.", tool_instance.name
+                    "Failed to install dependencies for the '%s'.",
+                    tool_instance.name,
                 )
                 continue
             tool_instance = tool(self._client)
             self._logger.info(
-                "Installed '%s' with version '%s'.", tool_instance.name, tool_instance.version()
+                "Installed '%s' with version '%s'.",
+                tool_instance.name,
+                tool_instance.version(),
             )
         self._logger.info("Dependencies installed successfully.")
 
@@ -543,7 +553,7 @@ class ProfiledPlanRunner(BaseRunner):
                     subsystems=subsystems,
                     test_kind=profile,
                     pattern=pattern,
-                )
+                ),
             ),
             results_dir=results_root / self._build_run_name(profile, pattern),
             experiment_description=f"Profiled plan: {profile.value}",
@@ -589,7 +599,7 @@ class ProfiledPlanRunner(BaseRunner):
                 allowed = ", ".join(
                     sorted(
                         [subsystem.value for subsystem in Subsystem] + list(cls._SUBSYSTEM_ALIASES),
-                    )
+                    ),
                 )
                 msg = f"Unknown subsystem '{part}'. Allowed: {allowed}"
                 raise ValueError(msg) from exc

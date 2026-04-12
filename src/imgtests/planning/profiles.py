@@ -184,7 +184,9 @@ def build_stage_tasks(
         return (
             LoadTask(subsystem=Subsystem.SYSTEM, tool="systemd-analyze", args={"opt": "time"}),
             LoadTask(
-                subsystem=Subsystem.SYSTEM, tool="systemd-analyze", args={"opt": "critical-chain"}
+                subsystem=Subsystem.SYSTEM,
+                tool="systemd-analyze",
+                args={"opt": "critical-chain"},
             ),
         )
     return tuple(

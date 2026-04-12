@@ -17,7 +17,7 @@ from imgtests.exec.loaders.stress_ng import StressNg, StressNGMetrics, StressNGS
                 """\
                 stress-ng: info:  [7645] cpu  2493  2.10  1.00  0.70  140.29  16.03  98.90
                 stress-ng: info:  [7645] vm  2283  2.00  1.98  0.00  1140.30  1153.03  98.90
-                """
+                """,
             ).strip(),
             [
                 StressNGMetrics("cpu", 2493, 2.10, 1.00, 0.70, 140.29, 16.03, 98.90),
@@ -36,7 +36,7 @@ from imgtests.exec.loaders.stress_ng import StressNg, StressNGMetrics, StressNGS
                 """\
                 stress-ng: metrc: [635] cpu  692  10.03  10.00  0.03  69.00  69.03  99.96  6200
                 stress-ng: metrc: [635] vm  0  10.01  0.07  0.15  0.00  0.00  2.26  2236
-                """
+                """,
             ).strip(),
             [
                 StressNGMetrics("cpu", 692, 10.03, 10.00, 0.03, 69.00, 69.03, 99.96, 6200),
@@ -50,7 +50,7 @@ from imgtests.exec.loaders.stress_ng import StressNg, StressNGMetrics, StressNGS
                 stress-ng: metrc: [999] syscall: open   9.0  1  10
                 stress-ng: metrc: [999] syscall: close  2.0  1  10
                 stress-ng: metrc: [999] syscall: read   7.0  1  10
-                """
+                """,
             ).strip(),
             [
                 StressNGMetrics(
@@ -68,7 +68,7 @@ from imgtests.exec.loaders.stress_ng import StressNg, StressNGMetrics, StressNGS
                         StressNGSyscallTiming("read", 7.0, 1, 10),
                         StressNGSyscallTiming("close", 2.0, 1, 10),
                     ),
-                )
+                ),
             ],
         ),
     ],
@@ -109,7 +109,7 @@ def test_parse_metrics_syscall_top10_slowest_selects_10_slowest() -> None:
         stress-ng: metrc: [999] syscall: s13  13.0  1  20
         stress-ng: metrc: [999] syscall: s14  14.0  1  20
         stress-ng: metrc: [999] syscall: s15  15.0  1  20
-        """
+        """,
     ).strip()
 
     metrics, summary = StressNg.parse_metrics(raw_metrics)

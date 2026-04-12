@@ -65,6 +65,8 @@ class Lshw(BaseTestUtil, PkgMgrMixin):
         """Install lshw via the system package manager."""
         if self.path:
             return ExecResult(
-                cmd=(), stderr=f"{self.name} already has been installed.", returncode=0
+                cmd=(),
+                stderr=f"{self.name} already has been installed.",
+                returncode=0,
             )
         return self._install_packages(["lshw"])

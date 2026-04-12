@@ -52,7 +52,7 @@ def build_plan(request: PlanRequest) -> TestPlan:
                     duration_sec=request.duration_sec,
                     pattern=request.pattern,
                     tasks=tasks,
-                )
+                ),
             ]
     elif request.test_kind == TestKind.ISOLATED:
         stages = _build_isolated_stages(request.duration_sec, ordered_subsystems)
@@ -78,7 +78,7 @@ def build_plan(request: PlanRequest) -> TestPlan:
                     duration_sec=dur,
                     pattern=tpl.pattern,
                     tasks=tasks,
-                )
+                ),
             )
             offset += dur
 
@@ -109,7 +109,7 @@ def _build_isolated_stages(
                 duration_sec=stage_duration,
                 pattern=pattern,
                 tasks=(task,),
-            )
+            ),
         )
         offset += stage_duration
 
