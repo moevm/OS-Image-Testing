@@ -36,3 +36,32 @@
   {% endfor %}
 </table>
 {%- endmacro %}
+
+{% macro render_timeline_table(rows) -%}
+<table>
+  <tr>
+    <th>Stage</th>
+    <th>Pattern</th>
+    <th>Planned start, sec</th>
+    <th>Planned duration, sec</th>
+    <th>Actual started</th>
+    <th>Actual ended</th>
+    <th>Actual duration, sec</th>
+    <th>Tasks</th>
+    <th>Failures</th>
+  </tr>
+  {% for row in rows %}
+  <tr>
+    <td>{{ row.stage_name }}</td>
+    <td>{{ row.pattern }}</td>
+    <td>{{ row.planned_start_sec }}</td>
+    <td>{{ row.planned_duration_sec }}</td>
+    <td>{{ row.actual_started }}</td>
+    <td>{{ row.actual_ended }}</td>
+    <td>{{ row.actual_duration_sec }}</td>
+    <td>{{ row.tasks }}</td>
+    <td>{{ row.failures }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{%- endmacro %}

@@ -91,7 +91,7 @@ def generate_html_report(plan: TestPlan, execution: PlanExecutionResult, out_dir
     report_path = out_dir / "report.html"
     report_path.write_text(
         template.render(
-            report_data,
+            **report_data,
         ),
         encoding="utf-8",
     )
@@ -105,7 +105,7 @@ def _collect_test_visualizations(
     plots_dir: Path,
 ) -> dict[str, Any]:
     return {
-        "booxplot": _build_boxplots(list(execution.metrics), out_dir=out_dir, plots_dir=plots_dir),
+        "booxplots": _build_boxplots(list(execution.metrics), out_dir=out_dir, plots_dir=plots_dir),
     }
 
 
