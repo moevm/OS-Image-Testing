@@ -1,7 +1,9 @@
+import logging
 from datetime import datetime
 from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
+from imgtests.exec.loaders.stress_ng import StressNgAdapter
 from imgtests.runner import AbstractRunnableTimeLimitedTest, TestResult, TestStatus
 
 if TYPE_CHECKING:
@@ -9,6 +11,8 @@ if TYPE_CHECKING:
     from concurrent.futures import ThreadPoolExecutor
 
     from imgtests.exec.loaders import StressNg
+
+logger = logging.getLogger(__name__)
 
 
 class StressNgTest(AbstractRunnableTimeLimitedTest):
@@ -32,8 +36,12 @@ class StressNgTest(AbstractRunnableTimeLimitedTest):
             yield TestResult(status=TestStatus.FAILED)
             return
 
+        adapter = StressNgAdapter()
+        raw_result = stress_ng.metrics_to_json(metrics)
+        metrics = adapter(raw_result=raw_result)
+
         yield TestResult(
-            metrics=stress_ng.metrics_to_json(metrics),
+            metrics=metrics,
             command=" ".join(result.cmd),
             started_at=started_at,
             status=TestStatus.PASSED,
