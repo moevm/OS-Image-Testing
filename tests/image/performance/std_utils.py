@@ -174,7 +174,7 @@ class POSIXUtilsTest(AbstractRunnableManyTimesTest):
             elif tool in {"md5sum", "sha256sum"}:
                 cmd = f"{tool} {TEST_FILE1} {TEST_FILE2}"
             results[cmd] = time_cmd_many(time, cmd, iterations, client)
-            self.logger.info("Results for '%s': %s.", cmd, results[cmd])
+            self.logger.debug("Results for '%s': %s.", cmd, results[cmd])
         return results
 
     def test_net_utils(self, client: SSHClient | None, iterations: int) -> ToolsTimes:
@@ -186,7 +186,7 @@ class POSIXUtilsTest(AbstractRunnableManyTimesTest):
             if tool == "ping":
                 cmd = f"{tool} -c 20 localhost"
             results[cmd] = time_cmd_many(time, cmd, iterations, client)
-            self.logger.info("Results for '%s': %s.", cmd, results[cmd])
+            self.logger.debug("Results for '%s': %s.", cmd, results[cmd])
         return results
 
     def test_utils_for_dirs(self, client: SSHClient | None, iterations: int) -> ToolsTimes:
