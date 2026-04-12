@@ -253,28 +253,27 @@ class PlanExecutor(BaseRunner):
             stage.duration_sec,
         )
 
-        if tool in {"stress-ng", "stressng"}:
-            return self._run_stress_ng(stage, task, started_at)
-
-        if tool == "fio":
-            return self._run_fio(stage, task, started_at)
-
-        if tool == "systemd-analyze":
-            return self._run_systemd_analyze(stage, task, started_at)
-
-        now = datetime.now(UTC)
-        return TaskRunResult(
-            task=task,
-            started_at=started_at,
-            ended_at=now,
-            command=("unknown-tool", tool),
-            returncode=1,
-            stdout="",
-            stderr=f"Unknown tool: {tool}",
-            summary={"error": f"Unknown tool: {tool}"},
-            metrics=(),
-            status=TestStatus.SKIPPED,
-        )
+        match tool:
+            case "stress-ng":
+                return self._run_stress_ng(stage, task, started_at)
+            case "fio":
+                return self._run_fio(stage, task, started_at)
+            case "systemd-analyze":
+                return self._run_systemd_analyze(stage, task, started_at)
+            case _:
+                now = datetime.now(UTC)
+                return TaskRunResult(
+                    task=task,
+                    started_at=started_at,
+                    ended_at=now,
+                    command=("unknown-tool", tool),
+                    returncode=1,
+                    stdout="",
+                    stderr=f"Unknown tool: {tool}",
+                    summary={"error": f"Unknown tool: {tool}"},
+                    metrics=(),
+                    status=TestStatus.SKIPPED,
+                )
 
     def _retry_stress_run_if_needed(
         self,
@@ -507,7 +506,7 @@ class PlanExecutor(BaseRunner):
             wait_timeout_sec = stage.duration_sec
 
             while result.total_time < 0 and wait_timeout_sec > 0:
-                self.logger.info(
+                self._logger.info(
                     "Waiting for system to be ready to analyze boot time, %d seconds left.",
                     wait_timeout_sec,
                 )
@@ -518,7 +517,7 @@ class PlanExecutor(BaseRunner):
             if result.total_time < 0:
                 stderr = "Failed to get boot time, system might not be ready."
                 returncode = 1
-                self.logger.error(stderr)
+                self._logger.error(stderr)
                 status = TestStatus.FAILED
             else:
                 summary = result._asdict()
@@ -553,13 +552,13 @@ class PlanExecutor(BaseRunner):
         else:
             returncode = 1
             stderr = f"Unknown systemd-analyze option: {opt}"
-            self.logger.error(stderr)
+            self._logger.error(stderr)
 
         return TaskRunResult(
             task=task,
             started_at=started_at,
             ended_at=datetime.now(UTC),
-            command=f"{systemd_analyze.name} {opt}",
+            command=(systemd_analyze.name, opt),
             returncode=returncode,
             stdout=stdout,
             stderr=stderr,

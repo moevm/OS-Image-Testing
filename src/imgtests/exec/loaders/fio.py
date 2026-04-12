@@ -101,7 +101,7 @@ class Fio(PkgMgrMixin, GenericUtil):
         directory: Path | None = None,
         offset: str | None = None,
         offset_increment: str | None = None,
-        **kwargs: dict[str, Any],
+        **kwargs: str | float | bool | None,
     ) -> ExecResult:
         """Runs the fio util with provided options.
 
@@ -117,7 +117,7 @@ class Fio(PkgMgrMixin, GenericUtil):
             directory (Path | None): Directory for saving test files.
             offset (str | None): Start offset in bytes or percentage of file size.
             offset_increment (str | None): Per-job offset step added to base offset for each thread.
-            **kwargs (dict[str, Any]): Command arguments in the free form with values.
+            **kwargs (str | float | bool | None): Command arguments in the free form with values.
 
         Raises:
             ValueError: When invalid parameters provided or repeated.
