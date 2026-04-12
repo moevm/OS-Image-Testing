@@ -1,23 +1,32 @@
-from typing import Any
+from abc import ABC, abstractmethod
+from typing import Any, TypedDict
 
 
-class ResultAdapter:
+class AdapterResult(TypedDict):
+    tool: str  # tool name
+    test_type: dict[str, Any]  # test type or name info
+    time: dict[str, Any]  # time-related values
+    metrics: dict[str, Any]  # useful test metrics from the tool
+    summary: dict[str, Any]  # stats summary of the test results
+
+
+class JSONAdapter(ABC):
     def __init__(self, tool: str) -> None:
         self.tool = tool
 
     def __call__(self, raw_result: dict[str, Any], test_index: int = 0) -> dict[str, Any]:
-        return {"tool": self.tool, **self.split_result(raw_result, test_index)}
+        return AdapterResult(
+            tool=self.tool,
+            **self.split_result(raw_result, test_index),
+        )
 
+    @abstractmethod
     def split_result(
         self,
         raw_result: dict[str, Any],
-        test_index: int = 0,  # noqa: ARG002
+        test_index: int = 0,
     ) -> dict[str, Any]:
-        return {
-            "time": raw_result.get("time", {}),
-            "metrics": raw_result.get("metrics", raw_result),
-            "summary": raw_result.get("summary", {}),
-        }
+        pass
 
     def drop_fields(
         self,

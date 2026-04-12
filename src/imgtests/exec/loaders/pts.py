@@ -3,7 +3,7 @@ import logging
 import re
 from typing import TYPE_CHECKING, Any
 
-from imgtests.adapter import ResultAdapter
+from imgtests.adapter import JSONAdapter
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult, SSHClient, common_run_command, pipeline
 from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
@@ -364,7 +364,7 @@ class PhoronixTestSuite(PkgMgrMixin, GenericUtil):
         return result
 
 
-class PhoronixTestSuiteAdapter(ResultAdapter):
+class PhoronixTestSuiteAdapter(JSONAdapter):
     def __init__(self) -> None:
         self.tool = "pts"
 

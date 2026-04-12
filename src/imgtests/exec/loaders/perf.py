@@ -2,7 +2,7 @@ import logging
 import re
 from typing import Any, Final, Literal, NamedTuple
 
-from imgtests.adapter import ResultAdapter
+from imgtests.adapter import JSONAdapter
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult, SSHClient
 from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
@@ -187,7 +187,7 @@ class Perf(PkgMgrMixin, GenericUtil):
         return result
 
 
-class PerfAdapter(ResultAdapter):
+class PerfAdapter(JSONAdapter):
     def __init__(self) -> None:
         self.tool = "perf"
 

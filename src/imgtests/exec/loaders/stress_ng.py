@@ -2,7 +2,7 @@ import logging
 import re
 from typing import TYPE_CHECKING, Any, Final, NamedTuple
 
-from imgtests.adapter import ResultAdapter
+from imgtests.adapter import JSONAdapter
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult
 from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
@@ -626,7 +626,7 @@ class StressNg(PkgMgrMixin, GenericUtil):
         }
 
 
-class StressNgAdapter(ResultAdapter):
+class StressNgAdapter(JSONAdapter):
     def __init__(self) -> None:
         self.tool = "stress-ng"
 

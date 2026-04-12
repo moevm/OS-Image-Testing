@@ -1,7 +1,7 @@
 import json
 from typing import TYPE_CHECKING, Any
 
-from imgtests.adapter import ResultAdapter
+from imgtests.adapter import JSONAdapter
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult
 from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
@@ -106,7 +106,7 @@ class Iperf3(PkgMgrMixin, GenericUtil):
         return json.loads(metrics)
 
 
-class Iperf3Adapter(ResultAdapter):
+class Iperf3Adapter(JSONAdapter):
     def __init__(self) -> None:
         self.tool = "iperf3"
 
