@@ -87,7 +87,7 @@ def generate_html_report(plan: TestPlan, execution: PlanExecutionResult, out_dir
         ),
     }
 
-    template = _template_environment().get_template("load_test_report.html.j2")
+    template = _template_environment().get_template("base_report.html.j2")
     report_path = out_dir / "report.html"
     report_path.write_text(
         template.render(
