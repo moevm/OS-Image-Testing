@@ -146,7 +146,7 @@ def _build_timeline_rows(
                 ),
                 tasks=len(stage.tasks),
                 failures=failures,
-            )
+            ),
         )
 
     return rows
@@ -181,7 +181,7 @@ def _compute_stats(samples: list[MetricSample], by_stage: bool) -> list[StatsRow
                 q95=_quantile(values_sorted, 0.95),
                 min_v=values_sorted[0],
                 max_v=values_sorted[-1],
-            )
+            ),
         )
 
     return rows
@@ -243,7 +243,7 @@ def _build_boxplots(
             PlotAsset(
                 title=metric_name,
                 relative_path=str(out_path.relative_to(out_dir)),
-            )
+            ),
         )
 
     return plot_assets
