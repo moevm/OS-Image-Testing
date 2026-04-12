@@ -3,10 +3,12 @@ from typing import Any
 import pytest
 
 from imgtests.exec.loaders import (
+    FioAdapter,
     Iperf3Adapter,
     PerfAdapter,
     PhoronixTestSuiteAdapter,
     StressNgAdapter,
+    KirkAdapter,
 )
 
 
@@ -611,5 +613,588 @@ def test_iperf3_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, A
 )
 def test_pts_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, Any]) -> None:
     adapter = PhoronixTestSuiteAdapter()
+    result = adapter(raw_metrics)
+    assert result == expected
+
+
+@pytest.mark.parametrize(
+    ("raw_metrics", "expected"),
+    [
+        (
+            {
+                "results": [
+                    {
+                        "test_fqn": "pth_str01",
+                        "status": "pass",
+                        "test": {
+                            "command": "pth_str01",
+                            "arguments": [],
+                            "log": "pth_str01    0  TINFO  :  Allocating 85 nodes.",
+                            "retval": [
+                                "0"
+                            ],
+                            "duration": 0.16393470764160156,
+                            "failed": 0,
+                            "passed": 1,
+                            "broken": 0,
+                            "skipped": 0,
+                            "warnings": 0,
+                            "result": "pass"
+                        }
+                    },
+                    {
+                        "test_fqn": "pth_str02",
+                        "status": "pass",
+                        "test": {
+                            "command": "pth_str02",
+                            "arguments": [
+                                "-n1000"
+                            ],
+                            "log": "pth_str02    0  TINFO  :  Creating 1000 threads\npth_str02    1  TPASS  :  Test passed\n",
+                            "retval": [
+                                "0"
+                            ],
+                            "duration": 1.8436052799224854,
+                            "failed": 0,
+                            "passed": 1,
+                            "broken": 0,
+                            "skipped": 0,
+                            "warnings": 0,
+                            "result": "pass"
+                        }
+                    },
+                    {
+                        "test_fqn": "pth_str03",
+                        "status": "pass",
+                        "test": {
+                            "command": "pth_str03",
+                            "arguments": [],
+                            "log": "pth_str03    0  TINFO  :  Allocating 85 nodes.",
+                            "retval": [
+                                "0"
+                            ],
+                            "duration": 0.2942326068878174,
+                            "failed": 0,
+                            "passed": 1,
+                            "broken": 0,
+                            "skipped": 0,
+                            "warnings": 0,
+                            "result": "pass"
+                        }
+                    }
+                ],
+                "stats": {
+                    "runtime": 2.3017725944519043,
+                    "passed": 3,
+                    "failed": 0,
+                    "broken": 0,
+                    "skipped": 0,
+                    "warnings": 0
+                },
+                "environment": {
+                    "distribution": "poky",
+                    "distribution_version": "5.2.4",
+                    "kernel": "Linux 6.12.47-yocto-standard #1 SMP PREEMPT_DYNAMIC Mon Sep 15 02:39:40 UTC 2025",
+                    "arch": "x86_64",
+                    "cpu": "unknown",
+                    "swap": "0 kB",
+                    "RAM": "2025736 kB"
+                }
+            },
+            {
+                "tool": "kirk",
+                "test_type": {},
+                "time": {
+                    "runtime": 2.3017725944519043,
+                },
+                "metrics": [
+                    {
+                        "test": "pth_str01",
+                        "status": "pass",
+                        "retval": ["0"],
+                        "duration": 0.16393470764160156,
+                    },
+                    {
+                        "test": "pth_str02",
+                        "status": "pass",
+                        "retval": ["0"],
+                        "duration": 1.8436052799224854,
+                    },
+                    {
+                        "test": "pth_str03",
+                        "status": "pass",
+                        "retval": ["0"],
+                        "duration": 0.2942326068878174,
+                    },
+                ],
+                "summary": {
+                    "passed": 3,
+                    "failed": 0,
+                    "broken": 0,
+                    "skipped": 0,
+                    "warnings": 0,
+                },
+            },
+        ),
+    ],
+    ids=[
+        "Kirk adapter test.",
+    ],
+)
+def test_kirk_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, Any]) -> None:
+    adapter = KirkAdapter()
+    result = adapter(raw_metrics)
+    assert result == expected
+
+
+@pytest.mark.parametrize(
+    ("raw_metrics", "expected"),
+    [
+        (
+            {
+                "fio version": "fio-3.39",
+                "timestamp": 1775426714,
+                "timestamp_ms": 1775426714124,
+                "time": "Sun Apr  5 22:05:14 2026",
+                "jobs": [
+                    {
+                    "jobname": "rand_write_4k",
+                    "groupid": 0,
+                    "job_start": 1775426708791,
+                    "error": 0,
+                    "eta": 0,
+                    "elapsed": 6,
+                    "job options": {
+                        "name": "rand_write_4k",
+                        "numjobs": "1",
+                        "size": "100MB",
+                        "rw": "randwrite",
+                        "ioengine": "libaio",
+                        "direct": "1",
+                        "directory": "/tmp/imgtests-fio/scaling-20260405-220436Z/testfiles",
+                        "bs": "4k",
+                        "iodepth": "1",
+                        "group_reporting": "",
+                        "time_based": "",
+                        "runtime": "5",
+                        "unlink": "1",
+                        "log_avg_msec": "1000",
+                        "write_bw_log": "/tmp/imgtests-fio/scaling-20260405-220436Z/randwrite/bs_4k/randwrite-iodepth-1-numjobs-1",
+                        "write_iops_log": "/tmp/imgtests-fio/scaling-20260405-220436Z/randwrite/bs_4k/randwrite-iodepth-1-numjobs-1",
+                        "write_lat_log": "/tmp/imgtests-fio/scaling-20260405-220436Z/randwrite/bs_4k/randwrite-iodepth-1-numjobs-1"
+                    },
+                    "read": {
+                        "io_bytes": 0,
+                        "io_kbytes": 0,
+                        "bw_bytes": 0,
+                        "bw": 0,
+                        "iops": 0,
+                        "runtime": 0,
+                        "total_ios": 0,
+                        "short_ios": 0,
+                        "drop_ios": 0,
+                        "slat_ns": {
+                        "min": 0,
+                        "max": 0,
+                        "mean": 0,
+                        "stddev": 0,
+                        "N": 0
+                        },
+                        "clat_ns": {
+                        "min": 0,
+                        "max": 0,
+                        "mean": 0,
+                        "stddev": 0,
+                        "N": 0
+                        },
+                        "lat_ns": {
+                        "min": 0,
+                        "max": 0,
+                        "mean": 0,
+                        "stddev": 0,
+                        "N": 0
+                        },
+                        "bw_min": 0,
+                        "bw_max": 0,
+                        "bw_agg": 0,
+                        "bw_mean": 0,
+                        "bw_dev": 0,
+                        "bw_samples": 0,
+                        "iops_min": 0,
+                        "iops_max": 0,
+                        "iops_mean": 0,
+                        "iops_stddev": 0,
+                        "iops_samples": 0
+                    },
+                    "write": {
+                        "io_bytes": 177381376,
+                        "io_kbytes": 173224,
+                        "bw_bytes": 35469181,
+                        "bw": 34637,
+                        "iops": 8659.468106,
+                        "runtime": 5001,
+                        "total_ios": 43306,
+                        "short_ios": 0,
+                        "drop_ios": 0,
+                        "slat_ns": {
+                        "min": 47433,
+                        "max": 6555649,
+                        "mean": 66903.275989,
+                        "stddev": 84217.080536,
+                        "N": 43306
+                        },
+                        "clat_ns": {
+                        "min": 23757,
+                        "max": 1078252,
+                        "mean": 34432.038678,
+                        "stddev": 20213.463806,
+                        "N": 43306,
+                        "percentile": {
+                            "1.000000": 24960,
+                            "5.000000": 25984,
+                            "10.000000": 26496,
+                            "20.000000": 28288,
+                            "30.000000": 29824,
+                            "40.000000": 30336,
+                            "50.000000": 30336,
+                            "60.000000": 30592,
+                            "70.000000": 30848,
+                            "80.000000": 32128,
+                            "90.000000": 39168,
+                            "95.000000": 48896,
+                            "99.000000": 130560,
+                            "99.500000": 146432,
+                            "99.900000": 197632,
+                            "99.950000": 252928,
+                            "99.990000": 423936
+                        }
+                        },
+                        "lat_ns": {
+                        "min": 72662,
+                        "max": 6604084,
+                        "mean": 101335.314668,
+                        "stddev": 87176.963031,
+                        "N": 43306
+                        },
+                        "bw_min": 34042,
+                        "bw_max": 35684,
+                        "bw_agg": 100,
+                        "bw_mean": 34656.8,
+                        "bw_dev": 648.340343,
+                        "bw_samples": 5,
+                        "iops_min": 8511,
+                        "iops_max": 8922,
+                        "iops_mean": 8664.4,
+                        "iops_stddev": 162.336995,
+                        "iops_samples": 5
+                    },
+                    "trim": {
+                        "io_bytes": 0,
+                        "io_kbytes": 0,
+                        "bw_bytes": 0,
+                        "bw": 0,
+                        "iops": 0,
+                        "runtime": 0,
+                        "total_ios": 0,
+                        "short_ios": 0,
+                        "drop_ios": 0,
+                        "slat_ns": {
+                        "min": 0,
+                        "max": 0,
+                        "mean": 0,
+                        "stddev": 0,
+                        "N": 0
+                        },
+                        "clat_ns": {
+                        "min": 0,
+                        "max": 0,
+                        "mean": 0,
+                        "stddev": 0,
+                        "N": 0
+                        },
+                        "lat_ns": {
+                        "min": 0,
+                        "max": 0,
+                        "mean": 0,
+                        "stddev": 0,
+                        "N": 0
+                        },
+                        "bw_min": 0,
+                        "bw_max": 0,
+                        "bw_agg": 0,
+                        "bw_mean": 0,
+                        "bw_dev": 0,
+                        "bw_samples": 0,
+                        "iops_min": 0,
+                        "iops_max": 0,
+                        "iops_mean": 0,
+                        "iops_stddev": 0,
+                        "iops_samples": 0
+                    },
+                    "sync": {
+                        "total_ios": 0,
+                        "lat_ns": {
+                        "min": 0,
+                        "max": 0,
+                        "mean": 0,
+                        "stddev": 0,
+                        "N": 0
+                        }
+                    },
+                    "job_runtime": 5000,
+                    "usr_cpu": 42.62,
+                    "sys_cpu": 57.3,
+                    "ctx": 21,
+                    "majf": 0,
+                    "minf": 44,
+                    "iodepth_level": {
+                        "1": 100,
+                        "2": 0,
+                        "4": 0,
+                        "8": 0,
+                        "16": 0,
+                        "32": 0,
+                        ">=64": 0
+                    },
+                    "iodepth_submit": {
+                        "0": 0,
+                        "4": 100,
+                        "8": 0,
+                        "16": 0,
+                        "32": 0,
+                        "64": 0,
+                        ">=64": 0
+                    },
+                    "iodepth_complete": {
+                        "0": 0,
+                        "4": 100,
+                        "8": 0,
+                        "16": 0,
+                        "32": 0,
+                        "64": 0,
+                        ">=64": 0
+                    },
+                    "latency_ns": {
+                        "2": 0,
+                        "4": 0,
+                        "10": 0,
+                        "20": 0,
+                        "50": 0,
+                        "100": 0,
+                        "250": 0,
+                        "500": 0,
+                        "750": 0,
+                        "1000": 0
+                    },
+                    "latency_us": {
+                        "2": 0,
+                        "4": 0,
+                        "10": 0,
+                        "20": 0,
+                        "50": 95.155406,
+                        "100": 1.537893,
+                        "250": 3.253591,
+                        "500": 0.050801,
+                        "750": 0,
+                        "1000": 0
+                    },
+                    "latency_ms": {
+                        "2": 0.01,
+                        "4": 0,
+                        "10": 0,
+                        "20": 0,
+                        "50": 0,
+                        "100": 0,
+                        "250": 0,
+                        "500": 0,
+                        "750": 0,
+                        "1000": 0,
+                        "2000": 0,
+                        ">=2000": 0
+                    },
+                    "latency_depth": 1,
+                    "latency_target": 0,
+                    "latency_percentile": 100,
+                    "latency_window": 0
+                    }
+                ]
+            },
+            {
+                "tool": "fio",
+                "test_type": {
+                    "name": "rand_write_4k",
+                    "size": "100MB",
+                    "rw": "randwrite",
+                    "ioengine": "libaio",
+                    "bs": "4k",
+                },
+                "time": {
+                    "timestamp": 1775426714,
+                    "time": "Sun Apr  5 22:05:14 2026",
+                    "job_runtime": 5000,
+                },
+                "metrics": {
+                    "read": {
+                        "io_bytes": 0,
+                        "io_kbytes": 0,
+                        "bw_bytes": 0,
+                        "bw": 0,
+                        "iops": 0,
+                        "runtime": 0,
+                        "total_ios": 0,
+                        "short_ios": 0,
+                        "drop_ios": 0,
+                        "slat_ns": {
+                            "min": 0,
+                            "max": 0,
+                            "mean": 0,
+                            "stddev": 0,
+                            "N": 0,
+                        },
+                        "clat_ns": {
+                            "min": 0,
+                            "max": 0,
+                            "mean": 0,
+                            "stddev": 0,
+                            "N": 0,
+                        },
+                        "lat_ns": {
+                            "min": 0,
+                            "max": 0,
+                            "mean": 0,
+                            "stddev": 0,
+                            "N": 0,
+                        },
+                        "bw_min": 0,
+                        "bw_max": 0,
+                        "bw_agg": 0,
+                        "bw_mean": 0,
+                        "bw_dev": 0,
+                        "bw_samples": 0,
+                        "iops_min": 0,
+                        "iops_max": 0,
+                        "iops_mean": 0,
+                        "iops_stddev": 0,
+                        "iops_samples": 0,
+                    },
+                    "write": {
+                        "io_bytes": 177381376,
+                        "io_kbytes": 173224,
+                        "bw_bytes": 35469181,
+                        "bw": 34637,
+                        "iops": 8659.468106,
+                        "runtime": 5001,
+                        "total_ios": 43306,
+                        "short_ios": 0,
+                        "drop_ios": 0,
+                        "slat_ns": {
+                            "min": 47433,
+                            "max": 6555649,
+                            "mean": 66903.275989,
+                            "stddev": 84217.080536,
+                            "N": 43306,
+                        },
+                        "clat_ns": {
+                            "min": 23757,
+                            "max": 1078252,
+                            "mean": 34432.038678,
+                            "stddev": 20213.463806,
+                            "N": 43306,
+                            "percentile": {
+                                "1.000000": 24960,
+                                "5.000000": 25984,
+                                "10.000000": 26496,
+                                "20.000000": 28288,
+                                "30.000000": 29824,
+                                "40.000000": 30336,
+                                "50.000000": 30336,
+                                "60.000000": 30592,
+                                "70.000000": 30848,
+                                "80.000000": 32128,
+                                "90.000000": 39168,
+                                "95.000000": 48896,
+                                "99.000000": 130560,
+                                "99.500000": 146432,
+                                "99.900000": 197632,
+                                "99.950000": 252928,
+                                "99.990000": 423936,
+                            },
+                        },
+                        "lat_ns": {
+                            "min": 72662,
+                            "max": 6604084,
+                            "mean": 101335.314668,
+                            "stddev": 87176.963031,
+                            "N": 43306,
+                        },
+                        "bw_min": 34042,
+                        "bw_max": 35684,
+                        "bw_agg": 100,
+                        "bw_mean": 34656.8,
+                        "bw_dev": 648.340343,
+                        "bw_samples": 5,
+                        "iops_min": 8511,
+                        "iops_max": 8922,
+                        "iops_mean": 8664.4,
+                        "iops_stddev": 162.336995,
+                        "iops_samples": 5,
+                    },
+                    "trim": {
+                        "io_bytes": 0,
+                        "io_kbytes": 0,
+                        "bw_bytes": 0,
+                        "bw": 0,
+                        "iops": 0,
+                        "runtime": 0,
+                        "total_ios": 0,
+                        "short_ios": 0,
+                        "drop_ios": 0,
+                        "slat_ns": {
+                            "min": 0,
+                            "max": 0,
+                            "mean": 0,
+                            "stddev": 0,
+                            "N": 0,
+                        },
+                        "clat_ns": {
+                            "min": 0,
+                            "max": 0,
+                            "mean": 0,
+                            "stddev": 0,
+                            "N": 0,
+                        },
+                        "lat_ns": {
+                            "min": 0,
+                            "max": 0,
+                            "mean": 0,
+                            "stddev": 0,
+                            "N": 0,
+                        },
+                        "bw_min": 0,
+                        "bw_max": 0,
+                        "bw_agg": 0,
+                        "bw_mean": 0,
+                        "bw_dev": 0,
+                        "bw_samples": 0,
+                        "iops_min": 0,
+                        "iops_max": 0,
+                        "iops_mean": 0,
+                        "iops_stddev": 0,
+                        "iops_samples": 0,
+                    },
+                },
+                "summary": {
+                    "jobs_count": 1,
+                    "failed_jobs": 0,
+                },
+            },
+        ),
+    ],
+    ids=[
+        "Fio adapter test.",
+    ],
+)
+def test_fio_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, Any]) -> None:
+    adapter = FioAdapter()
     result = adapter(raw_metrics)
     assert result == expected

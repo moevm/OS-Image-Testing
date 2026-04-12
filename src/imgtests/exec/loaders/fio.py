@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
+from imgtests.adapter import JSONAdapter
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
 from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
@@ -327,3 +328,45 @@ def _safe_float(value: Any) -> float | None:
         return float(value)
     except (TypeError, ValueError):
         return None
+
+
+class FioAdapter(JSONAdapter):
+    def __init__(self) -> None:
+        self.tool = "fio"
+
+    def split_result(self, raw_result: dict[str, Any], test_index: int = 0) -> dict[str, Any]:
+        jobs = raw_result.get("jobs", [])
+        job = jobs[test_index]
+
+        metrics = {
+            "read": job.get("read", {}),
+            "write": job.get("write", {}),
+            "trim": job.get("trim", {}),
+        }
+
+        job_options = job.get("job options", {})
+        test_type = {
+            "name": job_options.get("name", ""),
+            "size": job_options.get("size", ""),
+            "rw": job_options.get("rw", ""),
+            "ioengine": job_options.get("ioengine", ""),
+            "bs": job_options.get("bs", ""),
+        }
+
+        time = {
+            "timestamp": raw_result.get("timestamp", 0),
+            "time": raw_result.get("time", 0),
+            "job_runtime": job.get("job_runtime", 0),
+        }
+
+        summary = {
+            "jobs_count": len(jobs),
+            "failed_jobs": sum(1 for j in jobs if j.get("error", 0) != 0),
+        }
+
+        return {
+            "test_type": test_type,
+            "time": time,
+            "metrics": metrics,
+            "summary": summary,
+        }

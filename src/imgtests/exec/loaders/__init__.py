@@ -1,11 +1,13 @@
 from .chaosblade import Chaosblade as Chaosblade
 from .chaosblade import ChaosResponse as ChaosResponse
 from .fio import Fio as Fio
+from .fio import FioAdapter as FioAdapter
 from .fio import FioPlot as FioPlot
 from .fwts import Fwts as Fwts
 from .iperf3 import Iperf3 as Iperf3
 from .iperf3 import Iperf3Adapter as Iperf3Adapter
 from .kirk import Kirk as Kirk
+from .kirk import KirkAdapter as KirkAdapter
 from .perf import Perf as Perf
 from .perf import PerfAdapter as PerfAdapter
 from .perf import PerfBenchMetrics as PerfBenchMetrics

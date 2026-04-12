@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 from zoneinfo import ZoneInfo
 
+from imgtests.adapter import JSONAdapter
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
 from imgtests.exec.osinfo import get_os_release
@@ -277,3 +278,37 @@ class Kirk(GenericUtil):
     @staticmethod
     def metrics_to_json(metrics: Path) -> dict[str, Any]:
         return json.loads(metrics.read_text())
+
+
+class KirkAdapter(JSONAdapter):
+    def __init__(self) -> None:
+        self.tool = "kirk"
+
+    def split_result(
+        self,
+        raw_result: dict[str, Any],
+        test_index: int = 0,  # noqa: ARG002
+    ) -> dict[str, Any]:
+        results = raw_result.get("results", [])
+        metrics = [
+            {
+                "test": test.get("test_fqn", ""),
+                "status": test.get("status", ""),
+                "retval": test.get("test", {}).get("retval", []),
+                "duration": test.get("test", {}).get("duration", 0.0),
+            }
+            for test in results
+        ]
+
+        summary = raw_result.get("stats", {})
+        time = {
+            "runtime": summary.get("runtime", 0.0),
+        }
+        summary = self.drop_fields(summary, time.keys())
+
+        return {
+            "test_type": {},
+            "time": time,
+            "metrics": metrics,
+            "summary": summary,
+        }
