@@ -12,7 +12,15 @@ if TYPE_CHECKING:
     from imgtests.types import Subsystem, Version
 
 IOPattern = Literal[
-    "read", "write", "trim", "randread", "randwrite", "randtrim", "readwrite", "randrw", "trimwrite"
+    "read",
+    "write",
+    "trim",
+    "randread",
+    "randwrite",
+    "randtrim",
+    "readwrite",
+    "randrw",
+    "trimwrite",
 ]
 # fmt: off
 IOEngine = Literal[
@@ -64,7 +72,9 @@ class Fio(PkgMgrMixin, GenericUtil):
         """Install fio via the system package manager."""
         if self.path:
             return ExecResult(
-                cmd=(), stderr=f"{self.name} already has been installed.", returncode=0
+                cmd=(),
+                stderr=f"{self.name} already has been installed.",
+                returncode=0,
             )
         return self._install_packages(["fio"])
 
@@ -243,7 +253,7 @@ def fio_metrics_to_samples(
                     op=op,
                     op_data=op_data,
                     percentiles=FIO_CLAT_PERCENTILES,
-                )
+                ),
             )
 
     return out
@@ -268,7 +278,7 @@ def _fio_op_samples(
 
     if iops is not None:
         out.append(
-            MetricSample(stage_name, subsystem, f"fio.{op}.iops", iops, label=f"{op_label} IOPS")
+            MetricSample(stage_name, subsystem, f"fio.{op}.iops", iops, label=f"{op_label} IOPS"),
         )
     if bw is not None:
         out.append(
@@ -278,7 +288,7 @@ def _fio_op_samples(
                 f"fio.{op}.bw_kib_s",
                 bw,
                 label=f"{op_label} bandwidth, KiB/s",
-            )
+            ),
         )
     if runtime_ms is not None:
         out.append(
@@ -288,7 +298,7 @@ def _fio_op_samples(
                 f"fio.{op}.runtime_ms",
                 runtime_ms,
                 label=f"{op_label} runtime, ms",
-            )
+            ),
         )
     if clat_mean is not None:
         out.append(
@@ -298,7 +308,7 @@ def _fio_op_samples(
                 f"fio.{op}.clat_mean_ns",
                 clat_mean,
                 label=f"{op_label} clat mean, ns",
-            )
+            ),
         )
 
     pct = clat.get("percentile") if isinstance(clat, dict) else None
@@ -313,7 +323,7 @@ def _fio_op_samples(
                         f"fio.{op}.clat_p{metric_suffix}_ns",
                         fv,
                         label=f"{op_label} clat p{percentile_label}, ns",
-                    )
+                    ),
                 )
 
     return out

@@ -168,7 +168,7 @@ class PlanExecutor(BaseRunner):
                     started_at=stage_started_at,
                     ended_at=stage_ended_at,
                     tasks=tuple(task_runs),
-                )
+                ),
             )
 
         ended_at = datetime.now(UTC)

@@ -37,7 +37,9 @@ ToolsTimes = dict[str, ToolTimes | None]
 class POSIXUtilsTest(AbstractRunnableManyTimesTest):
     def __init__(self, iterations: int = 1) -> None:
         super().__init__(
-            "Tests standard utilities performance.", frozenset({Subsystem.SYSTEM}), iterations
+            "Tests standard utilities performance.",
+            frozenset({Subsystem.SYSTEM}),
+            iterations,
         )
 
     def _run(
@@ -75,7 +77,9 @@ class POSIXUtilsTest(AbstractRunnableManyTimesTest):
                     )
 
     def test_utils_for_files(  # noqa: PLR0912, C901
-        self, client: SSHClient | None, iterations: int
+        self,
+        client: SSHClient | None,
+        iterations: int,
     ) -> ToolsTimes:
         time = Time(client)
         dd = Dd(client)
@@ -85,7 +89,7 @@ class POSIXUtilsTest(AbstractRunnableManyTimesTest):
                 "bs=1M",
                 "count=50",
                 f"of={TEST_FILE1}.tmp",
-            ]
+            ],
         )
         if ret.returncode:
             self.logger.error("Test file wasn't created correctly")
@@ -103,7 +107,7 @@ class POSIXUtilsTest(AbstractRunnableManyTimesTest):
                 "bs=1M",
                 "count=50",
                 f"of={TEST_FILE2}.tmp",
-            ]
+            ],
         )
         if ret.returncode:
             self.logger.error("Test file wasn't created correctly")
@@ -256,7 +260,10 @@ class POSIXUtilsTest(AbstractRunnableManyTimesTest):
 
 
 def time_cmd_many(
-    time: Time, tool: str, iterations: int, client: SSHClient | None = None
+    time: Time,
+    tool: str,
+    iterations: int,
+    client: SSHClient | None = None,
 ) -> ToolTimes | None:
     result: list[Times] = []
     for i in range(iterations):
@@ -279,7 +286,8 @@ def time_cmd_many(
             common_run_command(["cp", parts[1].split(".")[0], parts[1]], client)
         elif "ln" in tool:
             common_run_command(
-                ["[", "-f", parts[2], "]", "&&", "rm", parts[2], "||", "true"], client
+                ["[", "-f", parts[2], "]", "&&", "rm", parts[2], "||", "true"],
+                client,
             )
         elif "rm" in tool:
             common_run_command(
@@ -306,7 +314,10 @@ def time_cmd_many(
         result.append(times)
     array = np.array(result, dtype=np.float64)
     return ToolTimes(
-        array.mean(axis=0), np.median(array, axis=0), array.std(axis=0), array.var(axis=0)
+        array.mean(axis=0),
+        np.median(array, axis=0),
+        array.std(axis=0),
+        array.var(axis=0),
     )
 
 

@@ -47,7 +47,9 @@ class FaultInjectionEnduranceTest(AbstractRunnableTimeLimitedTest):
         for fault_probability in fault_probabilities:
             started_at = datetime.now(tz=ZoneInfo("UTC"))
             result, metrics_path = kirk.run(
-                scenarios=scenarios, timeout=time_per_test, fault_injection=fault_probability
+                scenarios=scenarios,
+                timeout=time_per_test,
+                fault_injection=fault_probability,
             )
 
             if metrics_path:

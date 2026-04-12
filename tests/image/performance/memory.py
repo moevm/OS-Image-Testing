@@ -42,7 +42,10 @@ class StressNgPerformanceMemoryTest(StressNgTest):
         )
 
     def _run(
-        self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int
+        self,
+        executor: ThreadPoolExecutor,
+        client: SSHClient | None,
+        timeout: int,
     ) -> Iterable[TestResult]:
         ram_size = get_total_ram_size(client=client)
         if ram_size is None:
@@ -67,7 +70,10 @@ class StressNgPerformanceMemoryTest(StressNgTest):
 
         for params in tests:
             yield from self.run_test(
-                stress_ng=stress_ng, executor=executor, timeout=timeout, **params
+                stress_ng=stress_ng,
+                executor=executor,
+                timeout=timeout,
+                **params,
             )
 
 
@@ -76,7 +82,9 @@ class SarWithStressNGTest(AbstractRunnableTimeLimitedTest):
 
     def __init__(self, timeout: int) -> None:
         super().__init__(
-            "Stress-ng with sar measure pgscan time.", frozenset({Subsystem.MEMORY}), timeout
+            "Stress-ng with sar measure pgscan time.",
+            frozenset({Subsystem.MEMORY}),
+            timeout,
         )
 
     def _run(

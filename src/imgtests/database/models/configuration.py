@@ -19,7 +19,8 @@ class ConfigurationBase(Base):
     core_config: Mapped[dict[str, str]] = mapped_column(JSON)
     hardware: Mapped[dict[str, Any]] = mapped_column(JSON)
     experiments: Mapped[list["ExperimentBase"]] = relationship(  # noqa: UP037
-        "ExperimentBase", back_populates="configuration"
+        "ExperimentBase",
+        back_populates="configuration",
     )
 
     def __repr__(self) -> str:

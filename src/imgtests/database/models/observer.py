@@ -21,7 +21,8 @@ class ObserverBase(Base):
     started_at: Mapped[datetime | None] = mapped_column(DateTime)
     ended_at: Mapped[datetime | None] = mapped_column(DateTime)
     experiment: Mapped["ExperimentBase"] = relationship(  # noqa: UP037
-        "ExperimentBase", back_populates="observers"
+        "ExperimentBase",
+        back_populates="observers",
     )
 
     def __repr__(self) -> str:

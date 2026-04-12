@@ -310,7 +310,7 @@ def _plan_cases(
                 numjobs=nj,
                 runtime_sec=rt,
                 out_dir=out_dir,
-            )
+            ),
         )
     return cases
 
@@ -324,7 +324,7 @@ def _remote_tar(client: SSHClient, src_dir: Path, dst_tgz: Path) -> None:
             "-C",
             str(src_dir.parent),
             str(src_dir.name),
-        ]
+        ],
     )
     if res.returncode:
         err_msg = res.stderr or res.stdout or "tar failed"

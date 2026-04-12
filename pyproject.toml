@@ -41,7 +41,6 @@ tests = [
 line-length = 100
 lint.select = ["ALL"]
 lint.ignore = [
-    "ANN003",  # missing type annotations for `*kwargs`
     "ANN201",
     "ANN204",
     "ANN401",  # dynamically typed expressions (typing.Any)
@@ -52,10 +51,8 @@ lint.ignore = [
     "D104",
     "D105",
     "D107",
-    "COM812",
     "FBT001",
     "FBT002",
-    "PT019",
     "FIX002",
     "TD002",
     "TD003",
