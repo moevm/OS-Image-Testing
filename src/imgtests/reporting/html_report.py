@@ -264,10 +264,10 @@ def _build_boxplots(
 
 def _build_piechart(
     metrics: dict,
+    title: str,
     *,
     out_dir: Path,
     plots_dir: Path,
-    title: str,
 ) -> PlotAsset:
     fig = Figure(figsize=(8, 6))
     FigureCanvasAgg(fig)
