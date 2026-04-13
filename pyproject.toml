@@ -39,7 +39,7 @@ tests = [
 ]
 
 [tool.setuptools.package-data]
-"imgtests.reporting" = ["templates/**/*"]
+"imgtests.reporting" = ["templates/**/*", "static/*"]
 
 [tool.ruff]
 line-length = 100
