@@ -1,4 +1,3 @@
-import logging
 from datetime import datetime
 from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
@@ -10,8 +9,6 @@ if TYPE_CHECKING:
     from concurrent.futures import ThreadPoolExecutor
 
     from imgtests.exec.loaders import StressNg
-
-logger = logging.getLogger(__name__)
 
 
 class StressNgTest(AbstractRunnableTimeLimitedTest):
