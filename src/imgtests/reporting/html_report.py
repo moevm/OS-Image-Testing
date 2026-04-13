@@ -21,6 +21,7 @@ PLOTS_DIR: Final = "plots"
 REPORT_FILENAME: Final = "report.html"
 
 TEMPLATES_DIR: Final = "templates"
+STATIC_DIR: Final = "static"
 REPORT_TEMPLATE: Final = "base_report.html.j2"
 
 
@@ -119,7 +120,12 @@ def _collect_test_visualizations(
 @lru_cache(maxsize=1)
 def _template_environment() -> Environment:
     env = Environment(
-        loader=FileSystemLoader(Path(__file__).with_name(TEMPLATES_DIR)),
+        loader=FileSystemLoader(
+            [
+                Path(__file__).with_name(TEMPLATES_DIR),
+                Path(__file__).with_name(STATIC_DIR),
+            ],
+        ),
         autoescape=select_autoescape(("html", "xml")),
         lstrip_blocks=True,
         trim_blocks=True,
