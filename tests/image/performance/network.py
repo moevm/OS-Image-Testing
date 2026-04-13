@@ -3,7 +3,7 @@ from time import sleep
 from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
-from imgtests.exec.loaders import Iperf3
+from imgtests.exec.loaders import Iperf3, Iperf3Adapter
 from imgtests.runner import AbstractRunnableTimeLimitedTest, TestResult, TestStatus
 from imgtests.types import Subsystem
 
@@ -38,12 +38,18 @@ class Iperf3LocalTest(AbstractRunnableTimeLimitedTest):
                 server_future.result(timeout=5)
                 return TestResult(status=TestStatus.FAILED)
             server_result = server_future.result(timeout=5)
+
+            raw_metrics = {
+                "client": iperf3.metrics_to_json(ret.stdout.strip()),
+                "server": iperf3.metrics_to_json(server_result.stdout.strip()),
+            }
+
+            adapter = Iperf3Adapter()
+            metrics = adapter(raw_metrics=raw_metrics)
+
             yield TestResult(
                 command=" ".join(ret.cmd),
-                metrics={
-                    "client": iperf3.metrics_to_json(ret.stdout.strip()),
-                    "server": iperf3.metrics_to_json(server_result.stdout.strip()),
-                },
+                metrics=metrics,
                 started_at=started_at,
                 status=TestStatus.PASSED,
             )

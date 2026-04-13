@@ -47,6 +47,7 @@ from imgtests.exec.loaders import (
                     "real_time_secs": 1.14,
                     "usr_time_secs": 4.14,
                     "sys_time_secs": 0.18,
+                    "duration_sec": 5.46,
                 },
                 "metrics": [
                     {
@@ -99,7 +100,7 @@ def test_stress_ng_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str
                     "benchmark": "sched/pipe",
                 },
                 "time": {
-                    "total_time": 198.97,
+                    "duration_sec": 198.97,
                 },
                 "metrics": {
                     "usecs_per_op": 198.970091,
@@ -703,7 +704,7 @@ def test_pts_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, Any]
                 "tool": "kirk",
                 "test_type": {},
                 "time": {
-                    "runtime": 2.3017725944519043,
+                    "duration_sec": 2.30,
                 },
                 "metrics": [
                     {

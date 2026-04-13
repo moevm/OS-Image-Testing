@@ -165,7 +165,7 @@ class FioSuite:
                     metrics = {}
 
             adapter = FioAdapter()
-            metrics = adapter(raw_result=metrics)
+            metrics = adapter(raw_metrics=metrics)
 
             yield TestResult(
                 metrics=metrics,

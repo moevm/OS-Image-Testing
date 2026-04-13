@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
-from imgtests.exec.loaders import PhoronixTestSuite
+from imgtests.exec.loaders import PhoronixTestSuite, PhoronixTestSuiteAdapter
 from imgtests.runner import AbstractRunnableManyTimesTest, TestResult, TestStatus
 from imgtests.types import Subsystem
 
@@ -35,6 +35,8 @@ class PTSSystemTest(AbstractRunnableManyTimesTest):
                 self.logger.error("PTS test '%s' FAILED.", test_name)
                 yield TestResult(status=TestStatus.FAILED)
             else:
+                adapter = PhoronixTestSuiteAdapter()
+                metrics = adapter(raw_metrics=metrics)
                 yield TestResult(
                     command=" ".join(result.cmd),
                     metrics=metrics,
