@@ -295,6 +295,52 @@ def _build_piechart(
     )
 
 
+def _build_histograms_by_prefix(
+    metrics: list[MetricSample],  # type???
+    # title: str,
+    *,
+    out_dir: Path,
+    plots_dir: Path,
+) -> PlotAsset:
+    grouped = defaultdict(list)
+    for m in metrics:
+        if "." in m.metric_name:
+            grouped[m.metric_name.split(".")[0]].append(m)
+
+    assets = []
+    for prefix, group in grouped.items():
+        labels = [m.label for m in group]
+        values = [m.value for m in group]
+
+        fig = Figure(figsize=(max(10, len(labels) * 2), 5))
+        FigureCanvasAgg(fig)
+        ax = fig.add_subplot(1, 1, 1)
+        bars = ax.bar(labels, values)
+        ax.set_title(f"{prefix} metrics")
+        ax.grid(visible=True, axis="y", alpha=0.3)
+
+        for bar, val in zip(bars, values, strict=True):
+            ax.text(
+                bar.get_x() + bar.get_width() / 2,
+                bar.get_height(),
+                f"{val:.2f}",
+                ha="center",
+                va="bottom",
+            )
+
+        out_path = plots_dir / f"{_safe_filename(prefix)}.png"
+        fig.tight_layout()
+        fig.savefig(out_path)
+
+        assets.append(
+            PlotAsset(
+                title=prefix,
+                relative_path=str(out_path.relative_to(out_dir)),
+            ),
+        )
+    return assets
+
+
 def _format_float(value: float) -> str:
     return f"{value:.6g}"
 

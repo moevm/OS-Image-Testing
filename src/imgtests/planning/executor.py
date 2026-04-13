@@ -199,6 +199,9 @@ class PlanExecutor(BaseRunner):
             metrics=tuple(collected_metrics),
             tests_counts=tests_counts,
         )
+        logger.info(plan)
+        logger.info(result)
+        logger.info(result.metrics)
         generate_html_report(
             plan=plan,
             execution=result,
@@ -537,8 +540,9 @@ class PlanExecutor(BaseRunner):
                     MetricSample(
                         stage_name=stage.name,
                         subsystem=task.subsystem.value,
-                        metric_name=key,
+                        metric_name=f"systemd_critical_chain.{key}",
                         value=value,
+                        label=key,
                     )
                     for key, value in result._asdict().items()
                     if value >= 0
@@ -554,8 +558,9 @@ class PlanExecutor(BaseRunner):
                 MetricSample(
                     stage_name=stage.name,
                     subsystem=task.subsystem.value,
-                    metric_name=service.service_name,
+                    metric_name=f"systemd_critical_chain.{service.service_name}",
                     value=service.slow_time_s,
+                    label=service.service_name,
                 )
                 for service in services
             )
