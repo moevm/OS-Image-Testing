@@ -6,7 +6,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Final
 
 from jinja2 import Environment, FileSystemLoader, StrictUndefined, select_autoescape
 from matplotlib.backends.backend_agg import FigureCanvasAgg
@@ -15,6 +15,13 @@ from matplotlib.figure import Figure
 if TYPE_CHECKING:
     from imgtests.planning.executor import MetricSample, PlanExecutionResult
     from imgtests.planning.models import TestKind, TestPlan
+
+
+PLOTS_DIR: Final = "plots"
+REPORT_FILENAME: Final = "report.html"
+
+TEMPLATES_DIR: Final = "templates"
+REPORT_TEMPLATE: Final = "base_report.html.j2"
 
 
 @dataclass(frozen=True)
@@ -54,7 +61,7 @@ class PlotAsset:
 
 def generate_html_report(plan: TestPlan, execution: PlanExecutionResult, out_dir: Path) -> Path:
     out_dir.mkdir(parents=True, exist_ok=True)
-    plots_dir = out_dir / "plots"
+    plots_dir = out_dir / PLOTS_DIR
     plots_dir.mkdir(parents=True, exist_ok=True)
 
     metrics = list(execution.metrics)
@@ -87,8 +94,8 @@ def generate_html_report(plan: TestPlan, execution: PlanExecutionResult, out_dir
         ),
     }
 
-    template = _template_environment().get_template("base_report.html.j2")
-    report_path = out_dir / "report.html"
+    template = _template_environment().get_template(REPORT_TEMPLATE)
+    report_path = out_dir / REPORT_FILENAME
     report_path.write_text(
         template.render(
             **report_data,
@@ -112,7 +119,7 @@ def _collect_test_visualizations(
 @lru_cache(maxsize=1)
 def _template_environment() -> Environment:
     env = Environment(
-        loader=FileSystemLoader(Path(__file__).with_name("templates")),
+        loader=FileSystemLoader(Path(__file__).with_name(TEMPLATES_DIR)),
         autoescape=select_autoescape(("html", "xml")),
         lstrip_blocks=True,
         trim_blocks=True,
