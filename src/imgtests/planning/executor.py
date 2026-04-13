@@ -16,6 +16,7 @@ from imgtests.exec.loaders.stress_ng import StressNg, stress_metrics_to_samples
 from imgtests.exec.observers.systemd_analyze import SystemdAnalyze
 from imgtests.exec.user_commands import Nproc
 from imgtests.planning.profiles import CPU_SCALE_ARG_PREFIX, FIO_SIZE_RATIO_ARG_PREFIX
+from imgtests.reporting.html_report import generate_html_report
 from imgtests.runner import BaseRunner, TestStatus
 from imgtests.sizing import parse_size_to_bytes, round_bytes_to_mib_str
 from imgtests.types import MetricSample, Subsystem, TestsCounts
@@ -190,7 +191,7 @@ class PlanExecutor(BaseRunner):
             tests_counts,
         )
 
-        return PlanExecutionResult(
+        result = PlanExecutionResult(
             experiment_id=experiment_id,
             started_at=started_at,
             ended_at=ended_at,
@@ -198,6 +199,12 @@ class PlanExecutor(BaseRunner):
             metrics=tuple(collected_metrics),
             tests_counts=tests_counts,
         )
+        generate_html_report(
+            plan=plan,
+            execution=result,
+            out_dir=results_dir,
+        )
+        return result
 
     def _wait_for_stage_offset(
         self,
