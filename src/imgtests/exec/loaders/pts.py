@@ -3,11 +3,11 @@ import logging
 import re
 from typing import TYPE_CHECKING, Any
 
-from imgtests.adapter import JSONAdapter
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult, SSHClient, common_run_command, pipeline
 from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
 from imgtests.exec.utils import add_sudo, extract_version
+from imgtests.results_adapter import JSONAdapter
 
 if TYPE_CHECKING:
     from imgtests.types import Version
@@ -368,11 +368,11 @@ class PhoronixTestSuiteAdapter(JSONAdapter):
     def __init__(self) -> None:
         self.tool = "pts"
 
-    def split_result(self, raw_result: dict[str, Any], test_index: int = 0) -> dict[str, Any]:
-        system_info = raw_result.get("systems", {})
+    def split_result(self, raw_metrics: dict[str, Any], test_index: int = 0) -> dict[str, Any]:
+        system_info = raw_metrics.get("systems", {})
         system_info = system_info.get(next(iter(system_info.keys())), {})
 
-        test_results = raw_result.get("results", {})
+        test_results = raw_metrics.get("results", {})
         test_results = test_results.get(list(test_results.keys())[test_index], {})
 
         test_metrics = test_results.get("results", {})

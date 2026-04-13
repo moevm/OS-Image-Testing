@@ -1,12 +1,12 @@
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
-from imgtests.adapter import JSONAdapter
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
 from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
 from imgtests.exec.pkgmgrs.pip3 import Pip3
 from imgtests.exec.utils import create_opt
+from imgtests.results_adapter import JSONAdapter
 from imgtests.types import MetricSample
 
 if TYPE_CHECKING:
@@ -334,8 +334,8 @@ class FioAdapter(JSONAdapter):
     def __init__(self) -> None:
         self.tool = "fio"
 
-    def split_result(self, raw_result: dict[str, Any], test_index: int = 0) -> dict[str, Any]:
-        jobs = raw_result.get("jobs", [])
+    def split_result(self, raw_metrics: dict[str, Any], test_index: int = 0) -> dict[str, Any]:
+        jobs = raw_metrics.get("jobs", [])
         job = jobs[test_index]
 
         metrics = {
@@ -354,8 +354,8 @@ class FioAdapter(JSONAdapter):
         }
 
         time = {
-            "timestamp": raw_result.get("timestamp", 0),
-            "time": raw_result.get("time", 0),
+            "timestamp": raw_metrics.get("timestamp", 0),
+            "time": raw_metrics.get("time", 0),
             "job_runtime": job.get("job_runtime", 0),
         }
 

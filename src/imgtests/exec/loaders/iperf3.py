@@ -1,11 +1,11 @@
 import json
 from typing import TYPE_CHECKING, Any
 
-from imgtests.adapter import JSONAdapter
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult
 from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
 from imgtests.exec.utils import add_flag, create_opt
+from imgtests.results_adapter import JSONAdapter
 
 if TYPE_CHECKING:
     from imgtests.exec.exec import SSHClient
@@ -112,11 +112,11 @@ class Iperf3Adapter(JSONAdapter):
 
     def split_result(
         self,
-        raw_result: dict[str, Any],
+        raw_metrics: dict[str, Any],
         test_index: int = 0,  # noqa: ARG002
     ) -> dict[str, Any]:
-        client_metrics = raw_result.get("client", {})
-        server_metrics = raw_result.get("server", {})
+        client_metrics = raw_metrics.get("client", {})
+        server_metrics = raw_metrics.get("server", {})
         test_info = client_metrics.get("start", {}).get("test_start", {})
         client_results = client_metrics.get("end", {})
         server_results = server_metrics.get("end", {})

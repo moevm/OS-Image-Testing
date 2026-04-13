@@ -14,16 +14,16 @@ class JSONAdapter(ABC):
     def __init__(self, tool: str) -> None:
         self.tool = tool
 
-    def __call__(self, raw_result: dict[str, Any], test_index: int = 0) -> dict[str, Any]:
+    def __call__(self, raw_metrics: dict[str, Any], test_index: int = 0) -> dict[str, Any]:
         return AdapterResult(
             tool=self.tool,
-            **self.split_result(raw_result, test_index),
+            **self.split_result(raw_metrics, test_index),
         )
 
     @abstractmethod
     def split_result(
         self,
-        raw_result: dict[str, Any],
+        metrics: dict[str, Any],
         test_index: int = 0,
     ) -> dict[str, Any]:
         pass

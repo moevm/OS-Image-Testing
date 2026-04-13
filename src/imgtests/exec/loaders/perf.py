@@ -2,11 +2,11 @@ import logging
 import re
 from typing import Any, Final, Literal, NamedTuple
 
-from imgtests.adapter import JSONAdapter
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult, SSHClient
 from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
 from imgtests.exec.utils import create_opt
+from imgtests.results_adapter import JSONAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -191,12 +191,12 @@ class PerfAdapter(JSONAdapter):
     def __init__(self) -> None:
         self.tool = "perf"
 
-    def split_result(self, raw_result: dict[str, Any], test_index: int = 0) -> dict[str, Any]:
-        metrics = raw_result[test_index]
+    def split_result(self, raw_metrics: dict[str, Any], test_index: int = 0) -> dict[str, Any]:
+        metrics = raw_metrics[test_index]
         test_type = {"benchmark": metrics.get("benchmark", "")}
-        time = {"total_time": metrics.get("total_time", 0)}
+        time = {"duration_sec": metrics.get("total_time", 0)}
 
-        excluded_fields = [*test_type.keys(), *time.keys()]
+        excluded_fields = [*test_type.keys(), "total_time"]
         metrics = self.drop_fields(metrics, excluded_fields)
 
         return {

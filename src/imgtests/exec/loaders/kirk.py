@@ -6,12 +6,12 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 from zoneinfo import ZoneInfo
 
-from imgtests.adapter import JSONAdapter
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
 from imgtests.exec.osinfo import get_os_release
 from imgtests.exec.pkgmgrs.zypper import Zypper
 from imgtests.exec.utils import create_opt
+from imgtests.results_adapter import JSONAdapter
 from imgtests.types import Distro
 
 if TYPE_CHECKING:
@@ -277,7 +277,9 @@ class Kirk(GenericUtil):
 
     @staticmethod
     def metrics_to_json(metrics: Path) -> dict[str, Any]:
-        return json.loads(metrics.read_text())
+        raw_metrics = json.loads(metrics.read_text())
+        adapter = KirkAdapter()
+        return adapter(raw_metrics=raw_metrics)
 
 
 class KirkAdapter(JSONAdapter):
@@ -286,10 +288,10 @@ class KirkAdapter(JSONAdapter):
 
     def split_result(
         self,
-        raw_result: dict[str, Any],
+        raw_metrics: dict[str, Any],
         test_index: int = 0,  # noqa: ARG002
     ) -> dict[str, Any]:
-        results = raw_result.get("results", [])
+        results = raw_metrics.get("results", [])
         metrics = [
             {
                 "test": test.get("test_fqn", ""),
@@ -300,11 +302,11 @@ class KirkAdapter(JSONAdapter):
             for test in results
         ]
 
-        summary = raw_result.get("stats", {})
+        summary = raw_metrics.get("stats", {})
         time = {
-            "runtime": summary.get("runtime", 0.0),
+            "duration_sec": round(summary.get("runtime", 0.0), 2),
         }
-        summary = self.drop_fields(summary, time.keys())
+        summary = self.drop_fields(summary, ["runtime"])
 
         return {
             "test_type": {},

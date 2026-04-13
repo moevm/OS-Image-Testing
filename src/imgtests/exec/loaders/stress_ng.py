@@ -2,11 +2,11 @@ import logging
 import re
 from typing import TYPE_CHECKING, Any, Final, NamedTuple
 
-from imgtests.adapter import JSONAdapter
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult
 from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
 from imgtests.exec.utils import add_flag, create_opt
+from imgtests.results_adapter import JSONAdapter
 from imgtests.types import MetricSample
 
 if TYPE_CHECKING:
@@ -619,11 +619,14 @@ class StressNg(PkgMgrMixin, GenericUtil):
         return result
 
     @staticmethod
-    def metrics_to_json(metrics: StressNGResult) -> Any:
-        return {
+    def metrics_to_json(metrics: StressNGResult) -> dict[str, Any]:
+        raw_metrics = {
             "stress_ng_metrics": [metric._asdict() for metric in metrics.metrics],
             "stress_ng_summary": metrics.summary._asdict() if metrics.summary else None,
         }
+
+        adapter = StressNgAdapter()
+        return adapter(raw_metrics=raw_metrics)
 
 
 class StressNgAdapter(JSONAdapter):
@@ -632,10 +635,10 @@ class StressNgAdapter(JSONAdapter):
 
     def split_result(
         self,
-        raw_result: dict[str, Any],
+        raw_metrics: dict[str, Any],
         test_index: int = 0,  # noqa: ARG002
     ) -> dict[str, Any]:
-        metrics = raw_result.get("stress_ng_metrics", [])
+        metrics = raw_metrics.get("stress_ng_metrics", [])
 
         test_type = {"stressor": "mixed"}
 
@@ -648,7 +651,10 @@ class StressNgAdapter(JSONAdapter):
         for test_metrics in metrics:
             for key in time:
                 time[key] += round(test_metrics.get(key, 0.0), 2)
-        summary = raw_result.get("stress_ng_summary", {})
+
+        time["duration_sec"] = sum([time[key] for key in time])
+
+        summary = raw_metrics.get("stress_ng_summary", {})
         return {
             "test_type": test_type,
             "time": time,
