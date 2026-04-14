@@ -42,6 +42,7 @@ DIAGRAMS_CONFIG: dict[str, DiagramConfig] = {
         run="_build_boxplots",
         metrics=[
             r"stress.",
+            r"fio.",
         ],
     ),
 }
