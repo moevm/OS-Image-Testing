@@ -174,7 +174,8 @@ class Perf(PkgMgrMixin, GenericUtil):
             filtered_d = {key: value for key, value in d.items() if value is not None}
             processed_result.append(filtered_d)
 
-        return processed_result
+        adapter = PerfAdapter()
+        return adapter(processed_result)
 
     @staticmethod
     def metrics_to_bmf(metrics: tuple[PerfBenchMetrics, ...]) -> dict[str, dict[str, Any]]:
@@ -193,7 +194,18 @@ class PerfAdapter(JSONAdapter):
     def __init__(self) -> None:
         self.tool = "perf"
 
-    def split_result(self, raw_metrics: dict[str, Any], test_index: int = 0) -> dict[str, Any]:
+    def split_result(
+        self,
+        raw_metrics: list[dict[str, Any]],
+        test_index: int = 0,
+    ) -> dict[str, Any]:
+        if test_index >= len(raw_metrics):
+            return {
+                "test_type": {},
+                "time": {},
+                "metrics": {},
+                "summary": {},
+            }
         metrics = raw_metrics[test_index]
         test_type = {"benchmark": metrics.get("benchmark", "")}
         time = {"duration_sec": metrics.get("total_time", 0)}
