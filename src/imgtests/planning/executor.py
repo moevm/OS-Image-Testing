@@ -540,7 +540,7 @@ class PlanExecutor(BaseRunner):
                     MetricSample(
                         stage_name=stage.name,
                         subsystem=task.subsystem.value,
-                        metric_name=f"systemd_critical_chain.{key}",
+                        metric_name=f"systemd_time.{key}",
                         value=value,
                         label=key,
                     )
