@@ -41,7 +41,7 @@ from imgtests.exec.loaders import (
             {
                 "tool": "stress-ng",
                 "test_type": {
-                    "stressor": "mixed",
+                    "stressor": "cpu",
                 },
                 "time": {
                     "real_time_secs": 1.14,
@@ -49,20 +49,19 @@ from imgtests.exec.loaders import (
                     "sys_time_secs": 0.18,
                     "duration_sec": 5.46,
                 },
-                "metrics": [
-                    {
+                "metrics": {
+                    "0": {
                         "bogo_ops": 276,
+                        "real_time_secs": 1.14,
+                        "usr_time_secs": 4.14,
+                        "sys_time_secs": 0.18,
                         "bogo_ops_s_real_time": 242.15,
                         "bogo_ops_s_usr_sys_time": 63.93,
                         "cpu_used_per_instance": 94.7,
-                        "real_time_secs": 1.14,
                         "rss_max_kb": 6212,
-                        "stressor": "cpu",
-                        "sys_time_secs": 0.18,
                         "top10_slowest": None,
-                        "usr_time_secs": 4.14,
                     },
-                ],
+                },
                 "summary": {
                     "skipped": 0,
                     "passed": 4,
@@ -71,9 +70,20 @@ from imgtests.exec.loaders import (
                 },
             },
         ),
+        (
+            {},
+            {
+                "tool": "stress-ng",
+                "test_type": {},
+                "time": {},
+                "metrics": {},
+                "summary": {},
+            },
+        ),
     ],
     ids=[
         "Stress-ng adapter test.",
+        "Empty metrics.",
     ],
 )
 def test_stress_ng_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, Any]) -> None:
@@ -109,9 +119,20 @@ def test_stress_ng_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str
                 "summary": {},
             },
         ),
+        (
+            (),
+            {
+                "tool": "perf",
+                "test_type": {},
+                "time": {},
+                "metrics": {},
+                "summary": {},
+            },
+        ),
     ],
     ids=[
         "Perf adapter test.",
+        "Empty metrics.",
     ],
 )
 def test_perf_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, Any]) -> None:
@@ -508,9 +529,20 @@ def test_perf_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, Any
                 "summary": {},
             },
         ),
+        (
+            (),
+            {
+                "tool": "iperf3",
+                "test_type": {},
+                "time": {},
+                "metrics": {},
+                "summary": {},
+            },
+        ),
     ],
     ids=[
         "Iperf3 adapter test.",
+        "Empty metrics.",
     ],
 )
 def test_iperf3_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, Any]) -> None:
@@ -613,9 +645,20 @@ def test_iperf3_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, A
                 "summary": {},
             },
         ),
+        (
+            {},
+            {
+                "tool": "pts",
+                "test_type": {},
+                "time": {},
+                "metrics": {},
+                "summary": {},
+            },
+        ),
     ],
     ids=[
         "PTS adapter test.",
+        "Empty metrics.",
     ],
 )
 def test_pts_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, Any]) -> None:
@@ -706,26 +749,26 @@ def test_pts_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, Any]
                 "time": {
                     "duration_sec": 2.30,
                 },
-                "metrics": [
-                    {
+                "metrics": {
+                    "0": {
                         "test": "pth_str01",
                         "status": "pass",
                         "retval": ["0"],
                         "duration": 0.16393470764160156,
                     },
-                    {
+                    "1": {
                         "test": "pth_str02",
                         "status": "pass",
                         "retval": ["0"],
                         "duration": 1.8436052799224854,
                     },
-                    {
+                    "2": {
                         "test": "pth_str03",
                         "status": "pass",
                         "retval": ["0"],
                         "duration": 0.2942326068878174,
                     },
-                ],
+                },
                 "summary": {
                     "passed": 3,
                     "failed": 0,
@@ -735,9 +778,20 @@ def test_pts_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, Any]
                 },
             },
         ),
+        (
+            {},
+            {
+                "tool": "kirk",
+                "test_type": {},
+                "time": {},
+                "metrics": {},
+                "summary": {},
+            },
+        ),
     ],
     ids=[
         "Kirk adapter test.",
+        "Empty metrics.",
     ],
 )
 def test_kirk_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, Any]) -> None:
@@ -1146,9 +1200,20 @@ def test_kirk_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, Any
                 },
             },
         ),
+        (
+            {},
+            {
+                "tool": "fio",
+                "test_type": {},
+                "time": {},
+                "metrics": {},
+                "summary": {},
+            },
+        ),
     ],
     ids=[
         "Fio adapter test.",
+        "Empty metrics.",
     ],
 )
 def test_fio_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, Any]) -> None:

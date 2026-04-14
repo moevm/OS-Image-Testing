@@ -346,6 +346,13 @@ class FioAdapter(JSONAdapter):
 
     def split_result(self, raw_metrics: dict[str, Any], test_index: int = 0) -> dict[str, Any]:
         jobs = raw_metrics.get("jobs", [])
+        if len(jobs) <= test_index:
+            return {
+                "test_type": {},
+                "time": {},
+                "metrics": {},
+                "summary": {},
+            }
         job = jobs[test_index]
 
         metrics = {

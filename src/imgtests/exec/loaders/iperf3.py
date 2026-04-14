@@ -117,6 +117,14 @@ class Iperf3Adapter(JSONAdapter):
         raw_metrics: dict[str, Any],
         test_index: int = 0,  # noqa: ARG002
     ) -> dict[str, Any]:
+        if not raw_metrics:
+            return {
+                "test_type": {},
+                "time": {},
+                "metrics": {},
+                "summary": {},
+            }
+
         client_metrics = raw_metrics.get("client", {})
         server_metrics = raw_metrics.get("server", {})
         test_info = client_metrics.get("start", {}).get("test_start", {})

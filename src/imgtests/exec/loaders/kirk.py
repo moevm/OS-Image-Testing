@@ -298,6 +298,13 @@ class KirkAdapter(JSONAdapter):
         test_index: int = 0,  # noqa: ARG002
     ) -> dict[str, Any]:
         results = raw_metrics.get("results", [])
+        if len(results) == 0:
+            return {
+                "test_type": {},
+                "time": {},
+                "metrics": {},
+                "summary": {},
+            }
         metrics = [
             {
                 "test": test.get("test_fqn", ""),
@@ -307,6 +314,7 @@ class KirkAdapter(JSONAdapter):
             }
             for test in results
         ]
+        metrics = {str(i): metric for i, metric in enumerate(metrics)}
 
         summary = raw_metrics.get("stats", {})
         time = {

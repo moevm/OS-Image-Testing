@@ -372,14 +372,27 @@ class PhoronixTestSuiteAdapter(JSONAdapter):
         self.tool = "pts"
 
     def split_result(self, raw_metrics: dict[str, Any], test_index: int = 0) -> dict[str, Any]:
+        if not raw_metrics:
+            return {
+                "test_type": {},
+                "time": {},
+                "metrics": {},
+                "summary": {},
+            }
+
         system_info = raw_metrics.get("systems", {})
-        system_info = system_info.get(next(iter(system_info.keys())), {})
+        if system_info:
+            system_info = system_info.get(next(iter(system_info.keys())), {})
 
         test_results = raw_metrics.get("results", {})
-        test_results = test_results.get(list(test_results.keys())[test_index], {})
+        if len(list(test_results.keys())) < test_index + 1:
+            test_results = {}
+        else:
+            test_results = test_results.get(list(test_results.keys())[test_index], {})
 
         test_metrics = test_results.get("results", {})
-        test_metrics = test_metrics.get(next(iter(test_metrics.keys())), {})
+        if test_metrics:
+            test_metrics = test_metrics.get(next(iter(test_metrics.keys())), {})
         test_metrics = self.drop_fields(test_metrics, ["details"])
 
         test_type = {
