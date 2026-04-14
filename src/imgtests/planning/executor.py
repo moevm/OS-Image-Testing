@@ -199,9 +199,6 @@ class PlanExecutor(BaseRunner):
             metrics=tuple(collected_metrics),
             tests_counts=tests_counts,
         )
-        logger.info(plan)
-        logger.info(result)
-        logger.info(result.metrics)
         generate_html_report(
             plan=plan,
             execution=result,
