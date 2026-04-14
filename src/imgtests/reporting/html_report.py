@@ -296,12 +296,11 @@ def _build_piechart(
 
 
 def _build_histograms_by_prefix(
-    metrics: list[MetricSample],  # type???
-    # title: str,
+    metrics: list[MetricSample],
     *,
     out_dir: Path,
     plots_dir: Path,
-) -> PlotAsset:
+) -> list[PlotAsset]:
     grouped = defaultdict(list)
     for m in metrics:
         if "." in m.metric_name:
