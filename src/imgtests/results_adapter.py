@@ -7,7 +7,6 @@ class AdapterResult(TypedDict):
     test_type: dict[str, Any]  # test type or name info
     time: dict[str, Any]  # time-related values
     metrics: dict[str, Any]  # useful test metrics from the tool
-    summary: dict[str, Any]  # stats summary of the test results
 
 
 class JSONAdapter(ABC):

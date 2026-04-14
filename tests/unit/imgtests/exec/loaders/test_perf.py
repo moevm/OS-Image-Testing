@@ -194,7 +194,6 @@ def test_parse_metrics(raw_metrics: str, expected: tuple[PerfBenchMetrics, ...])
                     "gb_per_sec_unrolled": 21.701389,
                     "gb_per_sec_movsq_based": 30.517578,
                 },
-                "summary": {},
             },
         ),
         (
@@ -224,7 +223,6 @@ def test_parse_metrics(raw_metrics: str, expected: tuple[PerfBenchMetrics, ...])
                     "gb_per_sec_unrolled": 21.701389,
                     "gb_per_sec_movsq_based": 30.517578,
                 },
-                "summary": {},
             },
         ),
         (
@@ -234,7 +232,6 @@ def test_parse_metrics(raw_metrics: str, expected: tuple[PerfBenchMetrics, ...])
                 "test_type": {},
                 "time": {},
                 "metrics": {},
-                "summary": {},
             },
         ),
     ],

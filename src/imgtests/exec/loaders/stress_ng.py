@@ -647,7 +647,6 @@ class StressNgAdapter(JSONAdapter):
                 "test_type": {},
                 "time": {},
                 "metrics": {},
-                "summary": {},
             }
         metrics = raw_metrics.get("stress_ng_metrics", [])
 
@@ -671,12 +670,11 @@ class StressNgAdapter(JSONAdapter):
 
         metrics = {str(i): metric for i, metric in enumerate(metrics)}
 
-        summary = raw_metrics.get("stress_ng_summary", {})
+        metrics["summary"] = raw_metrics.get("stress_ng_summary", {})
         return {
             "test_type": test_type,
             "time": time,
             "metrics": metrics,
-            "summary": summary,
         }
 
 

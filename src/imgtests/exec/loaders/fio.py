@@ -351,7 +351,6 @@ class FioAdapter(JSONAdapter):
                 "test_type": {},
                 "time": {},
                 "metrics": {},
-                "summary": {},
             }
         job = jobs[test_index]
 
@@ -376,14 +375,8 @@ class FioAdapter(JSONAdapter):
             "job_runtime": job.get("job_runtime", 0),
         }
 
-        summary = {
-            "jobs_count": len(jobs),
-            "failed_jobs": sum(1 for j in jobs if j.get("error", 0) != 0),
-        }
-
         return {
             "test_type": test_type,
             "time": time,
             "metrics": metrics,
-            "summary": summary,
         }

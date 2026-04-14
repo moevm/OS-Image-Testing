@@ -204,7 +204,6 @@ class PerfAdapter(JSONAdapter):
                 "test_type": {},
                 "time": {},
                 "metrics": {},
-                "summary": {},
             }
         metrics = raw_metrics[test_index]
         test_type = {"benchmark": metrics.get("benchmark", "")}
@@ -217,5 +216,4 @@ class PerfAdapter(JSONAdapter):
             "test_type": test_type,
             "time": time,
             "metrics": metrics,
-            "summary": {},
         }

@@ -303,7 +303,6 @@ class KirkAdapter(JSONAdapter):
                 "test_type": {},
                 "time": {},
                 "metrics": {},
-                "summary": {},
             }
         metrics = [
             {
@@ -322,9 +321,10 @@ class KirkAdapter(JSONAdapter):
         }
         summary = self.drop_fields(summary, ["runtime"])
 
+        metrics["summary"] = summary
+
         return {
             "test_type": {},
             "time": time,
             "metrics": metrics,
-            "summary": summary,
         }

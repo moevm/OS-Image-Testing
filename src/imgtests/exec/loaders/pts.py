@@ -377,7 +377,6 @@ class PhoronixTestSuiteAdapter(JSONAdapter):
                 "test_type": {},
                 "time": {},
                 "metrics": {},
-                "summary": {},
             }
 
         system_info = raw_metrics.get("systems", {})
@@ -385,7 +384,7 @@ class PhoronixTestSuiteAdapter(JSONAdapter):
             system_info = system_info.get(next(iter(system_info.keys())), {})
 
         test_results = raw_metrics.get("results", {})
-        if len(list(test_results.keys())) < test_index + 1:
+        if len(list(test_results.keys())) <= test_index:
             test_results = {}
         else:
             test_results = test_results.get(list(test_results.keys())[test_index], {})
@@ -408,5 +407,4 @@ class PhoronixTestSuiteAdapter(JSONAdapter):
             "test_type": test_type,
             "time": time,
             "metrics": test_metrics,
-            "summary": {},
         }

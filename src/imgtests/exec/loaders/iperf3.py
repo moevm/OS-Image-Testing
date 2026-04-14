@@ -122,7 +122,6 @@ class Iperf3Adapter(JSONAdapter):
                 "test_type": {},
                 "time": {},
                 "metrics": {},
-                "summary": {},
             }
 
         client_metrics = raw_metrics.get("client", {})
@@ -151,5 +150,4 @@ class Iperf3Adapter(JSONAdapter):
             "test_type": test_type,
             "time": time,
             "metrics": metrics,
-            "summary": {},
         }
