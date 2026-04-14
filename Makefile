@@ -20,7 +20,6 @@ BENCHER_API_CONF_VOLUME    := ${DOCKER_PREFIX}-bencher-conf
 BENCHER_API_DB_VOLUME      := ${DOCKER_PREFIX}-bencher-database
 BENCHER_API_LOGS_VOLUME    := ${DOCKER_PREFIX}-bencher-logs
 VMETRICS_DATA_VOLUME	   := ${DOCKER_PREFIX}-vmetrics-data
-ANALYZER_DATA_VOLUME	   := ${DOCKER_PREFIX}-analyzer-data
 
 # VictoriaMetrics-docker-network
 DEFAULT_NE_PORT		       := 9100
@@ -83,7 +82,7 @@ docker-compose-down:
 
 .PHONY: ensure-volumes
 ensure-volumes: docker
-	@for volume in ${DOCKER_OPENSUSE_VOLUME} ${BENCHER_API_CONF_VOLUME} ${BENCHER_API_DB_VOLUME} ${ANALYZER_DATA_VOLUME} \
+	@for volume in ${DOCKER_OPENSUSE_VOLUME} ${BENCHER_API_CONF_VOLUME} ${BENCHER_API_DB_VOLUME} \
 	                ${BENCHER_API_LOGS_VOLUME} ${VMETRICS_DATA_VOLUME} ${DOCKER_POSTGRES_VOLUME}; do \
 		if ! docker volume inspect $$volume > /dev/null 2>&1; then \
 			docker volume create $$volume; \

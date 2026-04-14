@@ -69,7 +69,6 @@ services:
     volumes:
       - ./tests/image:/home/${USER}/image
       - ${HOST_SCRIPTS_PATH}/bencher/bencher-test.sh:/home/${USER}/bencher-test.sh
-      - ${ANALYZER_DATA_VOLUME}:/home/${USER}/tests
     environment:
       POSTGRES_USER: ${USER}
       POSTGRES_PASSWORD: ${PASSWORD}

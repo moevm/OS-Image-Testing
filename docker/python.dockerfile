@@ -25,5 +25,3 @@ COPY --chown=${USER}:${GROUP} src/ /home/${USER}/python
 COPY --chown=${USER}:${GROUP} pyproject.toml /home/${USER}/python
 RUN cd /home/${USER}/python && python3 -m pip install .
 RUN rm -rf /home/${USER}/python
-
-VOLUME [ "/home/${USER}/tests" ]
