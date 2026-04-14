@@ -137,7 +137,8 @@ services:
       - ${BENCHER_API_PORT}:${BENCHER_API_PORT}
     volumes:
       - ${BENCHER_API_CONF_VOLUME}:/etc/bencher
-      - ${BENCHER_API_DB_VOLUME}:/var/lib/bencher/data
+      - ${BENCHER_API_DB_VOLUME}:/var/lib/bencher
+      - ${BENCHER_API_LOGS_VOLUME}:/var/log/bencher
     networks:
       yocto-network:
         ipv4_address: ${BENCHER_API_ADDRESS}
@@ -164,6 +165,8 @@ volumes:
   imgtests-bencher-conf:
     external: true
   imgtests-bencher-database:
+    external: true
+  imgtests-bencher-logs:
     external: true
   imgtests-open-suse-files:
     external: true
