@@ -29,7 +29,7 @@ from imgtests.exec.loaders import (
                         "cpu_used_per_instance": 94.7,
                         "rss_max_kb": 6212,
                         "top10_slowest": None,
-                    }
+                    },
                 ],
                 "stress_ng_summary": {
                     "skipped": 0,
@@ -92,7 +92,7 @@ def test_stress_ng_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str
                     "total_time": 198.97,
                     "usecs_per_op": 198.970091,
                     "ops_per_sec": 5025,
-                }
+                },
             ],
             {
                 "tool": "perf",
@@ -134,7 +134,7 @@ def test_perf_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, Any
                                 "local_port": 45538,
                                 "remote_host": "127.0.0.1",
                                 "remote_port": 5201,
-                            }
+                            },
                         ],
                         "version": "iperf 3.18",
                         "system_info": "Linux qemux86-64 6.12.47-yocto-standard x86_64",
@@ -178,7 +178,7 @@ def test_perf_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, Any
                                     "packets": 5,
                                     "omitted": "false",
                                     "sender": "true",
-                                }
+                                },
                             ],
                             "sum": {
                                 "start": 0,
@@ -190,7 +190,7 @@ def test_perf_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, Any
                                 "omitted": "false",
                                 "sender": "true",
                             },
-                        }
+                        },
                     ],
                     "end": {
                         "streams": [
@@ -208,8 +208,8 @@ def test_perf_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, Any
                                     "lost_percent": 0,
                                     "out_of_order": 0,
                                     "sender": "true",
-                                }
-                            }
+                                },
+                            },
                         ],
                         "sum": {
                             "start": 0,
@@ -266,7 +266,7 @@ def test_perf_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, Any
                                 "local_port": 5201,
                                 "remote_host": "127.0.0.1",
                                 "remote_port": 45538,
-                            }
+                            },
                         ],
                         "version": "iperf 3.18",
                         "system_info": "Linux qemux86-64 6.12.47-yocto-standard x86_64",
@@ -313,7 +313,7 @@ def test_perf_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, Any
                                     "lost_percent": 0,
                                     "omitted": "false",
                                     "sender": "false",
-                                }
+                                },
                             ],
                             "sum": {
                                 "start": 0,
@@ -344,7 +344,7 @@ def test_perf_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, Any
                                     "lost_percent": 0,
                                     "omitted": "false",
                                     "sender": "false",
-                                }
+                                },
                             ],
                             "sum": {
                                 "start": 1.000781,
@@ -377,8 +377,8 @@ def test_perf_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, Any
                                     "lost_percent": 0,
                                     "out_of_order": 0,
                                     "sender": "false",
-                                }
-                            }
+                                },
+                            },
                         ],
                         "sum": {
                             "start": 0,
@@ -556,7 +556,7 @@ def test_iperf3_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, A
                             "cpu-microcode": "0x1",
                             "security": "",
                         },
-                    }
+                    },
                 },
                 "results": {
                     "d14fab923a8a05c721a245a14d1b704edb4f77f8": {
@@ -582,11 +582,11 @@ def test_iperf3_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, A
                                         "compiler-type": "CC",
                                         "compiler": "gcc",
                                         "compiler-options": "",
-                                    }
+                                    },
                                 },
-                            }
+                            },
                         },
-                    }
+                    },
                 },
             },
             {
@@ -973,7 +973,7 @@ def test_kirk_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, Any
                         "latency_target": 0,
                         "latency_percentile": 100,
                         "latency_window": 0,
-                    }
+                    },
                 ],
             },
             {
