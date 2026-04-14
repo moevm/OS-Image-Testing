@@ -17,7 +17,7 @@ def get_total_ram_size(client: SSHClient | None = None) -> int | None:
         return None
     try:
         return int(result.stdout.split()[1])
-    except (IndexError, ValueError):
+    except IndexError, ValueError:
         logger.exception("Finding total RAM size failed.")
         return None
 
@@ -30,6 +30,6 @@ def get_available_ram_size(client: SSHClient | None = None) -> int | None:
         return None
     try:
         return int(result.stdout.split()[1])
-    except (IndexError, ValueError):
+    except IndexError, ValueError:
         logger.exception("Finding available RAM size failed.")
         return None

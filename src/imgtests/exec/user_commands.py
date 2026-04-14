@@ -57,7 +57,7 @@ class Time(PkgMgrMixin, GenericUtil):
             raw_time = line.split()
             try:
                 return Times(float(raw_time[0]), float(raw_time[1]), float(raw_time[2]))
-            except (ValueError, IndexError):
+            except ValueError, IndexError:
                 continue
         return None
 
