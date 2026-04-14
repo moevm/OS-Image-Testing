@@ -58,7 +58,7 @@ def get_available_bytes(client: SSHClient | None, path: str | Path) -> int | Non
 
     try:
         return int(out[-1].strip())
-    except (ValueError, IndexError):
+    except ValueError, IndexError:
         return None
 
 
@@ -335,5 +335,5 @@ def _safe_float(value: Any) -> float | None:
 
     try:
         return float(value)
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return None

@@ -425,7 +425,7 @@ class PlanExecutor(BaseRunner):
             task=task,
             started_at=started_at,
             ended_at=ended_at,
-            command=result.cmd if result.cmd else ("fio",),
+            command=result.cmd or ("fio",),
             returncode=result.returncode,
             stdout=result.stdout,
             stderr=result.stderr,
