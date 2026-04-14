@@ -63,7 +63,7 @@ class JointBench(AbstractRunnableManyTimesTest):
                 Subsystem.SYSCALLS,
                 Subsystem.NETWORK,
                 Subsystem.SYSTEM,
-            }
+            },
         ),
         iterations: int = 1,
     ) -> None:
@@ -106,7 +106,8 @@ class JointBench(AbstractRunnableManyTimesTest):
                         case _:
                             pass
                     run_method: Callable[..., tuple[ExecResult, Any]] = getattr(
-                        tool_instance, TOOLS_CONFIG[tool_name].run
+                        tool_instance,
+                        TOOLS_CONFIG[tool_name].run,
                     )
                     self.logger.info("Run '%s' test '%s'", tool_name, test_copy)
                     started_at = datetime.now(tz=ZoneInfo("UTC"))

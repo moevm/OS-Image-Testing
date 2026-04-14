@@ -57,7 +57,9 @@ class BaseTestUtil(ABC):
             cmd = []
         if self.path is None:
             return ExecResult(
-                cmd=("which", self.name), stderr=f"Failed to locate '{self.name}'.", returncode=1
+                cmd=("which", self.name),
+                stderr=f"Failed to locate '{self.name}'.",
+                returncode=1,
             )
         for k in kwargs:
             if k in cmd:

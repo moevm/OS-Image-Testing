@@ -41,7 +41,9 @@ class Perf(PkgMgrMixin, GenericUtil):
         """Install perf via the system package manager."""
         if self.path:
             return ExecResult(
-                cmd=(), stderr=f"{self.name} already has been installed.", returncode=0
+                cmd=(),
+                stderr=f"{self.name} already has been installed.",
+                returncode=0,
             )
         return self._install_packages(["perf"])
 
@@ -79,7 +81,7 @@ class Perf(PkgMgrMixin, GenericUtil):
                 collection,
                 benchmark,
                 *add_opts,
-            ]
+            ],
         )
 
         return result, self.parse_bench(result.stdout.strip())
@@ -160,7 +162,7 @@ class Perf(PkgMgrMixin, GenericUtil):
                     gb_default,
                     gb_unrolled,
                     gb_movsq,
-                )
+                ),
             )
         return tuple(results)
 

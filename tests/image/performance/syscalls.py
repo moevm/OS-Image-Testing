@@ -25,7 +25,10 @@ class SyscallsWithCpuLoadTest(AbstractRunnableTimeLimitedTest):
         )
 
     def _run(
-        self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int
+        self,
+        executor: ThreadPoolExecutor,
+        client: SSHClient | None,
+        timeout: int,
     ) -> Iterable[TestResult]:
         stress_ng = StressNg(client)
         kirk = Kirk(client)
@@ -101,7 +104,10 @@ class StressNgSyscallsWithMemLoadTest(StressNgTest):
         )
 
     def _run(
-        self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int
+        self,
+        executor: ThreadPoolExecutor,
+        client: SSHClient | None,
+        timeout: int,
     ) -> Iterable[TestResult]:
         stress_ng = StressNg(client)
         yield from self.run_test(
@@ -124,7 +130,10 @@ class SyscallsFullLoadTest(AbstractRunnableTimeLimitedTest):
         )
 
     def _run(
-        self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int
+        self,
+        executor: ThreadPoolExecutor,
+        client: SSHClient | None,
+        timeout: int,
     ) -> Iterable[TestResult]:
         stress_ng = StressNg(client)
         perf = Perf(client)

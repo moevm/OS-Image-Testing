@@ -28,7 +28,9 @@ class NodeExporter(GenericUtil):
     def install(self, collect_flags: list[str] | None = None) -> ExecResult:  # noqa: PLR0911
         if self.path:
             return ExecResult(
-                cmd=(), stderr=f"{self.name} already has been installed.", returncode=0
+                cmd=(),
+                stderr=f"{self.name} already has been installed.",
+                returncode=0,
             )
         # install package itself
         version = "1.10.2"
@@ -54,7 +56,8 @@ class NodeExporter(GenericUtil):
         )
 
         install_res = common_run_command(
-            ("sudo", "bash", "-lc", f"'{install_script}'"), self.ssh_client
+            ("sudo", "bash", "-lc", f"'{install_script}'"),
+            self.ssh_client,
         )
         if install_res.returncode:
             return install_res
@@ -83,7 +86,8 @@ class NodeExporter(GenericUtil):
             ]
             for line in service_text:
                 serv_res = common_run_command(
-                    ["sudo", "echo", line, " >> ", "node_exporter.service"], self.ssh_client
+                    ["sudo", "echo", line, " >> ", "node_exporter.service"],
+                    self.ssh_client,
                 )
                 if serv_res.returncode:
                     return serv_res
@@ -96,7 +100,8 @@ class NodeExporter(GenericUtil):
                 f"chown nodeuser:nodeuser /usr/local/bin/{pkg}; "
             )
             result = common_run_command(
-                ("sudo", "bash", "-lc", f"'{systemd_script}'"), self.ssh_client
+                ("sudo", "bash", "-lc", f"'{systemd_script}'"),
+                self.ssh_client,
             )
             if result.returncode:
                 return result

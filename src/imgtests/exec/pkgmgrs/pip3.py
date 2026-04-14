@@ -23,7 +23,9 @@ class Pip3(PkgMgrMixin, GenericUtil):
     def install(self) -> ExecResult:
         if self.path:
             return ExecResult(
-                cmd=(), stderr=f"{self.name} already has been installed.", returncode=0
+                cmd=(),
+                stderr=f"{self.name} already has been installed.",
+                returncode=0,
             )
         return self._install_packages(["python3-pip"])
 

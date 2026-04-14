@@ -26,7 +26,11 @@ class TEnum(Enum):
     ],
 )
 def test_create_opt(
-    key: str, value: Any | None, expected: list[str], use_equals: bool, use_one_dash: bool
+    key: str,
+    value: Any | None,
+    expected: list[str],
+    use_equals: bool,
+    use_one_dash: bool,
 ) -> None:
     result = create_opt(key, value, use_equals=use_equals, use_one_dash=use_one_dash)
     assert result == expected

@@ -9,7 +9,10 @@ if TYPE_CHECKING:
 
 
 def create_opt(
-    key: str, value: Any | None, use_equals: bool = False, use_one_dash: bool = False
+    key: str,
+    value: Any | None,
+    use_equals: bool = False,
+    use_one_dash: bool = False,
 ) -> list[str]:
     """Create a command line option list from the given parameters.
 

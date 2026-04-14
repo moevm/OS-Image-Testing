@@ -32,7 +32,9 @@ class Kirk(GenericUtil):
         """Install kirk from the official Git repository and expose it in PATH."""
         if self.path:
             return ExecResult(
-                cmd=(), stderr=f"{self.name} already has been installed.", returncode=0
+                cmd=(),
+                stderr=f"{self.name} already has been installed.",
+                returncode=0,
             )
 
         os_id = get_os_release(self.ssh_client).id
@@ -71,7 +73,7 @@ class Kirk(GenericUtil):
         if self.ssh_client is None:
             try:
                 return tuple(
-                    sorted(entry.name for entry in runtest_dir.iterdir() if entry.is_file())
+                    sorted(entry.name for entry in runtest_dir.iterdir() if entry.is_file()),
                 )
             except OSError:
                 logger.exception("Failed to list LTP suites in local directory %s", runtest_dir)
@@ -160,7 +162,8 @@ class Kirk(GenericUtil):
                 results_dir_path.mkdir(parents=True, exist_ok=True)
             except OSError:
                 logger.exception(
-                    "Failed to create local directory for LTP results: %s", results_dir_path
+                    "Failed to create local directory for LTP results: %s",
+                    results_dir_path,
                 )
                 return (
                     ExecResult(
@@ -223,18 +226,21 @@ class Kirk(GenericUtil):
             results_dir_path.mkdir(parents=True, exist_ok=True)
         except OSError:
             logger.exception(
-                "Failed to create local directory for LTP results: %s", results_dir_path
+                "Failed to create local directory for LTP results: %s",
+                results_dir_path,
             )
             return res, None
 
         local_json_path = results_dir_path / remote_json_path.name
         download_res = self.ssh_client.download(
-            remotepath=remote_json_path, localpath=local_json_path
+            remotepath=remote_json_path,
+            localpath=local_json_path,
         )
 
         if download_res.returncode:
             logger.error(
-                "Failed to download LTP results from remote host. STDERR: %s", download_res.stderr
+                "Failed to download LTP results from remote host. STDERR: %s",
+                download_res.stderr,
             )
             return res, None
 

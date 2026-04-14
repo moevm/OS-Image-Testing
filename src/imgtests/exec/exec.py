@@ -86,7 +86,11 @@ class SSHClient:
     __slots__ = ("hostname", "password", "port", "ssh_session", "username")
 
     def __init__(
-        self, hostname: str, username: str = "root", password: str | None = None, port: int = 22
+        self,
+        hostname: str,
+        username: str = "root",
+        password: str | None = None,
+        port: int = 22,
     ) -> None:
         self.hostname = hostname
         self.username = username
@@ -134,7 +138,11 @@ class SSHClient:
 
     @classmethod
     def build_from_env(
-        cls, address_env: str, user_env: str, password_env: str, port_env: str
+        cls,
+        address_env: str,
+        user_env: str,
+        password_env: str,
+        port_env: str,
     ) -> SSHClient:
         return SSHClient(
             env_var_to_type(address_env, str),
@@ -162,7 +170,7 @@ class SSHClient:
         sftp.put(localpath, str(remotepath))
         sftp.close()
         return ExecResult(
-            cmd=("scp", str(localpath), f"{self.username}@{self.hostname}:{remotepath}")
+            cmd=("scp", str(localpath), f"{self.username}@{self.hostname}:{remotepath}"),
         )
 
     def download(self, remotepath: Path, localpath: Path) -> ExecResult:
@@ -175,12 +183,15 @@ class SSHClient:
         sftp.get(str(remotepath), localpath)
         sftp.close()
         return ExecResult(
-            cmd=("scp", f"{self.username}@{self.hostname}:{remotepath}", str(localpath))
+            cmd=("scp", f"{self.username}@{self.hostname}:{remotepath}", str(localpath)),
         )
 
 
 def wait_remote(
-    address_env: str, user_env: str, password_env: str, port_env: str
+    address_env: str,
+    user_env: str,
+    password_env: str,
+    port_env: str,
 ) -> SSHClient | None:
     wait_sec = 60 * 60 * 5
     step_sec = 60
@@ -218,7 +229,9 @@ def which(util: str, ssh_client: SSHClient | None = None, use_sudo: bool = False
 
 
 def pipeline(
-    cmds: Sequence[Sequence[str]], ssh_client: SSHClient | None = None, pass_output: bool = False
+    cmds: Sequence[Sequence[str]],
+    ssh_client: SSHClient | None = None,
+    pass_output: bool = False,
 ) -> Iterable[ExecResult]:
     prev_stdout = None
 

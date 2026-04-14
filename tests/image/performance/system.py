@@ -18,7 +18,10 @@ class PTSSystemTest(AbstractRunnableManyTimesTest):
         super().__init__("Load system with PTS.", frozenset({Subsystem.SYSTEM}), iterations)
 
     def _run(
-        self, executor: ThreadPoolExecutor, client: SSHClient | None, iterations: int
+        self,
+        executor: ThreadPoolExecutor,
+        client: SSHClient | None,
+        iterations: int,
     ) -> Iterable[TestResult]:
         pts = PhoronixTestSuite(client)
         future = executor.submit(pts.prepare)

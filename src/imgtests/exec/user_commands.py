@@ -57,7 +57,7 @@ class Time(PkgMgrMixin, GenericUtil):
             raw_time = line.split()
             try:
                 return Times(float(raw_time[0]), float(raw_time[1]), float(raw_time[2]))
-            except (ValueError, IndexError):
+            except ValueError, IndexError:
                 continue
         return None
 
@@ -65,6 +65,8 @@ class Time(PkgMgrMixin, GenericUtil):
         """Install time via the system package manager."""
         if self.path:
             return ExecResult(
-                cmd=(), stderr=f"{self.name} already has been installed.", returncode=0
+                cmd=(),
+                stderr=f"{self.name} already has been installed.",
+                returncode=0,
             )
         return self._install_packages(["time"])

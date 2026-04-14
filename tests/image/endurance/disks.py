@@ -21,7 +21,10 @@ class StressNgEnduranceDisksTest(StressNgTest):
         )
 
     def _run(
-        self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int
+        self,
+        executor: ThreadPoolExecutor,
+        client: SSHClient | None,
+        timeout: int,
     ) -> Iterable[TestResult]:
         stress_ng = StressNg(client)
         yield from self.run_test(

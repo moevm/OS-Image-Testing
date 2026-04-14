@@ -13,7 +13,15 @@ if TYPE_CHECKING:
     from imgtests.types import Subsystem, Version
 
 IOPattern = Literal[
-    "read", "write", "trim", "randread", "randwrite", "randtrim", "readwrite", "randrw", "trimwrite"
+    "read",
+    "write",
+    "trim",
+    "randread",
+    "randwrite",
+    "randtrim",
+    "readwrite",
+    "randrw",
+    "trimwrite",
 ]
 # fmt: off
 IOEngine = Literal[
@@ -51,7 +59,7 @@ def get_available_bytes(client: SSHClient | None, path: str | Path) -> int | Non
 
     try:
         return int(out[-1].strip())
-    except (ValueError, IndexError):
+    except ValueError, IndexError:
         return None
 
 
@@ -65,7 +73,9 @@ class Fio(PkgMgrMixin, GenericUtil):
         """Install fio via the system package manager."""
         if self.path:
             return ExecResult(
-                cmd=(), stderr=f"{self.name} already has been installed.", returncode=0
+                cmd=(),
+                stderr=f"{self.name} already has been installed.",
+                returncode=0,
             )
         return self._install_packages(["fio"])
 
@@ -102,7 +112,7 @@ class Fio(PkgMgrMixin, GenericUtil):
         directory: Path | None = None,
         offset: str | None = None,
         offset_increment: str | None = None,
-        **kwargs: dict[str, Any],
+        **kwargs: str | float | bool | None,
     ) -> ExecResult:
         """Runs the fio util with provided options.
 
@@ -118,7 +128,7 @@ class Fio(PkgMgrMixin, GenericUtil):
             directory (Path | None): Directory for saving test files.
             offset (str | None): Start offset in bytes or percentage of file size.
             offset_increment (str | None): Per-job offset step added to base offset for each thread.
-            **kwargs (dict[str, Any]): Command arguments in the free form with values.
+            **kwargs (str | float | bool | None): Command arguments in the free form with values.
 
         Raises:
             ValueError: When invalid parameters provided or repeated.
@@ -244,7 +254,7 @@ def fio_metrics_to_samples(
                     op=op,
                     op_data=op_data,
                     percentiles=FIO_CLAT_PERCENTILES,
-                )
+                ),
             )
 
     return out
@@ -269,7 +279,7 @@ def _fio_op_samples(
 
     if iops is not None:
         out.append(
-            MetricSample(stage_name, subsystem, f"fio.{op}.iops", iops, label=f"{op_label} IOPS")
+            MetricSample(stage_name, subsystem, f"fio.{op}.iops", iops, label=f"{op_label} IOPS"),
         )
     if bw is not None:
         out.append(
@@ -279,7 +289,7 @@ def _fio_op_samples(
                 f"fio.{op}.bw_kib_s",
                 bw,
                 label=f"{op_label} bandwidth, KiB/s",
-            )
+            ),
         )
     if runtime_ms is not None:
         out.append(
@@ -289,7 +299,7 @@ def _fio_op_samples(
                 f"fio.{op}.runtime_ms",
                 runtime_ms,
                 label=f"{op_label} runtime, ms",
-            )
+            ),
         )
     if clat_mean is not None:
         out.append(
@@ -299,7 +309,7 @@ def _fio_op_samples(
                 f"fio.{op}.clat_mean_ns",
                 clat_mean,
                 label=f"{op_label} clat mean, ns",
-            )
+            ),
         )
 
     pct = clat.get("percentile") if isinstance(clat, dict) else None
@@ -314,7 +324,7 @@ def _fio_op_samples(
                         f"fio.{op}.clat_p{metric_suffix}_ns",
                         fv,
                         label=f"{op_label} clat p{percentile_label}, ns",
-                    )
+                    ),
                 )
 
     return out
@@ -326,7 +336,7 @@ def _safe_float(value: Any) -> float | None:
 
     try:
         return float(value)
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return None
 
 

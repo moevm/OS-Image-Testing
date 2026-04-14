@@ -53,13 +53,16 @@ class StressNgConsecutiveLoadTest(StressNgTest):
                     Subsystem.SYSCALLS,
                     Subsystem.NETWORK,
                     Subsystem.SYSTEM,
-                }
+                },
             ),
             timeout,
         )
 
     def _run(
-        self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int
+        self,
+        executor: ThreadPoolExecutor,
+        client: SSHClient | None,
+        timeout: int,
     ) -> Iterable[TestResult]:
         stress_ng = StressNg(client)
 
@@ -74,7 +77,10 @@ class StressNgConsecutiveLoadTest(StressNgTest):
         )
         for params in tests:
             yield from self.run_test(
-                stress_ng=stress_ng, executor=executor, timeout=subtest_timeout, **params
+                stress_ng=stress_ng,
+                executor=executor,
+                timeout=subtest_timeout,
+                **params,
             )
 
 
@@ -90,13 +96,16 @@ class StressNgCombineLoadTest(StressNgTest):
                     Subsystem.SYSCALLS,
                     Subsystem.NETWORK,
                     Subsystem.SYSTEM,
-                }
+                },
             ),
             timeout,
         )
 
     def _run(
-        self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int
+        self,
+        executor: ThreadPoolExecutor,
+        client: SSHClient | None,
+        timeout: int,
     ) -> Iterable[TestResult]:
         stress_ng = StressNg(client)
 
@@ -117,7 +126,10 @@ class StressNgCombineLoadTest(StressNgTest):
         for test_combination in test_combinations:
             test_params = combine_params(test_combination)
             yield from self.run_test(
-                stress_ng=stress_ng, executor=executor, timeout=combination_timeout, **test_params
+                stress_ng=stress_ng,
+                executor=executor,
+                timeout=combination_timeout,
+                **test_params,
             )
 
 
@@ -133,19 +145,25 @@ class StressNgParallelLoadTest(StressNgTest):
                     Subsystem.SYSCALLS,
                     Subsystem.NETWORK,
                     Subsystem.SYSTEM,
-                }
+                },
             ),
             timeout,
         )
 
     def _run(
-        self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int
+        self,
+        executor: ThreadPoolExecutor,
+        client: SSHClient | None,
+        timeout: int,
     ) -> Iterable[TestResult]:
         stress_ng = StressNg(client)
 
         test_params = combine_params(tests)
         yield from self.run_test(
-            stress_ng=stress_ng, executor=executor, timeout=timeout, **test_params
+            stress_ng=stress_ng,
+            executor=executor,
+            timeout=timeout,
+            **test_params,
         )
 
 
@@ -167,7 +185,10 @@ class StressNgIterTestIPC(StressNgTest):
         )
 
     def _run(
-        self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int
+        self,
+        executor: ThreadPoolExecutor,
+        client: SSHClient | None,
+        timeout: int,
     ) -> Iterable[TestResult]:
         stress_ng = StressNg(client)
 
