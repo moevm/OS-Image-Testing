@@ -27,13 +27,19 @@
   <p class="muted">Same stats, but computed separately for each stage.</p>
   {{ tables.render_stats_table(timeline.per_stage_rows, include_stage=true) }}
 
-  <h2>4) Boxplot Visualizations</h2>
-  {% if visualizations %}
-    {% for plot in visualizations.booxplots %}
-      {{ chart.render_chart(plot) }}
-    {% endfor %}
-  {% else %}
-  <p>No plots were generated (not enough numeric samples).</p>
-  {% endif %}
+{% if visualizations %}
+  {% for vis_name, plots in visualizations.items() %}
+    <h2>{{ loop.index + 3 }}) {{ vis_name|capitalize }} visualizations</h2>
+    {% if plots %}
+      {% for plot in plots %}
+        {{ chart.render_chart(plot) }}
+      {% endfor %}
+    {% else %}
+      <p>No plots were generated (not enough numeric samples).</p>
+    {% endif %}
+  {% endfor %}
+{% else %}
+  <p>No visualizations available.</p>
+{% endif %}
 </body>
 </html>
