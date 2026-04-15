@@ -359,6 +359,7 @@ class TestsRunner(BaseRunner):
         from imgtests.exec.loaders import (  # noqa: PLC0415
             Chaosblade,
             Fio,
+            Iperf3,
             Kirk,
             Perf,
             PhoronixTestSuite,
@@ -379,6 +380,7 @@ class TestsRunner(BaseRunner):
             NodeExporter,
             Sar,
             Lshw,
+            Iperf3,
         ):
             tool_instance: BaseTestUtil = tool(self._client)
             try:
