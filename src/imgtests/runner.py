@@ -359,7 +359,6 @@ class TestsRunner(BaseRunner):
         from imgtests.exec.loaders import (  # noqa: PLC0415
             Chaosblade,
             Fio,
-            FioPlot,
             Kirk,
             Perf,
             PhoronixTestSuite,
@@ -372,7 +371,6 @@ class TestsRunner(BaseRunner):
         for tool in (
             Chaosblade,
             Fio,
-            FioPlot,
             Kirk,
             Perf,
             StressNg,
