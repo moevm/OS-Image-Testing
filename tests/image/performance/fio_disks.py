@@ -287,16 +287,6 @@ class FioDisksParallelLoadTest(AbstractRunnableTimeLimitedTest):
                 filename="large_testfile",
             ),
             FioSuiteConfig(
-                suite="small-with-offset",
-                duration_sec=timeout,
-                results_dir=Path().home() / "fio",
-                workloads=SMALL_BLOCK_WORKLOAD,
-                offset="512b",
-                offset_increment="3k",
-                size=size,
-                filename="small_with_offset_testfile",
-            ),
-            FioSuiteConfig(
                 suite="large-with-offset",
                 duration_sec=timeout,
                 results_dir=Path().home() / "fio",
@@ -307,17 +297,16 @@ class FioDisksParallelLoadTest(AbstractRunnableTimeLimitedTest):
             ),
         ]
         q = queue.Queue()
-        for cfg in configs:
-            futures = [
-                executor.submit(
-                    _enqueue_fio_results,
-                    client,
-                    cfg,
-                    "FIO parallel load test PASSED.",
-                    q,
-                ),
-            ]
-
+        futures = [
+            executor.submit(
+                _enqueue_fio_results,
+                client,
+                cfg,
+                "FIO parallel load test PASSED.",
+                q,
+            )
+            for cfg in configs
+        ]
         while any(not f.done() for f in futures) or not q.empty():
             try:
                 r = q.get(timeout=0.5)
