@@ -212,7 +212,7 @@ def which(util: str, ssh_client: SSHClient | None = None, use_sudo: bool = False
         ["which", util],
         *([["sudo", "which", util]] if use_sudo else []),
     ):
-        result = call_func(cmd)
+        result = call_func(cmd, log_errors=False)
         if result.returncode:
             continue
         return Path(result.stdout.strip())
@@ -221,7 +221,7 @@ def which(util: str, ssh_client: SSHClient | None = None, use_sudo: bool = False
         ["type", "-p", util],
         *([["sudo", "type", "-p", util]] if use_sudo else []),
     ):
-        result = call_func(cmd)
+        result = call_func(cmd, log_errors=False)
         if result.returncode:
             continue
         return Path(util)
