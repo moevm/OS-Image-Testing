@@ -24,10 +24,12 @@ if TYPE_CHECKING:
 
 PLOTS_DIR: Final = "plots"
 REPORT_FILENAME: Final = "report.html"
+COMPARE_REPORT_FILENAME: Final = "compare.html"
 
 TEMPLATES_DIR: Final = "templates"
 STATIC_DIR: Final = "static"
 REPORT_TEMPLATE: Final = "base_report.html.j2"
+COMARE_REPORT_TEMPLATE: Final = "compare_report.html.j2"
 
 
 class DiagramConfig(NamedTuple):
@@ -96,7 +98,60 @@ def generate_compare_html_report(
     database: ImgtestsDatabase,
     out_dir: Path,
 ):
-    pass
+    out_dir.mkdir(parents=True, exist_ok=True)
+    plots_dir = out_dir / PLOTS_DIR
+    plots_dir.mkdir(parents=True, exist_ok=True)
+    report_data = []
+    for exp_id in experiments_id:
+        exp_data = database.get_experiment_with_details(exp_id)
+        metrics = _extract_metrics_from_experiment(exp_data)
+        report_data.append(
+            {
+                "header": {
+                    "test_kind": exp_data.description,
+                    "configuration": exp_data.configuration,
+                    "experiment_id": exp_id,
+                    "started_at": exp_data.started_at.isoformat(),
+                    "ended_at": exp_data.ended_at.isoformat(),
+                    "tests_counts": {
+                        "skip_count": exp_data.tests_skipped,
+                        "broken_count": exp_data.tests_broken,
+                        "failed_count": exp_data.tests_failed,
+                        "passed_count": exp_data.tests_passed,
+                        "total_count": exp_data.tests_total,
+                    },
+                    "tests_stats": _build_piechart(
+                        {
+                            "skip_count": exp_data.tests_skipped,
+                            "broken_count": exp_data.tests_broken,
+                            "failed_count": exp_data.tests_failed,
+                            "passed_count": exp_data.tests_passed,
+                        },
+                        out_dir=out_dir,
+                        plots_dir=plots_dir,
+                        title="Test result statistics",
+                    ),
+                },
+                "timeline": {
+                    "overall_rows": _compute_stats(metrics, by_stage=False),
+                    "per_stage_rows": _compute_stats(metrics, by_stage=True),
+                },
+                "visualizations": _collect_test_visualizations(
+                    metrics,
+                    out_dir=out_dir,
+                    plots_dir=plots_dir,
+                ),
+            },
+        )
+    template = _template_environment().get_template(COMARE_REPORT_TEMPLATE)
+    report_path = out_dir / COMARE_REPORT_TEMPLATE
+    report_path.write_text(
+        template.render(
+            report_data=report_data,
+        ),
+        encoding="utf-8",
+    )
+    return report_path
 
 
 def _extract_metrics_from_experiment(experiment: ExperimentBase) -> list[MetricSample]:
