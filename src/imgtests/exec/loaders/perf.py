@@ -206,7 +206,7 @@ class PerfAdapter(JSONAdapter):
                 "metrics": {},
             }
         metrics = raw_metrics[test_index]
-        test_type = {"benchmark": metrics.get("benchmark", "")}
+        test_type = {"benchmark": metrics.get("benchmark", "unknown")}
         time = {"duration_sec": metrics.get("total_time", 0)}
 
         excluded_fields = [*test_type.keys(), "total_time"]

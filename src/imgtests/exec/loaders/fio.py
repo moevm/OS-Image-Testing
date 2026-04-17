@@ -362,11 +362,11 @@ class FioAdapter(JSONAdapter):
 
         job_options = job.get("job options", {})
         test_type = {
-            "name": job_options.get("name", ""),
-            "size": job_options.get("size", ""),
-            "rw": job_options.get("rw", ""),
-            "ioengine": job_options.get("ioengine", ""),
-            "bs": job_options.get("bs", ""),
+            "name": job_options.get("name", "unknown"),
+            "size": job_options.get("size", "unknown"),
+            "rw": job_options.get("rw", "unknown"),
+            "ioengine": job_options.get("ioengine", "unknown"),
+            "bs": job_options.get("bs", "unknown"),
         }
 
         time = {

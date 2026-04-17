@@ -651,22 +651,19 @@ class StressNgAdapter(JSONAdapter):
         metrics = raw_metrics.get("stress_ng_metrics", [])
 
         if len(metrics) == 1:
-            test_type = {"stressor": metrics[0].get("stressor", "")}
+            test_type = {"stressor": metrics[0].get("stressor", "unknown")}
             metrics[0] = self.drop_fields(metrics[0], ["stressor"])
         else:
             test_type = {"stressor": "mixed"}
 
-        time = {
-            "real_time_secs": 0.0,
-            "usr_time_secs": 0.0,
-            "sys_time_secs": 0.0,
-        }
-
+        duration = 0.0
         for test_metrics in metrics:
-            for key in time:
-                time[key] += round(test_metrics.get(key, 0.0), 2)
+            for key in ("real_time_secs", "usr_time_secs", "sys_time_secs"):
+                duration += test_metrics.get(key, 0.0)
 
-        time["duration_sec"] = sum([time[key] for key in time])
+        time = {
+            "duration_sec": round(duration, 2)
+        }
 
         metrics = {str(i): metric for i, metric in enumerate(metrics)}
 

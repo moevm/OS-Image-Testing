@@ -306,8 +306,10 @@ class KirkAdapter(JSONAdapter):
             }
         metrics = [
             {
-                "test": test.get("test_fqn", ""),
-                "status": test.get("status", ""),
+                "test": test.get("test_fqn", "unknown"),
+                "status": test.get("status", "unknown"),
+                "arguments": test.get("test", {}).get("arguments", []),
+                "log": test.get("test", {}).get("log", "unknown"),
                 "retval": test.get("test", {}).get("retval", []),
                 "duration": test.get("test", {}).get("duration", 0.0),
             }

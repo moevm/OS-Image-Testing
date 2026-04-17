@@ -395,12 +395,10 @@ class PhoronixTestSuiteAdapter(JSONAdapter):
         test_metrics = self.drop_fields(test_metrics, ["details"])
 
         test_type = {
-            "identifier": test_results.get("identifier", ""),
-            "title": test_results.get("title", ""),
-            "description": test_results.get("description", ""),
+            "identifier": test_results.get("identifier", "unknown"),
         }
         time = {
-            "timestamp": system_info.get("timestamp", ""),
+            "timestamp": system_info.get("timestamp", "unknown"),
         }
 
         return {

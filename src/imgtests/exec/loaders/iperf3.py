@@ -130,7 +130,7 @@ class Iperf3Adapter(JSONAdapter):
         client_results = client_metrics.get("end", {})
         server_results = server_metrics.get("end", {})
 
-        test_type = {"protocol": test_info.get("protocol", "")}
+        test_type = {"protocol": test_info.get("protocol", "unknown")}
         time = {"duration_sec": float(test_info.get("duration", 0.0))}
 
         metrics = {

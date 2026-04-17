@@ -44,9 +44,6 @@ from imgtests.exec.loaders import (
                     "stressor": "cpu",
                 },
                 "time": {
-                    "real_time_secs": 1.14,
-                    "usr_time_secs": 4.14,
-                    "sys_time_secs": 0.18,
                     "duration_sec": 5.46,
                 },
                 "metrics": {
@@ -118,7 +115,7 @@ def test_stress_ng_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str
             },
         ),
         (
-            (),
+            {},
             {
                 "tool": "perf",
                 "test_type": {},
@@ -620,8 +617,6 @@ def test_iperf3_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, A
                 "tool": "pts",
                 "test_type": {
                     "identifier": "pts/ctx-clock-1.0.0",
-                    "title": "ctx_clock",
-                    "description": "Context Switch Time",
                 },
                 "time": {
                     "timestamp": "2026-04-05 22:07:04",
@@ -746,18 +741,24 @@ def test_pts_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, Any]
                     "0": {
                         "test": "pth_str01",
                         "status": "pass",
+                        "arguments": [],
+                        "log": "pth_str01    0  TINFO  :  Allocating 85 nodes.",
                         "retval": ["0"],
                         "duration": 0.16393470764160156,
                     },
                     "1": {
                         "test": "pth_str02",
                         "status": "pass",
+                        "arguments": ["-n1000"],
+                        "log": "pth_str02    0  TINFO  :  Creating 1000 threads.",
                         "retval": ["0"],
                         "duration": 1.8436052799224854,
                     },
                     "2": {
                         "test": "pth_str03",
                         "status": "pass",
+                        "arguments": [],
+                        "log": "pth_str03    0  TINFO  :  Allocating 85 nodes.",
                         "retval": ["0"],
                         "duration": 0.2942326068878174,
                     },
