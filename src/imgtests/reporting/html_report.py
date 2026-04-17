@@ -13,8 +13,12 @@ from jinja2 import Environment, FileSystemLoader, StrictUndefined, select_autoes
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from matplotlib.figure import Figure
 
+from imgtests.types import MetricSample
+
 if TYPE_CHECKING:
-    from imgtests.planning.executor import MetricSample, PlanExecutionResult
+    from imgtests.database.database import ImgtestsDatabase
+    from imgtests.database.models.experiment import ExperimentBase
+    from imgtests.planning.executor import PlanExecutionResult
     from imgtests.planning.models import TestPlan
 
 
@@ -85,6 +89,49 @@ class StageTimelineRow:
 class PlotAsset:
     title: str
     relative_path: str
+
+
+def generate_compare_html_report(
+    experiments_id: list[int],
+    database: ImgtestsDatabase,
+    out_dir: Path,
+):
+    pass
+
+
+def _extract_metrics_from_experiment(experiment: ExperimentBase) -> list[MetricSample]:
+    metrics: list[MetricSample] = []
+
+    for loader in experiment.loaders:
+        if loader.description == "Planned stage":
+            continue
+        if loader.result and isinstance(loader.result, dict):
+            metrics.extend(
+                MetricSample(
+                    stage_name=m.get("stage_name", ""),
+                    subsystem=m.get("subsystem", "all"),
+                    metric_name=m.get("metric_name", "unknown_tool"),
+                    value=float(m.get("value", 0)),
+                    label=m.get("label", "unknown_metric"),
+                )
+                for m in loader.result.get("metrics", [])
+            )
+
+    for observer in experiment.observers:
+        if observer.description == "Planned stage":
+            continue
+        if observer.result and isinstance(observer.result, dict):
+            metrics.extend(
+                MetricSample(
+                    stage_name=m.get("stage_name", ""),
+                    subsystem=m.get("subsystem", "all"),
+                    metric_name=m.get("metric_name", "unknown_tool"),
+                    value=float(m.get("value", 0)),
+                    label=m.get("label", "unknown_metric"),
+                )
+                for m in observer.result.get("metrics", [])
+            )
+    return metrics
 
 
 def generate_html_report(plan: TestPlan, execution: PlanExecutionResult, out_dir: Path) -> Path:
