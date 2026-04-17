@@ -7,7 +7,7 @@ from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult, SSHClient, common_run_command, pipeline
 from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
 from imgtests.exec.utils import add_sudo, extract_version
-from imgtests.results_adapter import JSONAdapter
+from imgtests.results_adapter import AdapterResult, drop_json_fields
 
 if TYPE_CHECKING:
     from imgtests.types import Version
@@ -366,18 +366,15 @@ class PhoronixTestSuite(PkgMgrMixin, GenericUtil):
         logger.info("PTS setup successful")
         return result
 
-
-class PhoronixTestSuiteAdapter(JSONAdapter):
-    def __init__(self) -> None:
-        self.tool = "pts"
-
-    def split_result(self, raw_metrics: dict[str, Any], test_index: int = 0) -> dict[str, Any]:
+    @staticmethod
+    def split_result(raw_metrics: dict[str, Any], test_index: int = 0) -> AdapterResult:
         if not raw_metrics:
-            return {
-                "test_type": {},
-                "time": {},
-                "metrics": {},
-            }
+            return AdapterResult(
+                tool="pts",
+                test_type={},
+                time={},
+                metrics={},
+            )
 
         system_info = raw_metrics.get("systems", {})
         if system_info:
@@ -392,7 +389,7 @@ class PhoronixTestSuiteAdapter(JSONAdapter):
         test_metrics = test_results.get("results", {})
         if test_metrics:
             test_metrics = test_metrics.get(next(iter(test_metrics.keys())), {})
-        test_metrics = self.drop_fields(test_metrics, ["details"])
+        test_metrics = drop_json_fields(test_metrics, ["details"])
 
         test_type = {
             "identifier": test_results.get("identifier", "unknown"),
@@ -401,8 +398,9 @@ class PhoronixTestSuiteAdapter(JSONAdapter):
             "timestamp": system_info.get("timestamp", "unknown"),
         }
 
-        return {
-            "test_type": test_type,
-            "time": time,
-            "metrics": test_metrics,
-        }
+        return AdapterResult(
+            tool="pts",
+            test_type=test_type,
+            time=time,
+            metrics=test_metrics,
+        )

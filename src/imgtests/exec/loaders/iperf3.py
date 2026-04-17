@@ -5,7 +5,7 @@ from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult
 from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
 from imgtests.exec.utils import add_flag, create_opt
-from imgtests.results_adapter import JSONAdapter
+from imgtests.results_adapter import AdapterResult
 
 if TYPE_CHECKING:
     from imgtests.exec.exec import SSHClient
@@ -107,22 +107,18 @@ class Iperf3(PkgMgrMixin, GenericUtil):
     def metrics_to_json(metrics: str) -> Any:
         return json.loads(metrics)
 
-
-class Iperf3Adapter(JSONAdapter):
-    def __init__(self) -> None:
-        self.tool = "iperf3"
-
+    @staticmethod
     def split_result(
-        self,
         raw_metrics: dict[str, Any],
-        test_index: int = 0,  # noqa: ARG002
-    ) -> dict[str, Any]:
+        test_index: int = 0,  # noqa: ARG004
+    ) -> AdapterResult:
         if not raw_metrics:
-            return {
-                "test_type": {},
-                "time": {},
-                "metrics": {},
-            }
+            return AdapterResult(
+                tool="iperf3",
+                test_type={},
+                time={},
+                metrics={},
+            )
 
         client_metrics = raw_metrics.get("client", {})
         server_metrics = raw_metrics.get("server", {})
@@ -146,8 +142,9 @@ class Iperf3Adapter(JSONAdapter):
             },
         }
 
-        return {
-            "test_type": test_type,
-            "time": time,
-            "metrics": metrics,
-        }
+        return AdapterResult(
+            tool="iperf3",
+            test_type=test_type,
+            time=time,
+            metrics=metrics,
+        )

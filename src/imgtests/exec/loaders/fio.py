@@ -6,7 +6,7 @@ from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
 from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
 from imgtests.exec.pkgmgrs.pip3 import Pip3
 from imgtests.exec.utils import create_opt
-from imgtests.results_adapter import JSONAdapter
+from imgtests.results_adapter import AdapterResult
 from imgtests.types import MetricSample
 
 if TYPE_CHECKING:
@@ -207,6 +207,46 @@ class Fio(PkgMgrMixin, GenericUtil):
                 result[f"{name}_cpu"] = cpu
         return result
 
+    @staticmethod
+    def split_result(raw_metrics: dict[str, Any], test_index: int = 0) -> AdapterResult:
+        jobs = raw_metrics.get("jobs", [])
+        if len(jobs) <= test_index:
+            return AdapterResult(
+                tool="fio",
+                test_type={},
+                time={},
+                metrics={},
+            )
+        job = jobs[test_index]
+
+        metrics = {
+            "read": job.get("read", {}),
+            "write": job.get("write", {}),
+            "trim": job.get("trim", {}),
+        }
+
+        job_options = job.get("job options", {})
+        test_type = {
+            "name": job_options.get("name", "unknown"),
+            "size": job_options.get("size", "unknown"),
+            "rw": job_options.get("rw", "unknown"),
+            "ioengine": job_options.get("ioengine", "unknown"),
+            "bs": job_options.get("bs", "unknown"),
+        }
+
+        time = {
+            "timestamp": raw_metrics.get("timestamp", 0),
+            "time": raw_metrics.get("time", 0),
+            "job_runtime": job.get("job_runtime", 0),
+        }
+
+        return AdapterResult(
+            tool="fio",
+            test_type=test_type,
+            time=time,
+            metrics=metrics,
+        )
+
 
 class FioPlot(PkgMgrMixin, GenericUtil):
     def __init__(self, ssh_client: SSHClient | None = None) -> None:
@@ -338,45 +378,3 @@ def _safe_float(value: Any) -> float | None:
         return float(value)
     except TypeError, ValueError:
         return None
-
-
-class FioAdapter(JSONAdapter):
-    def __init__(self) -> None:
-        self.tool = "fio"
-
-    def split_result(self, raw_metrics: dict[str, Any], test_index: int = 0) -> dict[str, Any]:
-        jobs = raw_metrics.get("jobs", [])
-        if len(jobs) <= test_index:
-            return {
-                "test_type": {},
-                "time": {},
-                "metrics": {},
-            }
-        job = jobs[test_index]
-
-        metrics = {
-            "read": job.get("read", {}),
-            "write": job.get("write", {}),
-            "trim": job.get("trim", {}),
-        }
-
-        job_options = job.get("job options", {})
-        test_type = {
-            "name": job_options.get("name", "unknown"),
-            "size": job_options.get("size", "unknown"),
-            "rw": job_options.get("rw", "unknown"),
-            "ioengine": job_options.get("ioengine", "unknown"),
-            "bs": job_options.get("bs", "unknown"),
-        }
-
-        time = {
-            "timestamp": raw_metrics.get("timestamp", 0),
-            "time": raw_metrics.get("time", 0),
-            "job_runtime": job.get("job_runtime", 0),
-        }
-
-        return {
-            "test_type": test_type,
-            "time": time,
-            "metrics": metrics,
-        }

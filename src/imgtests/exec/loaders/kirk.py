@@ -11,7 +11,7 @@ from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
 from imgtests.exec.osinfo import get_os_release
 from imgtests.exec.pkgmgrs.zypper import Zypper
 from imgtests.exec.utils import create_opt
-from imgtests.results_adapter import JSONAdapter
+from imgtests.results_adapter import AdapterResult, drop_json_fields
 from imgtests.types import Distro
 
 if TYPE_CHECKING:
@@ -284,26 +284,21 @@ class Kirk(GenericUtil):
     @staticmethod
     def metrics_to_json(metrics: Path) -> dict[str, Any]:
         raw_metrics = json.loads(metrics.read_text())
-        adapter = KirkAdapter()
-        return adapter(raw_metrics=raw_metrics)
+        return Kirk.split_result(raw_metrics=raw_metrics)
 
-
-class KirkAdapter(JSONAdapter):
-    def __init__(self) -> None:
-        self.tool = "kirk"
-
+    @staticmethod
     def split_result(
-        self,
         raw_metrics: dict[str, Any],
-        test_index: int = 0,  # noqa: ARG002
-    ) -> dict[str, Any]:
+        test_index: int = 0,  # noqa: ARG004
+    ) -> AdapterResult:
         results = raw_metrics.get("results", [])
         if len(results) == 0:
-            return {
-                "test_type": {},
-                "time": {},
-                "metrics": {},
-            }
+            return AdapterResult(
+                tool="kirk",
+                test_type={},
+                time={},
+                metrics={},
+            )
         metrics = [
             {
                 "test": test.get("test_fqn", "unknown"),
@@ -321,12 +316,13 @@ class KirkAdapter(JSONAdapter):
         time = {
             "duration_sec": round(summary.get("runtime", 0.0), 2),
         }
-        summary = self.drop_fields(summary, ["runtime"])
+        summary = drop_json_fields(summary, ["runtime"])
 
         metrics["summary"] = summary
 
-        return {
-            "test_type": {},
-            "time": time,
-            "metrics": metrics,
-        }
+        return AdapterResult(
+            tool="kirk",
+            test_type={},
+            time=time,
+            metrics=metrics,
+        )

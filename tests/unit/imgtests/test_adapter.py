@@ -3,12 +3,12 @@ from typing import Any
 import pytest
 
 from imgtests.exec.loaders import (
-    FioAdapter,
-    Iperf3Adapter,
-    KirkAdapter,
-    PerfAdapter,
-    PhoronixTestSuiteAdapter,
-    StressNgAdapter,
+    Fio,
+    Iperf3,
+    Kirk,
+    Perf,
+    PhoronixTestSuite,
+    StressNg,
 )
 
 
@@ -83,8 +83,7 @@ from imgtests.exec.loaders import (
     ],
 )
 def test_stress_ng_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, Any]) -> None:
-    adapter = StressNgAdapter()
-    result = adapter(raw_metrics)
+    result = StressNg.split_result(raw_metrics=raw_metrics)
     assert result == expected
 
 
@@ -130,8 +129,7 @@ def test_stress_ng_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str
     ],
 )
 def test_perf_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, Any]) -> None:
-    adapter = PerfAdapter()
-    result = adapter(raw_metrics)
+    result = Perf.split_result(raw_metrics=raw_metrics)
     assert result == expected
 
 
@@ -538,8 +536,7 @@ def test_perf_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, Any
     ],
 )
 def test_iperf3_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, Any]) -> None:
-    adapter = Iperf3Adapter()
-    result = adapter(raw_metrics)
+    result = Iperf3.split_result(raw_metrics=raw_metrics)
     assert result == expected
 
 
@@ -650,8 +647,7 @@ def test_iperf3_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, A
     ],
 )
 def test_pts_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, Any]) -> None:
-    adapter = PhoronixTestSuiteAdapter()
-    result = adapter(raw_metrics)
+    result = PhoronixTestSuite.split_result(raw_metrics=raw_metrics)
     assert result == expected
 
 
@@ -788,8 +784,7 @@ def test_pts_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, Any]
     ],
 )
 def test_kirk_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, Any]) -> None:
-    adapter = KirkAdapter()
-    result = adapter(raw_metrics)
+    result = Kirk.split_result(raw_metrics=raw_metrics)
     assert result == expected
 
 
@@ -1205,6 +1200,5 @@ def test_kirk_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, Any
     ],
 )
 def test_fio_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, Any]) -> None:
-    adapter = FioAdapter()
-    result = adapter(raw_metrics)
+    result = Fio.split_result(raw_metrics=raw_metrics)
     assert result == expected

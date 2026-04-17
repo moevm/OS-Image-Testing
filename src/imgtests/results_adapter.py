@@ -1,4 +1,3 @@
-from abc import ABC, abstractmethod
 from typing import Any, TypedDict
 
 
@@ -9,29 +8,7 @@ class AdapterResult(TypedDict):
     metrics: dict[str, Any]  # useful test metrics from the tool
 
 
-class JSONAdapter(ABC):
-    def __init__(self, tool: str) -> None:
-        self.tool = tool
-
-    def __call__(self, raw_metrics: dict[str, Any], test_index: int = 0) -> dict[str, Any]:
-        return AdapterResult(
-            tool=self.tool,
-            **self.split_result(raw_metrics, test_index),
-        )
-
-    @abstractmethod
-    def split_result(
-        self,
-        metrics: dict[str, Any],
-        test_index: int = 0,
-    ) -> dict[str, Any]:
-        pass
-
-    def drop_fields(
-        self,
-        metrics: dict[str, Any],
-        excluded_fields: list[str],
-    ) -> dict[str, Any]:
-        for key in excluded_fields:
-            metrics.pop(key, None)
-        return metrics
+def drop_json_fields(metrics: dict[str, Any], excluded_fields: list[str]) -> dict[str, Any]:
+    for key in excluded_fields:
+        metrics.pop(key, None)
+    return metrics
