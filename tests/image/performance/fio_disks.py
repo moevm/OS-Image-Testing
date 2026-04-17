@@ -247,6 +247,7 @@ class FioDisksVariationTest(AbstractRunnableTimeLimitedTest):
                 offset=offset,
                 offset_increment=offset_incr,
                 size=size,
+                filename=f"variation_offset_{offset}_{offset_incr or 'none'}_testfile",
             )
             yield from _handle_fio_suite(
                 client,
@@ -275,6 +276,7 @@ class FioDisksParallelLoadTest(AbstractRunnableTimeLimitedTest):
                 results_dir=Path().home() / "fio",
                 workloads=SMALL_BLOCK_WORKLOAD,
                 size=size,
+                filename="small_testfile",
             ),
             FioSuiteConfig(
                 suite="large",
@@ -282,15 +284,7 @@ class FioDisksParallelLoadTest(AbstractRunnableTimeLimitedTest):
                 results_dir=Path().home() / "fio",
                 workloads=LARGE_BLOCK_WORKLOAD,
                 size=size,
-            ),
-            FioSuiteConfig(
-                suite="small-with-offset",
-                duration_sec=timeout,
-                results_dir=Path().home() / "fio",
-                workloads=SMALL_BLOCK_WORKLOAD,
-                offset="512b",
-                offset_increment="3k",
-                size=size,
+                filename="large_testfile",
             ),
             FioSuiteConfig(
                 suite="large-with-offset",
@@ -299,20 +293,20 @@ class FioDisksParallelLoadTest(AbstractRunnableTimeLimitedTest):
                 workloads=LARGE_BLOCK_WORKLOAD,
                 offset_increment="3k",
                 size=size,
+                filename="large_with_offset_testfile",
             ),
         ]
         q = queue.Queue()
-        for cfg in configs:
-            futures = [
-                executor.submit(
-                    _enqueue_fio_results,
-                    client,
-                    cfg,
-                    "FIO parallel load test PASSED.",
-                    q,
-                ),
-            ]
-
+        futures = [
+            executor.submit(
+                _enqueue_fio_results,
+                client,
+                cfg,
+                "FIO parallel load test PASSED.",
+                q,
+            )
+            for cfg in configs
+        ]
         while any(not f.done() for f in futures) or not q.empty():
             try:
                 r = q.get(timeout=0.5)
