@@ -7,7 +7,7 @@ from deepdiff import DeepDiff
 from pydantic import Field
 from pydantic_settings import BaseSettings
 from sqlalchemy import and_, create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import selectinload, sessionmaker
 
 from imgtests.database.models.base import Base
 from imgtests.database.models.configuration import ConfigurationBase
@@ -218,6 +218,28 @@ class ImgtestsDatabase:
                 logger.error("Table '%s' doesn't exist.", table_name)
 
             return session.query(models[table_name]).all()
+
+    def get_experiment_with_details(self, experiment_id: int) -> ExperimentBase:
+        """Gets a single experiment with all related entities.
+
+        Args:
+            experiment_id (int): id of the experiment to retrieve.
+
+        Return:
+            ExperimentBase: experiment oblect with configuration, loaders and observers.
+        """
+        self._check_session()
+        with self.session() as session:
+            return (
+                session.query(ExperimentBase)
+                .options(
+                    selectinload(ExperimentBase.configuration),
+                    selectinload(ExperimentBase.loaders),
+                    selectinload(ExperimentBase.observers),
+                )
+                .filter(ExperimentBase.experiment_id == experiment_id)
+                .one()
+            )
 
     def _check_session(self) -> None:
         if not hasattr(self, "session") or self.session is None:
