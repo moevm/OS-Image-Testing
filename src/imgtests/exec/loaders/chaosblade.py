@@ -77,6 +77,7 @@ class Chaosblade(GenericUtil):
             f"mkdir -p {install_dir}; "
             f"cp -r chaosblade-{version}-{arch}/* {install_dir}/; "
             f"find {install_dir} -name '*.db' -o -name '*.sqlite*' -exec chmod 666 {{}} \\; ; "
+            f"chown -R $(whoami) {install_dir}; "
             f"ln -sf {install_dir}/blade /usr/local/bin/blade; "
             f"chmod 755 {install_dir}/blade; "
             "cd /; "
@@ -131,14 +132,14 @@ class Chaosblade(GenericUtil):
         self,
         cpu_percent: int | None = None,
         timeout_sec: int = 0,
-        **kwargs: dict[str, Any],
+        **kwargs: str | float | bool | None,
     ) -> tuple[ExecResult, ChaosResponse]:
         """Create CPU load experiment.
 
         Args:
             cpu_percent (int | None): Percentage of CPU (0-100). If not specified occupy 100.
             timeout_sec (int): Experiment duration in seconds. When set to 0 run forever.
-            **kwargs (dict[str, Any]): Command arguments in the free form with values.
+            **kwargs (str | float | bool | None): Command arguments in the free form with values.
 
         Raises:
             ValueError: When invalid parameters provided, required flags missing.
@@ -186,7 +187,7 @@ class Chaosblade(GenericUtil):
             timeout_sec (int): Experiment duration in seconds. When set to 0 run forever.
             mode (MemoryMode): experiment mode (ram or cache).
             include_buffer_cache (bool): Include buffer, cache memory when calculating percentage.
-            rate_mbps (int | None): Memory consupmtion rate in MB/s.
+            rate_mbps (int | None): Memory consumption rate in MB/s.
             **kwargs (dict[str, Any]): Command arguments in the free form with values.
 
         Raises:

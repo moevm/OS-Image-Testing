@@ -359,7 +359,7 @@ class TestsRunner(BaseRunner):
         from imgtests.exec.loaders import (  # noqa: PLC0415
             Chaosblade,
             Fio,
-            FioPlot,
+            Iperf3,
             Kirk,
             Perf,
             PhoronixTestSuite,
@@ -372,7 +372,6 @@ class TestsRunner(BaseRunner):
         for tool in (
             Chaosblade,
             Fio,
-            FioPlot,
             Kirk,
             Perf,
             StressNg,
@@ -381,22 +380,29 @@ class TestsRunner(BaseRunner):
             NodeExporter,
             Sar,
             Lshw,
+            Iperf3,
         ):
             tool_instance: BaseTestUtil = tool(self._client)
             try:
-                tool_instance.install()
+                result = tool_instance.install()
             except NotImplementedError:
                 self._logger.exception(
                     "Failed to install dependencies for the '%s'.",
                     tool_instance.name,
                 )
                 continue
-            tool_instance = tool(self._client)
-            self._logger.info(
-                "Installed '%s' with version '%s'.",
-                tool_instance.name,
-                tool_instance.version(),
-            )
+            if result.returncode:
+                self._logger.error(
+                    "Failed to install dependencies for the '%s'.",
+                    tool_instance.name,
+                )
+            else:
+                tool_instance = tool(self._client)
+                self._logger.info(
+                    "Installed '%s' with version '%s'.",
+                    tool_instance.name,
+                    tool_instance.version(),
+                )
         self._logger.info("Dependencies installed successfully.")
 
     def __is_remote_alive(self, test_completed_event: Event) -> None:
