@@ -43,3 +43,10 @@ code {
     padding: 2px 4px;
     border-radius: 3px;
 }
+.compare-container {
+    display: flex;
+    gap: 2rem;
+}
+.compare-column {
+    flex: 1;
+}

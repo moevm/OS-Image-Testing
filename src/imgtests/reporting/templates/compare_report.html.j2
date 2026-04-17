@@ -1,0 +1,44 @@
+{% import "test_info_header.html.j2" as test_info_header %}
+{% import "blocks/charts.html.j2" as chart %}
+{% import "blocks/tables.html.j2" as tables %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Compare Report</title>
+  <style>
+    {% include "report.css" %}
+  </style>
+</head>
+<body>
+  {% for exp in report_data %}
+    {{ test_info_header.render_header(exp.header) }}
+
+    <h2>1) Aggregated Statistics (Overall)</h2>
+    <p class="muted">
+        Mean, variance, quartiles and 95th percentile for collected numeric metrics
+        (all stages merged).
+    </p>
+    {{ tables.render_stats_table(exp.timeline.overall_rows) }}
+
+    <h2>2) Statistics by Stage</h2>
+    <p class="muted">Same stats, but computed separately for each stage.</p>
+    {{ tables.render_stats_table(exp.timeline.per_stage_rows, include_stage=true) }}
+
+    {% if exp.visualizations %}
+        {% for vis_name, plots in exp.visualizations.items() %}
+        <h2>{{ loop.index + 2 }}) {{ vis_name|capitalize }} visualizations</h2>
+        {% if plots %}
+            {% for plot in plots %}
+            {{ chart.render_chart(plot) }}
+            {% endfor %}
+        {% else %}
+            <p>No plots were generated (not enough numeric samples).</p>
+        {% endif %}
+        {% endfor %}
+    {% else %}
+        <p>No visualizations available.</p>
+    {% endif %}
+  {% endfor %}
+</body>
+</html>

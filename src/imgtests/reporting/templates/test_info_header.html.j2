@@ -1,20 +1,29 @@
 {% import "blocks/charts.html.j2" as chart %}
 {% macro render_header(header) -%}
 <p class="muted">
+  {% if header.configuration is defined %}
+    <p>Configuration:</p>
+    <pre>
+      OS: {{ header.configuration.os | default("-") }}
+      Core info: {{ header.configuration.core_info | default("-") }}
+    </pre>
+  {% endif %}
   Test type: <b>{{ header.test_kind|capitalize }}</b>
   Experiment ID: <b>{{ header.experiment_id }}</b> |
-  Plan ID: <b>{{ header.plan_id }}</b>
+  {% if header.plan_id is defined %}
+    Plan ID: <b>{{ header.plan_id }}</b>
+  {% endif %}
 </p>
 <p class="muted">Started: {{ header.started_at }} | Ended: {{ header.ended_at }}</p>
 <p>
   Total tasks: <b>{{ header.tests_counts.total_count }}</b> |
-  Passed: <b class="ok">
+  Passed: <b class={{ 'ok' if header.tests_counts.passed_count else ''}}>
     {{ header.tests_counts.passed_count }}
   </b> |
-  Failed: <b class="{{ 'bad' if header.tests_counts.failed_count else 'ok' }}">
+  Failed: <b class="{{ 'bad' if header.tests_counts.failed_count else '' }}">
     {{ header.tests_counts.failed_count }}
   </b> |
-  Broken: <b class="{{ 'bad' if header.tests_counts.broken_count else 'ok' }}">
+  Broken: <b class="{{ 'bad' if header.tests_counts.broken_count else '' }}">
     {{ header.tests_counts.broken_count }}
   </b> |
   Skipped: <b>
