@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 import statistics
+import textwrap
 from collections import defaultdict
 from dataclasses import dataclass
 from functools import lru_cache
@@ -340,15 +341,17 @@ def _build_histograms_by_prefix(
 
     assets = []
     for prefix, group in grouped.items():
-        labels = [m.label for m in group]
+        labels = [textwrap.fill(m.label, 15) for m in group]
         values = [m.value for m in group]
 
-        fig = Figure(figsize=(max(10, len(labels) * 2), 5))
+        fig = Figure(figsize=(8, 6))
         FigureCanvasAgg(fig)
         ax = fig.add_subplot(1, 1, 1)
-        bars = ax.bar(labels, values)
+        bars = ax.bar(range(len(labels)), values)
         ax.set_title(f"{prefix} metrics")
         ax.grid(visible=True, axis="y", alpha=0.3)
+        ax.set_xticks(range(len(labels)))
+        ax.set_xticklabels(labels, rotation=60, ha="right")
 
         for bar, val in zip(bars, values, strict=True):
             ax.text(
