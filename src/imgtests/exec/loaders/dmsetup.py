@@ -124,7 +124,7 @@ class DeviceMapperSetup(GenericUtil):
 
     def remove_dm_device(self, device_name: str) -> ExecResult:
         """Removes given dm device."""
-        return self(["remove", device_name])
+        return self(["remove", "--force", device_name])
 
 
 def setup_block_device(  # noqa: PLR0913
