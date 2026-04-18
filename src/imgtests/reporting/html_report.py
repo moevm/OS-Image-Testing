@@ -487,4 +487,4 @@ def _safe_filename(name: str) -> str:
     safe = re.sub(r"[^a-zA-Z0-9_.-]+", "_", name).strip("_")
     if not safe:
         return f"metric_{datetime.now(tz=ZoneInfo('UTC')).strftime('%Y%m%d_%H%M%S')}"
-    return f"{safe}_{datetime.now(tz=ZoneInfo('UTC')).strftime('%Y%m%d_%H%M%S')}"
+    return f"{safe}_{datetime.now(tz=ZoneInfo('UTC')).strftime('%Y%m%d_%H%M%S_%f')}"
