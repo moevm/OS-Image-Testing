@@ -31,7 +31,7 @@ COMPARE_REPORT_FILENAME: Final = "compare.html"
 TEMPLATES_DIR: Final = "templates"
 STATIC_DIR: Final = "static"
 REPORT_TEMPLATE: Final = "base_report.html.j2"
-COMARE_REPORT_TEMPLATE: Final = "compare_report.html.j2"
+COMPARE_REPORT_TEMPLATE: Final = "compare_report.html.j2"
 
 
 class DiagramConfig(NamedTuple):
@@ -145,7 +145,7 @@ def generate_compare_html_report(
                 ),
             },
         )
-    template = _template_environment().get_template(COMARE_REPORT_TEMPLATE)
+    template = _template_environment().get_template(COMPARE_REPORT_TEMPLATE)
     report_path = out_dir / COMPARE_REPORT_FILENAME
     report_path.write_text(
         template.render(
