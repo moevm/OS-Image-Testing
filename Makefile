@@ -58,6 +58,9 @@ VMETRICS_PORT              := 8438
 
 SSH_QEMU_USER              ?= root
 
+# 3Gb of virtual memory for each system
+QEMU_VM_RAM				   := 3072
+
 # Library
 PYTHONDONTWRITEBYTECODE    := 1
 PY_LIB_NAME                := $(shell grep -Po 'name\s*=\s*"\K(\w+)' pyproject.toml)
