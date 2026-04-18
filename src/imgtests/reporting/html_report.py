@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import re
 import statistics
+import textwrap
 from collections import defaultdict
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Final
+from typing import TYPE_CHECKING, Final, NamedTuple
 
 from jinja2 import Environment, FileSystemLoader, StrictUndefined, select_autoescape
 from matplotlib.backends.backend_agg import FigureCanvasAgg
@@ -14,7 +15,7 @@ from matplotlib.figure import Figure
 
 if TYPE_CHECKING:
     from imgtests.planning.executor import MetricSample, PlanExecutionResult
-    from imgtests.planning.models import TestKind, TestPlan
+    from imgtests.planning.models import TestPlan
 
 
 PLOTS_DIR: Final = "plots"
@@ -23,6 +24,32 @@ REPORT_FILENAME: Final = "report.html"
 TEMPLATES_DIR: Final = "templates"
 STATIC_DIR: Final = "static"
 REPORT_TEMPLATE: Final = "base_report.html.j2"
+
+
+class DiagramConfig(NamedTuple):
+    run: str
+    metrics: list[str]
+
+
+DIAGRAMS_CONFIG: dict[str, DiagramConfig] = {
+    "histogram_by_prefix": DiagramConfig(
+        run="_build_histograms_by_prefix",
+        metrics=[
+            r"^systemd_critical_chain.",
+            r"^systemd_time.",
+        ],
+    ),
+    "boxplots": DiagramConfig(
+        run="_build_boxplots",
+        metrics=[
+            r"stress.",
+            r"fio.",
+        ],
+    ),
+}
+COMPILED_DIAGRAMS_CONFIG: dict[str, tuple[str, list[re.Pattern]]] = {
+    name: (cfg.run, [re.compile(p) for p in cfg.metrics]) for name, cfg in DIAGRAMS_CONFIG.items()
+}
 
 
 @dataclass(frozen=True)
@@ -88,8 +115,7 @@ def generate_html_report(plan: TestPlan, execution: PlanExecutionResult, out_dir
             "timeline_rows": _build_timeline_rows(plan, execution),
         },
         "visualizations": _collect_test_visualizations(
-            plan.test_kind,
-            execution,
+            execution.metrics,
             out_dir=out_dir,
             plots_dir=plots_dir,
         ),
@@ -107,14 +133,21 @@ def generate_html_report(plan: TestPlan, execution: PlanExecutionResult, out_dir
 
 
 def _collect_test_visualizations(
-    test_kind: TestKind,  #  noqa: ARG001
-    execution: PlanExecutionResult,
+    samples: list[MetricSample],
     out_dir: Path,
     plots_dir: Path,
-) -> dict[str, Any]:
-    return {
-        "booxplots": _build_boxplots(list(execution.metrics), out_dir=out_dir, plots_dir=plots_dir),
-    }
+) -> dict[str, list[PlotAsset]]:
+    results: dict[str, list[PlotAsset]] = {}
+
+    for name, (run_fn, patterns) in COMPILED_DIAGRAMS_CONFIG.items():
+        matched = [s for s in samples if any(p.match(s.metric_name) for p in patterns)]
+        if not matched and patterns:
+            continue
+
+        fn = globals()[run_fn]
+        results[name] = fn(matched, out_dir=out_dir, plots_dir=plots_dir)
+
+    return results
 
 
 @lru_cache(maxsize=1)
@@ -293,6 +326,53 @@ def _build_piechart(
         title=title,
         relative_path=str(out_path.relative_to(out_dir)),
     )
+
+
+def _build_histograms_by_prefix(
+    metrics: list[MetricSample],
+    *,
+    out_dir: Path,
+    plots_dir: Path,
+) -> list[PlotAsset]:
+    grouped = defaultdict(list)
+    for m in metrics:
+        if "." in m.metric_name:
+            grouped[m.metric_name.split(".")[0]].append(m)
+
+    assets = []
+    for prefix, group in grouped.items():
+        labels = [textwrap.fill(m.label, 15) for m in group]
+        values = [m.value for m in group]
+
+        fig = Figure(figsize=(8, 6))
+        FigureCanvasAgg(fig)
+        ax = fig.add_subplot(1, 1, 1)
+        bars = ax.bar(range(len(labels)), values)
+        ax.set_title(f"{prefix} metrics")
+        ax.grid(visible=True, axis="y", alpha=0.3)
+        ax.set_xticks(range(len(labels)))
+        ax.set_xticklabels(labels, rotation=60, ha="right")
+
+        for bar, val in zip(bars, values, strict=True):
+            ax.text(
+                bar.get_x() + bar.get_width() / 2,
+                bar.get_height(),
+                f"{val:.2f}",
+                ha="center",
+                va="bottom",
+            )
+
+        out_path = plots_dir / f"{_safe_filename(prefix)}.png"
+        fig.tight_layout()
+        fig.savefig(out_path)
+
+        assets.append(
+            PlotAsset(
+                title=prefix,
+                relative_path=str(out_path.relative_to(out_dir)),
+            ),
+        )
+    return assets
 
 
 def _format_float(value: float) -> str:
