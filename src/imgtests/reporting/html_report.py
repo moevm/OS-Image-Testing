@@ -146,7 +146,7 @@ def generate_compare_html_report(
             },
         )
     template = _template_environment().get_template(COMARE_REPORT_TEMPLATE)
-    report_path = out_dir / COMARE_REPORT_TEMPLATE
+    report_path = out_dir / COMPARE_REPORT_FILENAME
     report_path.write_text(
         template.render(
             report_data=report_data,
