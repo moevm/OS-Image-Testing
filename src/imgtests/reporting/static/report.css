@@ -10,6 +10,8 @@ table {
     border-collapse: collapse;
     width: 100%;
     margin: 12px 0 24px 0;
+    table-layout: fixed;
+    word-wrap: break-word;
 }
 th, td {
     border: 1px solid #ddd;
@@ -43,10 +45,16 @@ code {
     padding: 2px 4px;
     border-radius: 3px;
 }
-.compare-container {
-    display: flex;
+.section {
+    width: 100%;
+    margin-bottom: 2rem;
+  }
+.section-columns {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
     gap: 2rem;
 }
-.compare-column {
-    flex: 1;
-}
+  .column {
+    min-width: 0;
+    overflow-wrap: break-word;
+  }

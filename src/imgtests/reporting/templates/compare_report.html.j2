@@ -11,34 +11,56 @@
   </style>
 </head>
 <body>
-  {% for exp in report_data %}
-    {{ test_info_header.render_header(exp.header) }}
-
-    <h2>1) Aggregated Statistics (Overall)</h2>
-    <p class="muted">
-        Mean, variance, quartiles and 95th percentile for collected numeric metrics
-        (all stages merged).
-    </p>
-    {{ tables.render_stats_table(exp.timeline.overall_rows) }}
-
-    <h2>2) Statistics by Stage</h2>
+  <h1> Compare Report </h1>
+  <div class="section">
+    <div class="section-columns">
+      {% for exp in report_data %}
+        <div class="column">
+          {{ test_info_header.render_header(exp.header) }}
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="section">
+    <h2>Aggregated Statistics (Overall)</h2>
+    <p class="muted">Mean, variance, quartiles and 95th percentile for collected numeric metrics.</p>
+    <div class="section-columns">
+      {% for exp in report_data %}
+        <div class="column">
+          {{ tables.render_stats_table(exp.timeline.overall_rows) }}
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="section">
+    <h2>Statistics by Stage</h2>
     <p class="muted">Same stats, but computed separately for each stage.</p>
-    {{ tables.render_stats_table(exp.timeline.per_stage_rows, include_stage=true) }}
-
-    {% if exp.visualizations %}
-        {% for vis_name, plots in exp.visualizations.items() %}
-        <h2>{{ loop.index + 2 }}) {{ vis_name|capitalize }} visualizations</h2>
-        {% if plots %}
-            {% for plot in plots %}
-            {{ chart.render_chart(plot) }}
+    <div class="section-columns">
+      {% for exp in report_data %}
+        <div class="column">
+          {{ tables.render_stats_table(exp.timeline.per_stage_rows, include_stage=true) }}
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="section">
+    <h2>Visualizations</h2>
+    <div class="section-columns">
+      {% for exp in report_data %}
+        <div class="column">
+          {% if exp.visualizations %}
+            {% for vis_name, plots in exp.visualizations.items() %}
+              <h3>{{ vis_name|capitalize }}</h3>
+              {% for plot in plots %}
+                {{ chart.render_chart(plot) }}
+              {% endfor %}
             {% endfor %}
-        {% else %}
-            <p>No plots were generated (not enough numeric samples).</p>
-        {% endif %}
-        {% endfor %}
-    {% else %}
-        <p>No visualizations available.</p>
-    {% endif %}
-  {% endfor %}
+          {% else %}
+            <p>No visualizations available.</p>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  </div>
 </body>
 </html>
