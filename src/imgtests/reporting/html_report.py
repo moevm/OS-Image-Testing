@@ -5,9 +5,11 @@ import statistics
 import textwrap
 from collections import defaultdict
 from dataclasses import dataclass
+from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
 from typing import TYPE_CHECKING, Final, NamedTuple
+from zoneinfo import ZoneInfo
 
 from jinja2 import Environment, FileSystemLoader, StrictUndefined, select_autoescape
 from matplotlib.backends.backend_agg import FigureCanvasAgg
@@ -484,5 +486,5 @@ def _format_float(value: float) -> str:
 def _safe_filename(name: str) -> str:
     safe = re.sub(r"[^a-zA-Z0-9_.-]+", "_", name).strip("_")
     if not safe:
-        return "metric"
-    return safe
+        return f"metric_{datetime.now(tz=ZoneInfo('UTC')).strftime('%Y%m%d_%H%M%S')}"
+    return f"safe_{datetime.now(tz=ZoneInfo('UTC')).strftime('%Y%m%d_%H%M%S')}"
