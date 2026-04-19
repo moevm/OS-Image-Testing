@@ -193,13 +193,16 @@ class Perf(PkgMgrMixin, GenericUtil):
         raw_metrics: list[dict[str, Any]],
         test_index: int = 0,
     ) -> AdapterResult:
-        if test_index >= len(raw_metrics):
+        if not raw_metrics:
             return AdapterResult(
                 tool="perf",
                 test_type={},
                 time={},
                 metrics={},
             )
+        if len(raw_metrics) <= test_index:
+            test_index = 0
+
         metrics = raw_metrics[test_index]
         test_type = {"benchmark": metrics.get("benchmark", "unknown")}
         time = {"duration_sec": metrics.get("total_time", 0)}

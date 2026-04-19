@@ -123,22 +123,20 @@ class Iperf3(PkgMgrMixin, GenericUtil):
         client_metrics = raw_metrics.get("client", {})
         server_metrics = raw_metrics.get("server", {})
         test_info = client_metrics.get("start", {}).get("test_start", {})
-        client_results = client_metrics.get("end", {})
-        server_results = server_metrics.get("end", {})
 
         test_type = {"protocol": test_info.get("protocol", "unknown")}
         time = {"duration_sec": float(test_info.get("duration", 0.0))}
 
         metrics = {
             "client": {
-                "sum_sent": client_results.get("sum_sent", {}),
-                "sum_received": client_results.get("sum_received", {}),
-                "cpu_utilization_percent": client_results.get("cpu_utilization_percent", {}),
+                "start": client_metrics.get("start", {}),
+                "intervals": client_metrics.get("intervals", []),
+                "end": client_metrics.get("end", {}),
             },
             "server": {
-                "sum_sent": server_results.get("sum_sent", {}),
-                "sum_received": server_results.get("sum_received", {}),
-                "cpu_utilization_percent": server_results.get("cpu_utilization_percent", {}),
+                "start": server_metrics.get("start", {}),
+                "intervals": server_metrics.get("intervals", []),
+                "end": server_metrics.get("end", {}),
             },
         }
 

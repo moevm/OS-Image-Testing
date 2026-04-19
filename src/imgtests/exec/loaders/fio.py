@@ -210,19 +210,28 @@ class Fio(PkgMgrMixin, GenericUtil):
     @staticmethod
     def split_result(raw_metrics: dict[str, Any], test_index: int = 0) -> AdapterResult:
         jobs = raw_metrics.get("jobs", [])
-        if len(jobs) <= test_index:
+        if not raw_metrics:
             return AdapterResult(
                 tool="fio",
                 test_type={},
                 time={},
                 metrics={},
             )
-        job = jobs[test_index]
+        if len(jobs) <= test_index:
+            test_index = 0
+
+        job = {} if jobs == [] else jobs[test_index]
 
         metrics = {
             "read": job.get("read", {}),
             "write": job.get("write", {}),
             "trim": job.get("trim", {}),
+            "usr_cpu": job.get("usr_cpu", 0.0),
+            "sys_cpu": job.get("sys_cpu", 0.0),
+            "iodepth_level": job.get("iodepth_level", {}),
+            "latency_ns": job.get("latency_ns", {}),
+            "latency_us": job.get("latency_us", {}),
+            "latency_ms": job.get("latency_ms", {}),
         }
 
         job_options = job.get("job options", {})
@@ -235,9 +244,7 @@ class Fio(PkgMgrMixin, GenericUtil):
         }
 
         time = {
-            "timestamp": raw_metrics.get("timestamp", 0),
-            "time": raw_metrics.get("time", 0),
-            "job_runtime": job.get("job_runtime", 0),
+            "duration_sec": round(job.get("job_runtime", 0) / 1000, 2),
         }
 
         return AdapterResult(
