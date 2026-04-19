@@ -1,13 +1,16 @@
 import logging
 import queue
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from imgtests.database.database import ImgtestsDatabase, UtilityResultRecord
 from imgtests.exec.loaders.dmsetup import DeviceMapperSetup, setup_block_device
 from imgtests.exec.observers.resource import get_available_ram_size
 from imgtests.exec.osinfo import get_os_release
 from imgtests.runner import AbstractRunnableTimeLimitedTest, TestResult, TestStatus
 from imgtests.suites.drive.fio import FioSuite, FioSuiteConfig, FioWorkload
+from imgtests.sysrep import get_system_info
 from imgtests.types import Distro, Subsystem
 
 if TYPE_CHECKING:
@@ -18,6 +21,8 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
+
+FIO_RESULTS_DIR = Path.home() / "fio"
 
 
 SCALING_WORKLOADS: tuple[FioWorkload, ...] = (
@@ -63,14 +68,109 @@ LARGE_BLOCK_WORKLOAD: tuple[FioWorkload, ...] = (
 )
 
 
-class FioDisksScalingTest(AbstractRunnableTimeLimitedTest):
+class _FioDisksBaseTest(AbstractRunnableTimeLimitedTest):
+    def __init__(
+        self,
+        description: str,
+        timeout: int,
+        *,
+        db: ImgtestsDatabase | None = None,
+        config_id: int | None = None,
+        experiment_description: str | None = None,
+    ) -> None:
+        super().__init__(description, frozenset({Subsystem.FILE}), timeout)
+        self.db = db or ImgtestsDatabase()
+        self.config_id = config_id
+        self.experiment_description = experiment_description
+
+    def run_fio_suite(
+        self,
+        client: SSHClient | None,
+        timeout: int,
+        cfg: FioSuiteConfig,
+        *,
+        success_msg: str,
+        default_experiment_description: str,
+    ) -> Iterable[TestResult]:
+        started_at = datetime.now(UTC)
+        suite_results: list[TestResult] = []
+
+        for result in FioSuite(client, cfg).run():
+            suite_results.append(result)
+            yield result
+
+        ended_at = datetime.now(UTC)
+        self._write_suite_result_to_db(
+            client=client,
+            timeout=timeout,
+            cfg=cfg,
+            suite_results=tuple(suite_results),
+            started_at=started_at,
+            ended_at=ended_at,
+            default_experiment_description=default_experiment_description,
+        )
+        self.logger.info("%s cases=%d", success_msg, len(suite_results))
+
+    def _write_suite_result_to_db(  # noqa: PLR0913
+        self,
+        *,
+        client: SSHClient | None,
+        timeout: int,
+        cfg: FioSuiteConfig,
+        suite_results: tuple[TestResult, ...],
+        started_at: datetime,
+        ended_at: datetime,
+        default_experiment_description: str,
+    ) -> None:
+        if self.config_id is None:
+            cfg_record = self.db.insert_from_system_info(get_system_info(client))
+            self.config_id = int(cfg_record.config_id)
+
+        experiment = self.db.insert_experiment(
+            config_id=int(self.config_id),
+            description=self.experiment_description or default_experiment_description,
+            experiment_type="performance",
+            started_at=started_at,
+            ended_at=ended_at,
+        )
+        self.db.insert_utility_result(
+            UtilityResultRecord(
+                experiment_id=int(experiment.experiment_id),
+                utility="fio",
+                command=("fio-suite", cfg.suite),
+                result={
+                    "suite": cfg.suite,
+                    "timeout_sec": timeout,
+                    "results_dir": cfg.results_dir,
+                    "workloads": cfg.workloads,
+                    "filename": cfg.filename,
+                    "results_count": len(suite_results),
+                    "results": suite_results,
+                },
+                description=f"fio suite result: {cfg.suite}",
+                started_at=started_at,
+                ended_at=ended_at,
+                context={"test_name": type(self).__name__},
+            ),
+        )
+
+
+class FioDisksScalingTest(_FioDisksBaseTest):
     """Test that runs fio on a disk with scaling workloads."""
 
-    def __init__(self, timeout: int) -> None:
+    def __init__(
+        self,
+        timeout: int,
+        db: ImgtestsDatabase | None = None,
+        config_id: int | None = None,
+        experiment_description: str | None = None,
+    ) -> None:
         super().__init__(
             "Scaling load drives with fio.",
-            frozenset({Subsystem.FILE}),
-            timeout=timeout,
+            timeout,
+            db=db,
+            config_id=config_id,
+            experiment_description=experiment_description,
         )
 
     def _run(
@@ -82,17 +182,35 @@ class FioDisksScalingTest(AbstractRunnableTimeLimitedTest):
         cfg = FioSuiteConfig(
             suite="scaling",
             duration_sec=timeout,
-            results_dir=Path().home() / "fio",
+            results_dir=FIO_RESULTS_DIR,
             workloads=SCALING_WORKLOADS,
         )
-        yield from _handle_fio_suite(client, cfg, "FIO scaling PASSED.")
+        yield from self.run_fio_suite(
+            client=client,
+            timeout=timeout,
+            cfg=cfg,
+            success_msg="FIO scaling PASSED.",
+            default_experiment_description="fio suite 'scaling' run",
+        )
 
 
-class FioDisksNightly(AbstractRunnableTimeLimitedTest):
+class FioDisksNightly(_FioDisksBaseTest):
     """Tests that run fio on a disk with nightly workloads."""
 
-    def __init__(self, timeout: int) -> None:
-        super().__init__("Nightly load drives with fio.", frozenset({Subsystem.FILE}), timeout)
+    def __init__(
+        self,
+        timeout: int,
+        db: ImgtestsDatabase | None = None,
+        config_id: int | None = None,
+        experiment_description: str | None = None,
+    ) -> None:
+        super().__init__(
+            "Nightly load drives with fio.",
+            timeout,
+            db=db,
+            config_id=config_id,
+            experiment_description=experiment_description,
+        )
 
     def _run(
         self,
@@ -103,17 +221,35 @@ class FioDisksNightly(AbstractRunnableTimeLimitedTest):
         cfg = FioSuiteConfig(
             suite="nightly",
             duration_sec=timeout,
-            results_dir=Path().home() / "fio",
+            results_dir=FIO_RESULTS_DIR,
             workloads=NIGHTLY_WORKLOADS,
         )
-        yield from _handle_fio_suite(client, cfg, "FIO nightly PASSED.")
+        yield from self.run_fio_suite(
+            client=client,
+            timeout=timeout,
+            cfg=cfg,
+            success_msg="FIO nightly PASSED.",
+            default_experiment_description="fio suite 'nightly' run",
+        )
 
 
-class FioDisksDMDelay(AbstractRunnableTimeLimitedTest):
+class FioDisksDMDelay(_FioDisksBaseTest):
     """Tests that run fio on a disk with dm-delay."""
 
-    def __init__(self, timeout: int) -> None:
-        super().__init__("Dm-delay test with fio.", frozenset({Subsystem.FILE}), timeout)
+    def __init__(
+        self,
+        timeout: int,
+        db: ImgtestsDatabase | None = None,
+        config_id: int | None = None,
+        experiment_description: str | None = None,
+    ) -> None:
+        super().__init__(
+            "Dm-delay test with fio.",
+            timeout,
+            db=db,
+            config_id=config_id,
+            experiment_description=experiment_description,
+        )
 
     def _run(
         self,
@@ -124,39 +260,58 @@ class FioDisksDMDelay(AbstractRunnableTimeLimitedTest):
         os_id = get_os_release(client).id
         if os_id and os_id != Distro.POKY.value:
             self.logger.warning("Skipping test due dm-delay test is only supported on poky.")
-            return TestResult(status=TestStatus.SKIPPED)
+            yield TestResult(status=TestStatus.SKIPPED)
+            return
 
         result = setup_block_device(client=client)
         if result is not None and result.returncode:
             logger.error("Error in block device setup.")
-            return TestResult(status=TestStatus.BROKEN)
+            yield TestResult(status=TestStatus.BROKEN)
+            return
 
         dm = DeviceMapperSetup(client)
         result = dm.create_dm_delay_device()
         if result.returncode:
             logger.error("Error in creating dm-delay device.")
-            return TestResult(status=TestStatus.BROKEN)
+            yield TestResult(status=TestStatus.BROKEN)
+            return
 
         cfg = FioSuiteConfig(
             suite="dm-delay",
             duration_sec=timeout,
-            results_dir=Path().home() / "fio",
+            results_dir=FIO_RESULTS_DIR,
             workloads=SCALING_WORKLOADS,
             filename=Path("/dev/mapper/delay1"),
         )
 
-        yield from _handle_fio_suite(client, cfg, "FIO dm-delay PASSED.")
-        dm.remove_dm_device(device_name="delay1")
+        try:
+            yield from self.run_fio_suite(
+                client=client,
+                timeout=timeout,
+                cfg=cfg,
+                success_msg="FIO dm-delay PASSED.",
+                default_experiment_description="fio suite 'dm-delay' run",
+            )
+        finally:
+            dm.remove_dm_device(device_name="delay1")
 
 
-class FioDisksDMDust(AbstractRunnableTimeLimitedTest):
+class FioDisksDMDust(_FioDisksBaseTest):
     """Tests that run fio on a disk with dm-dust."""
 
-    def __init__(self, timeout: int) -> None:
+    def __init__(
+        self,
+        timeout: int,
+        db: ImgtestsDatabase | None = None,
+        config_id: int | None = None,
+        experiment_description: str | None = None,
+    ) -> None:
         super().__init__(
             "Dm-dust fio test with errors on read.",
-            frozenset({Subsystem.FILE}),
             timeout,
+            db=db,
+            config_id=config_id,
+            experiment_description=experiment_description,
         )
 
     def _run(
@@ -168,54 +323,77 @@ class FioDisksDMDust(AbstractRunnableTimeLimitedTest):
         os_id = get_os_release(client).id
         if os_id and os_id != Distro.POKY.value:
             self.logger.warning("Skipping test due dm-dust test is only supported on poky.")
-            return TestResult(status=TestStatus.SKIPPED)
+            yield TestResult(status=TestStatus.SKIPPED)
+            return
 
         result = setup_block_device(client=client)
         if result is not None and result.returncode:
             logger.error("Error in block device setup.")
-            return TestResult(status=TestStatus.BROKEN)
+            yield TestResult(status=TestStatus.BROKEN)
+            return
 
         dm = DeviceMapperSetup(client)
         result = dm.create_dm_dust_device()
         if result.returncode:
-            logger.error("Error in creating dm-delay device.")
-            return TestResult(status=TestStatus.BROKEN)
-        result = dm.add_bad_blocks(device_name="dust1", block_numbers=list(range(50, 100)))
-        if result.returncode:
-            return TestResult(status=TestStatus.BROKEN)
-
-        read_cfg = FioSuiteConfig(
-            suite="dm-dust",
-            duration_sec=timeout,
-            results_dir=Path().home() / "fio",
-            workloads=DMDUST_READ_WORKLOAD,
-            filename=Path("/dev/mapper/dust1"),
-        )
-        write_cfg = FioSuiteConfig(
-            suite="dm-dust",
-            duration_sec=timeout,
-            results_dir=Path().home() / "fio",
-            workloads=DMDUST_WRITE_WORKLOAD,
-            filename=Path("/dev/mapper/dust1"),
-        )
+            logger.error("Error in creating dm-dust device.")
+            yield TestResult(status=TestStatus.BROKEN)
+            return
 
         try:
-            FioSuite(client, read_cfg).run()
-        except RuntimeError:
-            logger.info("Error above is intended, dm-dust works.")
+            result = dm.add_bad_blocks(device_name="dust1", block_numbers=list(range(50, 100)))
+            if result.returncode:
+                logger.error("Error in adding bad blocks to dm-dust device.")
+                yield TestResult(status=TestStatus.BROKEN)
+                return
 
-        yield from _handle_fio_suite(client, write_cfg, "FIO dm-dust PASSED.")
-        dm.remove_dm_device(device_name="dust1")
+            read_cfg = FioSuiteConfig(
+                suite="dm-dust",
+                duration_sec=timeout,
+                results_dir=FIO_RESULTS_DIR,
+                workloads=DMDUST_READ_WORKLOAD,
+                filename=Path("/dev/mapper/dust1"),
+            )
+            write_cfg = FioSuiteConfig(
+                suite="dm-dust",
+                duration_sec=timeout,
+                results_dir=FIO_RESULTS_DIR,
+                workloads=DMDUST_WRITE_WORKLOAD,
+                filename=Path("/dev/mapper/dust1"),
+            )
+
+            read_results = tuple(FioSuite(client, read_cfg).run())
+            if any(result.status is TestStatus.FAILED for result in read_results):
+                logger.info("dm-dust read workload failed as expected.")
+            else:
+                logger.warning("dm-dust read workload completed without the expected error.")
+
+            yield from self.run_fio_suite(
+                client=client,
+                timeout=timeout,
+                cfg=write_cfg,
+                success_msg="FIO dm-dust PASSED.",
+                default_experiment_description="fio suite 'dm-dust' run",
+            )
+        finally:
+            dm.remove_dm_device(device_name="dust1")
 
 
-class FioDisksVariationTest(AbstractRunnableTimeLimitedTest):
+class FioDisksVariationTest(_FioDisksBaseTest):
     """Test that runs fio on a disk with variations of bs, rw and offset."""
 
-    def __init__(self, timeout: int) -> None:
+    def __init__(
+        self,
+        timeout: int,
+        db: ImgtestsDatabase | None = None,
+        config_id: int | None = None,
+        experiment_description: str | None = None,
+    ) -> None:
         super().__init__(
             "Fio parameter variation test.",
-            frozenset({Subsystem.FILE}),
-            timeout=timeout,
+            timeout,
+            db=db,
+            config_id=config_id,
+            experiment_description=experiment_description,
         )
 
     def _run(
@@ -242,25 +420,41 @@ class FioDisksVariationTest(AbstractRunnableTimeLimitedTest):
             cfg = FioSuiteConfig(
                 suite=f"variation-offset-{offset}-{offset_incr or 'none'}",
                 duration_sec=timeout,
-                results_dir=Path().home() / "fio",
+                results_dir=FIO_RESULTS_DIR,
                 workloads=workloads,
                 offset=offset,
                 offset_increment=offset_incr,
                 size=size,
-                filename=f"variation_offset_{offset}_{offset_incr or 'none'}_testfile",
+                filename=Path(f"variation_offset_{offset}_{offset_incr or 'none'}_testfile"),
             )
-            yield from _handle_fio_suite(
-                client,
-                cfg,
-                f"FIO variation offset={offset}, incr={offset_incr} PASSED.",
+            yield from self.run_fio_suite(
+                client=client,
+                timeout=timeout,
+                cfg=cfg,
+                success_msg=f"FIO variation offset={offset}, incr={offset_incr} PASSED.",
+                default_experiment_description=(
+                    f"fio suite 'variation' offset={offset} incr={offset_incr or 'none'} run"
+                ),
             )
 
 
-class FioDisksParallelLoadTest(AbstractRunnableTimeLimitedTest):
+class FioDisksParallelLoadTest(_FioDisksBaseTest):
     """Test that runs fio parallel mixed workloads."""
 
-    def __init__(self, timeout: int) -> None:
-        super().__init__("Fio parallel load test.", frozenset({Subsystem.FILE}), timeout=timeout)
+    def __init__(
+        self,
+        timeout: int,
+        db: ImgtestsDatabase | None = None,
+        config_id: int | None = None,
+        experiment_description: str | None = None,
+    ) -> None:
+        super().__init__(
+            "Fio parallel load test.",
+            timeout,
+            db=db,
+            config_id=config_id,
+            experiment_description=experiment_description,
+        )
 
     def _run(
         self,
@@ -273,73 +467,71 @@ class FioDisksParallelLoadTest(AbstractRunnableTimeLimitedTest):
             FioSuiteConfig(
                 suite="small",
                 duration_sec=timeout,
-                results_dir=Path().home() / "fio",
+                results_dir=FIO_RESULTS_DIR,
                 workloads=SMALL_BLOCK_WORKLOAD,
                 size=size,
-                filename="small_testfile",
+                filename=Path("small_testfile"),
             ),
             FioSuiteConfig(
                 suite="large",
                 duration_sec=timeout,
-                results_dir=Path().home() / "fio",
+                results_dir=FIO_RESULTS_DIR,
                 workloads=LARGE_BLOCK_WORKLOAD,
                 size=size,
-                filename="large_testfile",
+                filename=Path("large_testfile"),
             ),
             FioSuiteConfig(
                 suite="large-with-offset",
                 duration_sec=timeout,
-                results_dir=Path().home() / "fio",
+                results_dir=FIO_RESULTS_DIR,
                 workloads=LARGE_BLOCK_WORKLOAD,
                 offset_increment="3k",
                 size=size,
-                filename="large_with_offset_testfile",
+                filename=Path("large_with_offset_testfile"),
             ),
         ]
-        q = queue.Queue()
+        q: queue.Queue[TestResult] = queue.Queue()
         futures = [
             executor.submit(
                 _enqueue_fio_results,
+                self,
                 client,
+                timeout,
                 cfg,
                 "FIO parallel load test PASSED.",
                 q,
             )
             for cfg in configs
         ]
-        while any(not f.done() for f in futures) or not q.empty():
+        while any(not future.done() for future in futures) or not q.empty():
             try:
-                r = q.get(timeout=0.5)
+                yield q.get(timeout=0.5)
             except queue.Empty:
                 continue
-            yield r
+        for future in futures:
+            future.result()
 
 
-def _enqueue_fio_results(
+def _enqueue_fio_results(  # noqa: PLR0913
+    runner: _FioDisksBaseTest,
     client: SSHClient | None,
+    timeout: int,
     cfg: FioSuiteConfig,
     msg: str,
     q: queue.Queue[TestResult],
 ) -> None:
-    for result in _handle_fio_suite(client, cfg, msg):
+    for result in runner.run_fio_suite(
+        client=client,
+        timeout=timeout,
+        cfg=cfg,
+        success_msg=msg,
+        default_experiment_description=f"fio suite '{cfg.suite}' run",
+    ):
         q.put(result)
 
 
-def _handle_fio_suite(
-    client: SSHClient | None,
-    cfg: FioSuiteConfig,
-    msg: str,
-) -> Iterable[TestResult]:
-    fio_gen = FioSuite(client, cfg).run()
-    yield from fio_gen
-    try:
-        next(fio_gen)
-    except StopIteration:
-        logger.info(msg)
-
-
 def _calculate_fio_ram_percent(percent: int, client: SSHClient | None = None) -> str:
-    if percent <= 0 or percent > 100:  #  noqa: PLR2004
+    if percent <= 0 or percent > 100:  # noqa: PLR2004
         return "100MB"
     ram_size = get_available_ram_size(client)
     if ram_size is not None:

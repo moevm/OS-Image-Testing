@@ -1,15 +1,15 @@
 from __future__ import annotations
 
 import json
-import logging
 import math
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import suppress
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
+from imgtests.database.database import UtilityMetricRecord, UtilityResultRecord
 from imgtests.exec.exec import common_run_command
 from imgtests.exec.loaders.fio import Fio, fio_metrics_to_samples, get_available_bytes
 from imgtests.exec.loaders.stress_ng import StressNg, stress_metrics_to_samples
@@ -26,8 +26,6 @@ if TYPE_CHECKING:
     from imgtests.database.database import ExperimentType, ImgtestsDatabase
     from imgtests.exec.exec import SSHClient
     from imgtests.planning.models import LoadTask, PlanStage, TestPlan
-
-logger = logging.getLogger(__name__)
 
 _MIN_FIO_SIZE_BYTES = 64 * 1024**2
 _MAX_FIO_SIZE_RATIO = 0.25
@@ -70,6 +68,7 @@ class PlanExecutor(BaseRunner):
         client: SSHClient | None,
         db: ImgtestsDatabase,
     ) -> None:
+        super().__init__("plan_executor", client, db)
         self.client = client
         self.db = db
         self._cpu_count_cache: int | None = None
@@ -132,37 +131,11 @@ class PlanExecutor(BaseRunner):
             stage_ended_at = datetime.now(UTC)
 
             for task_run in task_runs:
-                full_cmd = " ".join(task_run.command) if task_run.command else ""
-                subsystem_value = getattr(
-                    task_run.task.subsystem,
-                    "value",
-                    str(task_run.task.subsystem),
-                )
+                self._insert_task_run(experiment_id, stage.name, task_run)
                 collected_metrics.extend(task_run.metrics)
 
                 counts[task_run.status] += 1
                 total_count += 1
-
-                self.db.insert_util_run_result(
-                    experiment_id=experiment_id,
-                    util_type="loader",
-                    command=full_cmd,
-                    result={
-                        "stage_name": stage.name,
-                        "subsystem": subsystem_value,
-                        "tool": task_run.task.tool,
-                        "utility": task_run.task.tool,
-                        "command": list(task_run.command),
-                        "returncode": task_run.returncode,
-                        "stdout": task_run.stdout,
-                        "stderr": task_run.stderr,
-                        "summary": task_run.summary,
-                        "metrics": [asdict(sample) for sample in task_run.metrics],
-                    },
-                    description=f"Task result for stage={stage.name}",
-                    started_at=task_run.started_at,
-                    ended_at=task_run.ended_at,
-                )
 
             stage_runs.append(
                 StageRunResult(
@@ -227,7 +200,7 @@ class PlanExecutor(BaseRunner):
                     results_by_idx[idx] = future.result()
                 except Exception as exc:
                     now = datetime.now(UTC)
-                    logger.exception("Task failed with exception.")
+                    self._logger.exception("Task failed with exception.")
                     results_by_idx[idx] = TaskRunResult(
                         task=task,
                         started_at=now,
@@ -243,12 +216,64 @@ class PlanExecutor(BaseRunner):
 
         return [results_by_idx[i] for i in range(len(stage.tasks))]
 
+    def _insert_task_run(
+        self,
+        experiment_id: int,
+        stage_name: str,
+        task_run: TaskRunResult,
+    ) -> None:
+        subsystem_value = getattr(task_run.task.subsystem, "value", str(task_run.task.subsystem))
+        command = task_run.command or (task_run.task.tool,)
+
+        metrics = tuple(
+            UtilityMetricRecord(
+                metric_name=sample.metric_name,
+                value=sample.value,
+                context={
+                    "stage_name": sample.stage_name,
+                    "subsystem": sample.subsystem,
+                    "tool": task_run.task.tool,
+                    "label": sample.label,
+                },
+                description="Observed numeric metric",
+                command=command,
+            )
+            for sample in task_run.metrics
+        )
+
+        self.db.insert_utility_result(
+            UtilityResultRecord(
+                experiment_id=experiment_id,
+                utility=task_run.task.tool,
+                command=command,
+                result={
+                    "stage_name": stage_name,
+                    "subsystem": subsystem_value,
+                    "tool": task_run.task.tool,
+                    "returncode": task_run.returncode,
+                    "stdout": _truncate(task_run.stdout),
+                    "stderr": _truncate(task_run.stderr),
+                    "summary": task_run.summary,
+                    "status": task_run.status.value,
+                },
+                description=f"Task result for stage={stage_name}",
+                started_at=task_run.started_at,
+                ended_at=task_run.ended_at,
+                context={
+                    "stage_name": stage_name,
+                    "subsystem": subsystem_value,
+                    "tool": task_run.task.tool,
+                },
+                metrics=metrics,
+            ),
+        )
+
     def _run_task(self, stage: PlanStage, task: LoadTask) -> TaskRunResult:
         tool = (task.tool or "").strip().lower().replace("_", "-")
         started_at = datetime.now(UTC)
         subsystem_value = getattr(task.subsystem, "value", str(task.subsystem))
 
-        logger.info(
+        self._logger.info(
             "[PLAN] run stage=%s tool=%s subsystem=%s dur=%ss",
             stage.name,
             tool,
@@ -291,7 +316,7 @@ class PlanExecutor(BaseRunner):
 
         retry_timeout = max(5, int(timeout_sec * 0.5))
 
-        logger.info(
+        self._logger.info(
             "[PLAN] stress-ng retry stage=%s rc=%s timeout=%s->%s",
             stage_name,
             exec_res.returncode,
@@ -337,7 +362,7 @@ class PlanExecutor(BaseRunner):
         samples = stress_metrics_to_samples(stage.name, subsystem, metrics)
 
         summary_dict = summary._asdict() if summary else None
-        logger.info(
+        self._logger.info(
             "[PLAN] done stage=%s tool=stress-ng rc=%s",
             stage.name,
             exec_res.returncode,
@@ -422,7 +447,7 @@ class PlanExecutor(BaseRunner):
         if payload:
             summary = {"jobs_count": len(payload.get("jobs", []))}
 
-        logger.info("[PLAN] done stage=%s tool=fio rc=%s", stage.name, result.returncode)
+        self._logger.info("[PLAN] done stage=%s tool=fio rc=%s", stage.name, result.returncode)
         return TaskRunResult(
             task=task,
             started_at=started_at,
@@ -599,6 +624,13 @@ def _parse_dynamic_float(raw_value: str, prefix: str) -> float:
         raise ValueError(err)
 
     return value
+
+
+def _truncate(text: str, limit: int = 4096) -> str:
+    raw = str(text or "")
+    if len(raw) <= limit:
+        return raw
+    return f"{raw[:limit]}... [truncated {len(raw) - limit} chars]"
 
 
 def _resolve_experiment_type(plan: TestPlan) -> ExperimentType:

@@ -1,5 +1,8 @@
 import logging
+from collections.abc import Mapping, Sequence
+from dataclasses import asdict, dataclass, is_dataclass
 from datetime import datetime
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, get_args
 from zoneinfo import ZoneInfo
 
@@ -21,6 +24,29 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 Table = Literal["configurations", "experiments", "util_run_result"]
 ExperimentType = Literal["performance", "endurance", "all"]
+CommandValue = str | Sequence[str]
+
+
+@dataclass(frozen=True)
+class UtilityMetricRecord:
+    metric_name: str
+    value: float
+    context: dict[str, Any] | None = None
+    description: str | None = None
+    command: CommandValue | None = None
+
+
+@dataclass(frozen=True)
+class UtilityResultRecord:
+    experiment_id: int
+    utility: str
+    command: CommandValue
+    result: Any
+    started_at: datetime
+    ended_at: datetime
+    description: str | None = None
+    context: dict[str, Any] | None = None
+    metrics: tuple[UtilityMetricRecord, ...] = ()
 
 
 class PostgresCreds(BaseSettings):
@@ -41,7 +67,10 @@ class ImgtestsDatabase:
 
     def initialize_postgres(self, creds: PostgresCreds) -> None:
         self.engine = create_engine(
-            f"postgresql+psycopg://{creds.user}:{creds.password}@{creds.host}:{creds.port}/{creds.database_name}",
+            (
+                f"postgresql+psycopg://{creds.user}:{creds.password}"
+                f"@{creds.host}:{creds.port}/{creds.database_name}"
+            ),
         )
         self.session = sessionmaker(self.engine)
         Base.metadata.create_all(self.engine)
@@ -125,8 +154,8 @@ class ImgtestsDatabase:
 
         experiment_object = ExperimentBase(
             config_id=config_id,
-            description=description,
-            type=experiment_type,
+            description=_validate_db_str(description),
+            type=_validate_db_str(experiment_type),
             started_at=started_at,
             ended_at=ended_at,
         )
@@ -157,9 +186,9 @@ class ImgtestsDatabase:
         util_run_result = UtilRunResult(
             experiment_id=experiment_id,
             util_type=util_type,
-            command=command,
-            result=result,
-            description=description,
+            command=_validate_db_str(command),
+            result=_coerce_db_payload(result),
+            description=_validate_db_str(description),
             started_at=started_at,
             ended_at=ended_at,
         )
@@ -170,6 +199,75 @@ class ImgtestsDatabase:
             session.commit()
             session.refresh(util_run_result)
         return util_run_result
+
+    def insert_metric_observation(
+        self,
+        experiment_id: int,
+        utility: str,
+        metric: UtilityMetricRecord,
+        started_at: datetime,
+        ended_at: datetime,
+    ) -> UtilRunResult:
+        payload: dict[str, Any] = {
+            "utility": utility,
+            "metric_name": metric.metric_name,
+            "value": float(metric.value),
+        }
+        if metric.context:
+            payload.update(_normalize_db_mapping(metric.context))
+
+        if metric.command is not None:
+            payload["command"] = _normalize_command_json(metric.command)
+
+        command_label = (
+            _command_db_label(metric.command, fallback=utility)
+            if metric.command is not None
+            else f"{utility}:{metric.metric_name}"
+        )
+
+        return self.insert_util_run_result(
+            experiment_id=experiment_id,
+            util_type="observer",
+            command=command_label,
+            result=payload,
+            description=metric.description or "Observed numeric metric",
+            started_at=started_at,
+            ended_at=ended_at,
+        )
+
+    def insert_utility_result(
+        self,
+        record: UtilityResultRecord,
+    ) -> tuple[UtilRunResult, tuple[UtilRunResult, ...]]:
+        result_payload = _coerce_db_payload(record.result)
+        result_payload.setdefault("utility", record.utility)
+        result_payload.setdefault("command", _normalize_command_json(record.command))
+
+        if record.context:
+            for key, value in _normalize_db_mapping(record.context).items():
+                result_payload.setdefault(key, value)
+
+        loader = self.insert_util_run_result(
+            experiment_id=record.experiment_id,
+            util_type="loader",
+            command=_command_db_label(record.command, fallback=record.utility),
+            result=result_payload,
+            description=record.description or f"{record.utility} result",
+            started_at=record.started_at,
+            ended_at=record.ended_at,
+        )
+
+        observers = tuple(
+            self.insert_metric_observation(
+                experiment_id=record.experiment_id,
+                utility=record.utility,
+                metric=metric,
+                started_at=record.started_at,
+                ended_at=record.ended_at,
+            )
+            for metric in record.metrics
+        )
+        return loader, observers
 
     def update_experiment_ended_at(
         self,
@@ -221,3 +319,64 @@ class ImgtestsDatabase:
         if not hasattr(self, "session") or self.session is None:
             error_message = "Database session not initialized."
             raise RuntimeError(error_message)
+
+
+def _validate_db_str(value: str, limit: int = 200) -> str:
+    s = str(value)
+    if len(s) > limit:
+        err_msg = f"Value is too long for DB field: {len(s)} > {limit}. Text: {s}"
+        raise ValueError(err_msg)
+    return s
+
+
+def _normalize_command_json(command: CommandValue) -> str | list[str]:
+    if isinstance(command, str):
+        return command
+    return [str(part) for part in command]
+
+
+def _command_db_label(command: CommandValue, fallback: str) -> str:
+    if isinstance(command, str):
+        parts = command.strip().split()
+        return parts[0] if parts else fallback
+
+    for part in command:
+        text = str(part).strip()
+        if text:
+            return text
+
+    return fallback
+
+
+def _normalize_db_mapping(mapping: Mapping[str, Any]) -> dict[str, Any]:
+    return {str(key): _normalize_db_value(value) for key, value in mapping.items()}
+
+
+def _coerce_db_payload(value: Any) -> dict[str, Any]:
+    normalized = _normalize_db_value(value)
+    if isinstance(normalized, dict):
+        return normalized
+    if isinstance(normalized, list):
+        return {"items": normalized}
+    return {"value": normalized}
+
+
+def _normalize_db_value(value: Any) -> Any:
+    normalized: Any
+
+    if value is None or isinstance(value, (str, int, float, bool)):
+        normalized = value
+    elif isinstance(value, Path):
+        normalized = str(value)
+    elif isinstance(value, dict):
+        normalized = {str(key): _normalize_db_value(val) for key, val in value.items()}
+    elif is_dataclass(value):
+        normalized = _normalize_db_value(asdict(value))
+    elif hasattr(value, "_asdict"):
+        normalized = _normalize_db_value(value._asdict())
+    elif isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
+        normalized = [_normalize_db_value(item) for item in value]
+    else:
+        normalized = str(value)
+
+    return normalized

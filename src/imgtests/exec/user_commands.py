@@ -1,11 +1,11 @@
 from typing import TYPE_CHECKING, NamedTuple
 
+from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult
 from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
 
 if TYPE_CHECKING:
     from imgtests.exec.exec import SSHClient
-from imgtests.exec.base_util import GenericUtil
 
 
 class MkDir(GenericUtil):
