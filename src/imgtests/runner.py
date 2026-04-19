@@ -320,8 +320,9 @@ class TestsRunner(BaseRunner):
             else:
                 test_instance = test_class(self.__test_config.test_duration)
             for result in test_instance(self._executor, self._client):
-                self._database.insert_loader(
+                self._database.insert_util_run_result(
                     experiment_id=experiment.experiment_id,
+                    util_type="loader",
                     # TODO: fill descriptions and adds into TestResult class
                     description="",
                     result=result.metrics,
@@ -424,8 +425,9 @@ class TestsRunner(BaseRunner):
         # failed services
         fs_r, fs_m = systemctl.get_failed_services()
         self._logger.info("Failed services: %s", fs_m)
-        self._database.insert_observer(
+        self._database.insert_util_run_result(
             experiment_id=experiment_id,
+            util_type="observer",
             command=" ".join(fs_r.cmd),
             description="Failed systemd services.",
             result=systemctl.metrics_to_json(fs_m),
@@ -439,8 +441,9 @@ class TestsRunner(BaseRunner):
         )
         oom_m = journalctl.calc_records_cnt(oom_r.stdout)
         self._logger.info("OOM records %d", oom_m)
-        self._database.insert_observer(
+        self._database.insert_util_run_result(
             experiment_id=experiment_id,
+            util_type="observer",
             command=" ".join(oom_r.cmd),
             description="OOM records.",
             started_at=since,
@@ -460,8 +463,9 @@ class TestsRunner(BaseRunner):
             "systemd errors records %d",
             sstmd_err_m,
         )
-        self._database.insert_observer(
+        self._database.insert_util_run_result(
             experiment_id=experiment_id,
+            util_type="observer",
             command=" ".join(sstmd_err_r.cmd),
             description="Systemd errors records",
             started_at=since,
