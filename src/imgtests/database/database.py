@@ -3,23 +3,23 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any, Literal, get_args
 from zoneinfo import ZoneInfo
 
+from deepdiff import DeepDiff
 from pydantic import Field
 from pydantic_settings import BaseSettings
-from sqlalchemy import create_engine
+from sqlalchemy import and_, create_engine
 from sqlalchemy.orm import sessionmaker
 
 from imgtests.database.models.base import Base
 from imgtests.database.models.configuration import ConfigurationBase
 from imgtests.database.models.experiment import ExperimentBase
-from imgtests.database.models.loader import LoaderBase
-from imgtests.database.models.observer import ObserverBase
+from imgtests.database.models.util_run_result import UtilRunResult, UtilType
 
 if TYPE_CHECKING:
     from imgtests.sysrep import SystemInfo
     from imgtests.types import TestsCounts
 
 logger = logging.getLogger(__name__)
-Table = Literal["configurations", "experiments", "loaders", "observers"]
+Table = Literal["configurations", "experiments", "util_run_result"]
 ExperimentType = Literal["performance", "endurance", "all"]
 
 
@@ -40,9 +40,11 @@ class ImgtestsDatabase:
             logger.error("Incorrect database name.")
 
     def initialize_postgres(self, creds: PostgresCreds) -> None:
-        self.engine = create_engine(
-            f"postgresql+psycopg://{creds.user}:{creds.password}@{creds.host}:{creds.port}/{creds.database_name}"
+        db_url = (
+            f"postgresql+psycopg://{creds.user}:{creds.password}"
+            f"@{creds.host}:{creds.port}/{creds.database_name}"
         )
+        self.engine = create_engine(db_url)
         self.session = sessionmaker(self.engine)
         Base.metadata.create_all(self.engine)
 
@@ -63,7 +65,7 @@ class ImgtestsDatabase:
                     idx = line.find("=")
                     to_dict_tuple = (line[0:idx], line[idx + 1 :])
                     db_kconf[line[0:idx]] = line[idx + 1 :]
-        return self.insert_configuration(db_os, db_pkgs, db_cinfo, db_kconf)
+        return self.insert_configuration(db_os, db_pkgs, db_cinfo, db_kconf, sys_info.hardware)
 
     def insert_configuration(
         self,
@@ -71,12 +73,36 @@ class ImgtestsDatabase:
         packages: dict[str, Any] | None = None,
         core_info: str | None = None,
         core_config: dict[str, Any] | None = None,
+        hardware: dict[str, Any] | None = None,
     ) -> ConfigurationBase:
+        with self.session() as session:
+            configuration_objects = (
+                session.query(ConfigurationBase)
+                .filter(
+                    and_(
+                        ConfigurationBase.os == os,
+                        ConfigurationBase.core_info == core_info,
+                    ),
+                )
+                .all()
+            )
+            for configuration_object in configuration_objects:
+                if (
+                    configuration_object.packages == packages
+                    and configuration_object.core_config == core_config
+                    and len(DeepDiff(configuration_object.hardware, hardware)) == 0
+                ):
+                    logger.info(
+                        "Configuration already exists, returning existing object with id %d.",
+                        configuration_object.config_id,
+                    )
+                    return configuration_object
         configuration_object = ConfigurationBase(
             os=os,
             packages=packages,
             core_info=core_info,
             core_config=core_config,
+            hardware=hardware,
         )
 
         self._check_session()
@@ -114,23 +140,25 @@ class ImgtestsDatabase:
             session.refresh(experiment_object)
         return experiment_object
 
-    def insert_loader(  # noqa: PLR0913
+    def insert_util_run_result(  # noqa: PLR0913
         self,
         experiment_id: int,
+        util_type: UtilType,
         command: str,
         result: dict[str, Any],
         description: str,
         started_at: datetime | None = None,
         ended_at: datetime | None = None,
-    ) -> LoaderBase:
+    ) -> UtilRunResult:
         if started_at is None:
             started_at = datetime.now(ZoneInfo("UTC"))
         if ended_at is None:
             ended_at = datetime.now(ZoneInfo("UTC"))
 
         logger.debug("Inserting test '%s' results into experiment '%d'.", command, experiment_id)
-        loader_object = LoaderBase(
+        util_run_result = UtilRunResult(
             experiment_id=experiment_id,
+            util_type=util_type,
             command=command,
             result=result,
             description=description,
@@ -140,40 +168,10 @@ class ImgtestsDatabase:
 
         self._check_session()
         with self.session() as session:
-            session.add(loader_object)
+            session.add(util_run_result)
             session.commit()
-            session.refresh(loader_object)
-        return loader_object
-
-    def insert_observer(  # noqa: PLR0913
-        self,
-        experiment_id: int,
-        command: str,
-        result: Any,
-        description: str,
-        started_at: datetime | None = None,
-        ended_at: datetime | None = None,
-    ) -> ObserverBase:
-        if started_at is None:
-            started_at = datetime.now(ZoneInfo("UTC"))
-        if ended_at is None:
-            ended_at = datetime.now(ZoneInfo("UTC"))
-
-        observer_object = ObserverBase(
-            experiment_id=experiment_id,
-            command=command,
-            result=result,
-            description=description,
-            started_at=started_at,
-            ended_at=ended_at,
-        )
-
-        self._check_session()
-        with self.session() as session:
-            session.add(observer_object)
-            session.commit()
-            session.refresh(observer_object)
-        return observer_object
+            session.refresh(util_run_result)
+        return util_run_result
 
     def update_experiment_ended_at(
         self,
@@ -209,12 +207,12 @@ class ImgtestsDatabase:
         self._check_session()
         with self.session() as session:
             models: dict[
-                Table, type[ConfigurationBase | ExperimentBase | LoaderBase | ObserverBase]
+                Table,
+                type[ConfigurationBase | ExperimentBase | UtilRunResult],
             ] = {
                 "configurations": ConfigurationBase,
                 "experiments": ExperimentBase,
-                "loaders": LoaderBase,
-                "observers": ObserverBase,
+                "util_run_result": UtilRunResult,
             }
             if table_name not in models:
                 logger.error("Table '%s' doesn't exist.", table_name)

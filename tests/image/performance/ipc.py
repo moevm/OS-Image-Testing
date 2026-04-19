@@ -16,7 +16,9 @@ if TYPE_CHECKING:
 class SchedPerformanceTest(AbstractRunnableManyTimesTest):
     def __init__(self, iterations: int = 1) -> None:
         super().__init__(
-            "Benchmark scheduler and IPC mechanisms.", frozenset({Subsystem.IPC}), iterations
+            "Benchmark scheduler and IPC mechanisms.",
+            frozenset({Subsystem.IPC}),
+            iterations,
         )
 
     def _run(
@@ -27,7 +29,9 @@ class SchedPerformanceTest(AbstractRunnableManyTimesTest):
     ) -> Iterable[TestResult]:
         perf = Perf(client)
         for benchmark, args in zip(
-            ["messaging", "messaging", "pipe"], [[], ["--thread"], []], strict=True
+            ["messaging", "messaging", "pipe"],
+            [[], ["--thread"], []],
+            strict=True,
         ):
             started_at = datetime.now(tz=ZoneInfo("UTC"))
             result, metrics = perf.bench("sched", benchmark, args, repeat=iterations)

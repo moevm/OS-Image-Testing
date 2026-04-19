@@ -65,7 +65,7 @@ METRICS_RE: Final = re.compile(
     r"([\d.]+)\s+"  # bogo ops/s (real time)
     r"([\d.]+)\s+"  # bogo ops/s (usr+sys time)
     r"([\d.]+)"  # CPU used per instance
-    r"(?:\s+([\d]+))?$"  # RSS Max
+    r"(?:\s+([\d]+))?$",  # RSS Max
 )
 
 
@@ -85,7 +85,9 @@ class StressNg(PkgMgrMixin, GenericUtil):
         """Install stress-ng via the system package manager."""
         if self.path:
             return ExecResult(
-                cmd=(), stderr=f"{self.name} already has been installed.", returncode=0
+                cmd=(),
+                stderr=f"{self.name} already has been installed.",
+                returncode=0,
             )
         return self._install_packages(["stress-ng"])
 
@@ -176,11 +178,20 @@ class StressNg(PkgMgrMixin, GenericUtil):
         pipe: int | None = None,
         pipe_ops: int | None = None,
         sem: int | None = None,
+        sem_sysv: int | None = None,
         sem_ops: int | None = None,
         shm: int | None = None,
+        shm_sysv: int | None = None,
         shm_ops: int | None = None,
         verify: bool = True,
-        **kwargs: dict[str, Any],
+        dekker: int | None = None,
+        fifo: int | None = None,
+        futex: int | None = None,
+        msg: int | None = None,
+        peterson: int | None = None,
+        pipeherd: int | None = None,
+        sigq: int | None = None,
+        **kwargs: str | float | bool | None,
     ) -> tuple[ExecResult, StressNGResult]:
         """Runs the stress-ng util stressors.
 
@@ -250,12 +261,34 @@ class StressNg(PkgMgrMixin, GenericUtil):
             pipe_ops (int | None): Number of pipe operations per stressor.
             sem (int | None): Count of the semaphore stressors. When set to 0 got count of logical
               processors.
+            sem_sysv (int | None): Count of the stressors that perform System V
+              semaphore wait and post operations. When set to 0 got count of logical processors.
             sem_ops (int | None): Number of semaphore operations per stressor.
             shm (int | None): Count of the shared memory stressors. When set to 0 got count of
               logical processors.
+            shm_sysv (int | None): Count of the System V shared memory interface stressors.
+              When set to 0 got count of logical processors.
             shm_ops (int | None): Number of shared memory operations per stressor.
             verify (bool): Verify results if can.
-            **kwargs (dict[str, Any]): Command arguments in the free form with values.
+            dekker (int | None): Count of the stressors that exercises mutex exclusion
+              between two processes using shared memory with the Dekker Algorithm.
+              When set to 0 got count of logical processors.
+            fifo (int | None): Count of the stressors that exercise a named pipe by
+              transmitting 64 bit integers. When set to 0 got count of logical processors.
+            futex (int | None): Count of the stressors that rapidly exercise the futex system call.
+              When set to 0 got count of logical processors.
+            msg (int | None): Count of the stressors that sender and receiver processes
+              that continually send and receive messages using System V message IPC.
+              When set to 0 got count of logical processors.
+            peterson (int | None): Count of the stressors that exercises mutex exclusion between
+              two processes using shared memory with the Peterson Algorithm. When set to 0 got count
+              of logical processors.
+            pipeherd (int | None): Count of the stressors that pass a 64 bit token counter to/from
+              100 child processes over a shared pipe. When set to 0 got count of logical processors.
+            sigq (int | None):
+              Count of the stressors that rapidly send SIGUSR1 signals using sigqueue.
+              When set to 0 got count of logical processors.
+            **kwargs: Command arguments in the free form with values.
 
         Raises:
             ValueError: When invalid parameters provided or repeated.
@@ -284,7 +317,16 @@ class StressNg(PkgMgrMixin, GenericUtil):
             "mq": mq,
             "pipe": pipe,
             "sem": sem,
+            "sem-sysv": sem_sysv,
             "shm": shm,
+            "shm-sysv": shm_sysv,
+            "dekker": dekker,
+            "fifo": fifo,
+            "futex": futex,
+            "msg": msg,
+            "peterson": peterson,
+            "pipeherd": pipeherd,
+            "sigq": sigq,
         }
         if timeout_sec < 0:
             err_msg = f"Invalid timeout '{timeout_sec}'. Expected more or equal 0."
@@ -342,10 +384,19 @@ class StressNg(PkgMgrMixin, GenericUtil):
             *create_opt("pipe", pipe),
             *create_opt("pipe-ops", pipe_ops),
             *create_opt("sem", sem),
+            *create_opt("sem-sysv", sem_sysv),
             *create_opt("sem-ops", sem_ops),
             *create_opt("shm", shm),
+            *create_opt("shm-sysv", shm_sysv),
             *create_opt("shm-ops", shm_ops),
             *create_opt("verify", verify),
+            *create_opt("dekker", dekker),
+            *create_opt("fifo", fifo),
+            *create_opt("futex", futex),
+            *create_opt("msg", msg),
+            *create_opt("peterson", peterson),
+            *create_opt("pipeherd", pipeherd),
+            *create_opt("sigq", sigq),
             *add_flag("metrics"),
         ]
         if syscall is not None:
@@ -426,7 +477,7 @@ class StressNg(PkgMgrMixin, GenericUtil):
                         "bogo_ops_s_usr_sys_time": bogo_usrsys_v,
                         "cpu_used_per_instance": cpu_used_v,
                         "rss_max_kb": rss_v,
-                    }
+                    },
                 )
                 current_stressor = stressor_name
                 continue
@@ -456,7 +507,7 @@ class StressNg(PkgMgrMixin, GenericUtil):
                     },
                 )
                 metrics_map[target]["syscall_calls"].append(
-                    StressNGSyscallTiming(name, avg, mn, mx)
+                    StressNGSyscallTiming(name, avg, mn, mx),
                 )
                 current_stressor = target
                 continue
@@ -505,7 +556,9 @@ class StressNg(PkgMgrMixin, GenericUtil):
                 )
             except (ValueError, TypeError) as e:
                 logger.warning(
-                    "Failed to construct StressNGMetrics for '%s'. Error: %s", stressor, str(e)
+                    "Failed to construct StressNGMetrics for '%s'. Error: %s",
+                    stressor,
+                    str(e),
                 )
                 continue
             metrics.append(sm)
@@ -551,7 +604,7 @@ class StressNg(PkgMgrMixin, GenericUtil):
                 "bogo_ops_s_real_time": {"value": metrics.bogo_ops_s_real_time},
                 "bogo_ops_s_usr_sys_time": {"value": metrics.bogo_ops_s_usr_sys_time},
                 "cpu_used_per_instance": {"value": metrics.cpu_used_per_instance},
-            }
+            },
         }
 
         if metrics.rss_max_kb is not None:
@@ -585,16 +638,28 @@ def stress_metrics_to_samples(
 
     for metric in metrics:
         base_metrics = (
-            ("stress.bogo_ops", float(metric.bogo_ops)),
-            ("stress.real_time_secs", float(metric.real_time_secs)),
-            ("stress.usr_time_secs", float(metric.usr_time_secs)),
-            ("stress.sys_time_secs", float(metric.sys_time_secs)),
-            ("stress.bogo_ops_s_real_time", float(metric.bogo_ops_s_real_time)),
-            ("stress.bogo_ops_s_usr_sys_time", float(metric.bogo_ops_s_usr_sys_time)),
-            ("stress.cpu_used_per_instance", float(metric.cpu_used_per_instance)),
+            ("stress.bogo_ops", float(metric.bogo_ops), "Bogo ops"),
+            ("stress.real_time_secs", float(metric.real_time_secs), "Real time, s"),
+            ("stress.usr_time_secs", float(metric.usr_time_secs), "User time, s"),
+            ("stress.sys_time_secs", float(metric.sys_time_secs), "System time, s"),
+            (
+                "stress.bogo_ops_s_real_time",
+                float(metric.bogo_ops_s_real_time),
+                "Bogo ops/s",
+            ),
+            (
+                "stress.bogo_ops_s_usr_sys_time",
+                float(metric.bogo_ops_s_usr_sys_time),
+                "Bogo ops/s CPU",
+            ),
+            (
+                "stress.cpu_used_per_instance",
+                float(metric.cpu_used_per_instance),
+                "CPU used, %",
+            ),
         )
-        for metric_name, value in base_metrics:
-            samples.append(MetricSample(stage_name, subsystem, metric_name, value))
+        for metric_name, value, label in base_metrics:
+            samples.append(MetricSample(stage_name, subsystem, metric_name, value, label=label))
 
         if metric.rss_max_kb is not None:
             samples.append(
@@ -603,17 +668,36 @@ def stress_metrics_to_samples(
                     subsystem,
                     "stress.rss_max_kb",
                     float(metric.rss_max_kb),
-                )
+                    label="RSS max, KB",
+                ),
             )
 
         if metric.top10_slowest:
-            samples.append(
-                MetricSample(
-                    stage_name,
-                    subsystem,
-                    "stress.syscall_slowest_avg_ns",
-                    float(metric.top10_slowest[0].avg_ns),
+            for syscall in metric.top10_slowest:
+                samples.extend(
+                    (
+                        MetricSample(
+                            stage_name,
+                            subsystem,
+                            f"stress.syscall.{syscall.name}.avg_ns",
+                            float(syscall.avg_ns),
+                            label=f"Syscall {syscall.name} avg, ns",
+                        ),
+                        MetricSample(
+                            stage_name,
+                            subsystem,
+                            f"stress.syscall.{syscall.name}.min_ns",
+                            float(syscall.min_ns),
+                            label=f"Syscall {syscall.name} min, ns",
+                        ),
+                        MetricSample(
+                            stage_name,
+                            subsystem,
+                            f"stress.syscall.{syscall.name}.max_ns",
+                            float(syscall.max_ns),
+                            label=f"Syscall {syscall.name} max, ns",
+                        ),
+                    ),
                 )
-            )
 
     return samples

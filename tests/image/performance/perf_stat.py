@@ -26,7 +26,7 @@ def test_perf_stat_cpu_stress_ng(client: SSHClient | None) -> None:
             "60s",
             "--metrics-brief",
             "--oom-avoid",
-        ]
+        ],
     )
 
     if r.returncode:
@@ -52,7 +52,7 @@ def test_perf_stat_disks_stress_ng(client: SSHClient | None) -> None:
             "60s",
             "--metrics-brief",
             "--oom-avoid",
-        ]
+        ],
     )
 
     if r.returncode:
@@ -78,7 +78,7 @@ def test_perf_stat_memory_stress_ng(client: SSHClient | None) -> None:
             "60s",
             "--metrics-brief",
             "--oom-avoid",
-        ]
+        ],
     )
 
     if r.returncode:
@@ -103,7 +103,7 @@ def test_perf_stat_network_stress_ng(client: SSHClient | None) -> None:
             "60s",
             "--metrics-brief",
             "--oom-avoid",
-        ]
+        ],
     )
 
     if r.returncode:
@@ -124,7 +124,7 @@ def test_perf_stat_find_syscalls(client: SSHClient | None) -> None:
             "/tmp",  # noqa: S108
             "-name",
             "nonexistentfile",
-        ]
+        ],
     )
 
     if r.returncode:

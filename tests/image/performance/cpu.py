@@ -23,7 +23,10 @@ class StressNgPerformanceCpuTest(StressNgTest):
         )
 
     def _run(
-        self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int
+        self,
+        executor: ThreadPoolExecutor,
+        client: SSHClient | None,
+        timeout: int,
     ) -> Iterable[TestResult]:
         stress_ng = StressNg(client)
         yield from self.run_test(stress_ng=stress_ng, executor=executor, timeout=timeout, cpu=0)
@@ -34,7 +37,10 @@ class ChaosbladeCPUTest(AbstractRunnableTimeLimitedTest):
         super().__init__("Load CPU 70% with chaosblade.", frozenset({Subsystem.SYSTEM}), timeout)
 
     def _run(
-        self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int
+        self,
+        executor: ThreadPoolExecutor,
+        client: SSHClient | None,
+        timeout: int,
     ) -> Iterable[TestResult]:
         chaos = Chaosblade(client)
         started_at = datetime.now(tz=ZoneInfo("UTC"))

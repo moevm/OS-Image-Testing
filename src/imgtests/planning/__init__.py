@@ -3,7 +3,6 @@ from imgtests.planning.models import (
     LoadTask,
     PlanRequest,
     PlanStage,
-    Subsystem,
     TestKind,
     TestPlan,
 )
@@ -14,7 +13,6 @@ __all__ = [
     "LoadTask",
     "PlanRequest",
     "PlanStage",
-    "Subsystem",
     "TestKind",
     "TestPlan",
     "build_plan",

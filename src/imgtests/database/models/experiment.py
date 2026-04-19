@@ -5,8 +5,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from imgtests.database.models.base import Base
 from imgtests.database.models.configuration import ConfigurationBase  # noqa: TC001
-from imgtests.database.models.loader import LoaderBase  # noqa: TC001
-from imgtests.database.models.observer import ObserverBase  # noqa: TC001
+from imgtests.database.models.util_run_result import UtilRunResult  # noqa: TC001
 
 
 class ExperimentBase(Base):
@@ -19,11 +18,12 @@ class ExperimentBase(Base):
     started_at: Mapped[datetime | None] = mapped_column(DateTime)
     ended_at: Mapped[datetime | None] = mapped_column(DateTime)
     configuration: Mapped[ConfigurationBase] = relationship(
-        "ConfigurationBase", back_populates="experiments"
+        "ConfigurationBase",
+        back_populates="experiments",
     )
-    loaders: Mapped[list[LoaderBase]] = relationship("LoaderBase", back_populates="experiment")
-    observers: Mapped[list[ObserverBase]] = relationship(
-        "ObserverBase", back_populates="experiment"
+    util_run_results: Mapped[list[UtilRunResult]] = relationship(
+        "UtilRunResult",
+        back_populates="experiment",
     )
     tests_total: Mapped[int] = mapped_column(Integer, server_default="0")
     tests_passed: Mapped[int] = mapped_column(Integer, server_default="0")
@@ -38,5 +38,10 @@ class ExperimentBase(Base):
             f"description={self.description}, "
             f"type={self.type}, "
             f"started_at={self.started_at}, "
-            f"ended_at={self.ended_at})"
+            f"ended_at={self.ended_at}, "
+            f"tests_total={self.tests_total}, "
+            f"tests_passed={self.tests_passed}, "
+            f"tests_failed={self.tests_failed}, "
+            f"tests_broken={self.tests_broken}, "
+            f"tests_skipped={self.tests_skipped})"
         )

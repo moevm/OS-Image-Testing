@@ -19,7 +19,10 @@ class Iperf3LocalTest(AbstractRunnableTimeLimitedTest):
         super().__init__("Load local network with iperf3.", frozenset({Subsystem.NETWORK}), timeout)
 
     def _run(
-        self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int
+        self,
+        executor: ThreadPoolExecutor,
+        client: SSHClient | None,
+        timeout: int,
     ) -> Iterable[TestResult]:
         """Test remote network with server and client on the remote."""
         iperf3 = Iperf3(client)

@@ -2,14 +2,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from enum import Enum
-from typing import Any
+from enum import StrEnum
+from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
-from imgtests.runner import Subsystem  # noqa: TC001
+if TYPE_CHECKING:
+    from imgtests.types import Subsystem
 
 
-class TestKind(str, Enum):
+class TestKind(StrEnum):
     LOAD = "load"
     STRESS = "stress"
     STABILITY = "stability"
@@ -17,9 +18,10 @@ class TestKind(str, Enum):
     VOLUME = "volume"
     ISOLATED = "isolated"
     SPIKE = "spike"
+    DIAGNOSTIC = "diagnostic"
 
 
-class LoadPattern(str, Enum):
+class LoadPattern(StrEnum):
     SOFT = "soft"
     BALANCED = "balanced"
     INTENSE = "intense"

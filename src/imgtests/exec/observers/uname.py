@@ -24,7 +24,7 @@ class UnameInfo(NamedTuple):
                 self.machine,
                 self.hardware_platform,
                 self.operating_system,
-            ]
+            ],
         )
 
 
