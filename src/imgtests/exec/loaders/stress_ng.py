@@ -647,7 +647,7 @@ class StressNg(PkgMgrMixin, GenericUtil):
 
         if len(metrics) == 1:
             test_type = {"stressor": metrics[0].get("stressor", "unknown")}
-            metrics[0] = drop_json_fields(metrics[0], ["stressor"])
+            drop_json_fields(metrics[0], ["stressor"])
         else:
             test_type = {"stressor": "mixed"}
 

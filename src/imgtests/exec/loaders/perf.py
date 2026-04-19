@@ -208,7 +208,7 @@ class Perf(PkgMgrMixin, GenericUtil):
         time = {"duration_sec": metrics.get("total_time", 0)}
 
         excluded_fields = [*test_type.keys(), "total_time"]
-        metrics = drop_json_fields(metrics, excluded_fields)
+        drop_json_fields(metrics, excluded_fields)
 
         return AdapterResult(
             tool="perf",

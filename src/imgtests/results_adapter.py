@@ -8,7 +8,6 @@ class AdapterResult(TypedDict):
     metrics: dict[str, Any]  # useful test metrics from the tool
 
 
-def drop_json_fields(metrics: dict[str, Any], excluded_fields: list[str]) -> dict[str, Any]:
+def drop_json_fields(metrics: dict[str, Any], excluded_fields: list[str]) -> None:
     for key in excluded_fields:
         metrics.pop(key, None)
-    return metrics

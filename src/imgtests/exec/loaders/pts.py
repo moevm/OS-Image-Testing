@@ -389,7 +389,7 @@ class PhoronixTestSuite(PkgMgrMixin, GenericUtil):
         test_metrics = test_results.get("results", {})
         if test_metrics:
             test_metrics = test_metrics.get(next(iter(test_metrics.keys())), {})
-        test_metrics = drop_json_fields(test_metrics, ["details"])
+        drop_json_fields(test_metrics, ["details"])
 
         test_type = {
             "identifier": test_results.get("identifier", "unknown"),

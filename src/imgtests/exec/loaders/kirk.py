@@ -316,7 +316,7 @@ class Kirk(GenericUtil):
         time = {
             "duration_sec": round(summary.get("runtime", 0.0), 2),
         }
-        summary = drop_json_fields(summary, ["runtime"])
+        drop_json_fields(summary, ["runtime"])
 
         metrics["summary"] = summary
 
