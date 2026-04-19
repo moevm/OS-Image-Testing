@@ -112,8 +112,9 @@ class PlanExecutor(BaseRunner):
             )
             stage_started_at = datetime.now(UTC)
 
-            self.db.insert_loader(
+            self.db.insert_util_run_result(
                 experiment_id=experiment_id,
+                util_type="loader",
                 command="plan-stage",
                 result={
                     "stage_name": stage.name,
@@ -142,8 +143,9 @@ class PlanExecutor(BaseRunner):
                 counts[task_run.status] += 1
                 total_count += 1
 
-                self.db.insert_loader(
+                self.db.insert_util_run_result(
                     experiment_id=experiment_id,
+                    util_type="loader",
                     command=full_cmd,
                     result={
                         "stage_name": stage.name,
