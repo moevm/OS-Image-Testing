@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
 from imgtests.runner import AbstractRunnableTimeLimitedTest, TestResult, TestStatus
@@ -17,7 +17,7 @@ class StressNgTest(AbstractRunnableTimeLimitedTest):
         stress_ng: StressNg,
         executor: ThreadPoolExecutor,
         timeout: int,
-        **kwargs: dict[str, Any],
+        **kwargs: str | float | bool | None,
     ) -> Iterable[TestResult]:
         started_at = datetime.now(tz=ZoneInfo("UTC"))
         future = executor.submit(stress_ng.run, timeout_sec=timeout, **kwargs)

@@ -71,7 +71,7 @@ def download(suse_ver: str) -> None:
         error(f"HTTP error occurred: {err}")
     soup = BeautifulSoup(response.content, "html.parser")
     pattern = re.compile(
-        r"openSUSE-Leap-15\.[56]\.x86_64-1\.0\.\d-NoCloud-Build\d{0,1}\.\d+\.qcow2"
+        r"openSUSE-Leap-15\.[56]\.x86_64-1\.0\.\d-NoCloud-Build\d{0,1}\.\d+\.qcow2",
     )
     res = soup.find("td", class_="name", string=pattern)
     if res:
@@ -83,8 +83,8 @@ def download(suse_ver: str) -> None:
         logger.info("Downloading image '%s' ...", image_url)
         handle_result(
             call_cmd(
-                ["wget", image_url, "-O", str(target_file), "--verbose", "--no-check-certificate"]
-            )
+                ["wget", image_url, "-O", str(target_file), "--verbose", "--no-check-certificate"],
+            ),
         )
     if not target_file_sha256.exists():
         handle_result(
@@ -95,11 +95,11 @@ def download(suse_ver: str) -> None:
                     "-O",
                     f"{target_file_sha256!s}",
                     "--no-check-certificate",
-                ]
-            )
+                ],
+            ),
         )
         handle_result(
-            call_cmd(["sed", "-i", f"s/{last_image}/{target_file!s}/g", str(target_file_sha256)])
+            call_cmd(["sed", "-i", f"s/{last_image}/{target_file!s}/g", str(target_file_sha256)]),
         )
     if not is_sha256sum_pass(target_file, target_file_sha256):
         error("sha256sum check failed.")

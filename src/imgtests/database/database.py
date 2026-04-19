@@ -6,23 +6,23 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, get_args
 from zoneinfo import ZoneInfo
 
+from deepdiff import DeepDiff
 from pydantic import Field
 from pydantic_settings import BaseSettings
-from sqlalchemy import create_engine
+from sqlalchemy import and_, create_engine
 from sqlalchemy.orm import sessionmaker
 
 from imgtests.database.models.base import Base
 from imgtests.database.models.configuration import ConfigurationBase
 from imgtests.database.models.experiment import ExperimentBase
-from imgtests.database.models.loader import LoaderBase
-from imgtests.database.models.observer import ObserverBase
+from imgtests.database.models.util_run_result import UtilRunResult, UtilType
 
 if TYPE_CHECKING:
     from imgtests.sysrep import SystemInfo
     from imgtests.types import TestsCounts
 
 logger = logging.getLogger(__name__)
-Table = Literal["configurations", "experiments", "loaders", "observers"]
+Table = Literal["configurations", "experiments", "util_run_result"]
 ExperimentType = Literal["performance", "endurance", "all"]
 CommandValue = str | Sequence[str]
 
@@ -67,7 +67,10 @@ class ImgtestsDatabase:
 
     def initialize_postgres(self, creds: PostgresCreds) -> None:
         self.engine = create_engine(
-            f"postgresql+psycopg://{creds.user}:{creds.password}@{creds.host}:{creds.port}/{creds.database_name}"
+            (
+                f"postgresql+psycopg://{creds.user}:{creds.password}"
+                f"@{creds.host}:{creds.port}/{creds.database_name}"
+            ),
         )
         self.session = sessionmaker(self.engine)
         Base.metadata.create_all(self.engine)
@@ -89,7 +92,7 @@ class ImgtestsDatabase:
                     idx = line.find("=")
                     to_dict_tuple = (line[0:idx], line[idx + 1 :])
                     db_kconf[line[0:idx]] = line[idx + 1 :]
-        return self.insert_configuration(db_os, db_pkgs, db_cinfo, db_kconf)
+        return self.insert_configuration(db_os, db_pkgs, db_cinfo, db_kconf, sys_info.hardware)
 
     def insert_configuration(
         self,
@@ -97,12 +100,36 @@ class ImgtestsDatabase:
         packages: dict[str, Any] | None = None,
         core_info: str | None = None,
         core_config: dict[str, Any] | None = None,
+        hardware: dict[str, Any] | None = None,
     ) -> ConfigurationBase:
+        with self.session() as session:
+            configuration_objects = (
+                session.query(ConfigurationBase)
+                .filter(
+                    and_(
+                        ConfigurationBase.os == os,
+                        ConfigurationBase.core_info == core_info,
+                    ),
+                )
+                .all()
+            )
+            for configuration_object in configuration_objects:
+                if (
+                    configuration_object.packages == packages
+                    and configuration_object.core_config == core_config
+                    and len(DeepDiff(configuration_object.hardware, hardware)) == 0
+                ):
+                    logger.info(
+                        "Configuration already exists, returning existing object with id %d.",
+                        configuration_object.config_id,
+                    )
+                    return configuration_object
         configuration_object = ConfigurationBase(
             os=os,
             packages=packages,
             core_info=core_info,
             core_config=core_config,
+            hardware=hardware,
         )
 
         self._check_session()
@@ -140,66 +167,38 @@ class ImgtestsDatabase:
             session.refresh(experiment_object)
         return experiment_object
 
-    def insert_loader(  # noqa: PLR0913
+    def insert_util_run_result(  # noqa: PLR0913
         self,
         experiment_id: int,
+        util_type: UtilType,
         command: str,
         result: dict[str, Any],
         description: str,
         started_at: datetime | None = None,
         ended_at: datetime | None = None,
-    ) -> LoaderBase:
+    ) -> UtilRunResult:
         if started_at is None:
             started_at = datetime.now(ZoneInfo("UTC"))
         if ended_at is None:
             ended_at = datetime.now(ZoneInfo("UTC"))
 
         logger.debug("Inserting test '%s' results into experiment '%d'.", command, experiment_id)
-        loader_object = LoaderBase(
+        util_run_result = UtilRunResult(
             experiment_id=experiment_id,
+            util_type=util_type,
             command=_validate_db_str(command),
-            result=result,
-            description=_validate_db_str(description) if description is not None else None,
+            result=_coerce_db_payload(result),
+            description=_validate_db_str(description),
             started_at=started_at,
             ended_at=ended_at,
         )
 
         self._check_session()
         with self.session() as session:
-            session.add(loader_object)
+            session.add(util_run_result)
             session.commit()
-            session.refresh(loader_object)
-        return loader_object
-
-    def insert_observer(  # noqa: PLR0913
-        self,
-        experiment_id: int,
-        command: str,
-        result: Any,
-        description: str,
-        started_at: datetime | None = None,
-        ended_at: datetime | None = None,
-    ) -> ObserverBase:
-        if started_at is None:
-            started_at = datetime.now(ZoneInfo("UTC"))
-        if ended_at is None:
-            ended_at = datetime.now(ZoneInfo("UTC"))
-
-        observer_object = ObserverBase(
-            experiment_id=experiment_id,
-            command=_validate_db_str(command),
-            result=result,
-            description=_validate_db_str(description) if description is not None else None,
-            started_at=started_at,
-            ended_at=ended_at,
-        )
-
-        self._check_session()
-        with self.session() as session:
-            session.add(observer_object)
-            session.commit()
-            session.refresh(observer_object)
-        return observer_object
+            session.refresh(util_run_result)
+        return util_run_result
 
     def insert_metric_observation(
         self,
@@ -208,7 +207,7 @@ class ImgtestsDatabase:
         metric: UtilityMetricRecord,
         started_at: datetime,
         ended_at: datetime,
-    ) -> ObserverBase:
+    ) -> UtilRunResult:
         payload: dict[str, Any] = {
             "utility": utility,
             "metric_name": metric.metric_name,
@@ -226,8 +225,9 @@ class ImgtestsDatabase:
             else f"{utility}:{metric.metric_name}"
         )
 
-        return self.insert_observer(
+        return self.insert_util_run_result(
             experiment_id=experiment_id,
+            util_type="observer",
             command=command_label,
             result=payload,
             description=metric.description or "Observed numeric metric",
@@ -238,7 +238,7 @@ class ImgtestsDatabase:
     def insert_utility_result(
         self,
         record: UtilityResultRecord,
-    ) -> tuple[LoaderBase, tuple[ObserverBase, ...]]:
+    ) -> tuple[UtilRunResult, tuple[UtilRunResult, ...]]:
         result_payload = _coerce_db_payload(record.result)
         result_payload.setdefault("utility", record.utility)
         result_payload.setdefault("command", _normalize_command_json(record.command))
@@ -247,11 +247,12 @@ class ImgtestsDatabase:
             for key, value in _normalize_db_mapping(record.context).items():
                 result_payload.setdefault(key, value)
 
-        loader = self.insert_loader(
+        loader = self.insert_util_run_result(
             experiment_id=record.experiment_id,
+            util_type="loader",
             command=_command_db_label(record.command, fallback=record.utility),
             result=result_payload,
-            description=record.description,
+            description=record.description or f"{record.utility} result",
             started_at=record.started_at,
             ended_at=record.ended_at,
         )
@@ -302,12 +303,12 @@ class ImgtestsDatabase:
         self._check_session()
         with self.session() as session:
             models: dict[
-                Table, type[ConfigurationBase | ExperimentBase | LoaderBase | ObserverBase]
+                Table,
+                type[ConfigurationBase | ExperimentBase | UtilRunResult],
             ] = {
                 "configurations": ConfigurationBase,
                 "experiments": ExperimentBase,
-                "loaders": LoaderBase,
-                "observers": ObserverBase,
+                "util_run_result": UtilRunResult,
             }
             if table_name not in models:
                 logger.error("Table '%s' doesn't exist.", table_name)
@@ -326,12 +327,6 @@ def _validate_db_str(value: str, limit: int = 200) -> str:
         err_msg = f"Value is too long for DB field: {len(s)} > {limit}. Text: {s}"
         raise ValueError(err_msg)
     return s
-
-
-def _normalize_command(command: CommandValue) -> str:
-    if isinstance(command, str):
-        return command
-    return " ".join(str(part) for part in command)
 
 
 def _normalize_command_json(command: CommandValue) -> str | list[str]:

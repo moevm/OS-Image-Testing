@@ -12,10 +12,10 @@ from zoneinfo import ZoneInfo
 
 import paramiko
 import paramiko.ssh_exception
+from pydantic import Field
+from pydantic_settings import BaseSettings
 
 from imgtests.constant import LIB_NAME
-from imgtests.database.database import ExperimentType, ImgtestsDatabase
-from imgtests.environment import env_var_to_type
 from imgtests.exec.exec import SSHClient, common_run_command
 from imgtests.exec.observers.journalctl import Journalctl
 from imgtests.exec.observers.systemctl import Systemctl
@@ -25,9 +25,9 @@ from imgtests.types import Subsystem, TestsCounts
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
+    from imgtests.database.database import ExperimentType, ImgtestsDatabase
     from imgtests.database.models.experiment import ExperimentBase
     from imgtests.exec.base_util import BaseTestUtil
-    from imgtests.exec.exec import SSHClient
     from imgtests.planning import LoadPattern, TestKind
 
 
@@ -54,6 +54,14 @@ class DefaultCleanupMixin:
                 logger.warning("Failed to cleanup folder '%s'.", path)
             else:
                 logger.info("Cleaned up folder '%s'.", path)
+        self.__clean_pages_cache(client, logger)
+
+    def __clean_pages_cache(self, client: SSHClient | None, logger: logging.Logger) -> None:
+        commands = [["sudo", "sync"], ["sudo", "sh", "-c", "'echo 3 > /proc/sys/vm/drop_caches'"]]
+        for command in commands:
+            result = common_run_command(command, client)
+            if result.returncode:
+                logger.warning("Cache cleanup failed.")
 
 
 class AbstractRunnableManyTimesTest(ABC, DefaultCleanupMixin):
@@ -88,7 +96,9 @@ class AbstractRunnableManyTimesTest(ABC, DefaultCleanupMixin):
         self.logger = logging.getLogger(f"{LIB_NAME}.runnable_test")
 
     def __call__(
-        self, executor: ThreadPoolExecutor, client: SSHClient | None = None
+        self,
+        executor: ThreadPoolExecutor,
+        client: SSHClient | None = None,
     ) -> Iterable[TestResult]:
         self.logger.info("Starting '%s' test '%d' times.", self.description, self.iterations)
         yield from self._run(executor, client, self.iterations)
@@ -135,7 +145,9 @@ class AbstractRunnableTimeLimitedTest(ABC, DefaultCleanupMixin):
         self.logger = logging.getLogger(f"{LIB_NAME}.runnable_test")
 
     def __call__(
-        self, executor: ThreadPoolExecutor, client: SSHClient | None = None
+        self,
+        executor: ThreadPoolExecutor,
+        client: SSHClient | None = None,
     ) -> Iterable[TestResult]:
         self.logger.info("Starting '%s' test with '%d' timeout.", self.description, self.timeout)
         yield from self._run(executor, client, self.timeout)
@@ -190,8 +202,53 @@ class TestsRunnerConfig:
             self.test_duration = 0
 
 
+class ProfiledPlanRunnerSettings(BaseSettings):
+    subsystems: str = Field(default="all", validation_alias="PLAN_SUBSYSTEMS")
+    results_dir: Path = Field(
+        default=Path("results/profiled"),
+        validation_alias="PLAN_RESULTS_DIR",
+    )
+    pattern: str = Field(default="", validation_alias="PLAN_PATTERN")
+    run_matrix: bool = Field(default=False, validation_alias="PLAN_RUN_MATRIX")
+    profile: str = Field(default="load", validation_alias="PLAN_PROFILE")
+    duration_sec: int = Field(default=120, validation_alias="PLAN_DURATION_SEC")
+    matrix_profiles: str = Field(default="all", validation_alias="PLAN_MATRIX_PROFILES")
+    duration_load: int | None = Field(default=None, validation_alias="PLAN_DURATION_LOAD")
+    duration_stress: int | None = Field(default=None, validation_alias="PLAN_DURATION_STRESS")
+    duration_stability: int | None = Field(default=None, validation_alias="PLAN_DURATION_STABILITY")
+    duration_scalability: int | None = Field(
+        default=None,
+        validation_alias="PLAN_DURATION_SCALABILITY",
+    )
+    duration_volume: int | None = Field(default=None, validation_alias="PLAN_DURATION_VOLUME")
+    duration_isolated: int | None = Field(default=None, validation_alias="PLAN_DURATION_ISOLATED")
+    duration_spike: int | None = Field(default=None, validation_alias="PLAN_DURATION_SPIKE")
+    duration_diagnostic: int | None = Field(
+        default=None,
+        validation_alias="PLAN_DURATION_DIAGNOSTIC",
+    )
+
+    def duration_for(self, profile: TestKind) -> int:
+        durations = {
+            "load": self.duration_load,
+            "stress": self.duration_stress,
+            "stability": self.duration_stability,
+            "scalability": self.duration_scalability,
+            "volume": self.duration_volume,
+            "isolated": self.duration_isolated,
+            "spike": self.duration_spike,
+            "diagnostic": self.duration_diagnostic,
+        }
+        duration = durations[profile.value]
+        return self.duration_sec if duration is None else duration
+
+
 class BaseRunner:
-    __slots__ = ()
+    def __init__(self, name: str, client: SSHClient | None, database: ImgtestsDatabase) -> None:
+        self._executor = ThreadPoolExecutor()
+        self._client = client
+        self._database = database
+        self._logger = logging.getLogger(f"{LIB_NAME}.{name}")
 
     @staticmethod
     def resolve_config_id(
@@ -226,24 +283,27 @@ class BaseRunner:
             ended_at=ended_at,
         )
 
+    def close(self) -> None:
+        self._executor.shutdown(wait=False)
+
 
 class TestsRunner(BaseRunner):
-    __slots__ = ("__client", "__database", "__executor", "__test_config", "logger")
-
-    def __init__(self, client: SSHClient | None, test_config: TestsRunnerConfig) -> None:
-        self.__executor = ThreadPoolExecutor()
-        self.__client = client
-        self.__database = ImgtestsDatabase()
+    def __init__(
+        self,
+        client: SSHClient | None,
+        database: ImgtestsDatabase,
+        test_config: TestsRunnerConfig,
+    ) -> None:
         self.__test_config = test_config
-        self.logger = logging.getLogger(f"{LIB_NAME}.tests_runner")
+        super().__init__("tests_runner", client, database)
 
     def run(self) -> None:
         test_completed_event = Event()
         if self.__test_config.install_dependencies:
             self.install_dependencies()
         experiment = self.start_experiment(
-            client=self.__client,
-            database=self.__database,
+            client=self._client,
+            database=self._database,
             description=self.__test_config.description,
             experiment_type=self.__test_config.experiment_type,
         )
@@ -255,8 +315,8 @@ class TestsRunner(BaseRunner):
             TestStatus.BROKEN: 0,
         }
         for test_class in self.__test_config.tests:
-            if self.__client is not None:
-                self.__client.reconnect()
+            if self._client is not None:
+                self._client.reconnect()
             is_alive_cycle = Thread(target=self.__is_remote_alive, args=(test_completed_event,))
             is_alive_cycle.start()
             test_started_at = datetime.now(tz=ZoneInfo("UTC"))
@@ -264,9 +324,10 @@ class TestsRunner(BaseRunner):
                 test_instance = test_class
             else:
                 test_instance = test_class(self.__test_config.test_duration)
-            for result in test_instance(self.__executor, self.__client):
-                self.__database.insert_loader(
+            for result in test_instance(self._executor, self._client):
+                self._database.insert_util_run_result(
                     experiment_id=experiment.experiment_id,
+                    util_type="loader",
                     # TODO: fill descriptions and adds into TestResult class
                     description="",
                     result=result.metrics,
@@ -281,12 +342,12 @@ class TestsRunner(BaseRunner):
                 since=test_started_at,
                 until=datetime.now(tz=ZoneInfo("UTC")),
             )
-            test_instance.cleanup(self.__client, self.logger)
+            test_instance.cleanup(self._client, self._logger)
             test_completed_event.set()
             is_alive_cycle.join(10)
             test_completed_event.clear()
-            self.__database.update_experiment_ended_at(experiment.experiment_id)
-            self.__database.update_experiment_tests_count(
+            self._database.update_experiment_ended_at(experiment.experiment_id)
+            self._database.update_experiment_tests_count(
                 experiment.experiment_id,
                 TestsCounts(
                     total_count=total_count,
@@ -296,27 +357,27 @@ class TestsRunner(BaseRunner):
                     skip_count=counts[TestStatus.SKIPPED],
                 ),
             )
-        self.logger.info("All tests completed successfully.")
-        if self.__client is not None:
-            self.__client.close()
+        self._logger.info("All tests completed successfully.")
+        if self._client is not None:
+            self._client.close()
 
     def install_dependencies(self) -> None:
         from imgtests.exec.loaders import (  # noqa: PLC0415
             Chaosblade,
             Fio,
-            FioPlot,
+            Iperf3,
             Kirk,
             Perf,
             PhoronixTestSuite,
             StressNg,
         )
-        from imgtests.exec.observers import NodeExporter, Sar, Time  # noqa: PLC0415
+        from imgtests.exec.observers import Lshw, NodeExporter, Sar  # noqa: PLC0415
+        from imgtests.exec.user_commands import Time  # noqa: PLC0415
 
-        self.logger.info("Installing dependencies. This may take a while.")
+        self._logger.info("Installing dependencies. This may take a while.")
         for tool in (
             Chaosblade,
             Fio,
-            FioPlot,
             Kirk,
             Perf,
             StressNg,
@@ -324,42 +385,54 @@ class TestsRunner(BaseRunner):
             Time,
             NodeExporter,
             Sar,
+            Lshw,
+            Iperf3,
         ):
-            tool_instance: BaseTestUtil = tool(self.__client)
+            tool_instance: BaseTestUtil = tool(self._client)
             try:
-                tool_instance.install()
+                result = tool_instance.install()
             except NotImplementedError:
-                self.logger.exception(
-                    "Failed to install dependencies for the '%s'.", tool_instance.name
+                self._logger.exception(
+                    "Failed to install dependencies for the '%s'.",
+                    tool_instance.name,
                 )
                 continue
-            tool_instance = tool(self.__client)
-            self.logger.info(
-                "Installed '%s' with version '%s'.", tool_instance.name, tool_instance.version()
-            )
-        self.logger.info("Dependencies installed successfully.")
+            if result.returncode:
+                self._logger.error(
+                    "Failed to install dependencies for the '%s'.",
+                    tool_instance.name,
+                )
+            else:
+                tool_instance = tool(self._client)
+                self._logger.info(
+                    "Installed '%s' with version '%s'.",
+                    tool_instance.name,
+                    tool_instance.version(),
+                )
+        self._logger.info("Dependencies installed successfully.")
 
     def __is_remote_alive(self, test_completed_event: Event) -> None:
         while not test_completed_event.wait(5.0):
             try:
-                common_run_command(["echo", "test"], self.__client)
+                common_run_command(["echo", "test"], self._client)
             except paramiko.ssh_exception.SSHException:
                 break
         if not test_completed_event.is_set():
-            self.logger.error("Remote node unavailable during test.")
-            if self.__client is not None:
-                self.__client.close()
-            self.__executor.shutdown(cancel_futures=True)
+            self._logger.error("Remote node unavailable during test.")
+            if self._client is not None:
+                self._client.close()
+            self._executor.shutdown(cancel_futures=True)
 
     def _collect_system_errors(self, experiment_id: int, since: datetime, until: datetime) -> None:
-        systemctl = Systemctl(self.__client)
-        journalctl = Journalctl(self.__client, use_sudo=True)
+        systemctl = Systemctl(self._client)
+        journalctl = Journalctl(self._client, use_sudo=True)
 
         # failed services
         fs_r, fs_m = systemctl.get_failed_services()
-        self.logger.info("Failed services: %s", fs_m)
-        self.__database.insert_observer(
+        self._logger.info("Failed services: %s", fs_m)
+        self._database.insert_util_run_result(
             experiment_id=experiment_id,
+            util_type="observer",
             command=" ".join(fs_r.cmd),
             description="Failed systemd services.",
             result=systemctl.metrics_to_json(fs_m),
@@ -369,11 +442,13 @@ class TestsRunner(BaseRunner):
         oom_r = journalctl.oom_records(
             since=since.strftime(journalctl.DATE_FORMAT),
             until=until.strftime(journalctl.DATE_FORMAT),
+            log_errors=False,
         )
         oom_m = journalctl.calc_records_cnt(oom_r.stdout)
-        self.logger.info("OOM records %d", oom_m)
-        self.__database.insert_observer(
+        self._logger.info("OOM records %d", oom_m)
+        self._database.insert_util_run_result(
             experiment_id=experiment_id,
+            util_type="observer",
             command=" ".join(oom_r.cmd),
             description="OOM records.",
             started_at=since,
@@ -386,14 +461,16 @@ class TestsRunner(BaseRunner):
             since=since.strftime(journalctl.DATE_FORMAT),
             until=until.strftime(journalctl.DATE_FORMAT),
             priority="err",
+            log_errors=False,
         )
         sstmd_err_m = journalctl.calc_records_cnt(sstmd_err_r.stdout)
-        self.logger.info(
+        self._logger.info(
             "systemd errors records %d",
             sstmd_err_m,
         )
-        self.__database.insert_observer(
+        self._database.insert_util_run_result(
             experiment_id=experiment_id,
+            util_type="observer",
             command=" ".join(sstmd_err_r.cmd),
             description="Systemd errors records",
             started_at=since,
@@ -403,8 +480,6 @@ class TestsRunner(BaseRunner):
 
 
 class ProfiledPlanRunner(BaseRunner):
-    __slots__ = ("client", "db", "executor")
-
     _SUBSYSTEM_ALIASES: ClassVar[dict[str, Subsystem]] = {
         "cpu": Subsystem.SYSTEM,
         "disk": Subsystem.FILE,
@@ -413,32 +488,33 @@ class ProfiledPlanRunner(BaseRunner):
 
     def __init__(
         self,
-        client: SSHClient,
-        db: ImgtestsDatabase,
+        client: SSHClient | None,
+        database: ImgtestsDatabase,
     ) -> None:
         from imgtests.planning.executor import PlanExecutor  # noqa: PLC0415
 
-        self.client = client
-        self.db = db
-        self.executor = PlanExecutor(client=client, db=db)
+        self.executor = PlanExecutor(client=client, db=database)
+        super().__init__("profiled_plan_runner", client, database)
 
     def run_from_env(self) -> bool:
-        subsystems = self._parse_subsystems(env_var_to_type("PLAN_SUBSYSTEMS", str, "all"))
-        results_root = env_var_to_type("PLAN_RESULTS_DIR", Path, Path("results/profiled"))
-        pattern = self._parse_pattern(env_var_to_type("PLAN_PATTERN", str, ""))
-        config_id = self.resolve_config_id(self.client, self.db)
+        settings = ProfiledPlanRunnerSettings()
+        subsystems = self._parse_subsystems(settings.subsystems)
+        results_root = settings.results_dir
+        pattern = self._parse_pattern(settings.pattern)
+        config_id = self.resolve_config_id(self._client, self._database)
 
-        if env_var_to_type("PLAN_RUN_MATRIX", bool, default=False):
+        if settings.run_matrix:
             return self._run_matrix(
                 subsystems=subsystems,
                 results_root=results_root,
                 pattern=pattern,
                 config_id=config_id,
+                settings=settings,
             )
 
         failures = self._run_one(
-            profile=self._parse_profile(env_var_to_type("PLAN_PROFILE", str, "load")),
-            duration_sec=env_var_to_type("PLAN_DURATION_SEC", int, 120),
+            profile=self._parse_profile(settings.profile),
+            duration_sec=settings.duration_sec,
             subsystems=subsystems,
             results_root=results_root,
             pattern=pattern,
@@ -453,21 +529,15 @@ class ProfiledPlanRunner(BaseRunner):
         results_root: Path,
         pattern: LoadPattern | None,
         config_id: int,
+        settings: ProfiledPlanRunnerSettings,
     ) -> bool:
         total_failures = 0
-        default_duration = env_var_to_type("PLAN_DURATION_SEC", int, 120)
 
-        for index, profile in enumerate(
-            self._parse_profiles(env_var_to_type("PLAN_MATRIX_PROFILES", str, "all"))
-        ):
-            if index > 0:
-                self.client.reconnect()
+        for index, profile in enumerate(self._parse_profiles(settings.matrix_profiles)):
+            if index > 0 and isinstance(self._client, SSHClient):
+                self._client.reconnect()
 
-            duration_sec = env_var_to_type(
-                f"PLAN_DURATION_{profile.value.upper()}",
-                int,
-                default_duration,
-            )
+            duration_sec = settings.duration_for(profile)
             total_failures += self._run_one(
                 profile=profile,
                 duration_sec=duration_sec,
@@ -498,7 +568,7 @@ class ProfiledPlanRunner(BaseRunner):
                     subsystems=subsystems,
                     test_kind=profile,
                     pattern=pattern,
-                )
+                ),
             ),
             results_dir=results_root / self._build_run_name(profile, pattern),
             experiment_description=f"Profiled plan: {profile.value}",
@@ -508,7 +578,7 @@ class ProfiledPlanRunner(BaseRunner):
             1 for stage in execution.stage_runs for task in stage.tasks if task.returncode != 0
         )
 
-        logging.getLogger(__name__).info(
+        self._logger.info(
             "[PROFILED] DONE profile=%s pattern=%s duration=%ss failures=%d experiment_id=%s",
             profile.value,
             pattern.value if pattern else "auto",
@@ -544,7 +614,7 @@ class ProfiledPlanRunner(BaseRunner):
                 allowed = ", ".join(
                     sorted(
                         [subsystem.value for subsystem in Subsystem] + list(cls._SUBSYSTEM_ALIASES),
-                    )
+                    ),
                 )
                 msg = f"Unknown subsystem '{part}'. Allowed: {allowed}"
                 raise ValueError(msg) from exc

@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import JSON, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -17,8 +17,10 @@ class ConfigurationBase(Base):
     packages: Mapped[dict[str, str]] = mapped_column(JSON)
     core_info: Mapped[str] = mapped_column(String(300))
     core_config: Mapped[dict[str, str]] = mapped_column(JSON)
+    hardware: Mapped[dict[str, Any]] = mapped_column(JSON)
     experiments: Mapped[list["ExperimentBase"]] = relationship(  # noqa: UP037
-        "ExperimentBase", back_populates="configuration"
+        "ExperimentBase",
+        back_populates="configuration",
     )
 
     def __repr__(self) -> str:
@@ -27,5 +29,6 @@ class ConfigurationBase(Base):
             f"os={self.os}), "
             f"packages={self.packages}, "
             f"core_info={self.core_info}, "
-            f"core_config={self.core_config})"
+            f"core_config={self.core_config}, "
+            f"hardware={self.hardware})"
         )

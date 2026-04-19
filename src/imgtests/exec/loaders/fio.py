@@ -1,4 +1,3 @@
-from contextlib import suppress
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
@@ -13,7 +12,15 @@ if TYPE_CHECKING:
     from imgtests.types import Subsystem, Version
 
 IOPattern = Literal[
-    "read", "write", "trim", "randread", "randwrite", "randtrim", "readwrite", "randrw", "trimwrite"
+    "read",
+    "write",
+    "trim",
+    "randread",
+    "randwrite",
+    "randtrim",
+    "readwrite",
+    "randrw",
+    "trimwrite",
 ]
 # fmt: off
 IOEngine = Literal[
@@ -28,27 +35,31 @@ IOEngine = Literal[
 ]
 # fmt: on
 Direct = Literal[1] | None
+FIO_CLAT_PERCENTILES: dict[str, tuple[str, str]] = {
+    "50.000000": ("50", "50"),
+    "90.000000": ("90", "90"),
+    "95.000000": ("95", "95"),
+    "99.000000": ("99", "99"),
+    "99.900000": ("999", "99.9"),
+}
 
 
-def get_available_bytes(client: SSHClient, path: str | Path) -> int | None:
-    with suppress(Exception):
-        res = common_run_command(
-            ["df", "--output=avail", "--block-size=1", str(path)],
-            client,
-        )
-        if res.returncode:
-            return None
+def get_available_bytes(client: SSHClient | None, path: str | Path) -> int | None:
+    res = common_run_command(
+        ["df", "--output=avail", "--block-size=1", str(path)],
+        client,
+    )
+    if res.returncode:
+        return None
 
-        out = (res.stdout or "").strip().splitlines()
-        if not out:
-            return None
+    out = (res.stdout or "").strip().splitlines()
+    if not out:
+        return None
 
-        try:
-            return int(out[-1].strip())
-        except (ValueError, IndexError):
-            return None
-
-    return None
+    try:
+        return int(out[-1].strip())
+    except ValueError, IndexError:
+        return None
 
 
 class Fio(PkgMgrMixin, GenericUtil):
@@ -61,7 +72,9 @@ class Fio(PkgMgrMixin, GenericUtil):
         """Install fio via the system package manager."""
         if self.path:
             return ExecResult(
-                cmd=(), stderr=f"{self.name} already has been installed.", returncode=0
+                cmd=(),
+                stderr=f"{self.name} already has been installed.",
+                returncode=0,
             )
         return self._install_packages(["fio"])
 
@@ -96,7 +109,9 @@ class Fio(PkgMgrMixin, GenericUtil):
         ioengine: IOEngine | None = None,
         direct: Direct = None,
         directory: Path | None = None,
-        **kwargs: dict[str, Any],
+        offset: str | None = None,
+        offset_increment: str | None = None,
+        **kwargs: str | float | bool | None,
     ) -> ExecResult:
         """Runs the fio util with provided options.
 
@@ -110,7 +125,9 @@ class Fio(PkgMgrMixin, GenericUtil):
             ioengine (IOEngine| None): How the job issues I/O.
             direct (Direct): Use non-buffered I/O (when set) or not.
             directory (Path | None): Directory for saving test files.
-            **kwargs (dict[str, Any]): Command arguments in the free form with values.
+            offset (str | None): Start offset in bytes or percentage of file size.
+            offset_increment (str | None): Per-job offset step added to base offset for each thread.
+            **kwargs (str | float | bool | None): Command arguments in the free form with values.
 
         Raises:
             ValueError: When invalid parameters provided or repeated.
@@ -134,6 +151,8 @@ class Fio(PkgMgrMixin, GenericUtil):
                 *create_opt("ioengine", ioengine),
                 *create_opt("direct", direct),
                 *create_opt("directory", directory),
+                *create_opt("offset", offset),
+                *create_opt("offset_increment", offset_increment),
             ],
             **kwargs,
         )
@@ -218,14 +237,6 @@ def fio_metrics_to_samples(
     if not isinstance(jobs, list):
         return []
 
-    wanted_p = {
-        "50.000000": 50,
-        "90.000000": 90,
-        "95.000000": 95,
-        "99.000000": 99,
-        "99.900000": 999,
-    }
-
     out: list[MetricSample] = []
     for job in jobs:
         if not isinstance(job, dict):
@@ -241,8 +252,8 @@ def fio_metrics_to_samples(
                     subsystem=subsystem.value,
                     op=op,
                     op_data=op_data,
-                    wanted_p=wanted_p,
-                )
+                    percentiles=FIO_CLAT_PERCENTILES,
+                ),
             )
 
     return out
@@ -253,9 +264,10 @@ def _fio_op_samples(
     subsystem: str,
     op: str,
     op_data: dict[str, Any],
-    wanted_p: dict[str, int],
+    percentiles: dict[str, tuple[str, str]],
 ) -> list[MetricSample]:
     out: list[MetricSample] = []
+    op_label = op.capitalize()
 
     iops = _safe_float(op_data.get("iops"))
     bw = _safe_float(op_data.get("bw"))
@@ -265,20 +277,54 @@ def _fio_op_samples(
     clat_mean = _safe_float(clat.get("mean")) if isinstance(clat, dict) else None
 
     if iops is not None:
-        out.append(MetricSample(stage_name, subsystem, f"fio.{op}.iops", iops))
+        out.append(
+            MetricSample(stage_name, subsystem, f"fio.{op}.iops", iops, label=f"{op_label} IOPS"),
+        )
     if bw is not None:
-        out.append(MetricSample(stage_name, subsystem, f"fio.{op}.bw_kib_s", bw))
+        out.append(
+            MetricSample(
+                stage_name,
+                subsystem,
+                f"fio.{op}.bw_kib_s",
+                bw,
+                label=f"{op_label} bandwidth, KiB/s",
+            ),
+        )
     if runtime_ms is not None:
-        out.append(MetricSample(stage_name, subsystem, f"fio.{op}.runtime_ms", runtime_ms))
+        out.append(
+            MetricSample(
+                stage_name,
+                subsystem,
+                f"fio.{op}.runtime_ms",
+                runtime_ms,
+                label=f"{op_label} runtime, ms",
+            ),
+        )
     if clat_mean is not None:
-        out.append(MetricSample(stage_name, subsystem, f"fio.{op}.clat_mean_ns", clat_mean))
+        out.append(
+            MetricSample(
+                stage_name,
+                subsystem,
+                f"fio.{op}.clat_mean_ns",
+                clat_mean,
+                label=f"{op_label} clat mean, ns",
+            ),
+        )
 
     pct = clat.get("percentile") if isinstance(clat, dict) else None
     if isinstance(pct, dict):
-        for key, p_int in wanted_p.items():
+        for key, (metric_suffix, percentile_label) in percentiles.items():
             fv = _safe_float(pct.get(key))
             if fv is not None:
-                out.append(MetricSample(stage_name, subsystem, f"fio.{op}.clat_p{p_int}_ns", fv))
+                out.append(
+                    MetricSample(
+                        stage_name,
+                        subsystem,
+                        f"fio.{op}.clat_p{metric_suffix}_ns",
+                        fv,
+                        label=f"{op_label} clat p{percentile_label}, ns",
+                    ),
+                )
 
     return out
 
@@ -289,5 +335,5 @@ def _safe_float(value: Any) -> float | None:
 
     try:
         return float(value)
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return None

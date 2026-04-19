@@ -31,7 +31,9 @@ class Kirk(GenericUtil):
         """Install kirk from the official Git repository and expose it in PATH."""
         if self.path:
             return ExecResult(
-                cmd=(), stderr=f"{self.name} already has been installed.", returncode=0
+                cmd=(),
+                stderr=f"{self.name} already has been installed.",
+                returncode=0,
             )
 
         os_id = get_os_release(self.ssh_client).id
@@ -56,14 +58,21 @@ class Kirk(GenericUtil):
         self,
         ltp_root: str | Path = "/opt/ltp",
     ) -> tuple[str, ...]:
-        """Return a list of available LTP suites."""
+        """Return a list of available LTP suites.
+
+        Args:
+            ltp_root (str | Path): Path to directory with LTP suites.
+
+        Returns:
+            tuple[str, ...]: Available LTP suites for kirk.
+        """
         ltp_root_path = Path(ltp_root)
         runtest_dir = ltp_root_path / "runtest"
 
         if self.ssh_client is None:
             try:
                 return tuple(
-                    sorted(entry.name for entry in runtest_dir.iterdir() if entry.is_file())
+                    sorted(entry.name for entry in runtest_dir.iterdir() if entry.is_file()),
                 )
             except OSError:
                 logger.exception("Failed to list LTP suites in local directory %s", runtest_dir)
@@ -83,11 +92,13 @@ class Kirk(GenericUtil):
 
     @staticmethod
     def _validate_fault_injection(fault_injection: int) -> None:
+        """Checks if fault injection probability is in between borders."""
         if not 0 <= fault_injection <= MAX_FAULT_INJECTION:
             err_msg = f"fault_injection must be in range 0..{MAX_FAULT_INJECTION}."
             raise ValueError(err_msg)
 
     def _ensure_debugfs(self) -> ExecResult:
+        """Ensures that debugfs is created and mounted."""
         debugfs_path = str(DEBUGFS_MOUNTPOINT)
         result = common_run_command(("sudo", "mkdir", "-p", debugfs_path), self.ssh_client)
         if result.returncode:
@@ -114,9 +125,23 @@ class Kirk(GenericUtil):
         self,
         scenarios: Iterable[str],
         results_dir: str | Path = DEFAULT_LTP_RESULTS_DIR,
+        run_pattern: str | None = None,
+        timeout: int | None = None,
         fault_injection: int | None = None,
     ) -> tuple[ExecResult, Path | None]:
-        """Run an LTP scenario via kirk and store results as JSON."""
+        """Run an LTP scenario via kirk and store results as JSON.
+
+        Args:
+            scenarios (Iterable[str]): List of suites to be run by kirk.
+            results_dir (str | Path): Directory for saving kirk test results.
+            run_pattern (str | None): Runs tests from suite, which matches
+             the given regex pattern.
+            timeout (int | None): Timeout before stopping the suite.
+            fault_injection (int | None): Probability of failure, ranges from 0 to 100.
+
+        Returns:
+            tuple[ExecResult, Path | None]: Result of kirk test work and result path.
+        """
         results_dir_path = Path(results_dir)
         scenarios_list = list(scenarios)
 
@@ -136,7 +161,8 @@ class Kirk(GenericUtil):
                 results_dir_path.mkdir(parents=True, exist_ok=True)
             except OSError:
                 logger.exception(
-                    "Failed to create local directory for LTP results: %s", results_dir_path
+                    "Failed to create local directory for LTP results: %s",
+                    results_dir_path,
                 )
                 return (
                     ExecResult(
@@ -175,6 +201,8 @@ class Kirk(GenericUtil):
         remote_json_path = remote_results_dir / report_name
 
         cmd = [
+            *create_opt("run-pattern", run_pattern),
+            *create_opt("suite-timeout", timeout),
             *create_opt("fault-injection", fault_injection),
             "--run-suite",
             *scenarios_list,
@@ -197,18 +225,21 @@ class Kirk(GenericUtil):
             results_dir_path.mkdir(parents=True, exist_ok=True)
         except OSError:
             logger.exception(
-                "Failed to create local directory for LTP results: %s", results_dir_path
+                "Failed to create local directory for LTP results: %s",
+                results_dir_path,
             )
             return res, None
 
         local_json_path = results_dir_path / remote_json_path.name
         download_res = self.ssh_client.download(
-            remotepath=remote_json_path, localpath=local_json_path
+            remotepath=remote_json_path,
+            localpath=local_json_path,
         )
 
         if download_res.returncode:
             logger.error(
-                "Failed to download LTP results from remote host. STDERR: %s", download_res.stderr
+                "Failed to download LTP results from remote host. STDERR: %s",
+                download_res.stderr,
             )
             return res, None
 

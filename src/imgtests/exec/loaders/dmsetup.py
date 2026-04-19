@@ -57,7 +57,7 @@ class DeviceMapperSetup(GenericUtil):
                     f"{block_path} {read_offset} {read_delay} "
                     f'{block_path} {write_offset} {write_delay}"'
                 ),
-            ]
+            ],
         )
 
     def create_dm_dust_device(  # noqa: PLR0913
@@ -94,7 +94,7 @@ class DeviceMapperSetup(GenericUtil):
                 f"{device_name}",
                 "--table",
                 (f'"{start} {sectors} {target_type} {block_path} {offset} {block_size}"'),
-            ]
+            ],
         )
 
     def add_bad_blocks(self, device_name: str, block_numbers: list[int]) -> ExecResult:
@@ -124,7 +124,7 @@ class DeviceMapperSetup(GenericUtil):
 
     def remove_dm_device(self, device_name: str) -> ExecResult:
         """Removes given dm device."""
-        return self(["remove", device_name])
+        return self(["remove", "--force", device_name])
 
 
 def setup_block_device(  # noqa: PLR0913
@@ -151,7 +151,7 @@ def setup_block_device(  # noqa: PLR0913
     """
     dd = Dd(ssh_client=client)
     result = dd(
-        [f"if={data_source}", f"of={storage_name}", f"bs={block_size}", f"count={block_count}"]
+        [f"if={data_source}", f"of={storage_name}", f"bs={block_size}", f"count={block_count}"],
     )
     if result.returncode:
         return result

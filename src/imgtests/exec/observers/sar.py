@@ -16,7 +16,7 @@ PGSCAN_LINE_PATTERN = re.compile(
     r"^(?P<timestamp>\d{2}:\d{2}:\d{2}(?:\s+[AP]M)?)\s+"
     r"[\d,.]+\s+[\d,.]+\s+[\d,.]+\s+[\d,.]+\s+[\d,.]+\s+"
     r"(?P<pgscank>[\d,.]+)\s+"
-    r"(?P<pgscand>[\d,.]+)"
+    r"(?P<pgscand>[\d,.]+)",
 )
 
 logger = logging.getLogger(__name__)
@@ -38,7 +38,9 @@ class Sar(PkgMgrMixin, BaseTestUtil):
         """Install sysstat with sar via the system package manager."""
         if self.path:
             return ExecResult(
-                cmd=(), stderr=f"{self.name} already has been installed.", returncode=0
+                cmd=(),
+                stderr=f"{self.name} already has been installed.",
+                returncode=0,
             )
         return self._install_packages(["sysstat"])
 
@@ -138,7 +140,7 @@ class Sar(PkgMgrMixin, BaseTestUtil):
                 m = PGSCAN_LINE_PATTERN.match(line)
                 if m:
                     timestamp = datetime.strptime(m.group("timestamp"), time_fmt).replace(
-                        tzinfo=UTC
+                        tzinfo=UTC,
                     )
                     duration += (timestamp - start).total_seconds()
                     break
