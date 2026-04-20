@@ -23,7 +23,10 @@ class ExecResult(NamedTuple):
 
 
 def common_run_command(
-    cmd: Sequence[str], ssh_client: SSHClient | None = None, input_: str | None = None
+    cmd: Sequence[str],
+    ssh_client: SSHClient | None = None,
+    input_: str | None = None,
+    log_errors: bool = True,
 ) -> ExecResult:
     """Executes a command locally or over SSH, depending on the provided client.
 
@@ -39,6 +42,7 @@ def common_run_command(
                                        If None, the command runs locally.
         input_ (str | None): Input string to be passed to the command's stdin,
                              useful for interactive commands.
+        log_errors (bool): Show or hide error messages in the logs.
 
     Examples:
         >>> result = common_run_command(["echo", "Hello"])
@@ -46,10 +50,14 @@ def common_run_command(
         Hello
     """
     call_func = run_command if ssh_client is None else ssh_client
-    return call_func(cmd=cmd, input_=input_)
+    return call_func(cmd=cmd, input_=input_, log_errors=log_errors)
 
 
-def run_command(cmd: Sequence[str], input_: str | None = None) -> ExecResult:
+def run_command(
+    cmd: Sequence[str],
+    input_: str | None = None,
+    log_errors: bool = True,
+) -> ExecResult:
     """Executes a command locally."""
     logger.debug("Running command '%s'.", " ".join(cmd))
     result = subprocess.run(  # noqa: S603
@@ -66,7 +74,7 @@ def run_command(cmd: Sequence[str], input_: str | None = None) -> ExecResult:
         stderr=result.stderr.strip(),
         returncode=result.returncode,
     )
-    if result.returncode:
+    if log_errors and result.returncode:
         logger.error("Command '%s' completed with errors on the local.", " ".join(result.cmd))
         if result.stderr:
             logger.error(result.stderr)
@@ -78,7 +86,11 @@ class SSHClient:
     __slots__ = ("hostname", "password", "port", "ssh_session", "username")
 
     def __init__(
-        self, hostname: str, username: str = "root", password: str | None = None, port: int = 22
+        self,
+        hostname: str,
+        username: str = "root",
+        password: str | None = None,
+        port: int = 22,
     ) -> None:
         self.hostname = hostname
         self.username = username
@@ -92,6 +104,7 @@ class SSHClient:
         self,
         cmd: Sequence[str],
         input_: str | None = None,
+        log_errors: bool = True,
     ) -> ExecResult:
         session = self.ssh_session.open_channel(kind="session")
         stdout = session.makefile("rb")
@@ -109,7 +122,8 @@ class SSHClient:
         retval = session.recv_exit_status()
         stdout = stdout.read().decode("utf-8").strip()
         stderr = stderr.read().decode("utf-8").strip()
-        if retval:
+
+        if log_errors and retval:
             logger.error("Command '%s' completed with errors on the remote.", cmd_str.strip())
             if stderr:
                 logger.error(stderr)
@@ -124,7 +138,11 @@ class SSHClient:
 
     @classmethod
     def build_from_env(
-        cls, address_env: str, user_env: str, password_env: str, port_env: str
+        cls,
+        address_env: str,
+        user_env: str,
+        password_env: str,
+        port_env: str,
     ) -> SSHClient:
         return SSHClient(
             env_var_to_type(address_env, str),
@@ -152,7 +170,7 @@ class SSHClient:
         sftp.put(localpath, str(remotepath))
         sftp.close()
         return ExecResult(
-            cmd=("scp", str(localpath), f"{self.username}@{self.hostname}:{remotepath}")
+            cmd=("scp", str(localpath), f"{self.username}@{self.hostname}:{remotepath}"),
         )
 
     def download(self, remotepath: Path, localpath: Path) -> ExecResult:
@@ -165,12 +183,15 @@ class SSHClient:
         sftp.get(str(remotepath), localpath)
         sftp.close()
         return ExecResult(
-            cmd=("scp", f"{self.username}@{self.hostname}:{remotepath}", str(localpath))
+            cmd=("scp", f"{self.username}@{self.hostname}:{remotepath}", str(localpath)),
         )
 
 
 def wait_remote(
-    address_env: str, user_env: str, password_env: str, port_env: str
+    address_env: str,
+    user_env: str,
+    password_env: str,
+    port_env: str,
 ) -> SSHClient | None:
     wait_sec = 60 * 60 * 5
     step_sec = 60
@@ -191,7 +212,7 @@ def which(util: str, ssh_client: SSHClient | None = None, use_sudo: bool = False
         ["which", util],
         *([["sudo", "which", util]] if use_sudo else []),
     ):
-        result = call_func(cmd)
+        result = call_func(cmd, log_errors=False)
         if result.returncode:
             continue
         return Path(result.stdout.strip())
@@ -200,7 +221,7 @@ def which(util: str, ssh_client: SSHClient | None = None, use_sudo: bool = False
         ["type", "-p", util],
         *([["sudo", "type", "-p", util]] if use_sudo else []),
     ):
-        result = call_func(cmd)
+        result = call_func(cmd, log_errors=False)
         if result.returncode:
             continue
         return Path(util)
@@ -208,7 +229,9 @@ def which(util: str, ssh_client: SSHClient | None = None, use_sudo: bool = False
 
 
 def pipeline(
-    cmds: Sequence[Sequence[str]], ssh_client: SSHClient | None = None, pass_output: bool = False
+    cmds: Sequence[Sequence[str]],
+    ssh_client: SSHClient | None = None,
+    pass_output: bool = False,
 ) -> Iterable[ExecResult]:
     prev_stdout = None
 

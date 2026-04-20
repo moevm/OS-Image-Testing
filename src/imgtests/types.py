@@ -1,6 +1,7 @@
 import re
 from contextlib import suppress
-from enum import Enum
+from dataclasses import dataclass
+from enum import StrEnum
 from functools import total_ordering
 from typing import NamedTuple
 
@@ -59,7 +60,7 @@ class Version:
         return ".".join(str_parts)
 
 
-class Distro(str, Enum):
+class Distro(StrEnum):
     OPEN_SUSE_LEAP = "opensuse-leap"
     POKY = "poky"
 
@@ -72,10 +73,19 @@ class TestsCounts(NamedTuple):
     skip_count: int = 0
 
 
-class Subsystem(str, Enum):
+class Subsystem(StrEnum):
     FILE = "file"
     IPC = "IPC"
     MEMORY = "memory"
     NETWORK = "network"
     SYSCALLS = "syscalls"
     SYSTEM = "system"
+
+
+@dataclass(frozen=True)
+class MetricSample:
+    stage_name: str
+    subsystem: str
+    metric_name: str
+    value: float
+    label: str = ""

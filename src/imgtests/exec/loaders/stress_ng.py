@@ -6,6 +6,7 @@ from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult
 from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
 from imgtests.exec.utils import add_flag, create_opt
+from imgtests.types import MetricSample
 
 if TYPE_CHECKING:
     from imgtests.exec.exec import SSHClient
@@ -64,7 +65,7 @@ METRICS_RE: Final = re.compile(
     r"([\d.]+)\s+"  # bogo ops/s (real time)
     r"([\d.]+)\s+"  # bogo ops/s (usr+sys time)
     r"([\d.]+)"  # CPU used per instance
-    r"(?:\s+([\d]+))?$"  # RSS Max
+    r"(?:\s+([\d]+))?$",  # RSS Max
 )
 
 
@@ -84,7 +85,9 @@ class StressNg(PkgMgrMixin, GenericUtil):
         """Install stress-ng via the system package manager."""
         if self.path:
             return ExecResult(
-                cmd=(), stderr=f"{self.name} already has been installed.", returncode=0
+                cmd=(),
+                stderr=f"{self.name} already has been installed.",
+                returncode=0,
             )
         return self._install_packages(["stress-ng"])
 
@@ -474,7 +477,7 @@ class StressNg(PkgMgrMixin, GenericUtil):
                         "bogo_ops_s_usr_sys_time": bogo_usrsys_v,
                         "cpu_used_per_instance": cpu_used_v,
                         "rss_max_kb": rss_v,
-                    }
+                    },
                 )
                 current_stressor = stressor_name
                 continue
@@ -504,7 +507,7 @@ class StressNg(PkgMgrMixin, GenericUtil):
                     },
                 )
                 metrics_map[target]["syscall_calls"].append(
-                    StressNGSyscallTiming(name, avg, mn, mx)
+                    StressNGSyscallTiming(name, avg, mn, mx),
                 )
                 current_stressor = target
                 continue
@@ -553,7 +556,9 @@ class StressNg(PkgMgrMixin, GenericUtil):
                 )
             except (ValueError, TypeError) as e:
                 logger.warning(
-                    "Failed to construct StressNGMetrics for '%s'. Error: %s", stressor, str(e)
+                    "Failed to construct StressNGMetrics for '%s'. Error: %s",
+                    stressor,
+                    str(e),
                 )
                 continue
             metrics.append(sm)
@@ -599,7 +604,7 @@ class StressNg(PkgMgrMixin, GenericUtil):
                 "bogo_ops_s_real_time": {"value": metrics.bogo_ops_s_real_time},
                 "bogo_ops_s_usr_sys_time": {"value": metrics.bogo_ops_s_usr_sys_time},
                 "cpu_used_per_instance": {"value": metrics.cpu_used_per_instance},
-            }
+            },
         }
 
         if metrics.rss_max_kb is not None:
@@ -622,3 +627,77 @@ class StressNg(PkgMgrMixin, GenericUtil):
             "stress_ng_metrics": [metric._asdict() for metric in metrics.metrics],
             "stress_ng_summary": metrics.summary._asdict() if metrics.summary else None,
         }
+
+
+def stress_metrics_to_samples(
+    stage_name: str,
+    subsystem: str,
+    metrics: list[StressNGMetrics],
+) -> list[MetricSample]:
+    samples: list[MetricSample] = []
+
+    for metric in metrics:
+        base_metrics = (
+            ("stress.bogo_ops", float(metric.bogo_ops), "Bogo ops"),
+            ("stress.real_time_secs", float(metric.real_time_secs), "Real time, s"),
+            ("stress.usr_time_secs", float(metric.usr_time_secs), "User time, s"),
+            ("stress.sys_time_secs", float(metric.sys_time_secs), "System time, s"),
+            (
+                "stress.bogo_ops_s_real_time",
+                float(metric.bogo_ops_s_real_time),
+                "Bogo ops/s",
+            ),
+            (
+                "stress.bogo_ops_s_usr_sys_time",
+                float(metric.bogo_ops_s_usr_sys_time),
+                "Bogo ops/s CPU",
+            ),
+            (
+                "stress.cpu_used_per_instance",
+                float(metric.cpu_used_per_instance),
+                "CPU used, %",
+            ),
+        )
+        for metric_name, value, label in base_metrics:
+            samples.append(MetricSample(stage_name, subsystem, metric_name, value, label=label))
+
+        if metric.rss_max_kb is not None:
+            samples.append(
+                MetricSample(
+                    stage_name,
+                    subsystem,
+                    "stress.rss_max_kb",
+                    float(metric.rss_max_kb),
+                    label="RSS max, KB",
+                ),
+            )
+
+        if metric.top10_slowest:
+            for syscall in metric.top10_slowest:
+                samples.extend(
+                    (
+                        MetricSample(
+                            stage_name,
+                            subsystem,
+                            f"stress.syscall.{syscall.name}.avg_ns",
+                            float(syscall.avg_ns),
+                            label=f"Syscall {syscall.name} avg, ns",
+                        ),
+                        MetricSample(
+                            stage_name,
+                            subsystem,
+                            f"stress.syscall.{syscall.name}.min_ns",
+                            float(syscall.min_ns),
+                            label=f"Syscall {syscall.name} min, ns",
+                        ),
+                        MetricSample(
+                            stage_name,
+                            subsystem,
+                            f"stress.syscall.{syscall.name}.max_ns",
+                            float(syscall.max_ns),
+                            label=f"Syscall {syscall.name} max, ns",
+                        ),
+                    ),
+                )
+
+    return samples

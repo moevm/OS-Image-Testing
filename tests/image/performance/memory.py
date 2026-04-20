@@ -4,9 +4,9 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any
 from zoneinfo import ZoneInfo
 
-from imgtests.exec.exec import common_run_command
 from imgtests.exec.loaders import StressNg
 from imgtests.exec.observers import Sar
+from imgtests.exec.observers.resource import get_total_ram_size
 from imgtests.runner import AbstractRunnableTimeLimitedTest, TestResult, TestStatus
 from imgtests.suites.general.stress_ng import StressNgTest
 from imgtests.types import Subsystem
@@ -33,19 +33,6 @@ tests: list[dict[str, Any]] = [
 ]
 
 
-def get_ram_size(client: SSHClient | None = None) -> int | None:
-    """Returns RAM size in KiB."""
-    result = common_run_command(["grep", "MemTotal", "/proc/meminfo"], ssh_client=client)
-    if result.returncode:
-        logger.error("Finding RAM size failed.")
-        return None
-    try:
-        return int(result.stdout.split()[1])
-    except (IndexError, ValueError):
-        logger.exception("Finding RAM size failed.")
-        return None
-
-
 class StressNgPerformanceMemoryTest(StressNgTest):
     def __init__(self, timeout: int) -> None:
         super().__init__(
@@ -55,9 +42,12 @@ class StressNgPerformanceMemoryTest(StressNgTest):
         )
 
     def _run(
-        self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int
+        self,
+        executor: ThreadPoolExecutor,
+        client: SSHClient | None,
+        timeout: int,
     ) -> Iterable[TestResult]:
-        ram_size = get_ram_size(client=client)
+        ram_size = get_total_ram_size(client=client)
         if ram_size is None:
             yield TestResult(status=TestStatus.BROKEN)
             return
@@ -80,7 +70,10 @@ class StressNgPerformanceMemoryTest(StressNgTest):
 
         for params in tests:
             yield from self.run_test(
-                stress_ng=stress_ng, executor=executor, timeout=timeout, **params
+                stress_ng=stress_ng,
+                executor=executor,
+                timeout=timeout,
+                **params,
             )
 
 
@@ -89,7 +82,9 @@ class SarWithStressNGTest(AbstractRunnableTimeLimitedTest):
 
     def __init__(self, timeout: int) -> None:
         super().__init__(
-            "Stress-ng with sar measure pgscan time.", frozenset({Subsystem.MEMORY}), timeout
+            "Stress-ng with sar measure pgscan time.",
+            frozenset({Subsystem.MEMORY}),
+            timeout,
         )
 
     def _run(

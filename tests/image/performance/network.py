@@ -28,7 +28,10 @@ class Iperf3LocalTest(AbstractRunnableTimeLimitedTest):
         )
 
     def _run(
-        self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int
+        self,
+        executor: ThreadPoolExecutor,
+        client: SSHClient | None,
+        timeout: int,
     ) -> Iterable[TestResult]:
         """Test network with server on the tested node and client on the test runner."""
         if client is None:

@@ -25,7 +25,9 @@ class PhoronixTestSuite(PkgMgrMixin, GenericUtil):
         """Install phoronix-test-suite via the system package manager."""
         if self.path:
             return ExecResult(
-                cmd=(), stderr=f"{self.name} already has been installed.", returncode=0
+                cmd=(),
+                stderr=f"{self.name} already has been installed.",
+                returncode=0,
             )
         packages = [
             "phoronix-test-suite",
@@ -199,7 +201,8 @@ class PhoronixTestSuite(PkgMgrMixin, GenericUtil):
         if path is None:
             return None
         result = common_run_command(
-            [*add_sudo(self.use_sudo), "cat", path.group()], self.ssh_client
+            [*add_sudo(self.use_sudo), "cat", path.group()],
+            self.ssh_client,
         )
         if result.returncode:
             return None

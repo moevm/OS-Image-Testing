@@ -13,7 +13,10 @@ MAKEFILE_HELP_TARGETS_IGNORE: Final = {"make"}
 @pytest.fixture
 def makefile_targets() -> set[str]:
     result = subprocess.run(
-        ["/usr/bin/make", "-qp"], check=False, encoding="utf-8", capture_output=True
+        ["/usr/bin/make", "-qp"],
+        check=False,
+        encoding="utf-8",
+        capture_output=True,
     )
     targets = set()
     for line in result.stdout.splitlines():

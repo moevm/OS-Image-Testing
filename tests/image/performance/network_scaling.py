@@ -71,7 +71,10 @@ class Iperf3PacketRateScalingTest(AbstractRunnableTimeLimitedTest):
         )
 
     def _run(
-        self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int
+        self,
+        executor: ThreadPoolExecutor,
+        client: SSHClient | None,
+        timeout: int,
     ) -> Iterable[TestResult]:
         if client is None:
             yield TestResult(
@@ -162,7 +165,7 @@ class Iperf3PacketRateScalingTest(AbstractRunnableTimeLimitedTest):
             except FuturesTimeoutError:
                 server_iperf3.stop_server()
                 self.logger.exception(
-                    "Iperf3 UDP packet-rate scaling test FAILED: server timed out"
+                    "Iperf3 UDP packet-rate scaling test FAILED: server timed out",
                 )
                 yield TestResult(
                     status=TestStatus.FAILED,
@@ -219,7 +222,10 @@ class StressNgMaxNetworkLoadTest(StressNgTest):
         )
 
     def _run(
-        self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int
+        self,
+        executor: ThreadPoolExecutor,
+        client: SSHClient | None,
+        timeout: int,
     ) -> Iterable[TestResult]:
         if client is None:
             yield TestResult(
@@ -277,7 +283,7 @@ class StressNgMaxNetworkLoadTest(StressNgTest):
 
         try:
             stress_ng_result, stress_ng_metrics = stress_ng_future.result(
-                timeout=max(0, deadline - monotonic())
+                timeout=max(0, deadline - monotonic()),
             )
         except FuturesTimeoutError:
             server_iperf3.stop_server()
@@ -295,12 +301,12 @@ class StressNgMaxNetworkLoadTest(StressNgTest):
 
         try:
             server_result = server_future.result(
-                timeout=max(0, min(IPERF3_SERVER_SHUTDOWN_TIMEOUT_SEC, deadline - monotonic()))
+                timeout=max(0, min(IPERF3_SERVER_SHUTDOWN_TIMEOUT_SEC, deadline - monotonic())),
             )
         except FuturesTimeoutError:
             server_iperf3.stop_server()
             self.logger.exception(
-                "Stress-ng maximum network load test FAILED: iperf3 server timed out"
+                "Stress-ng maximum network load test FAILED: iperf3 server timed out",
             )
             yield TestResult(
                 status=TestStatus.FAILED,

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 import os
 import tarfile
@@ -153,8 +154,18 @@ class FioSuite:
                 offset_increment=self.cfg.offset_increment,
                 **extra,
             )
+            result = common_run_command(["cat", str(extra["output"])], self.client)
+            if result.returncode:
+                metrics = {}
+            else:
+                try:
+                    metrics = json.loads(result.stdout)
+                except json.JSONDecodeError:
+                    logger.exception("Failed to parse fio output")
+                    metrics = {}
+
             yield TestResult(
-                metrics=common_run_command(["cat", str(extra["output"])], self.client).stdout,
+                metrics=metrics,
                 command=" ".join(res.cmd),
                 started_at=started_at,
                 status=TestStatus.FAILED if res.returncode else TestStatus.PASSED,
@@ -174,7 +185,6 @@ class FioSuite:
             local_suite_root = self.cfg.results_dir / f"{self.cfg.suite}-{stamp}"
         else:
             local_suite_root = suite_root
-        self._plot(local_suite_root, stamp)
         logger.info("fio done: %s", local_suite_root)
         return
 
@@ -300,7 +310,7 @@ def _plan_cases(
                 numjobs=nj,
                 runtime_sec=rt,
                 out_dir=out_dir,
-            )
+            ),
         )
     return cases
 
@@ -314,7 +324,7 @@ def _remote_tar(client: SSHClient, src_dir: Path, dst_tgz: Path) -> None:
             "-C",
             str(src_dir.parent),
             str(src_dir.name),
-        ]
+        ],
     )
     if res.returncode:
         err_msg = res.stderr or res.stdout or "tar failed"

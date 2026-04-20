@@ -23,6 +23,7 @@ services:
       BUILD_DIR: ${BUILD_DIR}
       POKY_DIR: ${POKY_DIR}
       OS_IMAGE: ${OS_IMAGE}
+      VM_RAM: ${QEMU_VM_RAM}
       USER: ${USER}
       GROUP: ${GROUP}
       YOCTO_NE_PORT: ${YOCTO_NE_PORT}
@@ -48,6 +49,7 @@ services:
     environment:
       S_USER: ${S_USER}
       PASSWORD: ${PASSWORD}
+      VM_RAM: ${QEMU_VM_RAM}
       SSH_QEMU_PORT: ${SSH_TO_QEMU_PORT}
       SSH_SUSE_PORT: ${SSH_SUSE_PORT_156}
       SUSE_NE_PORT: ${SUSE_156_NE_PORT}
@@ -107,7 +109,7 @@ services:
       - "--storageDataPath=/storage"
       - "--promscrape.config=/etc/prometheus/vmetrics-conf.yml"
       - "--httpListenAddr=:${VMETRICS_PORT}"
-    restart: always
+    restart: on-failure
 
   imgtests-postgres:
     image: postgres:17.7
@@ -137,7 +139,8 @@ services:
       - ${BENCHER_API_PORT}:${BENCHER_API_PORT}
     volumes:
       - ${BENCHER_API_CONF_VOLUME}:/etc/bencher
-      - ${BENCHER_API_DB_VOLUME}:/var/lib/bencher/data
+      - ${BENCHER_API_DB_VOLUME}:/var/lib/bencher
+      - ${BENCHER_API_LOGS_VOLUME}:/var/log/bencher
     networks:
       yocto-network:
         ipv4_address: ${BENCHER_API_ADDRESS}
@@ -165,11 +168,15 @@ volumes:
     external: true
   imgtests-bencher-database:
     external: true
+  imgtests-bencher-logs:
+    external: true
   imgtests-open-suse-files:
     external: true
   imgtests-vmetrics-data:
     external: true
   imgtests-postgres-data:
+    external: true
+  imgtests-analyzer-data:
     external: true
 
 networks:
