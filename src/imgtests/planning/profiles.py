@@ -95,7 +95,7 @@ PROFILE_LAYOUTS: dict[TestKind, tuple[StageTemplate, ...]] = {
         StageTemplate("baseline_2", LoadPattern.SOFT, 0.45),
     ),
     TestKind.ISOLATED: (StageTemplate("tools_smoke", LoadPattern.SOFT, 1.00),),
-    TestKind.DIAGNOSTIC: (StageTemplate("systemd_boot", LoadPattern.SOFT, 1.00),),
+    TestKind.DIAGNOSTIC: (StageTemplate("systemd_boot", LoadPattern.DIAGNOSTIC, 1.00),),
 }
 
 _STRESS_ARGS: dict[Subsystem, dict[LoadPattern, dict[str, Any]]] = {
