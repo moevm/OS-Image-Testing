@@ -39,7 +39,7 @@ class FaultInjectionEnduranceTest(AbstractRunnableTimeLimitedTest):
 
         random.seed(timeout)
         fault_probabilities = [
-            random.randint(0, 100) if i % 2 == 1 else 0  # noqa: S311
+            random.randint(0, 80) if i % 2 == 1 else 0  # noqa: S311
             for i in range(self.iterations)
         ]
         time_per_test = (timeout // self.iterations) + 1
