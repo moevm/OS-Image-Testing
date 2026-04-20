@@ -22,7 +22,7 @@ IPERF3_SERVER_SHUTDOWN_TIMEOUT_SEC: Final = 5
 class Iperf3LocalTest(AbstractRunnableTimeLimitedTest):
     def __init__(self, timeout: int) -> None:
         super().__init__(
-            "Load local network with iperf3.",
+            "Test network with server on the tested node and client on the test runner.",
             frozenset({Subsystem.NETWORK}),
             timeout,
         )
