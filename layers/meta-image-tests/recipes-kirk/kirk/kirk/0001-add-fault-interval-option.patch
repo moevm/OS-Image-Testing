@@ -1,0 +1,113 @@
+Subject: [PATCH] Add configurable fault injection interval
+Upstream-Status: Pending
+
+---
+ libkirk/main.py    | 7 +++++++
+ libkirk/session.py | 16 ++++++++++++----
+ libkirk/sut.py     | 8 ++++++--
+ 3 files changed, 25 insertions(+), 6 deletions(-)
+
+diff --git a/libkirk/main.py b/libkirk/main.py
+index 8188f5d..6968f36 100644
+--- a/libkirk/main.py
++++ b/libkirk/main.py
+@@ -392,6 +392,7 @@ def _start_session(args: argparse.Namespace, parser: argparse.ArgumentParser) ->
+                 randomize=args.randomize,
+                 runtime=args.runtime,
+                 fault_prob=args.fault_injection,
++                fault_interval=args.fault_interval,
+             )
+         except asyncio.CancelledError:
+             await session.stop()
+@@ -554,6 +555,12 @@ def run(cmd_args: Optional[List[str]] = None) -> None:
+         default=0,
+         help="Probability of failure (0-100)",
+     )
++    exec_opts.add_argument(
++        "--fault-interval",
++        type=int,
++        default=100,
++        help="Fault injection interval (default: 100)",
++    )
+ 
+     # output arguments
+     # parse comand line
+diff --git a/libkirk/session.py b/libkirk/session.py
+index b8e13c0..da5c989 100644
+--- a/libkirk/session.py
++++ b/libkirk/session.py
+@@ -417,7 +417,11 @@ class Session:
+         except asyncio.TimeoutError:
+             await self._scheduler.stop()
+ 
+-    async def _apply_fault_injection(self, fault_prob: int) -> None:
++    async def _apply_fault_injection(
++        self,
++        fault_prob: int,
++        fault_interval: int = 100,
++    ) -> None:
+         """
+         Check if we can apply fault injection configuration
+         and eventually does it.
+@@ -429,7 +433,10 @@ class Session:
+                 warn_msg = "Run as root to use kernel fault injection"
+         else:
+             if await self._sut.is_fault_injection_enabled():
+-                await self._sut.setup_fault_injection(fault_prob)
++                await self._sut.setup_fault_injection(
++                    fault_prob,
++                    fault_interval,
++                )
+             else:
+                 if fault_prob != 0:
+                     warn_msg = "Fault injection is not enabled. Running tests normally"
+@@ -450,6 +457,7 @@ class Session:
+         randomize: bool = False,
+         runtime: int = 0,
+         fault_prob: int = 0,
++        fault_interval: int = 100,
+     ) -> None:
+         """
+         Run a new session and store results inside a JSON file.
+@@ -489,7 +497,7 @@ class Session:
+                     await self._exec_command(command)
+ 
+                 if fault_prob != 0:
+-                    await self._apply_fault_injection(fault_prob)
++                    await self._apply_fault_injection(fault_prob, fault_interval)
+ 
+                 if suites:
+                     suites_obj = await self._read_suites(
+@@ -512,7 +520,7 @@ class Session:
+                 try:
+                     # configure fault injection to the original values
+                     if fault_prob != 0:
+-                        await self._apply_fault_injection(0)
++                        await self._apply_fault_injection(0, fault_interval)
+ 
+                     if self._results:
+                         exporter = JSONExporter()
+diff --git a/libkirk/sut.py b/libkirk/sut.py
+index 2bb86a4..490b77d 100644
+--- a/libkirk/sut.py
++++ b/libkirk/sut.py
+@@ -299,13 +299,17 @@ class SUT(Plugin):
+ 
+         return True
+ 
+-    async def setup_fault_injection(self, prob: int) -> None:
++    async def setup_fault_injection(
++        self,
++        prob: int,
++        interval_override: int = 100,
++    ) -> None:
+         """
+         Configure kernel fault injection. When `prob` is zero, the fault
+         injection is set to default values.
+         :param prob: Fault probabilty in between 0-100
+         """
+-        interval = 1 if prob == 0 else 100
++        interval = 1 if prob == 0 else interval_override
+         times = 1 if prob == 0 else -1
+ 
+         async def _set_value(value: int, path: str) -> None:
