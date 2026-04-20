@@ -70,6 +70,7 @@ class PlanExecutor(BaseRunner):
         client: SSHClient | None,
         db: ImgtestsDatabase,
     ) -> None:
+        super().__init__("plan_executor", client, db)
         self.client = client
         self.db = db
         self._cpu_count_cache: int | None = None

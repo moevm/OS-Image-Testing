@@ -223,6 +223,10 @@ class ProfiledPlanRunnerSettings(BaseSettings):
     duration_volume: int | None = Field(default=None, validation_alias="PLAN_DURATION_VOLUME")
     duration_isolated: int | None = Field(default=None, validation_alias="PLAN_DURATION_ISOLATED")
     duration_spike: int | None = Field(default=None, validation_alias="PLAN_DURATION_SPIKE")
+    duration_diagnostic: int | None = Field(
+        default=None,
+        validation_alias="PLAN_DURATION_DIAGNOSTIC",
+    )
 
     def duration_for(self, profile: TestKind) -> int:
         durations = {
@@ -233,6 +237,7 @@ class ProfiledPlanRunnerSettings(BaseSettings):
             "volume": self.duration_volume,
             "isolated": self.duration_isolated,
             "spike": self.duration_spike,
+            "diagnostic": self.duration_diagnostic,
         }
         duration = durations[profile.value]
         return self.duration_sec if duration is None else duration
