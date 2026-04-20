@@ -96,204 +96,218 @@ class PlotAsset:
     relative_path: str
 
 
-def generate_compare_html_report(
-    experiments_id: list[int],
-    database: ImgtestsDatabase,
-    out_dir: Path,
-):
-    out_dir.mkdir(parents=True, exist_ok=True)
-    plots_dir = out_dir / PLOTS_DIR
-    plots_dir.mkdir(parents=True, exist_ok=True)
-    report_data = []
-    exps_data = []
+class ReportGenerator:
+    def __init__(self, database: ImgtestsDatabase):
+        self._database = database
 
-    metrics_by_exp: list[list[MetricSample]] = []
-    for exp_id in experiments_id:
-        exp_data = database.get_experiment_with_details(exp_id)
-        exps_data.append(exp_data)
-        metrics_by_exp.append(_extract_metrics_from_experiment(exp_data))
+    def generate_compare_html_report(
+        self,
+        experiments_id: list[int],
+        out_dir: Path,
+    ):
+        out_dir.mkdir(parents=True, exist_ok=True)
+        plots_dir = out_dir / PLOTS_DIR
+        plots_dir.mkdir(parents=True, exist_ok=True)
+        report_data = []
+        exps_data = []
 
-    unique_metrics_by_exp, common_metrics = __distribute_metrics(metrics_by_exp, experiments_id)
+        metrics_by_exp: list[list[MetricSample]] = []
+        for exp_id in experiments_id:
+            exp_data = self._database.get_experiment_with_details(exp_id)
+            exps_data.append(exp_data)
+            metrics_by_exp.append(self._extract_metrics_from_experiment(exp_data))
 
-    for i in range(len(exps_data)):
-        exp_data = exps_data[i]
-        metrics = _extract_metrics_from_experiment(exp_data)
-        report_data.append(
-            {
-                "header": {
-                    "test_kind": exp_data.description,
-                    "configuration": exp_data.configuration,
-                    "experiment_id": exp_data.experiment_id,
-                    "started_at": exp_data.started_at.isoformat(),
-                    "ended_at": exp_data.ended_at.isoformat(),
-                    "tests_counts": {
-                        "skip_count": exp_data.tests_skipped,
-                        "broken_count": exp_data.tests_broken,
-                        "failed_count": exp_data.tests_failed,
-                        "passed_count": exp_data.tests_passed,
-                        "total_count": exp_data.tests_total,
-                    },
-                    "tests_stats": _build_piechart(
-                        {
+        unique_metrics_by_exp, common_metrics = self.__distribute_metrics(
+            metrics_by_exp,
+            experiments_id,
+        )
+
+        for i in range(len(exps_data)):
+            exp_data = exps_data[i]
+            metrics = self._extract_metrics_from_experiment(exp_data)
+            report_data.append(
+                {
+                    "header": {
+                        "test_kind": exp_data.description,
+                        "configuration": exp_data.configuration,
+                        "experiment_id": exp_data.experiment_id,
+                        "started_at": exp_data.started_at.isoformat(),
+                        "ended_at": exp_data.ended_at.isoformat(),
+                        "tests_counts": {
                             "skip_count": exp_data.tests_skipped,
                             "broken_count": exp_data.tests_broken,
                             "failed_count": exp_data.tests_failed,
                             "passed_count": exp_data.tests_passed,
+                            "total_count": exp_data.tests_total,
                         },
+                        "tests_stats": _build_piechart(
+                            {
+                                "skip_count": exp_data.tests_skipped,
+                                "broken_count": exp_data.tests_broken,
+                                "failed_count": exp_data.tests_failed,
+                                "passed_count": exp_data.tests_passed,
+                            },
+                            out_dir=out_dir,
+                            plots_dir=plots_dir,
+                            title="Test result statistics",
+                        ),
+                    },
+                    "timeline": {
+                        "overall_rows": _compute_stats(metrics, by_stage=False),
+                        "per_stage_rows": _compute_stats(metrics, by_stage=True),
+                    },
+                    "unique_visualizations": self.collect_test_visualizations(
+                        unique_metrics_by_exp[i],
                         out_dir=out_dir,
                         plots_dir=plots_dir,
-                        title="Test result statistics",
                     ),
                 },
-                "timeline": {
-                    "overall_rows": _compute_stats(metrics, by_stage=False),
-                    "per_stage_rows": _compute_stats(metrics, by_stage=True),
-                },
-                "unique_visualizations": _collect_test_visualizations(
-                    unique_metrics_by_exp[i],
+            )
+        template = _template_environment().get_template(COMPARE_REPORT_TEMPLATE)
+        report_path = out_dir / COMPARE_REPORT_FILENAME
+        report_path.write_text(
+            template.render(
+                exps_data=report_data,
+                common_visualizations=self.collect_test_visualizations(
+                    common_metrics,
                     out_dir=out_dir,
                     plots_dir=plots_dir,
                 ),
-            },
+            ),
+            encoding="utf-8",
         )
-    template = _template_environment().get_template(COMPARE_REPORT_TEMPLATE)
-    report_path = out_dir / COMPARE_REPORT_FILENAME
-    report_path.write_text(
-        template.render(
-            exps_data=report_data,
-            common_visualizations=_collect_test_visualizations(
-                common_metrics,
-                out_dir=out_dir,
-                plots_dir=plots_dir,
-            ),
-        ),
-        encoding="utf-8",
-    )
-    return report_path
+        return report_path
 
+    def __distribute_metrics(
+        self,
+        metrics_by_exp: list[list[MetricSample]],
+        experiments_id: list[int],
+    ) -> tuple[list[list[MetricSample]], list[MetricSample]]:
+        unique_metrics_by_exp: list[list[MetricSample]] = []
+        common_metrics: list[MetricSample] = []
 
-def __distribute_metrics(
-    metrics_by_exp: list[list[MetricSample]],
-    experiments_id: list[int],
-) -> tuple[list[list[MetricSample]], list[MetricSample]]:
-    unique_metrics_by_exp: list[list[MetricSample]] = []
-    common_metrics: list[MetricSample] = []
+        prefix_sets = []
+        for metrics in metrics_by_exp:
+            prefixes = {m.metric_name.split(".")[0] for m in metrics if "." in m.metric_name}
+            prefix_sets.append(prefixes)
 
-    prefix_sets = []
-    for metrics in metrics_by_exp:
-        prefixes = {m.metric_name.split(".")[0] for m in metrics if "." in m.metric_name}
-        prefix_sets.append(prefixes)
+        common_prefixes = set.intersection(*prefix_sets) if prefix_sets else set()
 
-    common_prefixes = set.intersection(*prefix_sets) if prefix_sets else set()
+        for exp_idx, exp_metrics in enumerate(metrics_by_exp):
+            exp_id = experiments_id[exp_idx]
+            unique_for_exp: list[MetricSample] = []
 
-    for exp_idx, exp_metrics in enumerate(metrics_by_exp):
-        exp_id = experiments_id[exp_idx]
-        unique_for_exp: list[MetricSample] = []
+            for m in exp_metrics:
+                prefix = m.metric_name.split(".")[0] if "." in m.metric_name else m.metric_name
+                if prefix not in common_prefixes:
+                    unique_for_exp.append(m)
+                else:
+                    common_metrics.append(
+                        MetricSample(
+                            stage_name=m.stage_name,
+                            subsystem=m.subsystem,
+                            metric_name=f"exp_{exp_id}.{m.metric_name}",
+                            value=m.value,
+                            label=m.label,
+                        ),
+                    )
+            unique_metrics_by_exp.append(unique_for_exp)
 
-        for m in exp_metrics:
-            prefix = m.metric_name.split(".")[0] if "." in m.metric_name else m.metric_name
-            if prefix not in common_prefixes:
-                unique_for_exp.append(m)
-            else:
-                common_metrics.append(
+        return unique_metrics_by_exp, common_metrics
+
+    def _extract_metrics_from_experiment(self, experiment: ExperimentBase) -> list[MetricSample]:
+        metrics: list[MetricSample] = []
+
+        for util_run_result in experiment.util_run_results:
+            if util_run_result.description == "Planned stage":
+                continue
+            if util_run_result.result and isinstance(util_run_result.result, dict):
+                metrics.extend(
                     MetricSample(
-                        stage_name=m.stage_name,
-                        subsystem=m.subsystem,
-                        metric_name=f"exp_{exp_id}.{m.metric_name}",
-                        value=m.value,
-                        label=m.label,
-                    ),
+                        stage_name=m.get("stage_name", ""),
+                        subsystem=m.get("subsystem", "all"),
+                        metric_name=m.get("metric_name", "unknown_tool"),
+                        value=float(m.get("value", 0)),
+                        label=m.get("label", "unknown_metric"),
+                    )
+                    for m in util_run_result.result.get("metrics", [])
                 )
-        unique_metrics_by_exp.append(unique_for_exp)
+        return metrics
 
-    return unique_metrics_by_exp, common_metrics
+    @staticmethod
+    def generate_profiled_html_report(
+        plan: TestPlan,
+        execution: PlanExecutionResult,
+        out_dir: Path,
+    ) -> Path:
+        out_dir.mkdir(parents=True, exist_ok=True)
+        plots_dir = out_dir / PLOTS_DIR
+        plots_dir.mkdir(parents=True, exist_ok=True)
 
+        metrics = list(execution.metrics)
 
-def _extract_metrics_from_experiment(experiment: ExperimentBase) -> list[MetricSample]:
-    metrics: list[MetricSample] = []
-
-    for util_run_result in experiment.util_run_results:
-        if util_run_result.description == "Planned stage":
-            continue
-        if util_run_result.result and isinstance(util_run_result.result, dict):
-            metrics.extend(
-                MetricSample(
-                    stage_name=m.get("stage_name", ""),
-                    subsystem=m.get("subsystem", "all"),
-                    metric_name=m.get("metric_name", "unknown_tool"),
-                    value=float(m.get("value", 0)),
-                    label=m.get("label", "unknown_metric"),
-                )
-                for m in util_run_result.result.get("metrics", [])
-            )
-    return metrics
-
-
-def generate_html_report(plan: TestPlan, execution: PlanExecutionResult, out_dir: Path) -> Path:
-    out_dir.mkdir(parents=True, exist_ok=True)
-    plots_dir = out_dir / PLOTS_DIR
-    plots_dir.mkdir(parents=True, exist_ok=True)
-
-    metrics = list(execution.metrics)
-
-    report_data = {
-        "header": {
-            "test_kind": plan.test_kind,
-            "plan_id": plan.plan_id,
-            "experiment_id": execution.experiment_id,
-            "started_at": execution.started_at.isoformat(),
-            "ended_at": execution.ended_at.isoformat(),
-            "tests_counts": execution.tests_counts,
-            "tests_stats": _build_piechart(
-                {k: v for k, v in execution.tests_counts._asdict().items() if k != "total_count"},
+        report_data = {
+            "header": {
+                "test_kind": plan.test_kind,
+                "plan_id": plan.plan_id,
+                "experiment_id": execution.experiment_id,
+                "started_at": execution.started_at.isoformat(),
+                "ended_at": execution.ended_at.isoformat(),
+                "tests_counts": execution.tests_counts,
+                "tests_stats": _build_piechart(
+                    {
+                        k: v
+                        for k, v in execution.tests_counts._asdict().items()
+                        if k != "total_count"
+                    },
+                    out_dir=out_dir,
+                    plots_dir=plots_dir,
+                    title="Test result statistics",
+                ),
+            },
+            "timeline": {
+                "overall_rows": _compute_stats(metrics, by_stage=False),
+                "per_stage_rows": _compute_stats(metrics, by_stage=True),
+                "timeline_rows": _build_timeline_rows(plan, execution),
+            },
+            "visualizations": ReportGenerator.collect_test_visualizations(
+                execution.metrics,
                 out_dir=out_dir,
                 plots_dir=plots_dir,
-                title="Test result statistics",
             ),
-        },
-        "timeline": {
-            "overall_rows": _compute_stats(metrics, by_stage=False),
-            "per_stage_rows": _compute_stats(metrics, by_stage=True),
-            "timeline_rows": _build_timeline_rows(plan, execution),
-        },
-        "visualizations": _collect_test_visualizations(
-            execution.metrics,
-            out_dir=out_dir,
-            plots_dir=plots_dir,
-        ),
-    }
+        }
 
-    template = _template_environment().get_template(REPORT_TEMPLATE)
-    report_path = out_dir / REPORT_FILENAME
-    report_path.write_text(
-        template.render(
-            **report_data,
-        ),
-        encoding="utf-8",
-    )
-    return report_path
+        template = _template_environment().get_template(REPORT_TEMPLATE)
+        report_path = out_dir / REPORT_FILENAME
+        report_path.write_text(
+            template.render(
+                **report_data,
+            ),
+            encoding="utf-8",
+        )
+        return report_path
 
+    @staticmethod
+    def collect_test_visualizations(
+        samples: list[MetricSample],
+        out_dir: Path,
+        plots_dir: Path,
+    ) -> dict[str, list[PlotAsset]]:
+        results: dict[str, list[PlotAsset]] = {}
 
-def _collect_test_visualizations(
-    samples: list[MetricSample],
-    out_dir: Path,
-    plots_dir: Path,
-) -> dict[str, list[PlotAsset]]:
-    results: dict[str, list[PlotAsset]] = {}
+        for name, (run_fn, patterns) in COMPILED_DIAGRAMS_CONFIG.items():
+            matched = []
+            for s in samples:
+                normalized_name = re.sub(r"^exp_\d+\.", "", s.metric_name)
+                if any(p.match(normalized_name) for p in patterns):
+                    matched.append(s)
+            if not matched and patterns:
+                continue
 
-    for name, (run_fn, patterns) in COMPILED_DIAGRAMS_CONFIG.items():
-        matched = []
-        for s in samples:
-            normalized_name = re.sub(r"^exp_\d+\.", "", s.metric_name)
-            if any(p.match(normalized_name) for p in patterns):
-                matched.append(s)
-        if not matched and patterns:
-            continue
+            fn = globals()[run_fn]
+            results[name] = fn(matched, out_dir=out_dir, plots_dir=plots_dir)
 
-        fn = globals()[run_fn]
-        results[name] = fn(matched, out_dir=out_dir, plots_dir=plots_dir)
-
-    return results
+        return results
 
 
 @lru_cache(maxsize=1)

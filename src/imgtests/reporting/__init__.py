@@ -1,3 +1,3 @@
-from imgtests.reporting.html_report import generate_html_report
+from imgtests.reporting.html_report import ReportGenerator
 
-__all__ = ["generate_html_report"]
+__all__ = ["ReportGenerator"]
