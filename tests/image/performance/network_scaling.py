@@ -17,6 +17,7 @@ if TYPE_CHECKING:
 
     from imgtests.exec.exec import SSHClient
 
+# PPS means packets per second.
 IPERF3_START_PPS: Final = 2_000
 IPERF3_STOP_PPS: Final = 8_000
 IPERF3_STEP_PPS: Final = 2_000
@@ -32,20 +33,20 @@ IPERF3_SERVER_SHUTDOWN_TIMEOUT_SEC: Final = 2
 STRESS_NG_RANDOM_SEED: Final = 0x5EED_1234
 
 
-class Iperf3PacketRateProfile(NamedTuple):
-    packet_rate_pps: int
+class Iperf3PpsProfile(NamedTuple):
+    pps: int
     datagram_size_bytes: int
     bitrate_bps: int
 
 
-def build_iperf3_packet_rate_profiles() -> tuple[Iperf3PacketRateProfile, ...]:
+def build_iperf3_pps_profiles() -> tuple[Iperf3PpsProfile, ...]:
     return tuple(
-        Iperf3PacketRateProfile(
-            packet_rate_pps=packet_rate_pps,
+        Iperf3PpsProfile(
+            pps=pps,
             datagram_size_bytes=datagram_size_bytes,
-            bitrate_bps=packet_rate_pps * datagram_size_bytes * 8,
+            bitrate_bps=pps * datagram_size_bytes * 8,
         )
-        for packet_rate_pps in range(
+        for pps in range(
             IPERF3_START_PPS,
             IPERF3_STOP_PPS + IPERF3_STEP_PPS,
             IPERF3_STEP_PPS,
@@ -72,8 +73,17 @@ class Iperf3PacketRateScalingTest(AbstractRunnableTimeLimitedTest):
     def _run(
         self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int
     ) -> Iterable[TestResult]:
-        iperf3 = Iperf3(client)
-        profiles = build_iperf3_packet_rate_profiles()
+        if client is None:
+            yield TestResult(
+                status=TestStatus.BROKEN,
+                metrics={"error": "SSH client is not provided"},
+            )
+            return
+
+        server_iperf3 = Iperf3(client)
+        client_iperf3 = Iperf3()
+        profiles = build_iperf3_pps_profiles()
+
         reserved_overhead_sec = IPERF3_SERVER_STARTUP_SEC + IPERF3_SUBTEST_OVERHEAD_SEC
         subtest_timeout = get_subtest_timeout(
             timeout,
@@ -119,10 +129,16 @@ class Iperf3PacketRateScalingTest(AbstractRunnableTimeLimitedTest):
                 return
 
             started_at = datetime.now(tz=ZoneInfo("UTC"))
-            server_future = executor.submit(iperf3.run, server=True, one_off=True, version4=True)
+            server_future = executor.submit(
+                server_iperf3.run,
+                server=True,
+                one_off=True,
+                version4=True,
+            )
             sleep(IPERF3_SERVER_STARTUP_SEC)
-            result = iperf3.run(
-                client="localhost",
+
+            result = client_iperf3.run(
+                client=client.hostname,
                 time=current_subtest_timeout,
                 interval=1,
                 udp=True,
@@ -132,7 +148,7 @@ class Iperf3PacketRateScalingTest(AbstractRunnableTimeLimitedTest):
             )
 
             if result.returncode:
-                iperf3.stop_server()
+                server_iperf3.stop_server()
 
             try:
                 server_wait_timeout = max(
@@ -144,7 +160,7 @@ class Iperf3PacketRateScalingTest(AbstractRunnableTimeLimitedTest):
                 )
                 server_result = server_future.result(timeout=server_wait_timeout)
             except FuturesTimeoutError:
-                iperf3.stop_server()
+                server_iperf3.stop_server()
                 self.logger.exception(
                     "Iperf3 UDP packet-rate scaling test FAILED: server timed out"
                 )
@@ -153,7 +169,7 @@ class Iperf3PacketRateScalingTest(AbstractRunnableTimeLimitedTest):
                     started_at=started_at,
                     command=" ".join(result.cmd),
                     metrics={
-                        "packet_rate_pps": profile.packet_rate_pps,
+                        "pps": profile.pps,
                         "datagram_size_bytes": profile.datagram_size_bytes,
                         "bitrate_bps": profile.bitrate_bps,
                         "duration_sec": current_subtest_timeout,
@@ -170,7 +186,7 @@ class Iperf3PacketRateScalingTest(AbstractRunnableTimeLimitedTest):
                     started_at=started_at,
                     command=" ".join(result.cmd),
                     metrics={
-                        "packet_rate_pps": profile.packet_rate_pps,
+                        "pps": profile.pps,
                         "datagram_size_bytes": profile.datagram_size_bytes,
                         "bitrate_bps": profile.bitrate_bps,
                         "client_returncode": result.returncode,
@@ -182,12 +198,12 @@ class Iperf3PacketRateScalingTest(AbstractRunnableTimeLimitedTest):
             yield TestResult(
                 command=" ".join(result.cmd),
                 metrics={
-                    "packet_rate_pps": profile.packet_rate_pps,
+                    "pps": profile.pps,
                     "datagram_size_bytes": profile.datagram_size_bytes,
                     "bitrate_bps": profile.bitrate_bps,
                     "duration_sec": current_subtest_timeout,
-                    "client": iperf3.metrics_to_json(result.stdout.strip()),
-                    "server": iperf3.metrics_to_json(server_result.stdout.strip()),
+                    "client": client_iperf3.metrics_to_json(result.stdout.strip()),
+                    "server": server_iperf3.metrics_to_json(server_result.stdout.strip()),
                 },
                 started_at=started_at,
                 status=TestStatus.PASSED,
@@ -205,8 +221,16 @@ class StressNgMaxNetworkLoadTest(StressNgTest):
     def _run(
         self, executor: ThreadPoolExecutor, client: SSHClient | None, timeout: int
     ) -> Iterable[TestResult]:
+        if client is None:
+            yield TestResult(
+                status=TestStatus.BROKEN,
+                metrics={"error": "SSH client is not provided"},
+            )
+            return
+
         stress_ng = StressNg(client)
-        iperf3 = Iperf3(client)
+        server_iperf3 = Iperf3(client)
+        client_iperf3 = Iperf3()
 
         reserved_overhead_sec = IPERF3_SERVER_STARTUP_SEC + IPERF3_SERVER_SHUTDOWN_TIMEOUT_SEC
         run_timeout = timeout - reserved_overhead_sec
@@ -223,7 +247,12 @@ class StressNgMaxNetworkLoadTest(StressNgTest):
         deadline = monotonic() + timeout
         started_at = datetime.now(tz=ZoneInfo("UTC"))
 
-        server_future = executor.submit(iperf3.run, server=True, one_off=True, version4=True)
+        server_future = executor.submit(
+            server_iperf3.run,
+            server=True,
+            one_off=True,
+            version4=True,
+        )
         sleep(IPERF3_SERVER_STARTUP_SEC)
 
         stress_ng_future = executor.submit(
@@ -236,22 +265,22 @@ class StressNgMaxNetworkLoadTest(StressNgTest):
             seed=STRESS_NG_RANDOM_SEED,
         )
 
-        iperf3_result = iperf3.run(
-            client="localhost",
+        iperf3_result = client_iperf3.run(
+            client=client.hostname,
             time=run_timeout,
             interval=1,
             version4=True,
         )
 
         if iperf3_result.returncode:
-            iperf3.stop_server()
+            server_iperf3.stop_server()
 
         try:
             stress_ng_result, stress_ng_metrics = stress_ng_future.result(
                 timeout=max(0, deadline - monotonic())
             )
         except FuturesTimeoutError:
-            iperf3.stop_server()
+            server_iperf3.stop_server()
             self.logger.exception("Stress-ng maximum network load test FAILED: stress-ng timed out")
             yield TestResult(
                 status=TestStatus.FAILED,
@@ -269,7 +298,7 @@ class StressNgMaxNetworkLoadTest(StressNgTest):
                 timeout=max(0, min(IPERF3_SERVER_SHUTDOWN_TIMEOUT_SEC, deadline - monotonic()))
             )
         except FuturesTimeoutError:
-            iperf3.stop_server()
+            server_iperf3.stop_server()
             self.logger.exception(
                 "Stress-ng maximum network load test FAILED: iperf3 server timed out"
             )
@@ -322,8 +351,8 @@ class StressNgMaxNetworkLoadTest(StressNgTest):
             metrics={
                 **stress_ng.metrics_to_json(stress_ng_metrics),
                 "iperf3": {
-                    "client": iperf3.metrics_to_json(iperf3_result.stdout.strip()),
-                    "server": iperf3.metrics_to_json(server_result.stdout.strip()),
+                    "client": client_iperf3.metrics_to_json(iperf3_result.stdout.strip()),
+                    "server": server_iperf3.metrics_to_json(server_result.stdout.strip()),
                 },
             },
         )
