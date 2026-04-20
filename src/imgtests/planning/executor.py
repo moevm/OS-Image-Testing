@@ -16,6 +16,7 @@ from imgtests.exec.loaders.stress_ng import StressNg, stress_metrics_to_samples
 from imgtests.exec.observers.systemd_analyze import SystemdAnalyze
 from imgtests.exec.user_commands import Nproc
 from imgtests.planning.profiles import CPU_SCALE_ARG_PREFIX, FIO_SIZE_RATIO_ARG_PREFIX
+from imgtests.reporting.html_report import generate_html_report
 from imgtests.runner import BaseRunner, TestStatus
 from imgtests.sizing import parse_size_to_bytes, round_bytes_to_mib_str
 from imgtests.types import MetricSample, Subsystem, TestsCounts
@@ -62,6 +63,7 @@ class PlanExecutionResult:
     ended_at: datetime
     stage_runs: tuple[StageRunResult, ...]
     metrics: tuple[MetricSample, ...]
+    tests_counts: TestsCounts
 
 
 class PlanExecutor(BaseRunner):
@@ -179,24 +181,32 @@ class PlanExecutor(BaseRunner):
             experiment_id=experiment_id,
             ended_at=ended_at,
         )
+        tests_counts = TestsCounts(
+            total_count=total_count,
+            broken_count=counts[TestStatus.BROKEN],
+            passed_count=counts[TestStatus.PASSED],
+            failed_count=counts[TestStatus.FAILED],
+            skip_count=counts[TestStatus.SKIPPED],
+        )
         self.db.update_experiment_tests_count(
             experiment.experiment_id,
-            TestsCounts(
-                total_count=total_count,
-                broken_count=counts[TestStatus.BROKEN],
-                passed_count=counts[TestStatus.PASSED],
-                failed_count=counts[TestStatus.FAILED],
-                skip_count=counts[TestStatus.SKIPPED],
-            ),
+            tests_counts,
         )
 
-        return PlanExecutionResult(
+        result = PlanExecutionResult(
             experiment_id=experiment_id,
             started_at=started_at,
             ended_at=ended_at,
             stage_runs=tuple(stage_runs),
             metrics=tuple(collected_metrics),
+            tests_counts=tests_counts,
         )
+        generate_html_report(
+            plan=plan,
+            execution=result,
+            out_dir=results_dir,
+        )
+        return result
 
     def _wait_for_stage_offset(
         self,
@@ -529,8 +539,9 @@ class PlanExecutor(BaseRunner):
                     MetricSample(
                         stage_name=stage.name,
                         subsystem=task.subsystem.value,
-                        metric_name=key,
+                        metric_name=f"systemd_time.{key}",
                         value=value,
+                        label=key,
                     )
                     for key, value in result._asdict().items()
                     if value >= 0
@@ -546,8 +557,9 @@ class PlanExecutor(BaseRunner):
                 MetricSample(
                     stage_name=stage.name,
                     subsystem=task.subsystem.value,
-                    metric_name=service.service_name,
+                    metric_name=f"systemd_critical_chain.{service.service_name}",
                     value=service.slow_time_s,
+                    label=service.service_name,
                 )
                 for service in services
             )
