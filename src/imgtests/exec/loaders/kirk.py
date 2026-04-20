@@ -121,7 +121,7 @@ class Kirk(GenericUtil):
             common_run_command(("sudo", "umount", debugfs_path), self.ssh_client)
         return result
 
-    def run(  # noqa: PLR0911
+    def run(  # noqa: PLR0911, PLR0913
         self,
         scenarios: Iterable[str],
         results_dir: str | Path = DEFAULT_LTP_RESULTS_DIR,
