@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import re
 import statistics
 import textwrap
@@ -99,14 +100,21 @@ class PlotAsset:
 class ReportGenerator:
     def __init__(self, database: ImgtestsDatabase):
         self._database = database
+        self._logger = logging.getLogger()
 
     def generate_compare_html_report(
         self,
         experiments_id: list[int],
         out_dir: Path,
-    ):
-        out_dir.mkdir(parents=True, exist_ok=True)
-        plots_dir = out_dir / PLOTS_DIR
+    ) -> Path | None:
+        if len(experiments_id) < 2:  #  noqa: PLR2004
+            self._logger.error(
+                "Couldn't build a report: there are less than two experiments in the database.",
+            )
+            return None
+        compare_dir = out_dir / f"compare-{experiments_id[0]}-{experiments_id[1]}"
+        compare_dir.mkdir(parents=True, exist_ok=True)
+        plots_dir = compare_dir / PLOTS_DIR
         plots_dir.mkdir(parents=True, exist_ok=True)
         report_data = []
         exps_data = []
@@ -147,7 +155,7 @@ class ReportGenerator:
                                 "failed_count": exp_data.tests_failed,
                                 "passed_count": exp_data.tests_passed,
                             },
-                            out_dir=out_dir,
+                            out_dir=compare_dir,
                             plots_dir=plots_dir,
                             title="Test result statistics",
                         ),
@@ -158,25 +166,34 @@ class ReportGenerator:
                     },
                     "unique_visualizations": self.collect_test_visualizations(
                         unique_metrics_by_exp[i],
-                        out_dir=out_dir,
+                        out_dir=compare_dir,
                         plots_dir=plots_dir,
                     ),
                 },
             )
         template = _template_environment().get_template(COMPARE_REPORT_TEMPLATE)
-        report_path = out_dir / COMPARE_REPORT_FILENAME
+        report_path = compare_dir / COMPARE_REPORT_FILENAME
         report_path.write_text(
             template.render(
                 exps_data=report_data,
                 common_visualizations=self.collect_test_visualizations(
                     common_metrics,
-                    out_dir=out_dir,
+                    out_dir=compare_dir,
                     plots_dir=plots_dir,
                 ),
             ),
             encoding="utf-8",
         )
         return report_path
+
+    def generate_last_two_experiments_report(self, out_dir: Path) -> Path | None:
+        ids = self._database.get_last_two_experiment_ids()
+        if len(ids) < 2:  #  noqa: PLR2004
+            self._logger.error(
+                "Couldn't build a report: there are less than two experiments in the database.",
+            )
+            return None
+        return self.generate_compare_html_report(ids, out_dir)
 
     def __distribute_metrics(
         self,
