@@ -159,10 +159,10 @@ def generate_compare_html_report(
 def _extract_metrics_from_experiment(experiment: ExperimentBase) -> list[MetricSample]:
     metrics: list[MetricSample] = []
 
-    for loader in experiment.loaders:
-        if loader.description == "Planned stage":
+    for util_run_result in experiment.util_run_results:
+        if util_run_result.description == "Planned stage":
             continue
-        if loader.result and isinstance(loader.result, dict):
+        if util_run_result.result and isinstance(util_run_result.result, dict):
             metrics.extend(
                 MetricSample(
                     stage_name=m.get("stage_name", ""),
@@ -171,22 +171,7 @@ def _extract_metrics_from_experiment(experiment: ExperimentBase) -> list[MetricS
                     value=float(m.get("value", 0)),
                     label=m.get("label", "unknown_metric"),
                 )
-                for m in loader.result.get("metrics", [])
-            )
-
-    for observer in experiment.observers:
-        if observer.description == "Planned stage":
-            continue
-        if observer.result and isinstance(observer.result, dict):
-            metrics.extend(
-                MetricSample(
-                    stage_name=m.get("stage_name", ""),
-                    subsystem=m.get("subsystem", "all"),
-                    metric_name=m.get("metric_name", "unknown_tool"),
-                    value=float(m.get("value", 0)),
-                    label=m.get("label", "unknown_metric"),
-                )
-                for m in observer.result.get("metrics", [])
+                for m in util_run_result.result.get("metrics", [])
             )
     return metrics
 

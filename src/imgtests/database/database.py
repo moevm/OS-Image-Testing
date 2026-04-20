@@ -226,7 +226,7 @@ class ImgtestsDatabase:
             experiment_id (int): id of the experiment to retrieve.
 
         Return:
-            ExperimentBase: experiment oblect with configuration, loaders and observers.
+            ExperimentBase: experiment oblect with configuration, util_run_results.
         """
         self._check_session()
         with self.session() as session:
@@ -234,8 +234,7 @@ class ImgtestsDatabase:
                 session.query(ExperimentBase)
                 .options(
                     selectinload(ExperimentBase.configuration),
-                    selectinload(ExperimentBase.loaders),
-                    selectinload(ExperimentBase.observers),
+                    selectinload(ExperimentBase.util_run_results),
                 )
                 .filter(ExperimentBase.experiment_id == experiment_id)
                 .one()
