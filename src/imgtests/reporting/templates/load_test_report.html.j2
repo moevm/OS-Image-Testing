@@ -1,41 +1,5 @@
-{% macro render_stats_table(rows, include_stage=false) -%}
-<table>
-  <tr>
-    {% if include_stage %}
-    <th>Stage</th>
-    {% endif %}
-    <th>Subsystem</th>
-    <th>Metric</th>
-    <th>N</th>
-    <th>Mean</th>
-    <th>Variance</th>
-    <th>Q25</th>
-    <th>Q50</th>
-    <th>Q75</th>
-    <th>Q95</th>
-    <th>Min</th>
-    <th>Max</th>
-  </tr>
-  {% for row in rows %}
-  <tr>
-    {% if include_stage %}
-    <td>{{ row.stage_name }}</td>
-    {% endif %}
-    <td>{{ row.subsystem }}</td>
-    <td>{{ row.metric_name }}</td>
-    <td>{{ row.count }}</td>
-    <td>{{ row.mean | format_float }}</td>
-    <td>{{ row.variance | format_float }}</td>
-    <td>{{ row.q25 | format_float }}</td>
-    <td>{{ row.q50 | format_float }}</td>
-    <td>{{ row.q75 | format_float }}</td>
-    <td>{{ row.q95 | format_float }}</td>
-    <td>{{ row.min_v | format_float }}</td>
-    <td>{{ row.max_v | format_float }}</td>
-  </tr>
-  {% endfor %}
-</table>
-{%- endmacro %}
+{% import "chart_block.html.j2" as chart %}
+{% import "stats_table.html.j2" as stats %}
 <!doctype html>
 <html lang="en">
 <head>
@@ -106,17 +70,16 @@
     Mean, variance, quartiles and 95th percentile for collected numeric metrics
     (all stages merged).
   </p>
-  {{ render_stats_table(overall_rows) }}
+  {{ stats.render_stats_table(overall_rows) }}
 
   <h2>3) Statistics by Stage</h2>
   <p class="muted">Same stats, but computed separately for each stage.</p>
-  {{ render_stats_table(per_stage_rows, include_stage=true) }}
+  {{ stats.render_stats_table(per_stage_rows, include_stage=true) }}
 
   <h2>4) Boxplot Visualizations</h2>
   {% if plot_assets %}
     {% for plot in plot_assets %}
-    <h3>{{ plot.title }}</h3>
-    <img src="{{ plot.relative_path }}" alt="{{ plot.title }}">
+      {{ chart.render_chart(plot) }}
     {% endfor %}
   {% else %}
   <p>No plots were generated (not enough numeric samples).</p>
