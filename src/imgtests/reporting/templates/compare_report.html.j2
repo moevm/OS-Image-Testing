@@ -14,7 +14,7 @@
   <h1> Compare Report </h1>
   <div class="section">
     <div class="section-columns">
-      {% for exp in report_data %}
+      {% for exp in exps_data %}
         <div class="column">
           {{ test_info_header.render_header(exp.header) }}
         </div>
@@ -25,7 +25,7 @@
     <h2>Aggregated Statistics (Overall)</h2>
     <p class="muted">Mean, variance, quartiles and 95th percentile for collected numeric metrics.</p>
     <div class="section-columns">
-      {% for exp in report_data %}
+      {% for exp in exps_data %}
         <div class="column">
           {{ tables.render_stats_table(exp.timeline.overall_rows) }}
         </div>
@@ -36,7 +36,7 @@
     <h2>Statistics by Stage</h2>
     <p class="muted">Same stats, but computed separately for each stage.</p>
     <div class="section-columns">
-      {% for exp in report_data %}
+      {% for exp in exps_data %}
         <div class="column">
           {{ tables.render_stats_table(exp.timeline.per_stage_rows, include_stage=true) }}
         </div>
@@ -44,12 +44,27 @@
     </div>
   </div>
   <div class="section">
-    <h2>Visualizations</h2>
+    <h2>Common visualizations</h2>
+      <div>
+          {% if common_visualizations %}
+            {% for vis_name, plots in common_visualizations.items() %}
+              <h3>{{ vis_name|capitalize }}</h3>
+              {% for plot in plots %}
+                {{ chart.render_chart(plot) }}
+              {% endfor %}
+            {% endfor %}
+          {% else %}
+            <p>No visualizations available.</p>
+          {% endif %}
+        </div>
+  </div>
+  <div class="section">
+    <h2>Unique visualizations</h2>
     <div class="section-columns">
-      {% for exp in report_data %}
+      {% for exp in exps_data %}
         <div class="column">
-          {% if exp.visualizations %}
-            {% for vis_name, plots in exp.visualizations.items() %}
+          {% if exp.unique_visualizations %}
+            {% for vis_name, plots in exp.unique_visualizations.items() %}
               <h3>{{ vis_name|capitalize }}</h3>
               {% for plot in plots %}
                 {{ chart.render_chart(plot) }}

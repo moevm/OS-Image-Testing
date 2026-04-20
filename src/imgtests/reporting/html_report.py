@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Final, NamedTuple
 from zoneinfo import ZoneInfo
 
 from jinja2 import Environment, FileSystemLoader, StrictUndefined, select_autoescape
+from matplotlib import cm
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from matplotlib.figure import Figure
 
@@ -43,8 +44,8 @@ DIAGRAMS_CONFIG: dict[str, DiagramConfig] = {
     "histogram_by_prefix": DiagramConfig(
         run="_build_histograms_by_prefix",
         metrics=[
-            r"^systemd_critical_chain.",
-            r"^systemd_time.",
+            r"systemd_critical_chain.",
+            r"systemd_time.",
         ],
     ),
     "boxplots": DiagramConfig(
@@ -104,15 +105,25 @@ def generate_compare_html_report(
     plots_dir = out_dir / PLOTS_DIR
     plots_dir.mkdir(parents=True, exist_ok=True)
     report_data = []
+    exps_data = []
+
+    metrics_by_exp: list[list[MetricSample]] = []
     for exp_id in experiments_id:
         exp_data = database.get_experiment_with_details(exp_id)
+        exps_data.append(exp_data)
+        metrics_by_exp.append(_extract_metrics_from_experiment(exp_data))
+
+    unique_metrics_by_exp, common_metrics = __distribute_metrics(metrics_by_exp, experiments_id)
+
+    for i in range(len(exps_data)):
+        exp_data = exps_data[i]
         metrics = _extract_metrics_from_experiment(exp_data)
         report_data.append(
             {
                 "header": {
                     "test_kind": exp_data.description,
                     "configuration": exp_data.configuration,
-                    "experiment_id": exp_id,
+                    "experiment_id": exp_data.experiment_id,
                     "started_at": exp_data.started_at.isoformat(),
                     "ended_at": exp_data.ended_at.isoformat(),
                     "tests_counts": {
@@ -138,8 +149,8 @@ def generate_compare_html_report(
                     "overall_rows": _compute_stats(metrics, by_stage=False),
                     "per_stage_rows": _compute_stats(metrics, by_stage=True),
                 },
-                "visualizations": _collect_test_visualizations(
-                    metrics,
+                "unique_visualizations": _collect_test_visualizations(
+                    unique_metrics_by_exp[i],
                     out_dir=out_dir,
                     plots_dir=plots_dir,
                 ),
@@ -149,11 +160,53 @@ def generate_compare_html_report(
     report_path = out_dir / COMPARE_REPORT_FILENAME
     report_path.write_text(
         template.render(
-            report_data=report_data,
+            exps_data=report_data,
+            common_visualizations=_collect_test_visualizations(
+                common_metrics,
+                out_dir=out_dir,
+                plots_dir=plots_dir,
+            ),
         ),
         encoding="utf-8",
     )
     return report_path
+
+
+def __distribute_metrics(
+    metrics_by_exp: list[list[MetricSample]],
+    experiments_id: list[int],
+) -> tuple[list[list[MetricSample]], list[MetricSample]]:
+    unique_metrics_by_exp: list[list[MetricSample]] = []
+    common_metrics: list[MetricSample] = []
+
+    prefix_sets = []
+    for metrics in metrics_by_exp:
+        prefixes = {m.metric_name.split(".")[0] for m in metrics if "." in m.metric_name}
+        prefix_sets.append(prefixes)
+
+    common_prefixes = set.intersection(*prefix_sets) if prefix_sets else set()
+
+    for exp_idx, exp_metrics in enumerate(metrics_by_exp):
+        exp_id = experiments_id[exp_idx]
+        unique_for_exp: list[MetricSample] = []
+
+        for m in exp_metrics:
+            prefix = m.metric_name.split(".")[0] if "." in m.metric_name else m.metric_name
+            if prefix not in common_prefixes:
+                unique_for_exp.append(m)
+            else:
+                common_metrics.append(
+                    MetricSample(
+                        stage_name=m.stage_name,
+                        subsystem=m.subsystem,
+                        metric_name=f"exp_{exp_id}.{m.metric_name}",
+                        value=m.value,
+                        label=m.label,
+                    ),
+                )
+        unique_metrics_by_exp.append(unique_for_exp)
+
+    return unique_metrics_by_exp, common_metrics
 
 
 def _extract_metrics_from_experiment(experiment: ExperimentBase) -> list[MetricSample]:
@@ -229,7 +282,11 @@ def _collect_test_visualizations(
     results: dict[str, list[PlotAsset]] = {}
 
     for name, (run_fn, patterns) in COMPILED_DIAGRAMS_CONFIG.items():
-        matched = [s for s in samples if any(p.match(s.metric_name) for p in patterns)]
+        matched = []
+        for s in samples:
+            normalized_name = re.sub(r"^exp_\d+\.", "", s.metric_name)
+            if any(p.match(normalized_name) for p in patterns):
+                matched.append(s)
         if not matched and patterns:
             continue
 
@@ -342,9 +399,19 @@ def _build_boxplots(
     out_dir: Path,
     plots_dir: Path,
 ) -> list[PlotAsset]:
-    metric_to_subsystems: dict[str, dict[str, list[float]]] = defaultdict(lambda: defaultdict(list))
+    metric_to_subsystems: dict[str, dict[str, dict[str, list[float]]]] = defaultdict(
+        lambda: defaultdict(lambda: defaultdict(list)),
+    )
     for sample in samples:
-        metric_to_subsystems[sample.metric_name][sample.subsystem].append(float(sample.value))
+        parts = sample.metric_name.split(".")
+        if parts[0].startswith("exp_"):
+            exp_prefix = parts[0]
+            metric_core = ".".join(parts[1:])
+        else:
+            exp_prefix = "common"
+            metric_core = sample.metric_name
+
+        metric_to_subsystems[metric_core][sample.subsystem][exp_prefix].append(float(sample.value))
 
     plot_assets: list[PlotAsset] = []
 
@@ -352,11 +419,13 @@ def _build_boxplots(
         labels: list[str] = []
         values: list[list[float]] = []
 
-        for subsystem in sorted(metric_to_subsystems[metric_name]):
-            subsystem_values = metric_to_subsystems[metric_name][subsystem]
-            if subsystem_values:
-                labels.append(subsystem)
-                values.append(subsystem_values)
+        for subsystem in sorted(metric_to_subsystems[metric_core]):
+            exp_groups = metric_to_subsystems[metric_core][subsystem]
+            for exp_prefix, vals in exp_groups.items():
+                if vals:
+                    label = subsystem if exp_prefix == "common" else f"{subsystem} ({exp_prefix})"
+                    labels.append(textwrap.fill(label, 15))
+                    values.append(vals)
 
         if not values:
             continue
@@ -369,6 +438,10 @@ def _build_boxplots(
         ax.set_xlabel("Subsystem")
         ax.set_ylabel("Value")
         ax.grid(visible=True, axis="y", alpha=0.3)
+
+        for tick in ax.get_xticklabels():
+            tick.set_rotation(60)
+            tick.set_ha("right")
 
         out_path = plots_dir / f"{_safe_filename(metric_name)}.png"
         fig.tight_layout()
@@ -423,41 +496,63 @@ def _build_histograms_by_prefix(
     out_dir: Path,
     plots_dir: Path,
 ) -> list[PlotAsset]:
-    grouped = defaultdict(list)
+    grouped = defaultdict(lambda: defaultdict(list))
     for m in metrics:
-        if "." in m.metric_name:
-            grouped[m.metric_name.split(".")[0]].append(m)
+        parts = m.metric_name.split(".")
+        if parts[0].startswith("exp_"):
+            exp_prefix = parts[0]
+            util_prefix = parts[1]
+            metric_core = ".".join(parts[2:]) if len(parts) > 2 else parts[1]  #  noqa: PLR2004
+        else:
+            exp_prefix = "common"
+            util_prefix = parts[0]
+            metric_core = ".".join(parts[1:]) if len(parts) > 1 else parts[0]
+
+        grouped[util_prefix][exp_prefix].append((metric_core, m))
 
     assets = []
-    for prefix, group in grouped.items():
-        labels = [textwrap.fill(m.label, 15) for m in group]
-        values = [m.value for m in group]
-
-        fig = Figure(figsize=(8, 6))
+    for util_prefix, exp_groups in grouped.items():
+        fig = Figure(figsize=(10, 6))
         FigureCanvasAgg(fig)
         ax = fig.add_subplot(1, 1, 1)
-        bars = ax.bar(range(len(labels)), values)
-        ax.set_title(f"{prefix} metrics")
-        ax.grid(visible=True, axis="y", alpha=0.3)
-        ax.set_xticks(range(len(labels)))
-        ax.set_xticklabels(labels, rotation=60, ha="right")
 
-        for bar, val in zip(bars, values, strict=True):
-            ax.text(
-                bar.get_x() + bar.get_width() / 2,
-                bar.get_height(),
-                f"{val:.2f}",
-                ha="center",
-                va="bottom",
+        all_metric_names = []
+        for group in exp_groups.values():
+            for metric_core, _ in group:
+                if metric_core not in all_metric_names:
+                    all_metric_names.append(metric_core)
+
+        exp_labels = list(exp_groups.keys())
+        cmap = cm.get_cmap("tab10", len(exp_labels))
+        values_by_exp = []
+        for exp_prefix in exp_labels:
+            label_to_value = {core: m.value for core, m in exp_groups[exp_prefix]}
+            values = [label_to_value.get(core, 0.0) for core in all_metric_names]
+            values_by_exp.append(values)
+
+        x = range(len(all_metric_names))
+        width = 0.8 / len(exp_labels)
+
+        for i, values in enumerate(values_by_exp):
+            ax.bar(
+                [pos + i * width for pos in x],
+                values,
+                width=width,
+                label=exp_labels[i],
+                color=cmap(i),
             )
-
-        out_path = plots_dir / f"{_safe_filename(prefix)}.png"
+        ax.set_title(f"{util_prefix} metrics")
+        ax.set_xticks([pos + width * (len(exp_labels) - 1) / 2 for pos in x])
+        ax.set_xticklabels(all_metric_names, rotation=60, ha="right")
+        ax.legend(title="Experiments")
+        ax.grid(visible=True, axis="y", alpha=0.3)
+        out_path = plots_dir / f"{_safe_filename(util_prefix)}.png"
         fig.tight_layout()
         fig.savefig(out_path)
 
         assets.append(
             PlotAsset(
-                title=prefix,
+                title=util_prefix,
                 relative_path=str(out_path.relative_to(out_dir)),
             ),
         )
