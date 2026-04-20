@@ -128,6 +128,7 @@ class Kirk(GenericUtil):
         run_pattern: str | None = None,
         timeout: int | None = None,
         fault_injection: int | None = None,
+        fault_interval: int | None = None,
     ) -> tuple[ExecResult, Path | None]:
         """Run an LTP scenario via kirk and store results as JSON.
 
@@ -138,6 +139,7 @@ class Kirk(GenericUtil):
              the given regex pattern.
             timeout (int | None): Timeout before stopping the suite.
             fault_injection (int | None): Probability of failure, ranges from 0 to 100.
+            fault_interval (int | None): Amount of calls before the next failure check.
 
         Returns:
             tuple[ExecResult, Path | None]: Result of kirk test work and result path.
@@ -204,6 +206,7 @@ class Kirk(GenericUtil):
             *create_opt("run-pattern", run_pattern),
             *create_opt("suite-timeout", timeout),
             *create_opt("fault-injection", fault_injection),
+            *create_opt("fault-interval", fault_interval),
             "--run-suite",
             *scenarios_list,
             "--json-report",

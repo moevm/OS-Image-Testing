@@ -31,7 +31,7 @@ class FaultInjectionEnduranceTest(AbstractRunnableTimeLimitedTest):
     ) -> Iterable[TestResult]:
         kirk = Kirk(client)
         available_suites = kirk.list_suites()
-        scenarios = ["syscalls", "dio", "fs"]
+        scenarios = ["syscalls", "fs", "mm", "dio"]
         for suite in scenarios:
             if suite not in available_suites:
                 self.logger.warning("'%s' suite not available for the image with LTP.", suite)
@@ -50,6 +50,7 @@ class FaultInjectionEnduranceTest(AbstractRunnableTimeLimitedTest):
                 scenarios=scenarios,
                 timeout=time_per_test,
                 fault_injection=fault_probability,
+                fault_interval=5,
             )
 
             if metrics_path:
