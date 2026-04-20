@@ -39,7 +39,7 @@ class FaultInjectionEnduranceTest(AbstractRunnableTimeLimitedTest):
 
         random.seed(timeout)
         fault_probabilities = [
-            random.randint(0, 80) if i % 2 == 1 else 0  # noqa: S311
+            random.randint(30, 80) if i % 2 == 1 else 0  # noqa: S311
             for i in range(self.iterations)
         ]
         time_per_test = (timeout // self.iterations) + 1
@@ -49,8 +49,8 @@ class FaultInjectionEnduranceTest(AbstractRunnableTimeLimitedTest):
             result, metrics_path = kirk.run(
                 scenarios=scenarios,
                 timeout=time_per_test,
-                fault_injection=fault_probability,
-                fault_interval=5,
+                fault_prob=fault_probability,
+                fault_interval=10,
             )
 
             if metrics_path:
