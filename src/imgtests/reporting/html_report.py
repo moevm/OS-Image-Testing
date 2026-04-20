@@ -193,7 +193,7 @@ class ReportGenerator:
                 "Couldn't build a report: there are less than two experiments in the database.",
             )
             return None
-        return self.generate_compare_html_report(ids, out_dir)
+        return self.generate_compare_html_report(sorted(ids), out_dir)
 
     def __distribute_metrics(
         self,
