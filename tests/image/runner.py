@@ -119,7 +119,6 @@ IPC_SUITE: Final = TestsRunnerConfig(
     duration=100,
     install_dependencies=True,
 )
-
 NETWORK_SUITE: Final = TestsRunnerConfig(
     description="Test suite for network subsystem.",
     tests=(
@@ -131,7 +130,6 @@ NETWORK_SUITE: Final = TestsRunnerConfig(
     duration=120,
     install_dependencies=True,
 )
-
 FILE_SUITE: Final = TestsRunnerConfig(
     description="Test suite for file subsystem.",
     tests=(
