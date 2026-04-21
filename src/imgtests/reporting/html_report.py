@@ -273,10 +273,10 @@ class ReportGenerator:
                 "tests_counts": execution.tests_counts,
                 "tests_stats": _build_piechart(
                     {
-                        "skip_count": execution.tests_counts.tests_skipped,
-                        "broken_count": execution.tests_counts.tests_broken,
-                        "passed_count": execution.tests_counts.tests_passed,
-                        "failed_count": execution.tests_counts.tests_failed,
+                        "skip_count": execution.tests_counts.skip_count,
+                        "broken_count": execution.tests_counts.broken_count,
+                        "passed_count": execution.tests_counts.passed_count,
+                        "failed_count": execution.tests_counts.failed_count,
                     },
                     out_dir=out_dir,
                     plots_dir=plots_dir,
