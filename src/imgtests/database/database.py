@@ -226,7 +226,7 @@ class ImgtestsDatabase:
             experiment_id (int): id of the experiment to retrieve.
 
         Return:
-            ExperimentBase: experiment oblect with configuration, util_run_results.
+            ExperimentBase: experiment object with configuration, util_run_results.
         """
         self._check_session()
         with self.session() as session:
