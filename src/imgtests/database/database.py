@@ -6,7 +6,7 @@ from zoneinfo import ZoneInfo
 from deepdiff import DeepDiff
 from pydantic import Field
 from pydantic_settings import BaseSettings
-from sqlalchemy import and_, create_engine, desc
+from sqlalchemy import and_, create_engine
 from sqlalchemy.orm import selectinload, sessionmaker
 
 from imgtests.database.models.base import Base
@@ -239,18 +239,6 @@ class ImgtestsDatabase:
                 .filter(ExperimentBase.experiment_id == experiment_id)
                 .one()
             )
-
-    def get_last_two_experiment_ids(self) -> list[int]:
-        """Returns last 2 experiment_ids."""
-        self._check_session()
-        with self.session() as session:
-            experiments = (
-                session.query(ExperimentBase)
-                .order_by(desc(ExperimentBase.started_at))
-                .limit(2)
-                .all()
-            )
-            return [exp.experiment_id for exp in experiments]
 
     def _check_session(self) -> None:
         if not hasattr(self, "session") or self.session is None:

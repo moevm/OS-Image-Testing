@@ -104,15 +104,15 @@ class ReportGenerator:
 
     def generate_compare_html_report(
         self,
-        experiments_id: list[int],
+        experiment_ids: list[int],
         out_dir: Path,
     ) -> Path | None:
-        if len(experiments_id) < 2:  #  noqa: PLR2004
+        if len(experiment_ids) < 2:  #  noqa: PLR2004
             self._logger.error(
-                "Couldn't build a report: there are less than two experiments in the database.",
+                "Couldn't build a report: there are less than two experiments.",
             )
             return None
-        compare_dir = out_dir / f"compare-{experiments_id[0]}-{experiments_id[1]}"
+        compare_dir = out_dir / f"compare-{experiment_ids[0]}-{experiment_ids[1]}"
         compare_dir.mkdir(parents=True, exist_ok=True)
         plots_dir = compare_dir / PLOTS_DIR
         plots_dir.mkdir(parents=True, exist_ok=True)
@@ -120,14 +120,16 @@ class ReportGenerator:
         exps_data = []
 
         metrics_by_exp: list[list[MetricSample]] = []
-        for exp_id in experiments_id:
+        exps_os = []
+        for exp_id in experiment_ids:
             exp_data = self._database.get_experiment_with_details(exp_id)
+            exps_os.append(exp_data.configuration.os.split()[0])
             exps_data.append(exp_data)
             metrics_by_exp.append(self._extract_metrics_from_experiment(exp_data))
 
         unique_metrics_by_exp, common_metrics = self.__distribute_metrics(
             metrics_by_exp,
-            experiments_id,
+            exps_os,
         )
 
         for i in range(len(exps_data)):
@@ -187,7 +189,19 @@ class ReportGenerator:
         return report_path
 
     def generate_last_two_experiments_report(self, out_dir: Path) -> Path | None:
-        ids = self._database.get_last_two_experiment_ids()
+        from sqlalchemy import desc  #  noqa: PLC0415
+
+        from imgtests.database.models.experiment import ExperimentBase  #  noqa: PLC0415
+
+        self._database._check_session()  #  noqa: SLF001
+        with self._database.session() as session:
+            experiments = (
+                session.query(ExperimentBase)
+                .order_by(desc(ExperimentBase.started_at))
+                .limit(2)
+                .all()
+            )
+            ids = [exp.experiment_id for exp in experiments]
         if len(ids) < 2:  #  noqa: PLR2004
             self._logger.error(
                 "Couldn't build a report: there are less than two experiments in the database.",
@@ -198,7 +212,7 @@ class ReportGenerator:
     def __distribute_metrics(
         self,
         metrics_by_exp: list[list[MetricSample]],
-        experiments_id: list[int],
+        experiments_os: list[str],
     ) -> tuple[list[list[MetricSample]], list[MetricSample]]:
         unique_metrics_by_exp: list[list[MetricSample]] = []
         common_metrics: list[MetricSample] = []
@@ -211,7 +225,7 @@ class ReportGenerator:
         common_prefixes = set.intersection(*prefix_sets) if prefix_sets else set()
 
         for exp_idx, exp_metrics in enumerate(metrics_by_exp):
-            exp_id = experiments_id[exp_idx]
+            exp_os = experiments_os[exp_idx]
             unique_for_exp: list[MetricSample] = []
 
             for m in exp_metrics:
@@ -223,7 +237,7 @@ class ReportGenerator:
                         MetricSample(
                             stage_name=m.stage_name,
                             subsystem=m.subsystem,
-                            metric_name=f"exp_{exp_id}.{m.metric_name}",
+                            metric_name=f"{exp_os.replace(' ', '_')}${m.metric_name}",
                             value=m.value,
                             label=m.label,
                         ),
@@ -316,7 +330,7 @@ class ReportGenerator:
         for name, (run_fn, patterns) in COMPILED_DIAGRAMS_CONFIG.items():
             matched = []
             for s in samples:
-                normalized_name = re.sub(r"^exp_\d+\.", "", s.metric_name)
+                normalized_name = re.sub(r"^[^$]+\$", "", s.metric_name)
                 if any(p.match(normalized_name) for p in patterns):
                     matched.append(s)
             if not matched and patterns:
@@ -435,9 +449,9 @@ def _build_boxplots(
         lambda: defaultdict(lambda: defaultdict(list)),
     )
     for sample in samples:
-        parts = sample.metric_name.split(".")
-        if parts[0].startswith("exp_"):
-            exp_prefix = parts[0]
+        parts = sample.metric_name.split("$")
+        if len(parts) > 1:
+            exp_prefix = parts[0].replace("_", " ")
             metric_core = ".".join(parts[1:])
         else:
             exp_prefix = "common"
@@ -472,7 +486,7 @@ def _build_boxplots(
         ax.grid(visible=True, axis="y", alpha=0.3)
 
         for tick in ax.get_xticklabels():
-            tick.set_rotation(60)
+            tick.set_rotation(30)
             tick.set_ha("right")
 
         out_path = plots_dir / f"{_safe_filename(metric_name)}.png"
@@ -530,15 +544,15 @@ def _build_histograms_by_prefix(
 ) -> list[PlotAsset]:
     grouped = defaultdict(lambda: defaultdict(list))
     for m in metrics:
-        parts = m.metric_name.split(".")
-        if parts[0].startswith("exp_"):
-            exp_prefix = parts[0]
-            util_prefix = parts[1]
-            metric_core = ".".join(parts[2:]) if len(parts) > 2 else parts[1]  #  noqa: PLR2004
+        parts = m.metric_name.split("$", 1)
+        if len(parts) > 1:
+            exp_prefix = parts[0].replace("_", " ")
+            subparts = parts[1].split(".")
         else:
             exp_prefix = "common"
-            util_prefix = parts[0]
-            metric_core = ".".join(parts[1:]) if len(parts) > 1 else parts[0]
+            subparts = parts[0].split(".")
+        util_prefix = subparts[0]
+        metric_core = ".".join(subparts[1:]) if len(subparts) > 1 else util_prefix
 
         grouped[util_prefix][exp_prefix].append((metric_core, m))
 
@@ -575,8 +589,8 @@ def _build_histograms_by_prefix(
             )
         ax.set_title(f"{util_prefix} metrics")
         ax.set_xticks([pos + width * (len(exp_labels) - 1) / 2 for pos in x])
-        ax.set_xticklabels(all_metric_names, rotation=60, ha="right")
-        ax.legend(title="Experiments")
+        ax.set_xticklabels(all_metric_names, rotation=30, ha="right")
+        ax.legend(title="OS")
         ax.grid(visible=True, axis="y", alpha=0.3)
         out_path = plots_dir / f"{_safe_filename(util_prefix)}.png"
         fig.tight_layout()
