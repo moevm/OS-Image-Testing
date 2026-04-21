@@ -119,7 +119,17 @@ class JointBench(AbstractRunnableManyTimesTest):
                         yield TestResult(status=TestStatus.BROKEN)
                         return
                     ended_at = datetime.now(tz=ZoneInfo("UTC"))
-                    status = TestStatus.PASSED if not tool_result.returncode else TestStatus.FAILED
+                    if (
+                        isinstance(tool_instance, PhoronixTestSuite)
+                        and tool_instance.is_timeout_result(tool_result)
+                    ):
+                        status = TestStatus.BROKEN
+                    else:
+                        status = (
+                            TestStatus.PASSED
+                            if not tool_result.returncode
+                            else TestStatus.FAILED
+                        )
                     yield TestResult(
                         started_at=started_at,
                         ended_at=ended_at,
