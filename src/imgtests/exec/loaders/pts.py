@@ -386,17 +386,20 @@ class PhoronixTestSuite(PkgMgrMixin, GenericUtil):
         else:
             test_results = test_results.get(list(test_results.keys())[test_index], {})
 
-        test_metrics = test_results.get("results", {})
-        if test_metrics:
-            test_metrics = test_metrics.get(next(iter(test_metrics.keys())), {})
-        drop_json_fields(test_metrics, ["details"])
-
         test_type = {
             "identifier": test_results.get("identifier", "unknown"),
         }
         time = {
             "timestamp": system_info.get("timestamp", "unknown"),
         }
+        drop_json_fields(system_info, ["timestamp"])
+
+        test_metrics = test_results.get("results", {})
+        if test_metrics:
+            test_metrics = {
+                "systems": system_info,
+                "results": test_metrics.get(next(iter(test_metrics.keys())), {}),
+            }
 
         return AdapterResult(
             tool="pts",

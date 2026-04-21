@@ -852,15 +852,52 @@ def test_iperf3_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, A
                     "timestamp": "2026-04-05 22:07:04",
                 },
                 "metrics": {
-                    "value": 19585,
-                    "raw_values": [
-                        19573,
-                        19596,
-                    ],
-                    "test_run_times": [
-                        154.03,
-                        150.62,
-                    ],
+                    "systems": {
+                        "identifier": "2026-04-05 22:06",
+                        "hardware": {
+                            "Processor": "Intel Xeon E3-12xx v2 (4 Cores)",
+                            "Motherboard": "QEMU Standard PC (Q35 + ICH9 2009)",
+                            "Chipset": "Intel 82G33/G31/P35/P31 + ICH9",
+                            "Memory": "1 x 2 GB RAM QEMU",
+                            "Disk": "10GB",
+                            "Graphics": "bochs-drmdrmfb",
+                            "Monitor": "QEMU Monitor",
+                            "Network": "Red Hat Virtio device",
+                        },
+                        "software": {
+                            "OS": "poky 5.2.4",
+                            "Kernel": "6.12.47-yocto-standard (x86_64)",
+                            "Compiler": "GCC 14.3.0",
+                            "File-System": "ext4",
+                            "Screen Resolution": "1280x800",
+                            "System Layer": "qemu",
+                        },
+                        "user": "root",
+                        "client_version": "10.8.4",
+                        "data": {
+                            "compiler-configuration": "",
+                            "cpu-microcode": "0x1",
+                            "security": "",
+                        },
+                    },
+                    "results": {
+                        "value": 19585,
+                        "raw_values": [
+                            19573,
+                            19596,
+                        ],
+                        "test_run_times": [
+                            154.03,
+                            150.62,
+                        ],
+                        "details": {
+                            "compiler-options": {
+                                "compiler-type": "CC",
+                                "compiler": "gcc",
+                                "compiler-options": "",
+                            },
+                        },
+                    },
                 },
             },
         ),
@@ -1416,6 +1453,9 @@ def test_kirk_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, Any
                     },
                     "usr_cpu": 42.62,
                     "sys_cpu": 57.3,
+                    "ctx": 21,
+                    "majf": 0,
+                    "minf": 44,
                     "iodepth_level": {
                         "1": 100,
                         "2": 0,
@@ -1423,6 +1463,24 @@ def test_kirk_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, Any
                         "8": 0,
                         "16": 0,
                         "32": 0,
+                        ">=64": 0,
+                    },
+                    "iodepth_submit": {
+                        "0": 0,
+                        "4": 100,
+                        "8": 0,
+                        "16": 0,
+                        "32": 0,
+                        "64": 0,
+                        ">=64": 0,
+                    },
+                    "iodepth_complete": {
+                        "0": 0,
+                        "4": 100,
+                        "8": 0,
+                        "16": 0,
+                        "32": 0,
+                        "64": 0,
                         ">=64": 0,
                     },
                     "latency_ns": {
