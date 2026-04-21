@@ -30,6 +30,14 @@ th {
     color: #aa0000;
     font-weight: 700;
 }
+.warn {
+    color: #cc9900;
+    font-weight: 700;
+}
+.skip {
+    color: #0044aa;
+    font-weight: 700;
+}
 .muted {
     color: #666;
 }

@@ -26,10 +26,10 @@
   Failed: <b class="{{ 'bad' if header.tests_counts.failed_count else '' }}">
     {{ header.tests_counts.failed_count }}
   </b> |
-  Broken: <b class="{{ 'bad' if header.tests_counts.broken_count else '' }}">
+  Broken: <b class="{{ 'warn' if header.tests_counts.broken_count else '' }}">
     {{ header.tests_counts.broken_count }}
   </b> |
-  Skipped: <b>
+  Skipped: <b class="{{ 'skip' if header.tests_counts.broken_count else '' }}">
     {{ header.tests_counts.skip_count }}
   </b>
 </p>

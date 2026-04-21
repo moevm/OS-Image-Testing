@@ -152,8 +152,8 @@ class ReportGenerator:
                             {
                                 "skip_count": exp_data.tests_skipped,
                                 "broken_count": exp_data.tests_broken,
-                                "failed_count": exp_data.tests_failed,
                                 "passed_count": exp_data.tests_passed,
+                                "failed_count": exp_data.tests_failed,
                             },
                             out_dir=compare_dir,
                             plots_dir=plots_dir,
@@ -273,9 +273,10 @@ class ReportGenerator:
                 "tests_counts": execution.tests_counts,
                 "tests_stats": _build_piechart(
                     {
-                        k: v
-                        for k, v in execution.tests_counts._asdict().items()
-                        if k != "total_count"
+                        "skip_count": execution.tests_counts.tests_skipped,
+                        "broken_count": execution.tests_counts.tests_broken,
+                        "passed_count": execution.tests_counts.tests_passed,
+                        "failed_count": execution.tests_counts.tests_failed,
                     },
                     out_dir=out_dir,
                     plots_dir=plots_dir,
