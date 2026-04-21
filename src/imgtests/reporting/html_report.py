@@ -17,6 +17,7 @@ from matplotlib import cm
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from matplotlib.figure import Figure
 
+from imgtests.constant import LIB_NAME
 from imgtests.types import MetricSample
 
 if TYPE_CHECKING:
@@ -100,14 +101,14 @@ class PlotAsset:
 class ReportGenerator:
     def __init__(self, database: ImgtestsDatabase):
         self._database = database
-        self._logger = logging.getLogger()
+        self._logger = logging.getLogger(f"{LIB_NAME}.report_generator")
 
     def generate_compare_html_report(
         self,
         experiment_ids: list[int],
         out_dir: Path,
     ) -> Path | None:
-        if len(experiment_ids) < 2:  #  noqa: PLR2004
+        if len(experiment_ids) != 2:  #  noqa: PLR2004
             self._logger.error(
                 "Couldn't build a report: there are less than two experiments.",
             )
@@ -202,7 +203,7 @@ class ReportGenerator:
                 .all()
             )
             ids = [exp.experiment_id for exp in experiments]
-        if len(ids) < 2:  #  noqa: PLR2004
+        if len(ids) != 2:  #  noqa: PLR2004
             self._logger.error(
                 "Couldn't build a report: there are less than two experiments in the database.",
             )
