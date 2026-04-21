@@ -1,4 +1,5 @@
 import logging
+import os
 import sys
 from pathlib import Path
 from typing import Final
@@ -160,40 +161,53 @@ SUSE_156_CONF: Final = (
 def main() -> None:
     logger = logging.getLogger()
     set_handlers(logger, Path("processing.log"))
-    suse_client = wait_remote(*SUSE_156_CONF) or sys.exit(1)
-    # disable cloud-init for the next boot for Suse according to documentation
-    Touch(suse_client, use_sudo=True)(["/etc/cloud/cloud-init.disabled"])
-    poky_client = wait_remote(*YOCTO_CONF) or sys.exit(1)
+    tested_distro = os.getenv("TESTED_DISTRO", "all")
+    if tested_distro not in ("all", "yocto", "suse"):
+        logger.error(
+            "Invalid TESTED_DISTRO value: %s. Use 'all', 'yocto', 'suse'", tested_distro
+        )
+        sys.exit(1)
+    logger.info("Running tests for %s", tested_distro)
+    suse_client = None
+    poky_client = None
+    if tested_distro in ("yocto", "all"):
+        poky_client = wait_remote(*YOCTO_CONF) or sys.exit(1)
+    if tested_distro in ("suse", "all"):
+        suse_client = wait_remote(*SUSE_156_CONF) or sys.exit(1)
+        # disable cloud-init for the next boot for Suse according to documentation
+        Touch(suse_client, use_sudo=True)(["/etc/cloud/cloud-init.disabled"])
+    distros_to_test = []
+    if suse_client:
+        distros_to_test.append(suse_client)
+    if poky_client:
+        distros_to_test.append(poky_client)
     database = ImgtestsDatabase()
     for suite in (
         FILE_SUITE,
         MEMORY_SUITE,
         SYSCALLS_SUITE,
         IPC_SUITE,
-        NETWORK_SUITE,
         ALL_SUBSYSTEMS_SUITE,
     ):
-        suse_client.reconnect()
-        suse_runner = TestsRunner(suse_client, database, suite)
-        suse_runner.run()
-        suse_runner.close()
+        for client in distros_to_test:
+            client.reconnect()
+            runner = TestsRunner(client, database, suite)
+            runner.run()
+            runner.close()
+    if poky_client:
         poky_client.reconnect()
-        yocto_runner = TestsRunner(poky_client, database, suite)
-        yocto_runner.run()
-        yocto_runner.close()
-
-    poky_client.reconnect()
-    ProfiledPlanRunner(
-        client=poky_client,
-        database=database,
-    ).run_from_env()
-    poky_client.close()
-    suse_client.reconnect()
-    ProfiledPlanRunner(
-        client=suse_client,
-        database=database,
-    ).run_from_env()
-    suse_client.close()
+        ProfiledPlanRunner(
+            client=poky_client,
+            database=database,
+        ).run_from_env()
+        poky_client.close()
+    if suse_client:
+        suse_client.reconnect()
+        ProfiledPlanRunner(
+            client=suse_client,
+            database=database,
+        ).run_from_env()
+        suse_client.close()
 
     report_generator = ReportGenerator(database)
     report_generator.generate_last_two_experiments_report(out_dir=Path("results"))

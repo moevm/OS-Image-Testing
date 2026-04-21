@@ -24,41 +24,10 @@
           white-space: pre-wrap;
           text-align: left;
           ">
-        </div>
+	</div>
     </div>
 </div>
 
-<script>
-document.getElementById('runTestsBtn').addEventListener('click', function() {
-    const btn = this;
-    const outputContainer = document.getElementById('outputContainer');
-
-    btn.disabled = true;
-    btn.textContent = 'Running...';
-    outputContainer.textContent = 'Tests Running...';
-
-    fetch('/run-tests/', {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': '{{ csrf_token }}',
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            outputContainer.textContent = data.output;
-        } else {
-            outputContainer.textContent = 'Error: ' + data.error;
-        }
-    })
-    .catch(error => {
-        outputContainer.textContent = 'Error: ' + error;
-    })
-    .finally(() => {
-        btn.disabled = false;
-        btn.textContent = 'Run tests';
-    });
-});
-</script>
+{% load static %}
+<script src="{% static "js/launch_test.js" %}"></script>
 {% endblock %}
