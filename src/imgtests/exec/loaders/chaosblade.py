@@ -141,7 +141,9 @@ class Chaosblade(GenericUtil):
         return result, self._extract_result(result)
 
     def await_exp_result(
-        self, experiment_id: str, timeout: int = _EXP_WAIT_TIMEOUT
+        self,
+        experiment_id: str,
+        timeout: int = _EXP_WAIT_TIMEOUT,
     ) -> tuple[ExecResult, ChaosResponse]:
         result, chaos_result = self.get_exp_status(experiment_id=experiment_id)
         time_slept = 0
