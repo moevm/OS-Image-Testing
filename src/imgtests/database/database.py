@@ -40,9 +40,11 @@ class ImgtestsDatabase:
             logger.error("Incorrect database name.")
 
     def initialize_postgres(self, creds: PostgresCreds) -> None:
-        self.engine = create_engine(
-            f"postgresql+psycopg://{creds.user}:{creds.password}@{creds.host}:{creds.port}/{creds.database_name}",
+        db_url = (
+            f"postgresql+psycopg://{creds.user}:{creds.password}"
+            f"@{creds.host}:{creds.port}/{creds.database_name}"
         )
+        self.engine = create_engine(db_url)
         self.session = sessionmaker(self.engine)
         Base.metadata.create_all(self.engine)
 
