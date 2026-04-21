@@ -1,6 +1,7 @@
 import json
 import logging
 import re
+from time import sleep
 from typing import Any, Final, Literal, NamedTuple, get_args
 
 from imgtests.exec.base_util import GenericUtil
@@ -127,6 +128,14 @@ class Chaosblade(GenericUtil):
         """
         result = self(["destroy", experiment_id])
         return result, self._extract_result(result)
+
+    def await_exp_result(self, experiment_id: str) -> tuple[ExecResult, ChaosResponse]:
+        result, chaos_result = self.get_exp_status(experiment_id=experiment_id)
+        while chaos_result.result["Status"] != 'Error' and \
+              chaos_result.result["Status"] != 'Destroyed' and chaos_result.success:
+            sleep(20)
+            result, chaos_result = self.get_exp_status(experiment_id=experiment_id)
+        return result, chaos_result
 
     def create_cpu_exp(
         self,
