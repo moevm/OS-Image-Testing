@@ -131,8 +131,11 @@ class Chaosblade(GenericUtil):
 
     def await_exp_result(self, experiment_id: str) -> tuple[ExecResult, ChaosResponse]:
         result, chaos_result = self.get_exp_status(experiment_id=experiment_id)
-        while chaos_result.result["Status"] != 'Error' and \
-              chaos_result.result["Status"] != 'Destroyed' and chaos_result.success:
+        while (
+            chaos_result.result["Status"] != "Error"
+            and chaos_result.result["Status"] != "Destroyed"
+            and chaos_result.success
+        ):
             sleep(20)
             result, chaos_result = self.get_exp_status(experiment_id=experiment_id)
         return result, chaos_result
