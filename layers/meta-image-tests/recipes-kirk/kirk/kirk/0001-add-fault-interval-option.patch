@@ -3,9 +3,9 @@ Upstream-Status: Pending
 
 ---
  libkirk/main.py    | 7 +++++++
- libkirk/session.py | 16 ++++++++++++----
- libkirk/sut.py     | 8 ++++++--
- 3 files changed, 25 insertions(+), 6 deletions(-)
+ libkirk/session.py | 18 ++++++++++++++----
+ libkirk/sut.py     | 9 +++++++--
+ 3 files changed, 28 insertions(+), 6 deletions(-)
 
 diff --git a/libkirk/main.py b/libkirk/main.py
 index 8188f5d..6968f36 100644
@@ -33,7 +33,7 @@ index 8188f5d..6968f36 100644
      # output arguments
      # parse comand line
 diff --git a/libkirk/session.py b/libkirk/session.py
-index b8e13c0..da5c989 100644
+index b8e13c0..f77cee8 100644
 --- a/libkirk/session.py
 +++ b/libkirk/session.py
 @@ -417,7 +417,11 @@ class Session:
@@ -69,7 +69,16 @@ index b8e13c0..da5c989 100644
      ) -> None:
          """
          Run a new session and store results inside a JSON file.
-@@ -489,7 +497,7 @@ class Session:
+@@ -473,6 +481,8 @@ class Session:
+         :type runtime: int
+         :param fault_prob: fault injection probability
+         :type fault_prob: int
++        :param fault_interval: fault injection interval
++        :type fault_interval: int
+         """
+         async with self._run_lock:
+             await libkirk.events.fire("session_started", self._tmpdir.abspath)
+@@ -489,7 +499,7 @@ class Session:
                      await self._exec_command(command)
 
                  if fault_prob != 0:
@@ -78,7 +87,7 @@ index b8e13c0..da5c989 100644
 
                  if suites:
                      suites_obj = await self._read_suites(
-@@ -512,7 +520,7 @@ class Session:
+@@ -512,7 +522,7 @@ class Session:
                  try:
                      # configure fault injection to the original values
                      if fault_prob != 0:
@@ -88,10 +97,10 @@ index b8e13c0..da5c989 100644
                      if self._results:
                          exporter = JSONExporter()
 diff --git a/libkirk/sut.py b/libkirk/sut.py
-index 2bb86a4..490b77d 100644
+index 2bb86a4..fcbcd1d 100644
 --- a/libkirk/sut.py
 +++ b/libkirk/sut.py
-@@ -299,13 +299,17 @@ class SUT(Plugin):
+@@ -299,13 +299,18 @@ class SUT(Plugin):
 
          return True
 
@@ -105,6 +114,7 @@ index 2bb86a4..490b77d 100644
          Configure kernel fault injection. When `prob` is zero, the fault
          injection is set to default values.
          :param prob: Fault probabilty in between 0-100
++        :param interval_override: Fault interval
          """
 -        interval = 1 if prob == 0 else 100
 +        interval = 1 if prob == 0 else interval_override
