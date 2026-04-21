@@ -110,7 +110,7 @@ class ReportGenerator:
     ) -> Path | None:
         if len(experiment_ids) != 2:  #  noqa: PLR2004
             self._logger.error(
-                "Couldn't build a report: there are less than two experiments.",
+                "Couldn't build a report: there are incorrect amount of experiments.",
             )
             return None
         compare_dir = out_dir / f"compare-{experiment_ids[0]}-{experiment_ids[1]}"
@@ -205,7 +205,7 @@ class ReportGenerator:
             ids = [exp.experiment_id for exp in experiments]
         if len(ids) != 2:  #  noqa: PLR2004
             self._logger.error(
-                "Couldn't build a report: there are less than two experiments in the database.",
+                "Couldn't build a report: there are incorrect amount of experiments.",
             )
             return None
         return self.generate_compare_html_report(sorted(ids), out_dir)
