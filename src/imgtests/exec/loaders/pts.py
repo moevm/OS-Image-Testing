@@ -124,12 +124,8 @@ class PhoronixTestSuite(PkgMgrMixin, GenericUtil):
 
     @staticmethod
     def is_timeout_result(result: ExecResult) -> bool:
-        return (
-            result.returncode in TIMEOUT_RETURN_CODES
-            and any(
-                line.lstrip().lower().startswith("timeout:")
-                for line in result.stderr.splitlines()
-            )
+        return result.returncode in TIMEOUT_RETURN_CODES and any(
+            line.lstrip().lower().startswith("timeout:") for line in result.stderr.splitlines()
         )
 
     @staticmethod
