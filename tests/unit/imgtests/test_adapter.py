@@ -1255,10 +1255,12 @@ def test_kirk_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, Any
                 "tool": "fio",
                 "test_type": {
                     "name": "rand_write_4k",
-                    "size": "100MB",
-                    "rw": "randwrite",
-                    "ioengine": "libaio",
-                    "bs": "4k",
+                    "detailed": {
+                        "size": "100MB",
+                        "rw": "randwrite",
+                        "ioengine": "libaio",
+                        "bs": "4k",
+                    },
                 },
                 "time": {
                     "duration_sec": 5.0,
