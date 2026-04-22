@@ -47,8 +47,12 @@ class ChaosbladeCPUTest(AbstractRunnableTimeLimitedTest):
         future = executor.submit(chaos.create_cpu_exp, cpu_percent=70, timeout_sec=timeout)
         result, chaos_result = future.result()
         # actually wait till the experiment is completed
-        if chaos_result.success:
-            future = executor.submit(chaos.await_exp_result, experiment_id=chaos_result.result)
+        if chaos_result.success and isinstance(chaos_result.result, str):
+            future = executor.submit(
+                chaos.await_exp_result,
+                experiment_id=chaos_result.result,
+                timeout=timeout,
+            )
             result, chaos_result = future.result()
             if result.returncode:
                 status = TestStatus.BROKEN
