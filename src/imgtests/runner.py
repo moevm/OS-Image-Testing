@@ -223,6 +223,10 @@ class ProfiledPlanRunnerSettings(BaseSettings):
     duration_volume: int | None = Field(default=None, validation_alias="PLAN_DURATION_VOLUME")
     duration_isolated: int | None = Field(default=None, validation_alias="PLAN_DURATION_ISOLATED")
     duration_spike: int | None = Field(default=None, validation_alias="PLAN_DURATION_SPIKE")
+    duration_diagnostic: int | None = Field(
+        default=None,
+        validation_alias="PLAN_DURATION_DIAGNOSTIC",
+    )
 
     def duration_for(self, profile: TestKind) -> int:
         durations = {
@@ -233,6 +237,7 @@ class ProfiledPlanRunnerSettings(BaseSettings):
             "volume": self.duration_volume,
             "isolated": self.duration_isolated,
             "spike": self.duration_spike,
+            "diagnostic": self.duration_diagnostic,
         }
         duration = durations[profile.value]
         return self.duration_sec if duration is None else duration
@@ -320,8 +325,9 @@ class TestsRunner(BaseRunner):
             else:
                 test_instance = test_class(self.__test_config.test_duration)
             for result in test_instance(self._executor, self._client):
-                self._database.insert_loader(
+                self._database.insert_util_run_result(
                     experiment_id=experiment.experiment_id,
+                    util_type="loader",
                     # TODO: fill descriptions and adds into TestResult class
                     description="",
                     result=result.metrics,
@@ -359,7 +365,7 @@ class TestsRunner(BaseRunner):
         from imgtests.exec.loaders import (  # noqa: PLC0415
             Chaosblade,
             Fio,
-            FioPlot,
+            Iperf3,
             Kirk,
             Perf,
             PhoronixTestSuite,
@@ -372,7 +378,6 @@ class TestsRunner(BaseRunner):
         for tool in (
             Chaosblade,
             Fio,
-            FioPlot,
             Kirk,
             Perf,
             StressNg,
@@ -381,22 +386,29 @@ class TestsRunner(BaseRunner):
             NodeExporter,
             Sar,
             Lshw,
+            Iperf3,
         ):
             tool_instance: BaseTestUtil = tool(self._client)
             try:
-                tool_instance.install()
+                result = tool_instance.install()
             except NotImplementedError:
                 self._logger.exception(
                     "Failed to install dependencies for the '%s'.",
                     tool_instance.name,
                 )
                 continue
-            tool_instance = tool(self._client)
-            self._logger.info(
-                "Installed '%s' with version '%s'.",
-                tool_instance.name,
-                tool_instance.version(),
-            )
+            if result.returncode:
+                self._logger.error(
+                    "Failed to install dependencies for the '%s'.",
+                    tool_instance.name,
+                )
+            else:
+                tool_instance = tool(self._client)
+                self._logger.info(
+                    "Installed '%s' with version '%s'.",
+                    tool_instance.name,
+                    tool_instance.version(),
+                )
         self._logger.info("Dependencies installed successfully.")
 
     def __is_remote_alive(self, test_completed_event: Event) -> None:
@@ -418,8 +430,9 @@ class TestsRunner(BaseRunner):
         # failed services
         fs_r, fs_m = systemctl.get_failed_services()
         self._logger.info("Failed services: %s", fs_m)
-        self._database.insert_observer(
+        self._database.insert_util_run_result(
             experiment_id=experiment_id,
+            util_type="observer",
             command=" ".join(fs_r.cmd),
             description="Failed systemd services.",
             result=systemctl.metrics_to_json(fs_m),
@@ -433,8 +446,9 @@ class TestsRunner(BaseRunner):
         )
         oom_m = journalctl.calc_records_cnt(oom_r.stdout)
         self._logger.info("OOM records %d", oom_m)
-        self._database.insert_observer(
+        self._database.insert_util_run_result(
             experiment_id=experiment_id,
+            util_type="observer",
             command=" ".join(oom_r.cmd),
             description="OOM records.",
             started_at=since,
@@ -454,8 +468,9 @@ class TestsRunner(BaseRunner):
             "systemd errors records %d",
             sstmd_err_m,
         )
-        self._database.insert_observer(
+        self._database.insert_util_run_result(
             experiment_id=experiment_id,
+            util_type="observer",
             command=" ".join(sstmd_err_r.cmd),
             description="Systemd errors records",
             started_at=since,

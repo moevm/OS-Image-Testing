@@ -18,6 +18,7 @@ DOCKER_OPENSUSE_VOLUME     := ${DOCKER_PREFIX}-open-suse-files
 DOCKER_POSTGRES_VOLUME	   := ${DOCKER_PREFIX}-postgres-data
 BENCHER_API_CONF_VOLUME    := ${DOCKER_PREFIX}-bencher-conf
 BENCHER_API_DB_VOLUME      := ${DOCKER_PREFIX}-bencher-database
+BENCHER_API_LOGS_VOLUME    := ${DOCKER_PREFIX}-bencher-logs
 VMETRICS_DATA_VOLUME	   := ${DOCKER_PREFIX}-vmetrics-data
 
 # VictoriaMetrics-docker-network
@@ -50,12 +51,16 @@ GATEWAY                    := 10.5.0.1
 SSH_TO_QEMU_PORT		   := 22
 SSH_QEMU_PORT              ?= 2222
 SSH_SUSE_PORT_156          := 1616
+IPERF3_PORT                := 5201
 BENCHER_API_PORT           := 61016
 BENCHER_CLI_PORT           := 3000
 POSTGRES_PORT              := 5432
 VMETRICS_PORT              := 8438
 
 SSH_QEMU_USER              ?= root
+
+# 3Gb of virtual memory for each system
+QEMU_VM_RAM				   := 3072
 
 # Library
 PYTHONDONTWRITEBYTECODE    := 1
@@ -81,7 +86,8 @@ docker-compose-down:
 
 .PHONY: ensure-volumes
 ensure-volumes: docker
-	@for volume in ${DOCKER_OPENSUSE_VOLUME} ${BENCHER_API_CONF_VOLUME} ${BENCHER_API_DB_VOLUME} ${VMETRICS_DATA_VOLUME} ${DOCKER_POSTGRES_VOLUME}; do \
+	@for volume in ${DOCKER_OPENSUSE_VOLUME} ${BENCHER_API_CONF_VOLUME} ${BENCHER_API_DB_VOLUME} \
+	                ${BENCHER_API_LOGS_VOLUME} ${VMETRICS_DATA_VOLUME} ${DOCKER_POSTGRES_VOLUME}; do \
 		if ! docker volume inspect $$volume > /dev/null 2>&1; then \
 			docker volume create $$volume; \
 		fi \

@@ -2,7 +2,7 @@ import json
 from typing import TYPE_CHECKING, Any
 
 from imgtests.exec.base_util import GenericUtil
-from imgtests.exec.exec import ExecResult
+from imgtests.exec.exec import ExecResult, common_run_command
 from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
 from imgtests.exec.utils import add_flag, create_opt
 from imgtests.results_adapter import AdapterResult
@@ -14,6 +14,9 @@ if TYPE_CHECKING:
 class Iperf3(PkgMgrMixin, GenericUtil):
     def __init__(self, ssh_client: SSHClient | None = None) -> None:
         super().__init__("iperf3", ssh_client)
+
+    def stop_server(self) -> ExecResult:
+        return common_run_command(["pkill", "-f", "iperf3.*--server"], self.ssh_client)
 
     def run(  # noqa: PLR0913
         self,

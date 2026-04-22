@@ -1,0 +1,45 @@
+{% import "test_info_header.html.j2" as test_info_header %}
+{% import "blocks/charts.html.j2" as chart %}
+{% import "blocks/tables.html.j2" as tables %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Test Report</title>
+  <style>
+    {% include "report.css" %}
+  </style>
+</head>
+<body>
+  {{ test_info_header.render_header(header) }}
+
+  <h2>1) Plan Timeline</h2>
+  {{ tables.render_timeline_table(timeline.timeline_rows) }}
+
+  <h2>2) Aggregated Statistics (Overall)</h2>
+  <p class="muted">
+    Mean, variance, quartiles and 95th percentile for collected numeric metrics
+    (all stages merged).
+  </p>
+  {{ tables.render_stats_table(timeline.overall_rows) }}
+
+  <h2>3) Statistics by Stage</h2>
+  <p class="muted">Same stats, but computed separately for each stage.</p>
+  {{ tables.render_stats_table(timeline.per_stage_rows, include_stage=true) }}
+
+  {% if visualizations %}
+    {% for vis_name, plots in visualizations.items() %}
+      <h2>{{ loop.index + 3 }}) {{ vis_name|capitalize }} visualizations</h2>
+      {% if plots %}
+        {% for plot in plots %}
+          {{ chart.render_chart(plot) }}
+        {% endfor %}
+      {% else %}
+        <p>No plots were generated (not enough numeric samples).</p>
+      {% endif %}
+    {% endfor %}
+  {% else %}
+    <p>No visualizations available.</p>
+  {% endif %}
+</body>
+</html>

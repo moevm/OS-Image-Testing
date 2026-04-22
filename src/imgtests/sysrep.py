@@ -5,7 +5,6 @@ from deepdiff import DeepDiff
 
 from imgtests.exec.loaders import (
     Fio,
-    FioPlot,
     Fwts,
     Iperf3,
     Kirk,
@@ -34,7 +33,6 @@ class OsInfo(NamedTuple):
 
 class ToolsVersions(NamedTuple):
     fio_ver: Version
-    fio_plot_ver: Version
     fwts_ver: Version
     stress_ng_ver: Version
     kirk_ver: Version
@@ -80,7 +78,6 @@ def get_system_info(
         package_list=rpm.get_pkglist(rpm_format),
         tools_versions=ToolsVersions(
             Fio(ssh_client).version() or Version(""),
-            FioPlot(ssh_client).version() or Version(""),
             Fwts(ssh_client).version() or Version(""),
             StressNg(ssh_client).version() or Version(""),
             Kirk(ssh_client).version() or Version(""),

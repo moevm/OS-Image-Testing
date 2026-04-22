@@ -1,6 +1,8 @@
 import json
 import logging
 import re
+from enum import StrEnum
+from time import sleep
 from typing import Any, Final, Literal, NamedTuple, get_args
 
 from imgtests.exec.base_util import GenericUtil
@@ -15,6 +17,8 @@ logger = logging.getLogger(__name__)
 _MAX_PERCENT: Final[int] = 100
 _MAX_PORT: Final[int] = 65535
 _MAX_OCTET_VALUE: Final[int] = 255
+_EXP_WAIT_SLEEP_STEP: Final[int] = 10
+_EXP_WAIT_TIMEOUT: Final[int] = 100
 
 NetworkAction = Literal[
     "delay",
@@ -35,8 +39,15 @@ DiskAction = Literal["fill", "burn"]
 class ChaosResponse(NamedTuple):
     code: int
     success: bool
-    result: str | None = None
+    result: dict[str, str] | str | None = None
     error: str | None = None
+
+
+class ChaosExperimentStatus(StrEnum):
+    Created = "Created"
+    Success = "Success"
+    Error = "Error"
+    Destroyed = "Destroyed"
 
 
 class Chaosblade(GenericUtil):
@@ -77,6 +88,7 @@ class Chaosblade(GenericUtil):
             f"mkdir -p {install_dir}; "
             f"cp -r chaosblade-{version}-{arch}/* {install_dir}/; "
             f"find {install_dir} -name '*.db' -o -name '*.sqlite*' -exec chmod 666 {{}} \\; ; "
+            f"chown -R $(whoami) {install_dir}; "
             f"ln -sf {install_dir}/blade /usr/local/bin/blade; "
             f"chmod 755 {install_dir}/blade; "
             "cd /; "
@@ -127,18 +139,37 @@ class Chaosblade(GenericUtil):
         result = self(["destroy", experiment_id])
         return result, self._extract_result(result)
 
+    def await_exp_result(
+        self,
+        experiment_id: str,
+        timeout: int = _EXP_WAIT_TIMEOUT,
+    ) -> tuple[ExecResult, ChaosResponse]:
+        result, chaos_result = self.get_exp_status(experiment_id=experiment_id)
+        time_slept = 0
+        while (
+            time_slept <= timeout
+            and chaos_result.success
+            and isinstance(chaos_result.result, dict)
+            and chaos_result.result.get("Status") != ChaosExperimentStatus.Error.value
+            and chaos_result.result.get("Status") != ChaosExperimentStatus.Destroyed.value
+        ):
+            sleep(_EXP_WAIT_SLEEP_STEP)
+            time_slept += _EXP_WAIT_SLEEP_STEP
+            result, chaos_result = self.get_exp_status(experiment_id=experiment_id)
+        return result, chaos_result
+
     def create_cpu_exp(
         self,
         cpu_percent: int | None = None,
         timeout_sec: int = 0,
-        **kwargs: dict[str, Any],
+        **kwargs: str | float | bool | None,
     ) -> tuple[ExecResult, ChaosResponse]:
         """Create CPU load experiment.
 
         Args:
             cpu_percent (int | None): Percentage of CPU (0-100). If not specified occupy 100.
             timeout_sec (int): Experiment duration in seconds. When set to 0 run forever.
-            **kwargs (dict[str, Any]): Command arguments in the free form with values.
+            **kwargs (str | float | bool | None): Command arguments in the free form with values.
 
         Raises:
             ValueError: When invalid parameters provided, required flags missing.
@@ -186,7 +217,7 @@ class Chaosblade(GenericUtil):
             timeout_sec (int): Experiment duration in seconds. When set to 0 run forever.
             mode (MemoryMode): experiment mode (ram or cache).
             include_buffer_cache (bool): Include buffer, cache memory when calculating percentage.
-            rate_mbps (int | None): Memory consupmtion rate in MB/s.
+            rate_mbps (int | None): Memory consumption rate in MB/s.
             **kwargs (dict[str, Any]): Command arguments in the free form with values.
 
         Raises:
