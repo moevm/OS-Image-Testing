@@ -3,6 +3,7 @@ from typing import Any
 import pytest
 
 from imgtests.exec.loaders import (
+    Chaosblade,
     Fio,
     Iperf3,
     Kirk,
@@ -1541,4 +1542,66 @@ def test_kirk_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, Any
 )
 def test_fio_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, Any]) -> None:
     result = Fio.split_result(raw_metrics=raw_metrics)
+    assert result == expected
+
+
+@pytest.mark.parametrize(
+    ("raw_metrics", "expected"),
+    [
+        (
+            {
+                "code": 200,
+                "success": True,
+                "result": {
+                    "Uid": "4c6b4a3fc313e1d4",
+                    "Command": "cpu",
+                    "SubCommand": "fullload",
+                    "Flag": "--cpu-percent=60",
+                    "Status": "Destroyed",
+                    "Error": "",
+                    "CreateTime": "2020-01-14T14:09:49.152708+08:00",
+                    "UpdateTime": "2020-01-14T14:10:45.605888+08:00",
+                },
+            },
+            {
+                "tool": "chaosblade",
+                "test_type": {
+                    "command": "cpu",
+                    "detailed": {
+                        "sub_command": "fullload",
+                        "flag": "--cpu-percent=60",
+                    },
+                },
+                "time": {
+                    "update_time": "2020-01-14T14:10:45.605888+08:00",
+                },
+                "metrics": {
+                    "code": 200,
+                    "success": True,
+                    "result": {
+                        "Uid": "4c6b4a3fc313e1d4",
+                        "Status": "Destroyed",
+                        "Error": "",
+                        "CreateTime": "2020-01-14T14:09:49.152708+08:00",
+                    },
+                },
+            },
+        ),
+        (
+            {},
+            {
+                "tool": "chaosblade",
+                "test_type": {},
+                "time": {},
+                "metrics": {},
+            },
+        ),
+    ],
+    ids=[
+        "Chaosblade adapter test.",
+        "Empty metrics.",
+    ],
+)
+def test_chaosblade_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, Any]) -> None:
+    result = Chaosblade.split_result(raw_metrics=raw_metrics)
     assert result == expected
