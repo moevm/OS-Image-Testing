@@ -39,12 +39,11 @@ DiskAction = Literal["fill", "burn"]
 class ChaosResponse(NamedTuple):
     code: int
     success: bool
-    result: str | None = None
+    result: dict[str, str] | str | None = None
     error: str | None = None
 
 
-# Experiment status, `create` type supports Created|Success|Error|Destroyed
-class ChaosExpStatuses(StrEnum):
+class ChaosExperimentStatus(StrEnum):
     Created = "Created"
     Success = "Success"
     Error = "Error"
@@ -150,8 +149,9 @@ class Chaosblade(GenericUtil):
         while (
             time_slept <= timeout
             and chaos_result.success
-            and chaos_result.result["Status"] != ChaosExpStatuses.Error
-            and chaos_result.result["Status"] != ChaosExpStatuses.Destroyed
+            and isinstance(chaos_result.result, dict)
+            and chaos_result.result.get("Status") != ChaosExperimentStatus.Error.value
+            and chaos_result.result.get("Status") != ChaosExperimentStatus.Destroyed.value
         ):
             sleep(_EXP_WAIT_SLEEP_STEP)
             time_slept += _EXP_WAIT_SLEEP_STEP
