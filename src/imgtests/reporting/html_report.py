@@ -459,15 +459,14 @@ def _build_boxplots(
             metric_core = sample.metric_name
 
         metric_to_subsystems[metric_core][sample.subsystem][exp_prefix].append(float(sample.value))
-
     plot_assets: list[PlotAsset] = []
 
     for metric_name in sorted(metric_to_subsystems):
         labels: list[str] = []
         values: list[list[float]] = []
 
-        for subsystem in sorted(metric_to_subsystems[metric_core]):
-            exp_groups = metric_to_subsystems[metric_core][subsystem]
+        for subsystem in sorted(metric_to_subsystems[metric_name]):
+            exp_groups = metric_to_subsystems[metric_name][subsystem]
             for exp_prefix, vals in exp_groups.items():
                 if vals:
                     label = subsystem if exp_prefix == "common" else f"{subsystem} ({exp_prefix})"
@@ -591,7 +590,8 @@ def _build_histograms_by_prefix(
         ax.set_title(f"{util_prefix} metrics")
         ax.set_xticks([pos + width * (len(exp_labels) - 1) / 2 for pos in x])
         ax.set_xticklabels(all_metric_names, rotation=30, ha="right")
-        ax.legend(title="OS")
+        if len(exp_labels) > 1:
+            ax.legend(title="OS")
         ax.grid(visible=True, axis="y", alpha=0.3)
         out_path = plots_dir / f"{_safe_filename(util_prefix)}.png"
         fig.tight_layout()
