@@ -6,6 +6,7 @@ from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult, SSHClient
 from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
 from imgtests.exec.utils import create_opt
+from imgtests.results_adapter import AdapterResult, drop_json_fields
 
 logger = logging.getLogger(__name__)
 
@@ -173,7 +174,7 @@ class Perf(PkgMgrMixin, GenericUtil):
             filtered_d = {key: value for key, value in d.items() if value is not None}
             processed_result.append(filtered_d)
 
-        return processed_result
+        return Perf.split_result(raw_metrics=processed_result)
 
     @staticmethod
     def metrics_to_bmf(metrics: tuple[PerfBenchMetrics, ...]) -> dict[str, dict[str, Any]]:
@@ -186,3 +187,32 @@ class Perf(PkgMgrMixin, GenericUtil):
                 result[metric.benchmark][key] = {"value": value}
 
         return result
+
+    @staticmethod
+    def split_result(
+        raw_metrics: list[dict[str, Any]],
+        test_index: int = 0,
+    ) -> AdapterResult:
+        if not raw_metrics:
+            return AdapterResult(
+                tool="perf",
+                test_type={},
+                time={},
+                metrics={},
+            )
+        if len(raw_metrics) <= test_index:
+            test_index = 0
+
+        metrics = raw_metrics[test_index]
+        test_type = {"benchmark": metrics.get("benchmark", "unknown")}
+        time = {"duration_sec": metrics.get("total_time", 0)}
+
+        excluded_fields = [*test_type.keys(), "total_time"]
+        drop_json_fields(metrics, excluded_fields)
+
+        return AdapterResult(
+            tool="perf",
+            test_type=test_type,
+            time=time,
+            metrics=metrics,
+        )
