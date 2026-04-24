@@ -164,6 +164,8 @@ class FioSuite:
                     logger.exception("Failed to parse fio output")
                     metrics = {}
 
+            metrics = Fio.split_result(raw_metrics=metrics)
+
             yield TestResult(
                 metrics=metrics,
                 command=" ".join(res.cmd),

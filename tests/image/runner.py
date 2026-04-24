@@ -21,6 +21,10 @@ from image.performance.fio_disks import (
 from image.performance.ipc import SchedPerformanceTest
 from image.performance.memory import SarWithStressNGTest, StressNgPerformanceMemoryTest
 from image.performance.network import Iperf3LocalTest
+from image.performance.network_scaling import (
+    Iperf3PacketRateScalingTest,
+    StressNgMaxNetworkLoadTest,
+)
 from image.performance.std_utils import POSIXUtilsTest
 from image.performance.stress_ng_general import (
     StressNgCombineLoadTest,
@@ -62,6 +66,8 @@ ALL_SUBSYSTEMS_SUITE: Final = TestsRunnerConfig(
         LTPSyscallsTest,
         StressNgEnduranceSyscallsTest,
         Iperf3LocalTest,
+        Iperf3PacketRateScalingTest,
+        StressNgMaxNetworkLoadTest,
         StressNgPerformanceCpuTest,
         ChaosbladeCPUTest,
         PTSSystemTest(2),
@@ -114,6 +120,17 @@ IPC_SUITE: Final = TestsRunnerConfig(
     duration=100,
     install_dependencies=True,
 )
+NETWORK_SUITE: Final = TestsRunnerConfig(
+    description="Test suite for network subsystem.",
+    tests=(
+        Iperf3LocalTest,
+        Iperf3PacketRateScalingTest,
+        StressNgMaxNetworkLoadTest,
+    ),
+    experiment_type="all",
+    duration=120,
+    install_dependencies=True,
+)
 FILE_SUITE: Final = TestsRunnerConfig(
     description="Test suite for file subsystem.",
     tests=(
@@ -148,7 +165,14 @@ def main() -> None:
     suse_client = wait_remote(*SUSE_156_CONF) or sys.exit(1)
     poky_client = wait_remote(*YOCTO_CONF) or sys.exit(1)
     database = ImgtestsDatabase()
-    for suite in (FILE_SUITE, MEMORY_SUITE, SYSCALLS_SUITE, IPC_SUITE, ALL_SUBSYSTEMS_SUITE):
+    for suite in (
+        FILE_SUITE,
+        MEMORY_SUITE,
+        SYSCALLS_SUITE,
+        IPC_SUITE,
+        NETWORK_SUITE,
+        ALL_SUBSYSTEMS_SUITE,
+    ):
         suse_client.reconnect()
         suse_runner = TestsRunner(suse_client, database, suite)
         suse_runner.run()

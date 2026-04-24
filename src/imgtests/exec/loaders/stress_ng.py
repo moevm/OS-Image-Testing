@@ -6,6 +6,7 @@ from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult
 from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
 from imgtests.exec.utils import add_flag, create_opt
+from imgtests.results_adapter import AdapterResult, drop_json_fields
 from imgtests.types import MetricSample
 
 if TYPE_CHECKING:
@@ -622,11 +623,52 @@ class StressNg(PkgMgrMixin, GenericUtil):
         return result
 
     @staticmethod
-    def metrics_to_json(metrics: StressNGResult) -> Any:
-        return {
+    def metrics_to_json(metrics: StressNGResult) -> dict[str, Any]:
+        raw_metrics = {
             "stress_ng_metrics": [metric._asdict() for metric in metrics.metrics],
             "stress_ng_summary": metrics.summary._asdict() if metrics.summary else None,
         }
+
+        return StressNg.split_result(raw_metrics=raw_metrics)
+
+    @staticmethod
+    def split_result(
+        raw_metrics: dict[str, Any],
+        test_index: int = 0,  # noqa: ARG004
+    ) -> AdapterResult:
+        if not raw_metrics:
+            return AdapterResult(
+                tool="stress-ng",
+                test_type={},
+                time={},
+                metrics={},
+            )
+        metrics = raw_metrics.get("stress_ng_metrics", [])
+
+        if len(metrics) == 1:
+            test_type = {"stressor": metrics[0].get("stressor", "unknown")}
+            drop_json_fields(metrics[0], ["stressor"])
+        else:
+            test_type = {"stressor": "mixed"}
+
+        duration = 0.0
+        for test_metrics in metrics:
+            for key in ("real_time_secs", "usr_time_secs", "sys_time_secs"):
+                duration += test_metrics.get(key, 0.0)
+
+        time = {
+            "duration_sec": round(duration, 2),
+        }
+
+        metrics = {str(i): metric for i, metric in enumerate(metrics)}
+
+        metrics["summary"] = raw_metrics.get("stress_ng_summary", {})
+        return AdapterResult(
+            tool="stress-ng",
+            test_type=test_type,
+            time=time,
+            metrics=metrics,
+        )
 
 
 def stress_metrics_to_samples(

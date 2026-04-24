@@ -16,7 +16,7 @@ from pydantic import Field
 from pydantic_settings import BaseSettings
 
 from imgtests.constant import LIB_NAME
-from imgtests.exec.exec import SSHClient, common_run_command
+from imgtests.exec.exec import SSHClient, Verbosity, common_run_command
 from imgtests.exec.observers.journalctl import Journalctl
 from imgtests.exec.observers.systemctl import Systemctl
 from imgtests.sysrep import get_system_info
@@ -442,7 +442,7 @@ class TestsRunner(BaseRunner):
         oom_r = journalctl.oom_records(
             since=since.strftime(journalctl.DATE_FORMAT),
             until=until.strftime(journalctl.DATE_FORMAT),
-            log_errors=False,
+            verbosity=Verbosity(0),
         )
         oom_m = journalctl.calc_records_cnt(oom_r.stdout)
         self._logger.info("OOM records %d", oom_m)
@@ -461,7 +461,7 @@ class TestsRunner(BaseRunner):
             since=since.strftime(journalctl.DATE_FORMAT),
             until=until.strftime(journalctl.DATE_FORMAT),
             priority="err",
-            log_errors=False,
+            verbosity=Verbosity(0),
         )
         sstmd_err_m = journalctl.calc_records_cnt(sstmd_err_r.stdout)
         self._logger.info(

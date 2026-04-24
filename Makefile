@@ -51,6 +51,7 @@ GATEWAY                    := 10.5.0.1
 SSH_TO_QEMU_PORT		   := 22
 SSH_QEMU_PORT              ?= 2222
 SSH_SUSE_PORT_156          := 1616
+IPERF3_PORT                := 5201
 BENCHER_API_PORT           := 61016
 BENCHER_CLI_PORT           := 3000
 POSTGRES_PORT              := 5432

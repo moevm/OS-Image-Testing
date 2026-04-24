@@ -28,6 +28,7 @@ services:
       GROUP: ${GROUP}
       YOCTO_NE_PORT: ${YOCTO_NE_PORT}
       DEFAULT_NE_PORT: ${DEFAULT_NE_PORT}
+      IPERF3_PORT: ${IPERF3_PORT}
       SSH_QEMU_PORT: ${SSH_QEMU_PORT}
       SSH_TO_QEMU_PORT: ${SSH_TO_QEMU_PORT}
     ports:
@@ -54,6 +55,7 @@ services:
       SSH_SUSE_PORT: ${SSH_SUSE_PORT_156}
       SUSE_NE_PORT: ${SUSE_156_NE_PORT}
       DEFAULT_NE_PORT: ${DEFAULT_NE_PORT}
+      IPERF3_PORT: ${IPERF3_PORT}
     ports:
       - ${SSH_SUSE_PORT_156}:${SSH_SUSE_PORT_156}
     networks:

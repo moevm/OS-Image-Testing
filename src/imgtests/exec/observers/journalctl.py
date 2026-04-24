@@ -1,8 +1,9 @@
 from datetime import datetime
 from functools import partialmethod
-from typing import TYPE_CHECKING, Any, Literal, get_args
+from typing import TYPE_CHECKING, Literal, get_args
 
 from imgtests.exec.base_util import GenericUtil
+from imgtests.exec.exec import Verbosity
 from imgtests.exec.utils import create_opt
 
 if TYPE_CHECKING:
@@ -31,8 +32,8 @@ class Journalctl(GenericUtil):
         since: str | AlternativeDate | None = None,
         until: str | AlternativeDate | None = None,
         output: str | None = None,
-        log_errors: bool = True,
-        **kwargs: dict[str, Any],
+        verbosity: Verbosity = Verbosity.STDERR,
+        **kwargs: str | float | bool | None,
     ) -> ExecResult:
         """Runs journalctl with provided arguments.
 
@@ -47,8 +48,8 @@ class Journalctl(GenericUtil):
             since (str | AlternativeDate | None): Show entries from start date.
             until (str | AlternativeDate | None): Show entries to until date.
             output (str | None): Controls how journal records are printed.
-            log_errors (bool): Show or hide error messages in the logs.
-            **kwargs (dict[str, Any]): Command arguments in the free form with values.
+            verbosity (Verbosity): Logs verbosity level (stdout, stderr, all, none).
+            **kwargs (str | float | bool | None): Command arguments in the free form with values.
         """
         if since is not None:
             self._check_journalctl_date_format(since)
@@ -67,7 +68,7 @@ class Journalctl(GenericUtil):
         if until:
             opts.extend(create_opt("until", f"'{until}'"))
 
-        return self(opts, log_errors=log_errors, **kwargs)
+        return self(opts, verbosity=verbosity, **kwargs)
 
     systemd_only_records = partialmethod(run, grep="systemd", case_sensitive="no")
     oom_records = partialmethod(run, grep="'Out of memory|OOM'", case_sensitive="no")
