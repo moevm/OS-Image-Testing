@@ -19,12 +19,13 @@ from imgtests.planning.profiles import CPU_SCALE_ARG_PREFIX, FIO_SIZE_RATIO_ARG_
 from imgtests.reporting.html_report import generate_html_report
 from imgtests.runner import BaseRunner, TestStatus
 from imgtests.sizing import parse_size_to_bytes, round_bytes_to_mib_str
-from imgtests.types import MetricSample, Subsystem, TestsCounts
+from imgtests.types import MetricSample, TestsCounts
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from imgtests.database.database import ExperimentType, ImgtestsDatabase
+    from imgtests.database.database import ImgtestsDatabase
+    from imgtests.database.models.experiment import ExperimentType
     from imgtests.exec.exec import SSHClient
     from imgtests.planning.models import LoadTask, PlanStage, TestPlan
 
@@ -616,9 +617,6 @@ def _parse_dynamic_float(raw_value: str, prefix: str) -> float:
 
 def _resolve_experiment_type(plan: TestPlan) -> ExperimentType:
     test_kind = getattr(plan.test_kind, "value", str(plan.test_kind))
-
-    if set(plan.subsystems) == set(Subsystem):
-        return "all"
 
     if test_kind == "stability":
         return "endurance"

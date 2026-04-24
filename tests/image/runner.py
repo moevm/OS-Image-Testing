@@ -79,7 +79,7 @@ ALL_SUBSYSTEMS_SUITE: Final = TestsRunnerConfig(
         SarWithStressNGTest,
         FaultInjectionEnduranceTest,
     ),
-    experiment_type="all",
+    experiment_type="performance",
     duration=1200,
     install_dependencies=True,
 )
@@ -90,7 +90,7 @@ MEMORY_SUITE: Final = TestsRunnerConfig(
         StressNgPerformanceMemoryTest,
         SarWithStressNGTest,
     ),
-    experiment_type="all",
+    experiment_type="performance",
     duration=100,
     install_dependencies=True,
 )
@@ -104,7 +104,7 @@ SYSCALLS_SUITE: Final = TestsRunnerConfig(
         SyscallsFullLoadTest,
         StressNgIterTestIPC,
     ),
-    experiment_type="all",
+    experiment_type="performance",
     duration=200,
     install_dependencies=True,
 )
@@ -115,7 +115,7 @@ IPC_SUITE: Final = TestsRunnerConfig(
         JointBench(subsystems=frozenset({Subsystem.IPC}), iterations=3),
         StressNgIterTestIPC,
     ),
-    experiment_type="all",
+    experiment_type="performance",
     duration=100,
     install_dependencies=True,
 )
@@ -126,7 +126,7 @@ NETWORK_SUITE: Final = TestsRunnerConfig(
         Iperf3PacketRateScalingTest,
         StressNgMaxNetworkLoadTest,
     ),
-    experiment_type="all",
+    experiment_type="performance",
     duration=120,
     install_dependencies=True,
 )
@@ -140,7 +140,7 @@ FILE_SUITE: Final = TestsRunnerConfig(
         FioDisksDMDust,
         FioDisksDMDelay,
     ),
-    experiment_type="all",
+    experiment_type="performance",
     duration=300,
     install_dependencies=True,
 )

@@ -25,8 +25,8 @@ from imgtests.types import Subsystem, TestsCounts
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
-    from imgtests.database.database import ExperimentType, ImgtestsDatabase
-    from imgtests.database.models.experiment import ExperimentBase
+    from imgtests.database.database import ImgtestsDatabase
+    from imgtests.database.models.experiment import ExperimentBase, ExperimentType
     from imgtests.exec.base_util import BaseTestUtil
     from imgtests.planning import LoadPattern, TestKind
 
