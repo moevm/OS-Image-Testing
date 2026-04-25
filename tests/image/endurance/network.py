@@ -34,6 +34,8 @@ class StressNgEnduranceNetworkTest(StressNgTest):
             stress_ng=stress_ng,
             executor=executor,
             timeout=timeout,
-            sock=2,
-            sock_ops=2,
+            sock=0,
+            sock_ops=1000,
+            netdev=0,
+            udp=0,
         )
