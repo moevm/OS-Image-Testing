@@ -130,7 +130,7 @@ NETWORK_SUITE: Final = TestsRunnerConfig(
         StressNgEnduranceNetworkTest,
     ),
     experiment_type="all",
-    duration=120,
+    duration=200,
     install_dependencies=True,
 )
 FILE_SUITE: Final = TestsRunnerConfig(
