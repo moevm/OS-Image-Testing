@@ -164,7 +164,7 @@ def main() -> None:
     set_handlers(logger, Path("processing.log"))
     suse_client = wait_remote(*SUSE_156_CONF) or sys.exit(1)
     # disable cloud-init for the next boot for Suse according to documentation
-    Touch(suse_client)(["/etc/cloud/cloud-init.disabled"])
+    Touch(suse_client, use_sudo=True)(["/etc/cloud/cloud-init.disabled"])
     poky_client = wait_remote(*YOCTO_CONF) or sys.exit(1)
     database = ImgtestsDatabase()
     for suite in (
