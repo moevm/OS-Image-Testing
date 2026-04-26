@@ -1,5 +1,6 @@
 import logging
 import subprocess
+from enum import Flag, auto
 from pathlib import Path
 from time import sleep
 from typing import TYPE_CHECKING, NamedTuple
@@ -22,11 +23,16 @@ class ExecResult(NamedTuple):
     returncode: int = 0
 
 
+class Verbosity(Flag):
+    STDOUT = auto()
+    STDERR = auto()
+
+
 def common_run_command(
     cmd: Sequence[str],
     ssh_client: SSHClient | None = None,
     input_: str | None = None,
-    log_errors: bool = True,
+    verbosity: Verbosity = Verbosity.STDERR,
 ) -> ExecResult:
     """Executes a command locally or over SSH, depending on the provided client.
 
@@ -42,7 +48,7 @@ def common_run_command(
                                        If None, the command runs locally.
         input_ (str | None): Input string to be passed to the command's stdin,
                              useful for interactive commands.
-        log_errors (bool): Show or hide error messages in the logs.
+        verbosity (Verbosity): Logs verbosity level (stdout, stderr, all, none).
 
     Examples:
         >>> result = common_run_command(["echo", "Hello"])
@@ -50,13 +56,13 @@ def common_run_command(
         Hello
     """
     call_func = run_command if ssh_client is None else ssh_client
-    return call_func(cmd=cmd, input_=input_, log_errors=log_errors)
+    return call_func(cmd=cmd, input_=input_, verbosity=verbosity)
 
 
 def run_command(
     cmd: Sequence[str],
     input_: str | None = None,
-    log_errors: bool = True,
+    verbosity: Verbosity = Verbosity.STDERR,
 ) -> ExecResult:
     """Executes a command locally."""
     logger.debug("Running command '%s'.", " ".join(cmd))
@@ -74,10 +80,12 @@ def run_command(
         stderr=result.stderr.strip(),
         returncode=result.returncode,
     )
-    if log_errors and result.returncode:
+    if Verbosity.STDERR in verbosity and result.returncode:
         logger.error("Command '%s' completed with errors on the local.", " ".join(result.cmd))
         if result.stderr:
             logger.error(result.stderr)
+    if Verbosity.STDOUT in verbosity and result.stdout:
+        logger.info(result.stdout)
     logger.debug("Command '%s' completed with code %d.", " ".join(cmd), result.returncode)
     return result
 
@@ -104,7 +112,7 @@ class SSHClient:
         self,
         cmd: Sequence[str],
         input_: str | None = None,
-        log_errors: bool = True,
+        verbosity: Verbosity = Verbosity.STDERR,
     ) -> ExecResult:
         session = self.ssh_session.open_channel(kind="session")
         stdout = session.makefile("rb")
@@ -123,10 +131,12 @@ class SSHClient:
         stdout = stdout.read().decode("utf-8").strip()
         stderr = stderr.read().decode("utf-8").strip()
 
-        if log_errors and retval:
+        if Verbosity.STDERR in verbosity and retval:
             logger.error("Command '%s' completed with errors on the remote.", cmd_str.strip())
             if stderr:
                 logger.error(stderr)
+        if Verbosity.STDOUT in verbosity and stdout:
+            logger.info(stdout)
         logger.debug("Exit status: %d.", retval)
         session.close()
         return ExecResult(
@@ -212,7 +222,7 @@ def which(util: str, ssh_client: SSHClient | None = None, use_sudo: bool = False
         ["which", util],
         *([["sudo", "which", util]] if use_sudo else []),
     ):
-        result = call_func(cmd, log_errors=False)
+        result = call_func(cmd, verbosity=Verbosity(0))
         if result.returncode:
             continue
         return Path(result.stdout.strip())
@@ -221,7 +231,7 @@ def which(util: str, ssh_client: SSHClient | None = None, use_sudo: bool = False
         ["type", "-p", util],
         *([["sudo", "type", "-p", util]] if use_sudo else []),
     ):
-        result = call_func(cmd, log_errors=False)
+        result = call_func(cmd, verbosity=Verbosity(0))
         if result.returncode:
             continue
         return Path(util)

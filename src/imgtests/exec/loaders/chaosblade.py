@@ -10,6 +10,7 @@ from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
 from imgtests.exec.osinfo import get_os_release
 from imgtests.exec.pkgmgrs.zypper import Zypper
 from imgtests.exec.utils import create_opt, extract_version
+from imgtests.results_adapter import AdapterResult, drop_json_fields
 from imgtests.types import Distro, Version
 
 logger = logging.getLogger(__name__)
@@ -685,4 +686,43 @@ class Chaosblade(GenericUtil):
             success=data.get("success", False),
             result=data.get("result"),
             error=data.get("error"),
+        )
+
+    @staticmethod
+    def split_result(
+        raw_metrics: dict[str, Any],
+        test_index: int = 0,  # noqa: ARG004
+    ) -> AdapterResult:
+        if not raw_metrics:
+            return AdapterResult(
+                tool="chaosblade",
+                test_type={},
+                time={},
+                metrics={},
+            )
+        result = raw_metrics.get("result", {})
+        metrics = {
+            "code": raw_metrics.get("code", 0),
+            "success": raw_metrics.get("success", False),
+            "result": result,
+        }
+
+        test_type = {
+            "command": result.get("Command", "unknown"),
+            "detailed": {
+                "sub_command": result.get("SubCommand", "unknown"),
+                "flag": result.get("Flag", "unknown"),
+            },
+        }
+        time = {
+            "update_time": result.get("UpdateTime", "unknown"),
+        }
+
+        drop_json_fields(metrics["result"], ["Command", "SubCommand", "Flag", "UpdateTime"])
+
+        return AdapterResult(
+            tool="chaosblade",
+            test_type=test_type,
+            time=time,
+            metrics=metrics,
         )

@@ -6,6 +6,7 @@ from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
 from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
 from imgtests.exec.pkgmgrs.pip3 import Pip3
 from imgtests.exec.utils import create_opt
+from imgtests.results_adapter import AdapterResult
 from imgtests.types import MetricSample
 
 if TYPE_CHECKING:
@@ -205,6 +206,60 @@ class Fio(PkgMgrMixin, GenericUtil):
             if cpu:
                 result[f"{name}_cpu"] = cpu
         return result
+
+    @staticmethod
+    def split_result(raw_metrics: dict[str, Any], test_index: int = 0) -> AdapterResult:
+        jobs = raw_metrics.get("jobs", [])
+        if not raw_metrics:
+            return AdapterResult(
+                tool="fio",
+                test_type={},
+                time={},
+                metrics={},
+            )
+        if len(jobs) <= test_index:
+            test_index = 0
+
+        job = {} if jobs == [] else jobs[test_index]
+
+        metrics = {
+            "read": job.get("read", {}),
+            "write": job.get("write", {}),
+            "trim": job.get("trim", {}),
+            "usr_cpu": job.get("usr_cpu", 0.0),
+            "sys_cpu": job.get("sys_cpu", 0.0),
+            "ctx": job.get("ctx", 0),
+            "majf": job.get("majf", 0),
+            "minf": job.get("minf", 0),
+            "iodepth_level": job.get("iodepth_level", {}),
+            "iodepth_submit": job.get("iodepth_submit", {}),
+            "iodepth_complete": job.get("iodepth_complete", {}),
+            "latency_ns": job.get("latency_ns", {}),
+            "latency_us": job.get("latency_us", {}),
+            "latency_ms": job.get("latency_ms", {}),
+        }
+
+        job_options = job.get("job options", {})
+        test_type = {
+            "name": job_options.get("name", "unknown"),
+            "detailed": {
+                "size": job_options.get("size", "unknown"),
+                "rw": job_options.get("rw", "unknown"),
+                "ioengine": job_options.get("ioengine", "unknown"),
+                "bs": job_options.get("bs", "unknown"),
+            },
+        }
+
+        time = {
+            "duration_sec": round(job.get("job_runtime", 0) / 1000, 2),
+        }
+
+        return AdapterResult(
+            tool="fio",
+            test_type=test_type,
+            time=time,
+            metrics=metrics,
+        )
 
 
 class FioPlot(PkgMgrMixin, GenericUtil):

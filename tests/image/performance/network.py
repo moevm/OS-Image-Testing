@@ -86,10 +86,12 @@ class Iperf3LocalTest(AbstractRunnableTimeLimitedTest):
 
             yield TestResult(
                 command=" ".join(ret.cmd),
-                metrics={
-                    "client": client_iperf3.metrics_to_json(ret.stdout.strip()),
-                    "server": server_iperf3.metrics_to_json(server_result.stdout.strip()),
-                },
+                metrics=Iperf3.split_result(
+                    raw_metrics={
+                        "client": client_iperf3.metrics_to_json(ret.stdout.strip()),
+                        "server": server_iperf3.metrics_to_json(server_result.stdout.strip()),
+                    },
+                ),
                 started_at=started_at,
                 status=TestStatus.PASSED,
             )
