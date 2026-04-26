@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Final
 
 from image.endurance.memory import StressNgEnduranceMemoryTest
+from image.endurance.network import StressNgEnduranceNetworkTest
 from image.endurance.syscalls import (
     LTPSyscallsIPCTest,
     LTPSyscallsTest,
@@ -67,6 +68,7 @@ ALL_SUBSYSTEMS_SUITE: Final = TestsRunnerConfig(
         Iperf3LocalTest,
         Iperf3PacketRateScalingTest,
         StressNgMaxNetworkLoadTest,
+        StressNgEnduranceNetworkTest,
         StressNgPerformanceCpuTest,
         ChaosbladeCPUTest,
         PTSSystemTest(2),
@@ -125,9 +127,10 @@ NETWORK_SUITE: Final = TestsRunnerConfig(
         Iperf3LocalTest,
         Iperf3PacketRateScalingTest,
         StressNgMaxNetworkLoadTest,
+        StressNgEnduranceNetworkTest,
     ),
     experiment_type="performance",
-    duration=120,
+    duration=200,
     install_dependencies=True,
 )
 FILE_SUITE: Final = TestsRunnerConfig(
