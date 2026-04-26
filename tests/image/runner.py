@@ -40,6 +40,7 @@ from image.performance.syscalls import (
 from image.performance.system import PTSSystemTest
 from imgtests.database.database import ImgtestsDatabase
 from imgtests.exec.exec import wait_remote
+from imgtests.exec.user_commands import Touch
 from imgtests.logger import set_handlers
 from imgtests.runner import ProfiledPlanRunner, TestsRunner, TestsRunnerConfig
 from imgtests.suites.fault_injection import FaultInjectionEnduranceTest
@@ -162,6 +163,8 @@ def main() -> None:
     logger = logging.getLogger()
     set_handlers(logger, Path("processing.log"))
     suse_client = wait_remote(*SUSE_156_CONF) or sys.exit(1)
+    # disable cloud-init for the next boot for Suse according to documentation
+    Touch(suse_client)(["/etc/cloud/cloud-init.disabled"])
     poky_client = wait_remote(*YOCTO_CONF) or sys.exit(1)
     database = ImgtestsDatabase()
     for suite in (
