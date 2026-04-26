@@ -18,7 +18,7 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg
 from matplotlib.figure import Figure
 
 from imgtests.constant import LIB_NAME
-from imgtests.types import MetricSample
+from imgtests.types import MetricSample, Subsystem
 
 if TYPE_CHECKING:
     from imgtests.database.database import ImgtestsDatabase
@@ -54,12 +54,22 @@ DIAGRAMS_CONFIG: dict[str, DiagramConfig] = {
         run="_build_boxplots",
         metrics=[
             r"stress.",
+            r"stress-ng.",
             r"fio.",
+            r"iperf3.",
+            r"kirk.",
+            r"pts.",
+            r"perf.",
         ],
     ),
 }
 COMPILED_DIAGRAMS_CONFIG: dict[str, tuple[str, list[re.Pattern]]] = {
     name: (cfg.run, [re.compile(p) for p in cfg.metrics]) for name, cfg in DIAGRAMS_CONFIG.items()
+}
+
+TOOLS_TO_SUBSYSTEMS: dict[str, Subsystem] = {
+    "iperf3": Subsystem.NETWORK,
+    "fio": Subsystem.FILE,
 }
 
 
@@ -253,18 +263,114 @@ class ReportGenerator:
         for util_run_result in experiment.util_run_results:
             if util_run_result.description == "Planned stage":
                 continue
-            if util_run_result.result and isinstance(util_run_result.result, dict):
+            result = util_run_result.result
+            if not result or not isinstance(result, dict):
+                continue
+            if "metrics" not in result:
+                continue
+            if isinstance(result.get("metrics"), list):
                 metrics.extend(
                     MetricSample(
                         stage_name=m.get("stage_name", ""),
-                        subsystem=m.get("subsystem", "all"),
+                        subsystem=m.get("subsystem", "unknown"),
                         metric_name=m.get("metric_name", "unknown_tool"),
                         value=float(m.get("value", 0)),
                         label=m.get("label", "unknown_metric"),
                     )
                     for m in util_run_result.result.get("metrics", [])
+                    if isinstance(m, dict)
+                )
+            if isinstance(result.get("metrics"), dict) and all(
+                k in result for k in ("tool", "test_type", "metrics")
+            ):
+                tool = result.get("tool")
+                test_type = result.get("test_type")
+                stage_name = (
+                    " ".join(f"{k}:{v}" for k, v in test_type.items() if not isinstance(v, dict))
+                    or "tool_stage"
+                )
+                subsystem = TOOLS_TO_SUBSYSTEMS.get(tool)
+                if subsystem is None:
+                    subsystem = test_type.get("stressor", "unknown")
+                match tool:
+                    case "iperf3":
+                        fixed_prefix = [tool, test_type["protocol"]]
+                    case "pts":
+                        fixed_prefix = [tool, test_type["identifier"]]
+                    case "perf":
+                        fixed_prefix = [tool, test_type["benchmark"]]
+                    case _:
+                        fixed_prefix = [tool]
+
+                metrics.extend(
+                    self._walk_metrics(
+                        d=result["metrics"],
+                        tool=tool,
+                        stage_name=stage_name,
+                        fixed_prefix=fixed_prefix,
+                        prefix=[],
+                        subsystem=subsystem,
+                    ),
                 )
         return metrics
+
+    def _walk_metrics(  #  noqa: PLR0913
+        self,
+        d: dict,
+        tool: str,
+        stage_name: str,
+        fixed_prefix: list[str],
+        prefix: list[str],
+        subsystem: str = "unknown",
+    ) -> list[MetricSample]:
+        collected: list[MetricSample] = []
+        if "stressor" in d:
+            if subsystem == "unknown":
+                subsystem = d.get("stressor", subsystem)
+            else:
+                subsystem = f"{subsystem}_{d.get('stressor')}"
+        if tool == "kirk" and "test" in d:
+            fixed_prefix = [tool, d["test"]]
+
+        for k, v in d.items():
+            if k == "summary":
+                continue
+            if k.isdigit() and isinstance(v, dict):
+                collected.extend(
+                    self._walk_metrics(v, tool, stage_name, fixed_prefix, prefix, subsystem),
+                )
+            elif isinstance(v, dict):
+                collected.extend(
+                    self._walk_metrics(v, tool, stage_name, fixed_prefix, [*prefix, k], subsystem),
+                )
+            elif isinstance(v, (int, float)):
+                metric_name = ".".join(fixed_prefix + prefix + [k])
+                label = ".".join(fixed_prefix + [*prefix, k][-2:])
+                collected.append(
+                    MetricSample(
+                        stage_name=stage_name,
+                        subsystem=subsystem,
+                        metric_name=metric_name,
+                        value=float(v),
+                        label=label,
+                    ),
+                )
+            elif isinstance(v, list):
+                if not all(isinstance(x, (int, float)) for x in v):
+                    continue
+                metric_name = ".".join(fixed_prefix + prefix + [k])
+                label = ".".join(fixed_prefix + [*prefix, k][-2:])
+                collected.extend(
+                    MetricSample(
+                        stage_name=stage_name,
+                        subsystem=subsystem,
+                        metric_name=metric_name,
+                        value=float(val),
+                        label=label,
+                    )
+                    for val in v
+                )
+        return collected
 
     @staticmethod
     def generate_profiled_html_report(
