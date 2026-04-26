@@ -15,8 +15,8 @@ from zoneinfo import ZoneInfo
 from imgtests.exec.exec import common_run_command
 from imgtests.exec.loaders.fio import Direct, Fio, FioPlot, IOEngine, IOPattern
 from imgtests.exec.user_commands import MkDir, Rm
-from imgtests.runner import TestResult, TestStatus
 from imgtests.suites.duration import EIGHT_HOURS_SEC, HOUR_SEC, TEN_MIN_SEC, TWO_MIN_SEC
+from imgtests.types import TestResult, TestStatus
 
 if TYPE_CHECKING:
     from collections.abc import Iterable

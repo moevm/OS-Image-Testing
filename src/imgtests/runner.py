@@ -1,13 +1,11 @@
 from __future__ import annotations
 
 import logging
-from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-from enum import Enum, auto
 from pathlib import Path
 from threading import Event, Thread
-from typing import TYPE_CHECKING, Any, ClassVar, NamedTuple
+from typing import TYPE_CHECKING, ClassVar
 from zoneinfo import ZoneInfo
 
 import paramiko
@@ -19,8 +17,17 @@ from imgtests.constant import LIB_NAME
 from imgtests.exec.exec import SSHClient, Verbosity, common_run_command
 from imgtests.exec.observers.journalctl import Journalctl
 from imgtests.exec.observers.systemctl import Systemctl
+from imgtests.planning import (
+    AbstractRunnableManyTimesTest,
+    AbstractRunnableTimeLimitedTest,
+    TestKind,
+)
+from imgtests.suites.system import (
+    SystemLoadTimeTest,
+    SystemSlowServicesTest,
+)
 from imgtests.sysrep import get_system_info
-from imgtests.types import Subsystem, TestsCounts
+from imgtests.types import Subsystem, TestsCounts, TestStatus
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -28,138 +35,7 @@ if TYPE_CHECKING:
     from imgtests.database.database import ImgtestsDatabase
     from imgtests.database.models.experiment import ExperimentBase, ExperimentType
     from imgtests.exec.base_util import BaseTestUtil
-    from imgtests.planning import LoadPattern, TestKind
-
-
-class TestStatus(Enum):
-    PASSED = auto()
-    FAILED = auto()
-    SKIPPED = auto()
-    BROKEN = auto()
-
-
-class TestResult(NamedTuple):
-    status: TestStatus
-    metrics: Any = None
-    command: str = ""
-    started_at: datetime = datetime.now(tz=ZoneInfo("UTC"))
-    ended_at: datetime = datetime.now(tz=ZoneInfo("UTC"))
-
-
-class DefaultCleanupMixin:
-    def cleanup(self, client: SSHClient | None, logger: logging.Logger) -> None:
-        for path in ("/tmp/*", "/var/tmp/*"):  # noqa: S108
-            result = common_run_command(["sudo", "rm", "-rf", path], client)
-            if result.returncode:
-                logger.warning("Failed to cleanup folder '%s'.", path)
-            else:
-                logger.info("Cleaned up folder '%s'.", path)
-        self.__clean_pages_cache(client, logger)
-
-    def __clean_pages_cache(self, client: SSHClient | None, logger: logging.Logger) -> None:
-        commands = [["sudo", "sync"], ["sudo", "sh", "-c", "'echo 3 > /proc/sys/vm/drop_caches'"]]
-        for command in commands:
-            result = common_run_command(command, client)
-            if result.returncode:
-                logger.warning("Cache cleanup failed.")
-
-
-class AbstractRunnableManyTimesTest(ABC, DefaultCleanupMixin):
-    __slots__ = ("description", "iterations", "logger", "subsystems")
-
-    def __init__(
-        self,
-        description: str,
-        subsystems: frozenset[Subsystem],
-        iterations: int = 1,
-    ) -> None:
-        """Construct a AbstractRunnableManyTimesTest instance.
-
-        Initializes the runnable test with description, target subsystems,
-        execution logic, and repetition parameters.
-
-        Args:
-            description: Test description.
-            subsystems: Covered subsystems with the test.
-            iterations: Count of test iterations to run. Defaults to 1.
-
-        Raises:
-            ValueError: If iterations is less than 1.
-        """
-        if iterations < 1:
-            err_msg = "Iterations must be at least 1."
-            raise ValueError(err_msg)
-
-        self.description = description
-        self.subsystems = subsystems
-        self.iterations = iterations
-        self.logger = logging.getLogger(f"{LIB_NAME}.runnable_test")
-
-    def __call__(
-        self,
-        executor: ThreadPoolExecutor,
-        client: SSHClient | None = None,
-    ) -> Iterable[TestResult]:
-        self.logger.info("Starting '%s' test '%d' times.", self.description, self.iterations)
-        yield from self._run(executor, client, self.iterations)
-        self.logger.info("'%s' test finished.", self.description)
-
-    @abstractmethod
-    def _run(
-        self,
-        executor: ThreadPoolExecutor,
-        client: SSHClient | None,
-        iterations: int,
-    ) -> Iterable[TestResult]: ...
-
-
-class AbstractRunnableTimeLimitedTest(ABC, DefaultCleanupMixin):
-    __slots__ = ("description", "logger", "subsystems", "timeout")
-
-    def __init__(
-        self,
-        description: str,
-        subsystems: frozenset[Subsystem],
-        timeout: int,
-    ) -> None:
-        """Construct a AbstractRunnableTimeLimitedTest instance.
-
-        Initializes the runnable test with description, target subsystems,
-        execution logic, and time to run.
-
-        Args:
-            description: Test description.
-            subsystems: Covered subsystems with the test.
-            timeout: Test time to run if needed.
-
-        Raises:
-            ValueError: If timeout is negative.
-        """
-        if timeout < 0:
-            err_msg = "Timeout must be positive."
-            raise ValueError(err_msg)
-
-        self.description = description
-        self.subsystems = subsystems
-        self.timeout = timeout
-        self.logger = logging.getLogger(f"{LIB_NAME}.runnable_test")
-
-    def __call__(
-        self,
-        executor: ThreadPoolExecutor,
-        client: SSHClient | None = None,
-    ) -> Iterable[TestResult]:
-        self.logger.info("Starting '%s' test with '%d' timeout.", self.description, self.timeout)
-        yield from self._run(executor, client, self.timeout)
-        self.logger.info("'%s' test finished.", self.description)
-
-    @abstractmethod
-    def _run(
-        self,
-        executor: ThreadPoolExecutor,
-        client: SSHClient | None,
-        timeout: int,
-    ) -> Iterable[TestResult]: ...
+    from imgtests.planning import LoadPattern
 
 
 # Subsystems, stages (plan, risk analysis, run, cleanup, results, etc), etc
@@ -294,11 +170,17 @@ class TestsRunner(BaseRunner):
         database: ImgtestsDatabase,
         test_config: TestsRunnerConfig,
     ) -> None:
-        self.__test_config = test_config
         super().__init__("tests_runner", client, database)
+        self.__test_config = test_config
+        self.__tests_cnt = 0
+        self.__tests_statuses = {
+            TestStatus.PASSED: 0,
+            TestStatus.FAILED: 0,
+            TestStatus.SKIPPED: 0,
+            TestStatus.BROKEN: 0,
+        }
 
     def run(self) -> None:
-        test_completed_event = Event()
         if self.__test_config.install_dependencies:
             self.install_dependencies()
         experiment = self.start_experiment(
@@ -307,14 +189,22 @@ class TestsRunner(BaseRunner):
             description=self.__test_config.description,
             experiment_type=self.__test_config.experiment_type,
         )
-        total_count = 0
-        counts = {
-            TestStatus.PASSED: 0,
-            TestStatus.FAILED: 0,
-            TestStatus.SKIPPED: 0,
-            TestStatus.BROKEN: 0,
-        }
-        for test_class in self.__test_config.tests:
+        self.handle_tests(
+            (SystemLoadTimeTest(), SystemSlowServicesTest()),
+            experiment.experiment_id,
+        )
+        self.handle_tests(self.__test_config.tests, experiment.experiment_id)
+        self._logger.info("All tests completed successfully.")
+        if self._client is not None:
+            self._client.close()
+
+    def handle_tests(
+        self,
+        tests: Iterable[AbstractRunnableManyTimesTest | type[AbstractRunnableTimeLimitedTest]],
+        experiment_id: int,
+    ) -> None:
+        test_completed_event = Event()
+        for test_class in tests:
             if self._client is not None:
                 self._client.reconnect()
             is_alive_cycle = Thread(target=self.__is_remote_alive, args=(test_completed_event,))
@@ -326,7 +216,8 @@ class TestsRunner(BaseRunner):
                 test_instance = test_class(self.__test_config.test_duration)
             for result in test_instance(self._executor, self._client):
                 self._database.insert_util_run_result(
-                    experiment_id=experiment.experiment_id,
+                    experiment_id=experiment_id,
+                    # TODO: fill util_type with the correct value
                     util_type="loader",
                     # TODO: fill descriptions and adds into TestResult class
                     description="",
@@ -335,10 +226,10 @@ class TestsRunner(BaseRunner):
                     started_at=result.started_at,
                     ended_at=result.ended_at,
                 )
-                counts[result.status] += 1
-                total_count += 1
+                self.__tests_statuses[result.status] += 1
+                self.__tests_cnt += 1
             self._collect_system_errors(
-                experiment_id=experiment.experiment_id,
+                experiment_id=experiment_id,
                 since=test_started_at,
                 until=datetime.now(tz=ZoneInfo("UTC")),
             )
@@ -346,20 +237,17 @@ class TestsRunner(BaseRunner):
             test_completed_event.set()
             is_alive_cycle.join(10)
             test_completed_event.clear()
-            self._database.update_experiment_ended_at(experiment.experiment_id)
+            self._database.update_experiment_ended_at(experiment_id)
             self._database.update_experiment_tests_count(
-                experiment.experiment_id,
+                experiment_id,
                 TestsCounts(
-                    total_count=total_count,
-                    broken_count=counts[TestStatus.BROKEN],
-                    passed_count=counts[TestStatus.PASSED],
-                    failed_count=counts[TestStatus.FAILED],
-                    skip_count=counts[TestStatus.SKIPPED],
+                    total_count=self.__tests_cnt,
+                    broken_count=self.__tests_statuses[TestStatus.BROKEN],
+                    passed_count=self.__tests_statuses[TestStatus.PASSED],
+                    failed_count=self.__tests_statuses[TestStatus.FAILED],
+                    skip_count=self.__tests_statuses[TestStatus.SKIPPED],
                 ),
             )
-        self._logger.info("All tests completed successfully.")
-        if self._client is not None:
-            self._client.close()
 
     def install_dependencies(self) -> None:
         from imgtests.exec.loaders import (  # noqa: PLC0415
@@ -627,8 +515,6 @@ class ProfiledPlanRunner(BaseRunner):
 
     @staticmethod
     def _parse_profile(raw: str) -> TestKind:
-        from imgtests.planning import TestKind  # noqa: PLC0415
-
         try:
             return TestKind(raw.strip().lower())
         except ValueError as exc:
@@ -638,8 +524,6 @@ class ProfiledPlanRunner(BaseRunner):
 
     @classmethod
     def _parse_profiles(cls, raw: str) -> tuple[TestKind, ...]:
-        from imgtests.planning import TestKind  # noqa: PLC0415
-
         value = raw.strip().lower()
         if value in {"", "all"}:
             return tuple(TestKind)

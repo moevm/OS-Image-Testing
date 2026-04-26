@@ -5,8 +5,8 @@ from zoneinfo import ZoneInfo
 
 from imgtests.exec.loaders.perf import Perf
 from imgtests.exec.loaders.pts import PhoronixTestSuite
-from imgtests.runner import AbstractRunnableManyTimesTest, TestResult, TestStatus
-from imgtests.types import Subsystem
+from imgtests.planning import AbstractRunnableManyTimesTest
+from imgtests.types import Subsystem, TestResult, TestStatus
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable

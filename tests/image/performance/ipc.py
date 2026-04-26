@@ -3,8 +3,8 @@ from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
 from imgtests.exec.loaders import Perf
-from imgtests.runner import AbstractRunnableManyTimesTest, TestResult, TestStatus
-from imgtests.types import Subsystem
+from imgtests.planning import AbstractRunnableManyTimesTest
+from imgtests.types import Subsystem, TestResult, TestStatus
 
 if TYPE_CHECKING:
     from collections.abc import Iterable

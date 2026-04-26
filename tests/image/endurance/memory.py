@@ -9,7 +9,7 @@ if TYPE_CHECKING:
     from concurrent.futures import ThreadPoolExecutor
 
     from imgtests.exec.exec import SSHClient
-    from imgtests.runner import TestResult
+    from imgtests.types import TestResult
 
 tests: list[dict[str, Any]] = [
     # General memory stress test with mmap() callings

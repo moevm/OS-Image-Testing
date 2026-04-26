@@ -6,9 +6,9 @@ from typing import TYPE_CHECKING
 from imgtests.exec.loaders.dmsetup import DeviceMapperSetup, setup_block_device
 from imgtests.exec.observers.resource import get_available_ram_size
 from imgtests.exec.osinfo import get_os_release
-from imgtests.runner import AbstractRunnableTimeLimitedTest, TestResult, TestStatus
+from imgtests.planning import AbstractRunnableTimeLimitedTest
 from imgtests.suites.drive.fio import FioSuite, FioSuiteConfig, FioWorkload
-from imgtests.types import Distro, Subsystem
+from imgtests.types import Distro, Subsystem, TestResult, TestStatus
 
 if TYPE_CHECKING:
     from collections.abc import Iterable

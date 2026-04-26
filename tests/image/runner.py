@@ -46,17 +46,11 @@ from imgtests.logger import set_handlers
 from imgtests.runner import ProfiledPlanRunner, TestsRunner, TestsRunnerConfig
 from imgtests.suites.fault_injection import FaultInjectionEnduranceTest
 from imgtests.suites.general.joint_bench import JointBench
-from imgtests.suites.system import (
-    SystemLoadTimeTest,
-    SystemSlowServicesTest,
-)
 from imgtests.types import Subsystem
 
 ALL_SUBSYSTEMS_SUITE: Final = TestsRunnerConfig(
     description="Test suite for all subsystems.",
     tests=(
-        SystemLoadTimeTest(),
-        SystemSlowServicesTest(),
         JointBench(iterations=3),
         SchedPerformanceTest(3),
         POSIXUtilsTest(10),
