@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any
 
-from imgtests.exec.exec import ExecResult, SSHClient, common_run_command, which
+from imgtests.exec.exec import ExecResult, SSHClient, Verbosity, common_run_command, which
 from imgtests.exec.utils import extract_version, kwargs_to_cmd_args
 
 if TYPE_CHECKING:
@@ -37,14 +37,14 @@ class BaseTestUtil(ABC):
     def __call__(
         self,
         cmd: Sequence[str | Path] | None = None,
-        log_errors: bool = True,
+        verbosity: Verbosity = Verbosity.STDERR,
         **kwargs: str | float | bool | None,
     ) -> ExecResult:
         """Executes the utility with the provided command.
 
         Args:
             cmd (Sequence[str | Path] | None): Command arguments to pass to the utility.
-            log_errors (bool): Show or hide error messages in the logs.
+            verbosity (Verbosity): Logs verbosity level (stdout, stderr, all, none).
             **kwargs (str | float | bool | None): Command arguments in the free form with values.
 
         Raises:
@@ -68,7 +68,7 @@ class BaseTestUtil(ABC):
         final_cmd = [str(self.path), *(str(arg) for arg in cmd), *kwargs_to_cmd_args(**kwargs)]
         if self.use_sudo:
             final_cmd = ["sudo", *final_cmd]
-        return common_run_command(final_cmd, self.ssh_client, log_errors=log_errors)
+        return common_run_command(final_cmd, self.ssh_client, verbosity=verbosity)
 
     def install(self) -> ExecResult:
         """Installs the utility.

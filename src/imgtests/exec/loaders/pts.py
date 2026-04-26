@@ -7,6 +7,7 @@ from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult, SSHClient, common_run_command, pipeline
 from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
 from imgtests.exec.utils import add_flag, add_sudo, create_opt, extract_version
+from imgtests.results_adapter import AdapterResult, drop_json_fields
 
 if TYPE_CHECKING:
     from imgtests.types import Version
@@ -477,3 +478,45 @@ class PhoronixTestSuite(PkgMgrMixin, GenericUtil):
                 return result
         logger.info("PTS setup successful")
         return result
+
+    @staticmethod
+    def split_result(raw_metrics: dict[str, Any], test_index: int = 0) -> AdapterResult:
+        if not raw_metrics:
+            return AdapterResult(
+                tool="pts",
+                test_type={},
+                time={},
+                metrics={},
+            )
+
+        system_info = raw_metrics.get("systems", {})
+        if system_info:
+            system_info = system_info.get(next(iter(system_info.keys())), {})
+
+        test_results = raw_metrics.get("results", {})
+        if len(list(test_results.keys())) <= test_index:
+            test_results = {}
+        else:
+            test_results = test_results.get(list(test_results.keys())[test_index], {})
+
+        test_type = {
+            "identifier": test_results.get("identifier", "unknown"),
+        }
+        time = {
+            "timestamp": system_info.get("timestamp", "unknown"),
+        }
+        drop_json_fields(system_info, ["timestamp"])
+
+        test_metrics = test_results.get("results", {})
+        if test_metrics:
+            test_metrics = {
+                "systems": system_info,
+                "results": test_metrics.get(next(iter(test_metrics.keys())), {}),
+            }
+
+        return AdapterResult(
+            tool="pts",
+            test_type=test_type,
+            time=time,
+            metrics=test_metrics,
+        )

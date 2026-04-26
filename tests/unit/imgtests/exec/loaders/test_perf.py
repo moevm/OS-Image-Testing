@@ -181,14 +181,20 @@ def test_parse_metrics(raw_metrics: str, expected: tuple[PerfBenchMetrics, ...])
                     gb_per_sec_movsq_based=30.517578,
                 ),
             ),
-            [
-                {
+            {
+                "tool": "perf",
+                "test_type": {
                     "benchmark": "mem/memset",
+                },
+                "time": {
+                    "duration_sec": 0.0,
+                },
+                "metrics": {
                     "gb_per_sec_default": 21.22962,
                     "gb_per_sec_unrolled": 21.701389,
                     "gb_per_sec_movsq_based": 30.517578,
                 },
-            ],
+            },
         ),
         (
             (
@@ -202,19 +208,32 @@ def test_parse_metrics(raw_metrics: str, expected: tuple[PerfBenchMetrics, ...])
                     usecs_per_op=23996.39934,
                 ),
             ),
-            [
-                {
+            {
+                "tool": "perf",
+                "test_type": {
                     "benchmark": "mem/memset",
-                    "total_time": 3.2,
+                },
+                "time": {
+                    "duration_sec": 3.2,
+                },
+                "metrics": {
                     "usecs_per_op": 23996.39934,
                     "ops_per_sec": 23211,
                     "gb_per_sec_default": 21.22962,
                     "gb_per_sec_unrolled": 21.701389,
                     "gb_per_sec_movsq_based": 30.517578,
                 },
-            ],
+            },
         ),
-        ((), []),
+        (
+            {},
+            {
+                "tool": "perf",
+                "test_type": {},
+                "time": {},
+                "metrics": {},
+            },
+        ),
     ],
     ids=[
         "With None values",

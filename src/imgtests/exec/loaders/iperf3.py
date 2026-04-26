@@ -2,9 +2,10 @@ import json
 from typing import TYPE_CHECKING, Any
 
 from imgtests.exec.base_util import GenericUtil
-from imgtests.exec.exec import ExecResult
+from imgtests.exec.exec import ExecResult, common_run_command
 from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
 from imgtests.exec.utils import add_flag, create_opt
+from imgtests.results_adapter import AdapterResult
 
 if TYPE_CHECKING:
     from imgtests.exec.exec import SSHClient
@@ -13,6 +14,9 @@ if TYPE_CHECKING:
 class Iperf3(PkgMgrMixin, GenericUtil):
     def __init__(self, ssh_client: SSHClient | None = None) -> None:
         super().__init__("iperf3", ssh_client)
+
+    def stop_server(self) -> ExecResult:
+        return common_run_command(["pkill", "-f", "iperf3.*--server"], self.ssh_client)
 
     def run(  # noqa: PLR0913
         self,
@@ -105,3 +109,43 @@ class Iperf3(PkgMgrMixin, GenericUtil):
     @staticmethod
     def metrics_to_json(metrics: str) -> Any:
         return json.loads(metrics)
+
+    @staticmethod
+    def split_result(
+        raw_metrics: dict[str, Any],
+        test_index: int = 0,  # noqa: ARG004
+    ) -> AdapterResult:
+        if not raw_metrics:
+            return AdapterResult(
+                tool="iperf3",
+                test_type={},
+                time={},
+                metrics={},
+            )
+
+        client_metrics = raw_metrics.get("client", {})
+        server_metrics = raw_metrics.get("server", {})
+        test_info = client_metrics.get("start", {}).get("test_start", {})
+
+        test_type = {"protocol": test_info.get("protocol", "unknown")}
+        time = {"duration_sec": float(test_info.get("duration", 0.0))}
+
+        metrics = {
+            "client": {
+                "start": client_metrics.get("start", {}),
+                "intervals": client_metrics.get("intervals", []),
+                "end": client_metrics.get("end", {}),
+            },
+            "server": {
+                "start": server_metrics.get("start", {}),
+                "intervals": server_metrics.get("intervals", []),
+                "end": server_metrics.get("end", {}),
+            },
+        }
+
+        return AdapterResult(
+            tool="iperf3",
+            test_type=test_type,
+            time=time,
+            metrics=metrics,
+        )

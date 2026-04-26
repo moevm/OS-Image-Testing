@@ -41,6 +41,7 @@ class PTSSystemTest(AbstractRunnableManyTimesTest):
                 self.logger.error("PTS test '%s' FAILED.", test_name)
                 yield TestResult(status=TestStatus.FAILED)
             else:
+                metrics = PhoronixTestSuite.split_result(raw_metrics=metrics)
                 yield TestResult(
                     command=" ".join(result.cmd),
                     metrics=metrics,
