@@ -16,6 +16,7 @@ if TYPE_CHECKING:
 SAVE_RESULT_PATH_PATTERN = re.compile("/[^:]*")
 # Default wall-clock limit for a single PTS batch-run before GNU timeout intervenes.
 DEFAULT_TEST_TIMEOUT_SEC = 60 * 60
+NETWORK_LOOPBACK_TEST_NAME = "pts/network-loopback"
 
 logger = logging.getLogger(__name__)
 
@@ -115,6 +116,53 @@ class PhoronixTestSuite(PkgMgrMixin, GenericUtil):
     def is_timeout_result(result: ExecResult) -> bool:
         return is_timeout_returncode(result.returncode) and any(
             line.lstrip().lower().startswith("timeout:") for line in result.stderr.splitlines()
+        )
+
+    @staticmethod
+    def has_failed_runs(result: ExecResult) -> bool:
+        return "The test quit with a non-zero exit status." in result.stdout
+
+    @staticmethod
+    def has_valid_metrics(  # noqa: PLR0911
+        json_data: dict[str, Any] | None,
+        *,
+        allow_run_times: bool = False,
+    ) -> bool:
+        if json_data is None:
+            return False
+
+        test_results = json_data.get("results")
+        if not isinstance(test_results, dict) or not test_results:
+            return False
+
+        for test_data in test_results.values():
+            if not isinstance(test_data, dict):
+                return False
+
+            result_values = test_data.get("results")
+            if not isinstance(result_values, dict) or not result_values:
+                return False
+
+            for result_value in result_values.values():
+                if not isinstance(result_value, dict):
+                    return False
+                if result_value.get("value") is not None:
+                    continue
+                test_run_times = result_value.get("test_run_times")
+                if allow_run_times and isinstance(test_run_times, list) and test_run_times:
+                    continue
+                return False
+
+        return True
+
+    @staticmethod
+    def _failed_result(result: ExecResult, message: str) -> ExecResult:
+        stderr = "\n".join(part for part in (result.stderr, message) if part)
+        return ExecResult(
+            cmd=result.cmd,
+            stdout=result.stdout,
+            stderr=stderr,
+            returncode=1,
         )
 
     def _timeout_error(self, test_name: str, result: ExecResult, timeout_sec: int) -> None:
@@ -399,6 +447,15 @@ class PhoronixTestSuite(PkgMgrMixin, GenericUtil):
         if self.is_timeout_result(result) or result.returncode:
             return result, None
         json_data = self.get_result_json()
+        allow_run_times = NETWORK_LOOPBACK_TEST_NAME in test_name
+        has_valid_metrics = self.has_valid_metrics(
+            json_data,
+            allow_run_times=allow_run_times,
+        )
+        if (self.has_failed_runs(result) and not allow_run_times) or not has_valid_metrics:
+            message = "PTS test completed without valid benchmark results."
+            logger.warning("PTS test '%s' completed without valid benchmark results.", test_name)
+            return self._failed_result(result, message), None
         return result, json_data
 
     def prepare(self, timeout_sec: int | None = None) -> ExecResult:
