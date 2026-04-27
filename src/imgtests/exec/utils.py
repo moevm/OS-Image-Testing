@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Final
 
 from imgtests.constant import VER_PATTERN
 from imgtests.types import Version
@@ -11,8 +11,8 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
 
-DEFAULT_TIMEOUT_KILL_AFTER_SEC = 30
-TIMEOUT_RETURN_CODES = frozenset({124, 137})
+DEFAULT_TIMEOUT_KILL_AFTER_SEC: Final = 30
+TIMEOUT_RETURN_CODES: Final = frozenset({124, 137})
 
 
 def create_opt(
@@ -76,7 +76,7 @@ def add_sudo(use_sudo: bool) -> list[str]:
 
 
 def wrap_with_timeout(
-    cmd: Sequence[str],
+    cmd: Sequence[str | float],
     timeout_sec: int,
     *,
     use_sudo: bool = False,
@@ -86,7 +86,7 @@ def wrap_with_timeout(
     """Wraps a command with GNU timeout.
 
     Args:
-        cmd (Sequence[str]): Command to run under timeout.
+        cmd (Sequence[str | float]): Command to run under timeout.
         timeout_sec (int): Soft timeout in seconds.
         use_sudo (bool): Whether to run timeout via sudo.
         kill_after_sec (int): Seconds before sending SIGKILL after soft timeout.
