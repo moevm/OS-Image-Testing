@@ -2,7 +2,7 @@ import logging
 import subprocess
 from enum import Flag, auto
 from pathlib import Path
-from time import sleep
+from time import monotonic, sleep
 from typing import TYPE_CHECKING, NamedTuple
 
 import paramiko
@@ -33,6 +33,7 @@ def common_run_command(
     ssh_client: SSHClient | None = None,
     input_: str | None = None,
     verbosity: Verbosity = Verbosity.STDERR,
+    timeout: float | None = None,
 ) -> ExecResult:
     """Executes a command locally or over SSH, depending on the provided client.
 
@@ -49,6 +50,7 @@ def common_run_command(
         input_ (str | None): Input string to be passed to the command's stdin,
                              useful for interactive commands.
         verbosity (Verbosity): Logs verbosity level (stdout, stderr, all, none).
+        timeout (float | None): Maximum time for command execution.
 
     Examples:
         >>> result = common_run_command(["echo", "Hello"])
@@ -56,13 +58,14 @@ def common_run_command(
         Hello
     """
     call_func = run_command if ssh_client is None else ssh_client
-    return call_func(cmd=cmd, input_=input_, verbosity=verbosity)
+    return call_func(cmd=cmd, input_=input_, verbosity=verbosity, timeout=timeout)
 
 
 def run_command(
     cmd: Sequence[str],
     input_: str | None = None,
     verbosity: Verbosity = Verbosity.STDERR,
+    timeout: float | None = None,
 ) -> ExecResult:
     """Executes a command locally."""
     logger.debug("Running command '%s'.", " ".join(cmd))
@@ -72,6 +75,7 @@ def run_command(
         capture_output=True,
         encoding="utf-8",
         check=False,
+        timeout=timeout,
     )
 
     result = ExecResult(
@@ -113,6 +117,7 @@ class SSHClient:
         cmd: Sequence[str],
         input_: str | None = None,
         verbosity: Verbosity = Verbosity.STDERR,
+        timeout: float | None = None,
     ) -> ExecResult:
         session = self.ssh_session.open_channel(kind="session")
         stdout = session.makefile("rb")
@@ -127,7 +132,21 @@ class SSHClient:
             stdin_channel.flush()
             stdin_channel.close()
 
-        retval = session.recv_exit_status()
+        if timeout is None:
+            retval = session.recv_exit_status()
+        else:
+            end = monotonic() + timeout
+            while not session.exit_status_ready():
+                if monotonic() >= end:
+                    session.close()
+                    return ExecResult(
+                        cmd=tuple(cmd),
+                        stderr=f"Command timed out after {timeout} seconds.",
+                        returncode=124,
+                    )
+                sleep(0.5)
+            retval = session.recv_exit_status()
+
         stdout = stdout.read().decode("utf-8").strip()
         stderr = stderr.read().decode("utf-8").strip()
 
@@ -242,16 +261,22 @@ def pipeline(
     cmds: Sequence[Sequence[str]],
     ssh_client: SSHClient | None = None,
     pass_output: bool = False,
+    timeout: float | None = None,
 ) -> Iterable[ExecResult]:
     prev_stdout = None
 
     for cmd in cmds:
         if pass_output and prev_stdout is not None:
-            result = common_run_command(cmd, ssh_client=ssh_client, input_=prev_stdout)
+            result = common_run_command(
+                cmd,
+                ssh_client=ssh_client,
+                input_=prev_stdout,
+                timeout=timeout,
+            )
         else:
-            result = common_run_command(cmd, ssh_client=ssh_client)
+            result = common_run_command(cmd, ssh_client=ssh_client, timeout=timeout)
 
         yield result
 
         if pass_output:
-            prev_stdout = result.stdout
+            prev_stdout = f"{result.stdout}\n" if result.stdout else ""
