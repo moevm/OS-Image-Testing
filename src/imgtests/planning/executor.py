@@ -16,14 +16,16 @@ from imgtests.exec.loaders.stress_ng import StressNg, stress_metrics_to_samples
 from imgtests.exec.observers.systemd_analyze import SystemdAnalyze
 from imgtests.exec.user_commands import Nproc
 from imgtests.planning.profiles import CPU_SCALE_ARG_PREFIX, FIO_SIZE_RATIO_ARG_PREFIX
-from imgtests.runner import BaseRunner, TestStatus
+from imgtests.reporting.html_report import generate_html_report
+from imgtests.runner import BaseRunner
 from imgtests.sizing import parse_size_to_bytes, round_bytes_to_mib_str
-from imgtests.types import MetricSample, Subsystem, TestsCounts
+from imgtests.types import MetricSample, TestsCounts, TestStatus
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from imgtests.database.database import ExperimentType, ImgtestsDatabase
+    from imgtests.database.database import ImgtestsDatabase
+    from imgtests.database.models.experiment import ExperimentType
     from imgtests.exec.exec import SSHClient
     from imgtests.planning.models import LoadTask, PlanStage, TestPlan
 
@@ -62,6 +64,7 @@ class PlanExecutionResult:
     ended_at: datetime
     stage_runs: tuple[StageRunResult, ...]
     metrics: tuple[MetricSample, ...]
+    tests_counts: TestsCounts
 
 
 class PlanExecutor(BaseRunner):
@@ -70,6 +73,7 @@ class PlanExecutor(BaseRunner):
         client: SSHClient | None,
         db: ImgtestsDatabase,
     ) -> None:
+        super().__init__("plan_executor", client, db)
         self.client = client
         self.db = db
         self._cpu_count_cache: int | None = None
@@ -178,24 +182,32 @@ class PlanExecutor(BaseRunner):
             experiment_id=experiment_id,
             ended_at=ended_at,
         )
+        tests_counts = TestsCounts(
+            total_count=total_count,
+            broken_count=counts[TestStatus.BROKEN],
+            passed_count=counts[TestStatus.PASSED],
+            failed_count=counts[TestStatus.FAILED],
+            skip_count=counts[TestStatus.SKIPPED],
+        )
         self.db.update_experiment_tests_count(
             experiment.experiment_id,
-            TestsCounts(
-                total_count=total_count,
-                broken_count=counts[TestStatus.BROKEN],
-                passed_count=counts[TestStatus.PASSED],
-                failed_count=counts[TestStatus.FAILED],
-                skip_count=counts[TestStatus.SKIPPED],
-            ),
+            tests_counts,
         )
 
-        return PlanExecutionResult(
+        result = PlanExecutionResult(
             experiment_id=experiment_id,
             started_at=started_at,
             ended_at=ended_at,
             stage_runs=tuple(stage_runs),
             metrics=tuple(collected_metrics),
+            tests_counts=tests_counts,
         )
+        generate_html_report(
+            plan=plan,
+            execution=result,
+            out_dir=results_dir,
+        )
+        return result
 
     def _wait_for_stage_offset(
         self,
@@ -528,8 +540,9 @@ class PlanExecutor(BaseRunner):
                     MetricSample(
                         stage_name=stage.name,
                         subsystem=task.subsystem.value,
-                        metric_name=key,
+                        metric_name=f"systemd_time.{key}",
                         value=value,
+                        label=key,
                     )
                     for key, value in result._asdict().items()
                     if value >= 0
@@ -545,8 +558,9 @@ class PlanExecutor(BaseRunner):
                 MetricSample(
                     stage_name=stage.name,
                     subsystem=task.subsystem.value,
-                    metric_name=service.service_name,
+                    metric_name=f"systemd_critical_chain.{service.service_name}",
                     value=service.slow_time_s,
+                    label=service.service_name,
                 )
                 for service in services
             )
@@ -603,9 +617,6 @@ def _parse_dynamic_float(raw_value: str, prefix: str) -> float:
 
 def _resolve_experiment_type(plan: TestPlan) -> ExperimentType:
     test_kind = getattr(plan.test_kind, "value", str(plan.test_kind))
-
-    if set(plan.subsystems) == set(Subsystem):
-        return "all"
 
     if test_kind == "stability":
         return "endurance"

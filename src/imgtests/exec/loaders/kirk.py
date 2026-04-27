@@ -11,6 +11,7 @@ from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
 from imgtests.exec.osinfo import get_os_release
 from imgtests.exec.pkgmgrs.zypper import Zypper
 from imgtests.exec.utils import create_opt
+from imgtests.results_adapter import AdapterResult, drop_json_fields
 from imgtests.types import Distro
 
 if TYPE_CHECKING:
@@ -285,4 +286,46 @@ class Kirk(GenericUtil):
 
     @staticmethod
     def metrics_to_json(metrics: Path) -> dict[str, Any]:
-        return json.loads(metrics.read_text())
+        raw_metrics = json.loads(metrics.read_text())
+        return Kirk.split_result(raw_metrics=raw_metrics)
+
+    @staticmethod
+    def split_result(
+        raw_metrics: dict[str, Any],
+        test_index: int = 0,  # noqa: ARG004
+    ) -> AdapterResult:
+        results = raw_metrics.get("results", [])
+        if len(results) == 0:
+            return AdapterResult(
+                tool="kirk",
+                test_type={},
+                time={},
+                metrics={},
+            )
+        metrics = [
+            {
+                "test": test.get("test_fqn", "unknown"),
+                "status": test.get("status", "unknown"),
+                "arguments": test.get("test", {}).get("arguments", []),
+                "log": test.get("test", {}).get("log", "unknown"),
+                "retval": test.get("test", {}).get("retval", []),
+                "duration": test.get("test", {}).get("duration", 0.0),
+            }
+            for test in results
+        ]
+        metrics = {str(i): metric for i, metric in enumerate(metrics)}
+
+        summary = raw_metrics.get("stats", {})
+        time = {
+            "duration_sec": round(summary.get("runtime", 0.0), 2),
+        }
+        drop_json_fields(summary, ["runtime"])
+
+        metrics["summary"] = summary
+
+        return AdapterResult(
+            tool="kirk",
+            test_type={},
+            time=time,
+            metrics=metrics,
+        )

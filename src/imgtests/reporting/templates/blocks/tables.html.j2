@@ -1,0 +1,67 @@
+{% macro render_stats_table(rows, include_stage=false) -%}
+<table>
+  <tr>
+    {% if include_stage %}
+    <th>Stage</th>
+    {% endif %}
+    <th>Subsystem</th>
+    <th>Metric</th>
+    <th>N</th>
+    <th>Mean</th>
+    <th>Variance</th>
+    <th>Q25</th>
+    <th>Q50</th>
+    <th>Q75</th>
+    <th>Q95</th>
+    <th>Min</th>
+    <th>Max</th>
+  </tr>
+  {% for row in rows %}
+  <tr>
+    {% if include_stage %}
+    <td>{{ row.stage_name }}</td>
+    {% endif %}
+    <td>{{ row.subsystem }}</td>
+    <td>{{ row.metric_name }}</td>
+    <td>{{ row.count }}</td>
+    <td>{{ row.mean | format_float }}</td>
+    <td>{{ row.variance | format_float }}</td>
+    <td>{{ row.q25 | format_float }}</td>
+    <td>{{ row.q50 | format_float }}</td>
+    <td>{{ row.q75 | format_float }}</td>
+    <td>{{ row.q95 | format_float }}</td>
+    <td>{{ row.min_v | format_float }}</td>
+    <td>{{ row.max_v | format_float }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{%- endmacro %}
+
+{% macro render_timeline_table(rows) -%}
+<table>
+  <tr>
+    <th>Stage</th>
+    <th>Pattern</th>
+    <th>Planned start, sec</th>
+    <th>Planned duration, sec</th>
+    <th>Actual started</th>
+    <th>Actual ended</th>
+    <th>Actual duration, sec</th>
+    <th>Tasks</th>
+    <th>Failures</th>
+  </tr>
+  {% for row in rows %}
+  <tr>
+    <td>{{ row.stage_name }}</td>
+    <td>{{ row.pattern }}</td>
+    <td>{{ row.planned_start_sec }}</td>
+    <td>{{ row.planned_duration_sec }}</td>
+    <td>{{ row.actual_started }}</td>
+    <td>{{ row.actual_ended }}</td>
+    <td>{{ row.actual_duration_sec }}</td>
+    <td>{{ row.tasks }}</td>
+    <td>{{ row.failures }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{%- endmacro %}

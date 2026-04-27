@@ -3,9 +3,9 @@ from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
 from imgtests.exec.loaders import Chaosblade, StressNg
-from imgtests.runner import AbstractRunnableTimeLimitedTest, TestResult, TestStatus
+from imgtests.planning import AbstractRunnableTimeLimitedTest
 from imgtests.suites.general.stress_ng import StressNgTest
-from imgtests.types import Subsystem
+from imgtests.types import Subsystem, TestResult, TestStatus
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -46,7 +46,20 @@ class ChaosbladeCPUTest(AbstractRunnableTimeLimitedTest):
         started_at = datetime.now(tz=ZoneInfo("UTC"))
         future = executor.submit(chaos.create_cpu_exp, cpu_percent=70, timeout_sec=timeout)
         result, chaos_result = future.result()
-        status = TestStatus.PASSED if not result.returncode else TestStatus.FAILED
+        # actually wait till the experiment is completed
+        if chaos_result.success and isinstance(chaos_result.result, str):
+            future = executor.submit(
+                chaos.await_exp_result,
+                experiment_id=chaos_result.result,
+                timeout=timeout,
+            )
+            result, chaos_result = future.result()
+            if result.returncode:
+                status = TestStatus.BROKEN
+            else:
+                status = TestStatus.PASSED if chaos_result.success else TestStatus.FAILED
+        else:
+            status = TestStatus.BROKEN
         yield TestResult(
             metrics=chaos_result,
             command=" ".join(result.cmd),

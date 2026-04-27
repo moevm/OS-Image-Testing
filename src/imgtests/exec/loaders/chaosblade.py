@@ -1,6 +1,8 @@
 import json
 import logging
 import re
+from enum import StrEnum
+from time import sleep
 from typing import Any, Final, Literal, NamedTuple, get_args
 
 from imgtests.exec.base_util import GenericUtil
@@ -8,6 +10,7 @@ from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
 from imgtests.exec.osinfo import get_os_release
 from imgtests.exec.pkgmgrs.zypper import Zypper
 from imgtests.exec.utils import create_opt, extract_version
+from imgtests.results_adapter import AdapterResult, drop_json_fields
 from imgtests.types import Distro, Version
 
 logger = logging.getLogger(__name__)
@@ -15,6 +18,8 @@ logger = logging.getLogger(__name__)
 _MAX_PERCENT: Final[int] = 100
 _MAX_PORT: Final[int] = 65535
 _MAX_OCTET_VALUE: Final[int] = 255
+_EXP_WAIT_SLEEP_STEP: Final[int] = 10
+_EXP_WAIT_TIMEOUT: Final[int] = 100
 
 NetworkAction = Literal[
     "delay",
@@ -35,8 +40,15 @@ DiskAction = Literal["fill", "burn"]
 class ChaosResponse(NamedTuple):
     code: int
     success: bool
-    result: str | None = None
+    result: dict[str, str] | str | None = None
     error: str | None = None
+
+
+class ChaosExperimentStatus(StrEnum):
+    Created = "Created"
+    Success = "Success"
+    Error = "Error"
+    Destroyed = "Destroyed"
 
 
 class Chaosblade(GenericUtil):
@@ -127,6 +139,25 @@ class Chaosblade(GenericUtil):
         """
         result = self(["destroy", experiment_id])
         return result, self._extract_result(result)
+
+    def await_exp_result(
+        self,
+        experiment_id: str,
+        timeout: int = _EXP_WAIT_TIMEOUT,
+    ) -> tuple[ExecResult, ChaosResponse]:
+        result, chaos_result = self.get_exp_status(experiment_id=experiment_id)
+        time_slept = 0
+        while (
+            time_slept <= timeout
+            and chaos_result.success
+            and isinstance(chaos_result.result, dict)
+            and chaos_result.result.get("Status") != ChaosExperimentStatus.Error.value
+            and chaos_result.result.get("Status") != ChaosExperimentStatus.Destroyed.value
+        ):
+            sleep(_EXP_WAIT_SLEEP_STEP)
+            time_slept += _EXP_WAIT_SLEEP_STEP
+            result, chaos_result = self.get_exp_status(experiment_id=experiment_id)
+        return result, chaos_result
 
     def create_cpu_exp(
         self,
@@ -655,4 +686,43 @@ class Chaosblade(GenericUtil):
             success=data.get("success", False),
             result=data.get("result"),
             error=data.get("error"),
+        )
+
+    @staticmethod
+    def split_result(
+        raw_metrics: dict[str, Any],
+        test_index: int = 0,  # noqa: ARG004
+    ) -> AdapterResult:
+        if not raw_metrics:
+            return AdapterResult(
+                tool="chaosblade",
+                test_type={},
+                time={},
+                metrics={},
+            )
+        result = raw_metrics.get("result", {})
+        metrics = {
+            "code": raw_metrics.get("code", 0),
+            "success": raw_metrics.get("success", False),
+            "result": result,
+        }
+
+        test_type = {
+            "command": result.get("Command", "unknown"),
+            "detailed": {
+                "sub_command": result.get("SubCommand", "unknown"),
+                "flag": result.get("Flag", "unknown"),
+            },
+        }
+        time = {
+            "update_time": result.get("UpdateTime", "unknown"),
+        }
+
+        drop_json_fields(metrics["result"], ["Command", "SubCommand", "Flag", "UpdateTime"])
+
+        return AdapterResult(
+            tool="chaosblade",
+            test_type=test_type,
+            time=time,
+            metrics=metrics,
         )

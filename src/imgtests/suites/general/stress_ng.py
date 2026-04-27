@@ -2,7 +2,8 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
-from imgtests.runner import AbstractRunnableTimeLimitedTest, TestResult, TestStatus
+from imgtests.planning import AbstractRunnableTimeLimitedTest
+from imgtests.types import TestResult, TestStatus
 
 if TYPE_CHECKING:
     from collections.abc import Iterable

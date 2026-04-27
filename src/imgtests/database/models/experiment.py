@@ -1,4 +1,5 @@
 from datetime import datetime  # noqa: TC003
+from typing import Literal
 
 from sqlalchemy import DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -7,6 +8,8 @@ from imgtests.database.models.base import Base
 from imgtests.database.models.configuration import ConfigurationBase  # noqa: TC001
 from imgtests.database.models.util_run_result import UtilRunResult  # noqa: TC001
 
+ExperimentType = Literal["performance", "endurance"]
+
 
 class ExperimentBase(Base):
     __tablename__ = "experiment"
@@ -14,7 +17,7 @@ class ExperimentBase(Base):
     experiment_id: Mapped[int] = mapped_column(primary_key=True)
     config_id: Mapped[int] = mapped_column(ForeignKey("configuration.config_id"))
     description: Mapped[str] = mapped_column(String(100))
-    type: Mapped[str | None] = mapped_column(String(20))
+    type: Mapped[ExperimentType] = mapped_column(String(20))
     started_at: Mapped[datetime | None] = mapped_column(DateTime)
     ended_at: Mapped[datetime | None] = mapped_column(DateTime)
     configuration: Mapped[ConfigurationBase] = relationship(
