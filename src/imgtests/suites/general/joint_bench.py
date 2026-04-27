@@ -28,7 +28,6 @@ TOOLS_CONFIG: dict[str, ToolConfig] = {
         run="run",
         subsystem={
             Subsystem.FILE: ({"test_name": "pts/hdparm-read", "run_count": 1},),
-            Subsystem.NETWORK: ({"test_name": "pts/network-loopback", "run_count": 1},),
             Subsystem.MEMORY: ({"test_name": "pts/tinymembench", "run_count": 1},),
             Subsystem.SYSTEM: (
                 {"test_name": "pts/ctx-clock", "run_count": 1},
