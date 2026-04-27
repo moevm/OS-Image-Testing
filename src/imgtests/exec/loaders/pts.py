@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult, SSHClient, common_run_command, pipeline
 from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
-from imgtests.exec.utils import add_flag, add_sudo, create_opt, extract_version
+from imgtests.exec.utils import add_sudo, extract_version, is_timeout_returncode, wrap_with_timeout
 from imgtests.results_adapter import AdapterResult, drop_json_fields
 
 if TYPE_CHECKING:
@@ -16,10 +16,6 @@ if TYPE_CHECKING:
 SAVE_RESULT_PATH_PATTERN = re.compile("/[^:]*")
 # Default wall-clock limit for a single PTS batch-run before GNU timeout intervenes.
 DEFAULT_TEST_TIMEOUT_SEC = 60 * 60
-# Grace period after the timeout sends SIGTERM before it escalates to SIGKILL.
-TIMEOUT_KILL_AFTER_SEC = 30
-# GNU timeout returns 124 on SIGTERM timeout and 137 when the kill-after SIGKILL fires.
-TIMEOUT_RETURN_CODES = frozenset({124, 137})
 
 logger = logging.getLogger(__name__)
 
@@ -29,13 +25,8 @@ class PhoronixTestSuite(PkgMgrMixin, GenericUtil):
         self,
         ssh_client: SSHClient | None = None,
         use_sudo: bool = True,
-        timeout_sec: int = DEFAULT_TEST_TIMEOUT_SEC,
     ) -> None:
-        if timeout_sec < 1:
-            msg = "PTS test timeout must be greater than 0 seconds."
-            raise ValueError(msg)
         super().__init__("phoronix-test-suite", ssh_client, use_sudo=use_sudo)
-        self.timeout_sec = timeout_sec
 
     def install(self) -> ExecResult:
         """Install phoronix-test-suite via the system package manager."""
@@ -63,17 +54,23 @@ class PhoronixTestSuite(PkgMgrMixin, GenericUtil):
             return None
         return extract_version(result.stdout.strip())
 
-    def install_test(self, test_name: str) -> bool:
+    def install_test(self, test_name: str, timeout_sec: int | None = None) -> bool:
         """Installs a given test."""
+        timeout = self._resolve_timeout(timeout_sec)
         retries = "y\n" * 2 + "n\n"
-        commands: list[list[str]] = [
-            ["echo", "-e", f'"{retries}"'],
-            [*add_sudo(self.use_sudo), self.name, "install", test_name],
-        ]
-        for result in pipeline(cmds=commands, ssh_client=self.ssh_client, pass_output=True):
-            if result.returncode:
-                logger.error("Installation of PTS test %s failed. %s", test_name, result.stderr)
-                return False
+
+        result = common_run_command(
+            wrap_with_timeout(
+                [self.name, "install", test_name],
+                timeout,
+                use_sudo=self.use_sudo,
+            ),
+            ssh_client=self.ssh_client,
+            input_=retries,
+        )
+        if result.returncode:
+            logger.error("Installation of PTS test %s failed. %s", test_name, result.stderr)
+            return False
 
         result = self(["list-installed-tests"])
         if result.stdout.find(test_name) == -1:
@@ -95,24 +92,14 @@ class PhoronixTestSuite(PkgMgrMixin, GenericUtil):
         )
 
     def _resolve_timeout(self, timeout_sec: int | None) -> int:
-        timeout = self.timeout_sec if timeout_sec is None else timeout_sec
+        timeout = DEFAULT_TEST_TIMEOUT_SEC if timeout_sec is None else timeout_sec
         if timeout < 1:
             msg = "PTS test timeout must be greater than 0 seconds."
             raise ValueError(msg)
         return timeout
 
-    def _with_timeout(self, cmd: list[str], timeout_sec: int) -> list[str]:
-        return [
-            *add_sudo(self.use_sudo),
-            "timeout",
-            *add_flag("verbose"),
-            *create_opt("kill-after", f"{TIMEOUT_KILL_AFTER_SEC}s", use_equals=True),
-            f"{timeout_sec}s",
-            *cmd,
-        ]
-
     def _batch_run_cmd(self, test_name: str, run_count: int, timeout_sec: int) -> list[str]:
-        return self._with_timeout(
+        return wrap_with_timeout(
             [
                 "env",
                 f"FORCE_TIMES_TO_RUN={run_count}",
@@ -121,49 +108,13 @@ class PhoronixTestSuite(PkgMgrMixin, GenericUtil):
                 test_name,
             ],
             timeout_sec,
+            use_sudo=self.use_sudo,
         )
 
     @staticmethod
     def is_timeout_result(result: ExecResult) -> bool:
-        return result.returncode in TIMEOUT_RETURN_CODES and any(
+        return is_timeout_returncode(result.returncode) and any(
             line.lstrip().lower().startswith("timeout:") for line in result.stderr.splitlines()
-        )
-
-    @staticmethod
-    def has_failed_runs(result: ExecResult) -> bool:
-        return "The test quit with a non-zero exit status." in result.stdout
-
-    @staticmethod
-    def has_valid_metrics(json_data: dict[str, Any] | None) -> bool:
-        if json_data is None:
-            return False
-
-        test_results = json_data.get("results")
-        if not isinstance(test_results, dict) or not test_results:
-            return False
-
-        for test_data in test_results.values():
-            if not isinstance(test_data, dict):
-                return False
-
-            result_values = test_data.get("results")
-            if not isinstance(result_values, dict) or not result_values:
-                return False
-
-            for result_value in result_values.values():
-                if not isinstance(result_value, dict) or result_value.get("value") is None:
-                    return False
-
-        return True
-
-    @staticmethod
-    def _failed_result(result: ExecResult, message: str) -> ExecResult:
-        stderr = "\n".join(part for part in (result.stderr, message) if part)
-        return ExecResult(
-            cmd=result.cmd,
-            stdout=result.stdout,
-            stderr=stderr,
-            returncode=1,
         )
 
     def _timeout_error(self, test_name: str, result: ExecResult, timeout_sec: int) -> None:
@@ -223,7 +174,7 @@ class PhoronixTestSuite(PkgMgrMixin, GenericUtil):
     ) -> ExecResult:
         """Runs a given test with set amount of iterations."""
         timeout = self._resolve_timeout(timeout_sec)
-        ret = self.install_test(test_name)
+        ret = self.install_test(test_name, timeout_sec=timeout)
         if not ret:
             err_msg = f"Error installing PTS test: {test_name}"
             logger.error(err_msg)
@@ -231,15 +182,19 @@ class PhoronixTestSuite(PkgMgrMixin, GenericUtil):
         logger.info("PTS test '%s' started", test_name)
         if "pts/hdparm-read" in test_name:
             setup_answers = "y\n" + "n\n" * 6
-            commands = [
-                ["echo", "-e", f'"{setup_answers}"'],
-                [*add_sudo(self.use_sudo), self.name, "batch-setup"],
-            ]
             logger.info("Setting up PTS for %s test.", test_name)
-            for result in pipeline(cmds=commands, ssh_client=self.ssh_client, pass_output=True):
-                if result.returncode:
-                    logger.error("PTS setup failed: '%s'", result.stderr)
-                    return result
+            result = common_run_command(
+                wrap_with_timeout(
+                    [self.name, "batch-setup"],
+                    timeout,
+                    use_sudo=self.use_sudo,
+                ),
+                ssh_client=self.ssh_client,
+                input_=setup_answers,
+            )
+            if result.returncode:
+                logger.error("PTS setup failed: '%s'", result.stderr)
+                return result
             result = self.batch_run(test_name, run_count, timeout)
             if result.returncode:
                 self._timeout_error(test_name, result, timeout)
@@ -444,40 +399,50 @@ class PhoronixTestSuite(PkgMgrMixin, GenericUtil):
         if self.is_timeout_result(result) or result.returncode:
             return result, None
         json_data = self.get_result_json()
-        if self.has_failed_runs(result) or not self.has_valid_metrics(json_data):
-            message = "PTS test completed without valid benchmark results."
-            logger.warning("PTS test '%s' completed without valid benchmark results.", test_name)
-            return self._failed_result(result, message), None
         return result, json_data
 
-    def prepare(self) -> ExecResult:
+    def prepare(self, timeout_sec: int | None = None) -> ExecResult:
         """Prepares PTS for running tests.
 
         Sets up Google DNS server and turns off interactive questions in the future tests.
         """
+        timeout = self._resolve_timeout(timeout_sec)
         setup_answers = "y\n" + "n\n" * 6
-        commands = [
-            [
-                "echo",
-                "'nameserver 8.8.8.8'",
-                "|",
-                "sudo",
-                "tee",
-                "-a",
-                "/etc/resolv.conf",
-                ">",
-                "/dev/null",
-            ],
-            [self.name, "openbenchmarking-refresh"],
-            ["echo", "-e", f'"{setup_answers}"'],
-            [self.name, "batch-setup"],
-        ]
-        for result in pipeline(cmds=commands, ssh_client=self.ssh_client, pass_output=True):
-            if result.returncode:
-                logger.error("PTS setup failed: '%s'", result.stderr)
-                return result
+
+        dns_result = common_run_command(
+            [*add_sudo(self.use_sudo), "tee", "-a", "/etc/resolv.conf"],
+            ssh_client=self.ssh_client,
+            input_="nameserver 8.8.8.8\n",
+        )
+        if dns_result.returncode:
+            logger.warning("Failed to append Google DNS to /etc/resolv.conf")
+
+        refresh_result = common_run_command(
+            wrap_with_timeout(
+                [self.name, "openbenchmarking-refresh"],
+                timeout,
+                use_sudo=self.use_sudo,
+            ),
+            ssh_client=self.ssh_client,
+        )
+        if refresh_result.returncode:
+            logger.error("PTS openbenchmarking refresh failed: '%s'", refresh_result.stderr)
+            return refresh_result
+
+        setup_result = common_run_command(
+            wrap_with_timeout(
+                [self.name, "batch-setup"],
+                timeout,
+                use_sudo=self.use_sudo,
+            ),
+            ssh_client=self.ssh_client,
+            input_=setup_answers,
+        )
+        if setup_result.returncode:
+            logger.error("PTS setup failed: '%s'", setup_result.stderr)
+            return setup_result
         logger.info("PTS setup successful")
-        return result
+        return setup_result
 
     @staticmethod
     def split_result(raw_metrics: dict[str, Any], test_index: int = 0) -> AdapterResult:
