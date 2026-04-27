@@ -16,7 +16,7 @@ from pydantic import Field
 from pydantic_settings import BaseSettings
 
 from imgtests.constant import LIB_NAME
-from imgtests.exec.exec import SSHClient, Verbosity, common_run_command
+from imgtests.exec.exec import ExecResult, SSHClient, Verbosity, common_run_command, pipeline
 from imgtests.exec.observers.journalctl import Journalctl
 from imgtests.exec.observers.systemctl import Systemctl
 from imgtests.sysrep import get_system_info
@@ -29,6 +29,9 @@ if TYPE_CHECKING:
     from imgtests.database.models.experiment import ExperimentBase, ExperimentType
     from imgtests.exec.base_util import BaseTestUtil
     from imgtests.planning import LoadPattern, TestKind
+
+
+TIMEOUT_RETURN_CODE: int = 124
 
 
 class TestStatus(Enum):
@@ -299,8 +302,15 @@ class TestsRunner(BaseRunner):
 
     def run(self) -> None:
         test_completed_event = Event()
-        if self.__test_config.install_dependencies:
+
+        result = self.get_snapshots_info()
+        snapshot_name = "vm-snapshot"
+        if snapshot_name in result.stdout:
+            self.switch_to_snapshot(snapshot_name)
+        elif self.__test_config.install_dependencies:
             self.install_dependencies()
+            self.create_snapshot(snapshot_name)
+
         experiment = self.start_experiment(
             client=self._client,
             database=self._database,
@@ -477,6 +487,49 @@ class TestsRunner(BaseRunner):
             ended_at=until,
             result=journalctl.metrics_to_json(sstmd_err_m),
         )
+
+    def get_snapshots_info(self) -> ExecResult:
+        commands: list[list[str]] = [
+            ["echo", "info snapshots"],
+            ["nc", "-q", "0", "10.0.2.2", "4444"],
+        ]
+        for result in pipeline(cmds=commands, ssh_client=self._client, pass_output=True):
+            if result.returncode:
+                self._logger.error("Failed to get snapshots info: %s.", result.cmd)
+        return result
+
+    def switch_to_snapshot(self, snapshot_name: str) -> None:
+        self._logger.info("Switching to snapshot %s.", snapshot_name)
+        commands: list[list[str]] = [
+            ["echo", "loadvm", snapshot_name],
+            ["nc", "-q", "0", "10.0.2.2", "4444"],
+        ]
+        for result in pipeline(
+            cmds=commands,
+            ssh_client=self._client,
+            pass_output=True,
+            timeout=60.0,
+        ):
+            if result.returncode and result.returncode != TIMEOUT_RETURN_CODE:
+                self._logger.error(
+                    "Failed to switch to snapshot %s: %s.",
+                    snapshot_name,
+                    result.cmd,
+                )
+        if not result.returncode or result.returncode == TIMEOUT_RETURN_CODE:
+            self._logger.info("Snapshots switched to %s.", snapshot_name)
+        self._client.reconnect()
+
+    def create_snapshot(self, snapshot_name: str) -> None:
+        commands: list[list[str]] = [
+            ["echo", "savevm", snapshot_name],
+            ["nc", "-q", "0", "10.0.2.2", "4444"],
+        ]
+        for result in pipeline(cmds=commands, ssh_client=self._client, pass_output=True):
+            if result.returncode:
+                self._logger.error("Failed to create snapshot %s: %s.", snapshot_name, result.cmd)
+        if not result.returncode:
+            self._logger.info("Snapshot created: %s.", snapshot_name)
 
 
 class ProfiledPlanRunner(BaseRunner):
