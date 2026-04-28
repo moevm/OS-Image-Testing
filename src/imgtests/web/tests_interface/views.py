@@ -1,14 +1,15 @@
 import os
+from pathlib import Path
 from typing import TYPE_CHECKING
 
-from django.http import HttpRequest, JsonResponse
+from django.http import Http404, HttpRequest, JsonResponse
+from django.http.response import HttpResponse
 from django.shortcuts import render
 from django.tasks import TaskResultStatus
 
 from .tasks import run_test_task
 
 if TYPE_CHECKING:
-    from django.http.response import HttpResponse
     from django.tasks import TaskResult
 
 
@@ -25,6 +26,86 @@ def yocto_page(request: HttpRequest) -> HttpResponse:
 
 def opensuse_page(request: HttpRequest) -> HttpResponse:
     return render(request, "tests_interface/opensuse.html")
+
+
+def report_list(request: HttpRequest) -> HttpResponse:
+    reports_dir = Path("/home/user/results/profiled")
+    reports = []
+    if reports_dir.exists():
+        for report_dir in sorted(reports_dir.iterdir(), reverse=True):
+            if report_dir.is_dir():
+                html_files = list(report_dir.glob("*.html"))
+                for html_file in html_files:
+                    created_time = html_file.stat().st_mtime
+
+                    reports.append(
+                        {
+                            "name": f"{report_dir.name} / {html_file.name}",
+                            "report_dir": report_dir.name,
+                            "filename": html_file.name,
+                            "created": created_time,
+                            "size": html_file.stat().st_size,
+                            "dir_name": report_dir.name,
+                            "file_name": html_file.name,
+                        }
+                    )
+
+    return render(request, "tests_interface/reports_list.html", {"reports": reports})
+
+
+def view_report(request: HttpRequest, report_dir: str, filename: str) -> HttpResponse:  # noqa: ARG001
+    reports_base_dir = Path("/home/user/results/profiled")
+    report_file = reports_base_dir / report_dir / filename
+
+    if not report_file.exists() or not report_file.is_file():
+        ret = f"Report not found: {report_dir}/{filename}"
+        raise Http404(ret)
+
+    try:
+        with Path.open(report_file, "r", encoding="utf-8") as f:
+            content_str = f.read()
+
+        content_str = content_str.replace(
+            'src="plots/',
+            f'src="/reports/static/{report_dir}/plots/',
+        )
+
+        content_bytes = content_str.encode("utf-8")
+        return HttpResponse(content_bytes, content_type="text/html")
+    except Exception as e:
+        error_message = f"Error reading report: {e}"
+        raise Http404(error_message) from e
+
+
+def report_static_files(request: HttpRequest, report_dir: str, file_path: str) -> HttpResponse:  # noqa: ARG001
+    reports_base_dir = Path("/home/user/results/profiled")
+    static_file = reports_base_dir / report_dir / file_path
+
+    if not static_file.exists() or not static_file.is_file():
+        ret = f"Static file not found: {report_dir}/{file_path}"
+        raise Http404(ret)
+
+    content_type = "application/octet-stream"
+    if file_path.endswith(".png"):
+        content_type = "image/png"
+    elif file_path.endswith(".jpg") or file_path.endswith(".jpeg"):  # noqa: PIE810
+        content_type = "image/jpeg"
+    elif file_path.endswith(".svg"):
+        content_type = "image/svg+xml"
+    elif file_path.endswith(".gif"):
+        content_type = "image/gif"
+    elif file_path.endswith(".css"):
+        content_type = "text/css"
+    elif file_path.endswith(".js"):
+        content_type = "application/javascript"
+
+    try:
+        with Path.open(static_file, "rb") as f:
+            content = f.read()
+        return HttpResponse(content, content_type=content_type)
+    except Exception as e:
+        error_message = f"Error reading static file: {e}"
+        raise Http404(error_message) from e
 
 
 def run_tests(request: HttpRequest) -> JsonResponse:

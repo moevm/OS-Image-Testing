@@ -1,0 +1,106 @@
+{% extends 'tests_interface/base.html' %}
+
+{% block title %}All Reports{%endblock%}
+
+{% block content %}
+<div class="card">
+    <div class="header-with-back">
+        <a href="{% url 'index' %}" class="back-button">← Back to Dashboard</a>
+        <div class="page-title">
+            <h1>Test Reports</h1>
+        </div>
+    </div>
+
+    {% if reports %}
+    <div class="reports-list">
+        {% for report in reports %}
+        <div
+            class="report-item"
+            style="
+                background: white;
+                border-radius: 12px;
+                margin-bottom: 12px;
+                padding: 15px 20px;
+                transition: all 0.2s ease;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            "
+        >
+            <a
+                href="{% url 'view_report' report_dir=report.report_dir filename=report.filename %}"
+                style="text-decoration: none; display: block"
+            >
+                <div
+                    style="
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        flex-wrap: wrap;
+                        gap: 10px;
+                    "
+                >
+                    <div style="flex-grow: 1">
+                        <div
+                            style="
+                                font-weight: 500;
+                                color: #ff9800;
+                                margin-bottom: 5px;
+                                font-family: monospace;
+                                font-size: 0.85rem;
+                            "
+                        >
+                            {{ report.dir_name }}
+                        </div>
+                        <div style="color: #5d4037; font-size: 1rem">
+                            📄 {{ report.file_name }}
+                        </div>
+                    </div>
+                    <div style="color: #ff9800; font-size: 1.2rem">→</div>
+                </div>
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div
+        style="
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+            text-align: center;
+            color: #8d6e63;
+        "
+    >
+        Total: {{ reports|length }} report(s)
+    </div>
+    {% else %}
+    <div
+        style="
+            text-align: center;
+            padding: 60px 30px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 16px;
+            border: 2px dashed #ffd54f;
+        "
+    >
+        <div style="font-size: 4rem; margin-bottom: 20px">📊</div>
+        <h3 style="color: #5d4037; margin-bottom: 10px">No Reports Found</h3>
+        <p style="color: #8d6e63; margin-bottom: 20px">
+            No reports available yet. Run some tests to generate reports.
+        </p>
+        <a
+            href="{% url 'index' %}"
+            class="btn"
+            style="text-decoration: none; display: inline-block"
+            >Run Tests</a
+        >
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    .report-item:hover {
+        background: #fef9e7;
+        transform: translateX(5px);
+    }
+</style>
+{% endblock %}
