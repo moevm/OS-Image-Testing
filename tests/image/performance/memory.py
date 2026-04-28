@@ -7,9 +7,9 @@ from zoneinfo import ZoneInfo
 from imgtests.exec.loaders import StressNg
 from imgtests.exec.observers import Sar
 from imgtests.exec.observers.resource import get_total_ram_size
-from imgtests.runner import AbstractRunnableTimeLimitedTest, TestResult, TestStatus
+from imgtests.planning import AbstractRunnableTimeLimitedTest
 from imgtests.suites.general.stress_ng import StressNgTest
-from imgtests.types import Subsystem
+from imgtests.types import Subsystem, TestResult, TestStatus
 
 if TYPE_CHECKING:
     from collections.abc import Iterable

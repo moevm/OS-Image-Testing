@@ -13,6 +13,11 @@ class MkDir(GenericUtil):
         super().__init__("mkdir", ssh_client)
 
 
+class Touch(GenericUtil):
+    def __init__(self, ssh_client: SSHClient | None = None, use_sudo: bool = False) -> None:
+        super().__init__("touch", ssh_client, use_sudo=use_sudo)
+
+
 class Rm(GenericUtil):
     def __init__(self, ssh_client: SSHClient | None = None) -> None:
         super().__init__("rm", ssh_client)

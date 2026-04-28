@@ -4,10 +4,10 @@ from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
 from imgtests.exec.loaders import Kirk, Perf, StressNg
-from imgtests.runner import AbstractRunnableTimeLimitedTest, TestResult, TestStatus
+from imgtests.planning import AbstractRunnableTimeLimitedTest
 from imgtests.suites.duration import ONE_MIN_SEC
 from imgtests.suites.general.stress_ng import StressNgTest
-from imgtests.types import Subsystem
+from imgtests.types import Subsystem, TestResult, TestStatus
 
 if TYPE_CHECKING:
     from collections.abc import Iterable

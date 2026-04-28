@@ -11,7 +11,7 @@ from sqlalchemy.orm import selectinload, sessionmaker
 
 from imgtests.database.models.base import Base
 from imgtests.database.models.configuration import ConfigurationBase
-from imgtests.database.models.experiment import ExperimentBase
+from imgtests.database.models.experiment import ExperimentBase, ExperimentType
 from imgtests.database.models.util_run_result import UtilRunResult, UtilType
 
 if TYPE_CHECKING:
@@ -20,7 +20,6 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 Table = Literal["configurations", "experiments", "util_run_result"]
-ExperimentType = Literal["performance", "endurance", "all"]
 
 
 class PostgresCreds(BaseSettings):
