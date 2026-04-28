@@ -43,6 +43,7 @@ from imgtests.database.database import ImgtestsDatabase
 from imgtests.exec.exec import wait_remote
 from imgtests.exec.user_commands import Touch
 from imgtests.logger import set_handlers
+from imgtests.reporting.html_report import ReportGenerator
 from imgtests.runner import ProfiledPlanRunner, TestsRunner, TestsRunnerConfig
 from imgtests.suites.fault_injection import FaultInjectionEnduranceTest
 from imgtests.suites.general.joint_bench import JointBench
@@ -186,8 +187,17 @@ def main() -> None:
         client=poky_client,
         database=database,
     ).run_from_env()
-    suse_client.close()
     poky_client.close()
+    suse_client.reconnect()
+    ProfiledPlanRunner(
+        client=suse_client,
+        database=database,
+    ).run_from_env()
+    suse_client.close()
+
+    report_generator = ReportGenerator(database)
+    report_generator.generate_last_two_experiments_report(out_dir=Path("results"))
+
     database.session.close_all()
 
 

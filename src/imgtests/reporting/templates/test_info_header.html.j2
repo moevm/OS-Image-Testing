@@ -1,23 +1,35 @@
 {% import "blocks/charts.html.j2" as chart %}
 {% macro render_header(header) -%}
 <p class="muted">
-  Test type: <b>{{ header.test_kind|capitalize }}</b>
-  Experiment ID: <b>{{ header.experiment_id }}</b> |
-  Plan ID: <b>{{ header.plan_id }}</b>
+  {% if header.configuration is defined %}
+    <p><b>Configuration:</b></p>
+    <ul>
+    <li>OS: {{ header.configuration.os | default("-") }}</li>
+    <li>Core info: {{ header.configuration.core_info | default("-") }}</li>
+  </ul>
+  {% endif %}
+  <p><b>Test type: </b>{{ header.test_kind|capitalize }} </p>
+
+  <p><b>Experiment ID: </b>{{ header.experiment_id }} </p>
+
+  {% if header.plan_id is defined %}
+    <p><b>Plan ID: </b>{{ header.plan_id }}</p>
+  {% endif %}
 </p>
-<p class="muted">Started: {{ header.started_at }} | Ended: {{ header.ended_at }}</p>
+<p><b>Started:</b> {{ header.started_at }}</p>
+<p><b>Ended:</b> {{ header.ended_at }}</p>
 <p>
   Total tasks: <b>{{ header.tests_counts.total_count }}</b> |
-  Passed: <b class="ok">
+  Passed: <b class={{ 'ok' if header.tests_counts.passed_count else ''}}>
     {{ header.tests_counts.passed_count }}
   </b> |
-  Failed: <b class="{{ 'bad' if header.tests_counts.failed_count else 'ok' }}">
+  Failed: <b class="{{ 'bad' if header.tests_counts.failed_count else '' }}">
     {{ header.tests_counts.failed_count }}
   </b> |
-  Broken: <b class="{{ 'bad' if header.tests_counts.broken_count else 'ok' }}">
+  Broken: <b class="{{ 'warn' if header.tests_counts.broken_count else '' }}">
     {{ header.tests_counts.broken_count }}
   </b> |
-  Skipped: <b>
+  Skipped: <b class="{{ 'skip' if header.tests_counts.broken_count else '' }}">
     {{ header.tests_counts.skip_count }}
   </b>
 </p>

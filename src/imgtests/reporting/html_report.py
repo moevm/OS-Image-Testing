@@ -1,29 +1,40 @@
 from __future__ import annotations
 
+import logging
 import re
 import statistics
 import textwrap
 from collections import defaultdict
 from dataclasses import dataclass
+from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
 from typing import TYPE_CHECKING, Final, NamedTuple
+from zoneinfo import ZoneInfo
 
 from jinja2 import Environment, FileSystemLoader, StrictUndefined, select_autoescape
+from matplotlib import cm
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from matplotlib.figure import Figure
 
+from imgtests.constant import LIB_NAME
+from imgtests.types import MetricSample, Subsystem
+
 if TYPE_CHECKING:
-    from imgtests.planning.executor import MetricSample, PlanExecutionResult
+    from imgtests.database.database import ImgtestsDatabase
+    from imgtests.database.models.experiment import ExperimentBase
+    from imgtests.planning.executor import PlanExecutionResult
     from imgtests.planning.models import TestPlan
 
 
 PLOTS_DIR: Final = "plots"
 REPORT_FILENAME: Final = "report.html"
+COMPARE_REPORT_FILENAME: Final = "compare.html"
 
 TEMPLATES_DIR: Final = "templates"
 STATIC_DIR: Final = "static"
 REPORT_TEMPLATE: Final = "base_report.html.j2"
+COMPARE_REPORT_TEMPLATE: Final = "compare_report.html.j2"
 
 
 class DiagramConfig(NamedTuple):
@@ -35,20 +46,30 @@ DIAGRAMS_CONFIG: dict[str, DiagramConfig] = {
     "histogram_by_prefix": DiagramConfig(
         run="_build_histograms_by_prefix",
         metrics=[
-            r"^systemd_critical_chain.",
-            r"^systemd_time.",
+            r"systemd_critical_chain.",
+            r"systemd_time.",
         ],
     ),
     "boxplots": DiagramConfig(
         run="_build_boxplots",
         metrics=[
             r"stress.",
+            r"stress-ng.",
             r"fio.",
+            r"iperf3.",
+            r"kirk.",
+            r"pts.",
+            r"perf.",
         ],
     ),
 }
 COMPILED_DIAGRAMS_CONFIG: dict[str, tuple[str, list[re.Pattern]]] = {
     name: (cfg.run, [re.compile(p) for p in cfg.metrics]) for name, cfg in DIAGRAMS_CONFIG.items()
+}
+
+TOOLS_TO_SUBSYSTEMS: dict[str, Subsystem] = {
+    "iperf3": Subsystem.NETWORK,
+    "fio": Subsystem.FILE,
 }
 
 
@@ -87,67 +108,345 @@ class PlotAsset:
     relative_path: str
 
 
-def generate_html_report(plan: TestPlan, execution: PlanExecutionResult, out_dir: Path) -> Path:
-    out_dir.mkdir(parents=True, exist_ok=True)
-    plots_dir = out_dir / PLOTS_DIR
-    plots_dir.mkdir(parents=True, exist_ok=True)
+class ReportGenerator:
+    def __init__(self, database: ImgtestsDatabase):
+        self._database = database
+        self._logger = logging.getLogger(f"{LIB_NAME}.report_generator")
 
-    metrics = list(execution.metrics)
+    def generate_compare_html_report(
+        self,
+        experiment_ids: list[int],
+        out_dir: Path,
+    ) -> Path | None:
+        if len(experiment_ids) != 2:  #  noqa: PLR2004
+            self._logger.error(
+                "Couldn't build a report: there are incorrect amount of experiments.",
+            )
+            return None
+        compare_dir = out_dir / f"compare-{experiment_ids[0]}-{experiment_ids[1]}"
+        compare_dir.mkdir(parents=True, exist_ok=True)
+        plots_dir = compare_dir / PLOTS_DIR
+        plots_dir.mkdir(parents=True, exist_ok=True)
+        report_data = []
+        exps_data = []
 
-    report_data = {
-        "header": {
-            "test_kind": plan.test_kind,
-            "plan_id": plan.plan_id,
-            "experiment_id": execution.experiment_id,
-            "started_at": execution.started_at.isoformat(),
-            "ended_at": execution.ended_at.isoformat(),
-            "tests_counts": execution.tests_counts,
-            "tests_stats": _build_piechart(
-                {k: v for k, v in execution.tests_counts._asdict().items() if k != "total_count"},
+        metrics_by_exp: list[list[MetricSample]] = []
+        exps_os = []
+        for exp_id in experiment_ids:
+            exp_data = self._database.get_experiment_with_details(exp_id)
+            exps_os.append(exp_data.configuration.os.split()[0])
+            exps_data.append(exp_data)
+            metrics_by_exp.append(self._extract_metrics_from_experiment(exp_data))
+
+        unique_metrics_by_exp, common_metrics = self.__distribute_metrics(
+            metrics_by_exp,
+            exps_os,
+        )
+
+        for i in range(len(exps_data)):
+            exp_data = exps_data[i]
+            metrics = self._extract_metrics_from_experiment(exp_data)
+            report_data.append(
+                {
+                    "header": {
+                        "test_kind": exp_data.description,
+                        "configuration": exp_data.configuration,
+                        "experiment_id": exp_data.experiment_id,
+                        "started_at": exp_data.started_at.isoformat(),
+                        "ended_at": exp_data.ended_at.isoformat(),
+                        "tests_counts": {
+                            "skip_count": exp_data.tests_skipped,
+                            "broken_count": exp_data.tests_broken,
+                            "failed_count": exp_data.tests_failed,
+                            "passed_count": exp_data.tests_passed,
+                            "total_count": exp_data.tests_total,
+                        },
+                        "tests_stats": _build_piechart(
+                            {
+                                "skip_count": exp_data.tests_skipped,
+                                "broken_count": exp_data.tests_broken,
+                                "passed_count": exp_data.tests_passed,
+                                "failed_count": exp_data.tests_failed,
+                            },
+                            out_dir=compare_dir,
+                            plots_dir=plots_dir,
+                            title="Test result statistics",
+                        ),
+                    },
+                    "timeline": {
+                        "overall_rows": _compute_stats(metrics, by_stage=False),
+                        "per_stage_rows": _compute_stats(metrics, by_stage=True),
+                    },
+                    "unique_visualizations": self.collect_test_visualizations(
+                        unique_metrics_by_exp[i],
+                        out_dir=compare_dir,
+                        plots_dir=plots_dir,
+                    ),
+                },
+            )
+        template = _template_environment().get_template(COMPARE_REPORT_TEMPLATE)
+        report_path = compare_dir / COMPARE_REPORT_FILENAME
+        report_path.write_text(
+            template.render(
+                exps_data=report_data,
+                common_visualizations=self.collect_test_visualizations(
+                    common_metrics,
+                    out_dir=compare_dir,
+                    plots_dir=plots_dir,
+                ),
+            ),
+            encoding="utf-8",
+        )
+        return report_path
+
+    def generate_last_two_experiments_report(self, out_dir: Path) -> Path | None:
+        from sqlalchemy import desc  #  noqa: PLC0415
+
+        from imgtests.database.models.experiment import ExperimentBase  #  noqa: PLC0415
+
+        self._database._check_session()  #  noqa: SLF001
+        with self._database.session() as session:
+            experiments = (
+                session.query(ExperimentBase)
+                .order_by(desc(ExperimentBase.started_at))
+                .limit(2)
+                .all()
+            )
+            ids = [exp.experiment_id for exp in experiments]
+        if len(ids) != 2:  #  noqa: PLR2004
+            self._logger.error(
+                "Couldn't build a report: there are incorrect amount of experiments.",
+            )
+            return None
+        return self.generate_compare_html_report(sorted(ids), out_dir)
+
+    def __distribute_metrics(
+        self,
+        metrics_by_exp: list[list[MetricSample]],
+        experiments_os: list[str],
+    ) -> tuple[list[list[MetricSample]], list[MetricSample]]:
+        unique_metrics_by_exp: list[list[MetricSample]] = []
+        common_metrics: list[MetricSample] = []
+
+        prefix_sets = []
+        for metrics in metrics_by_exp:
+            prefixes = {m.metric_name.split(".")[0] for m in metrics if "." in m.metric_name}
+            prefix_sets.append(prefixes)
+
+        common_prefixes = set.intersection(*prefix_sets) if prefix_sets else set()
+
+        for exp_idx, exp_metrics in enumerate(metrics_by_exp):
+            exp_os = experiments_os[exp_idx]
+            unique_for_exp: list[MetricSample] = []
+
+            for m in exp_metrics:
+                prefix = m.metric_name.split(".")[0] if "." in m.metric_name else m.metric_name
+                if prefix not in common_prefixes:
+                    unique_for_exp.append(m)
+                else:
+                    common_metrics.append(
+                        MetricSample(
+                            stage_name=m.stage_name,
+                            subsystem=m.subsystem,
+                            metric_name=f"{exp_os.replace(' ', '_')}${m.metric_name}",
+                            value=m.value,
+                            label=m.label,
+                        ),
+                    )
+            unique_metrics_by_exp.append(unique_for_exp)
+
+        return unique_metrics_by_exp, common_metrics
+
+    def _extract_metrics_from_experiment(self, experiment: ExperimentBase) -> list[MetricSample]:
+        metrics: list[MetricSample] = []
+
+        for util_run_result in experiment.util_run_results:
+            if util_run_result.description == "Planned stage":
+                continue
+            result = util_run_result.result
+            if not result or not isinstance(result, dict):
+                continue
+            if "metrics" not in result:
+                continue
+            if isinstance(result.get("metrics"), list):
+                metrics.extend(
+                    MetricSample(
+                        stage_name=m.get("stage_name", ""),
+                        subsystem=m.get("subsystem", "unknown"),
+                        metric_name=m.get("metric_name", "unknown_tool"),
+                        value=float(m.get("value", 0)),
+                        label=m.get("label", "unknown_metric"),
+                    )
+                    for m in util_run_result.result.get("metrics", [])
+                    if isinstance(m, dict)
+                )
+            if isinstance(result.get("metrics"), dict) and all(
+                k in result for k in ("tool", "test_type", "metrics")
+            ):
+                tool = result.get("tool")
+                test_type = result.get("test_type")
+                stage_name = (
+                    " ".join(f"{k}:{v}" for k, v in test_type.items() if not isinstance(v, dict))
+                    or "tool_stage"
+                )
+                subsystem = TOOLS_TO_SUBSYSTEMS.get(tool)
+                if subsystem is None:
+                    subsystem = test_type.get("stressor", "unknown")
+                match tool:
+                    case "iperf3":
+                        fixed_prefix = [tool, test_type["protocol"]]
+                    case "pts":
+                        fixed_prefix = [tool, test_type["identifier"]]
+                    case "perf":
+                        fixed_prefix = [tool, test_type["benchmark"]]
+                    case _:
+                        fixed_prefix = [tool]
+
+                metrics.extend(
+                    self._walk_metrics(
+                        d=result["metrics"],
+                        tool=tool,
+                        stage_name=stage_name,
+                        fixed_prefix=fixed_prefix,
+                        prefix=[],
+                        subsystem=subsystem,
+                    ),
+                )
+        return metrics
+
+    def _walk_metrics(  #  noqa: PLR0913
+        self,
+        d: dict,
+        tool: str,
+        stage_name: str,
+        fixed_prefix: list[str],
+        prefix: list[str],
+        subsystem: str = "unknown",
+    ) -> list[MetricSample]:
+        collected: list[MetricSample] = []
+        if "stressor" in d:
+            if subsystem == "unknown":
+                subsystem = d.get("stressor", subsystem)
+            else:
+                subsystem = f"{subsystem}_{d.get('stressor')}"
+        if tool == "kirk" and "test" in d:
+            fixed_prefix = [tool, d["test"]]
+
+        for k, v in d.items():
+            if k == "summary":
+                continue
+            if k.isdigit() and isinstance(v, dict):
+                collected.extend(
+                    self._walk_metrics(v, tool, stage_name, fixed_prefix, prefix, subsystem),
+                )
+            elif isinstance(v, dict):
+                collected.extend(
+                    self._walk_metrics(v, tool, stage_name, fixed_prefix, [*prefix, k], subsystem),
+                )
+            elif isinstance(v, (int, float)):
+                metric_name = ".".join(fixed_prefix + prefix + [k])
+                label = ".".join(fixed_prefix + [*prefix, k][-2:])
+                collected.append(
+                    MetricSample(
+                        stage_name=stage_name,
+                        subsystem=subsystem,
+                        metric_name=metric_name,
+                        value=float(v),
+                        label=label,
+                    ),
+                )
+            elif isinstance(v, list):
+                if not all(isinstance(x, (int, float)) for x in v):
+                    continue
+                metric_name = ".".join(fixed_prefix + prefix + [k])
+                label = ".".join(fixed_prefix + [*prefix, k][-2:])
+                collected.extend(
+                    MetricSample(
+                        stage_name=stage_name,
+                        subsystem=subsystem,
+                        metric_name=metric_name,
+                        value=float(val),
+                        label=label,
+                    )
+                    for val in v
+                )
+        return collected
+
+    @staticmethod
+    def generate_profiled_html_report(
+        plan: TestPlan,
+        execution: PlanExecutionResult,
+        out_dir: Path,
+    ) -> Path:
+        out_dir.mkdir(parents=True, exist_ok=True)
+        plots_dir = out_dir / PLOTS_DIR
+        plots_dir.mkdir(parents=True, exist_ok=True)
+
+        metrics = list(execution.metrics)
+
+        report_data = {
+            "header": {
+                "test_kind": plan.test_kind,
+                "plan_id": plan.plan_id,
+                "experiment_id": execution.experiment_id,
+                "started_at": execution.started_at.isoformat(),
+                "ended_at": execution.ended_at.isoformat(),
+                "tests_counts": execution.tests_counts,
+                "tests_stats": _build_piechart(
+                    {
+                        "skip_count": execution.tests_counts.skip_count,
+                        "broken_count": execution.tests_counts.broken_count,
+                        "passed_count": execution.tests_counts.passed_count,
+                        "failed_count": execution.tests_counts.failed_count,
+                    },
+                    out_dir=out_dir,
+                    plots_dir=plots_dir,
+                    title="Test result statistics",
+                ),
+            },
+            "timeline": {
+                "overall_rows": _compute_stats(metrics, by_stage=False),
+                "per_stage_rows": _compute_stats(metrics, by_stage=True),
+                "timeline_rows": _build_timeline_rows(plan, execution),
+            },
+            "visualizations": ReportGenerator.collect_test_visualizations(
+                execution.metrics,
                 out_dir=out_dir,
                 plots_dir=plots_dir,
-                title="Test result statistics",
             ),
-        },
-        "timeline": {
-            "overall_rows": _compute_stats(metrics, by_stage=False),
-            "per_stage_rows": _compute_stats(metrics, by_stage=True),
-            "timeline_rows": _build_timeline_rows(plan, execution),
-        },
-        "visualizations": _collect_test_visualizations(
-            execution.metrics,
-            out_dir=out_dir,
-            plots_dir=plots_dir,
-        ),
-    }
+        }
 
-    template = _template_environment().get_template(REPORT_TEMPLATE)
-    report_path = out_dir / REPORT_FILENAME
-    report_path.write_text(
-        template.render(
-            **report_data,
-        ),
-        encoding="utf-8",
-    )
-    return report_path
+        template = _template_environment().get_template(REPORT_TEMPLATE)
+        report_path = out_dir / REPORT_FILENAME
+        report_path.write_text(
+            template.render(
+                **report_data,
+            ),
+            encoding="utf-8",
+        )
+        return report_path
 
+    @staticmethod
+    def collect_test_visualizations(
+        samples: list[MetricSample],
+        out_dir: Path,
+        plots_dir: Path,
+    ) -> dict[str, list[PlotAsset]]:
+        results: dict[str, list[PlotAsset]] = {}
 
-def _collect_test_visualizations(
-    samples: list[MetricSample],
-    out_dir: Path,
-    plots_dir: Path,
-) -> dict[str, list[PlotAsset]]:
-    results: dict[str, list[PlotAsset]] = {}
+        for name, (run_fn, patterns) in COMPILED_DIAGRAMS_CONFIG.items():
+            matched = []
+            for s in samples:
+                normalized_name = re.sub(r"^[^$]+\$", "", s.metric_name)
+                if any(p.match(normalized_name) for p in patterns):
+                    matched.append(s)
+            if not matched and patterns:
+                continue
 
-    for name, (run_fn, patterns) in COMPILED_DIAGRAMS_CONFIG.items():
-        matched = [s for s in samples if any(p.match(s.metric_name) for p in patterns)]
-        if not matched and patterns:
-            continue
+            fn = globals()[run_fn]
+            results[name] = fn(matched, out_dir=out_dir, plots_dir=plots_dir)
 
-        fn = globals()[run_fn]
-        results[name] = fn(matched, out_dir=out_dir, plots_dir=plots_dir)
-
-    return results
+        return results
 
 
 @lru_cache(maxsize=1)
@@ -253,10 +552,19 @@ def _build_boxplots(
     out_dir: Path,
     plots_dir: Path,
 ) -> list[PlotAsset]:
-    metric_to_subsystems: dict[str, dict[str, list[float]]] = defaultdict(lambda: defaultdict(list))
+    metric_to_subsystems: dict[str, dict[str, dict[str, list[float]]]] = defaultdict(
+        lambda: defaultdict(lambda: defaultdict(list)),
+    )
     for sample in samples:
-        metric_to_subsystems[sample.metric_name][sample.subsystem].append(float(sample.value))
+        parts = sample.metric_name.split("$")
+        if len(parts) > 1:
+            exp_prefix = parts[0].replace("_", " ")
+            metric_core = ".".join(parts[1:])
+        else:
+            exp_prefix = "common"
+            metric_core = sample.metric_name
 
+        metric_to_subsystems[metric_core][sample.subsystem][exp_prefix].append(float(sample.value))
     plot_assets: list[PlotAsset] = []
 
     for metric_name in sorted(metric_to_subsystems):
@@ -264,10 +572,12 @@ def _build_boxplots(
         values: list[list[float]] = []
 
         for subsystem in sorted(metric_to_subsystems[metric_name]):
-            subsystem_values = metric_to_subsystems[metric_name][subsystem]
-            if subsystem_values:
-                labels.append(subsystem)
-                values.append(subsystem_values)
+            exp_groups = metric_to_subsystems[metric_name][subsystem]
+            for exp_prefix, vals in exp_groups.items():
+                if vals:
+                    label = subsystem if exp_prefix == "common" else f"{subsystem} ({exp_prefix})"
+                    labels.append(textwrap.fill(label, 15))
+                    values.append(vals)
 
         if not values:
             continue
@@ -280,6 +590,10 @@ def _build_boxplots(
         ax.set_xlabel("Subsystem")
         ax.set_ylabel("Value")
         ax.grid(visible=True, axis="y", alpha=0.3)
+
+        for tick in ax.get_xticklabels():
+            tick.set_rotation(30)
+            tick.set_ha("right")
 
         out_path = plots_dir / f"{_safe_filename(metric_name)}.png"
         fig.tight_layout()
@@ -334,41 +648,64 @@ def _build_histograms_by_prefix(
     out_dir: Path,
     plots_dir: Path,
 ) -> list[PlotAsset]:
-    grouped = defaultdict(list)
+    grouped = defaultdict(lambda: defaultdict(list))
     for m in metrics:
-        if "." in m.metric_name:
-            grouped[m.metric_name.split(".")[0]].append(m)
+        parts = m.metric_name.split("$", 1)
+        if len(parts) > 1:
+            exp_prefix = parts[0].replace("_", " ")
+            subparts = parts[1].split(".")
+        else:
+            exp_prefix = "common"
+            subparts = parts[0].split(".")
+        util_prefix = subparts[0]
+        metric_core = ".".join(subparts[1:]) if len(subparts) > 1 else util_prefix
+
+        grouped[util_prefix][exp_prefix].append((metric_core, m))
 
     assets = []
-    for prefix, group in grouped.items():
-        labels = [textwrap.fill(m.label, 15) for m in group]
-        values = [m.value for m in group]
-
-        fig = Figure(figsize=(8, 6))
+    for util_prefix, exp_groups in grouped.items():
+        fig = Figure(figsize=(10, 6))
         FigureCanvasAgg(fig)
         ax = fig.add_subplot(1, 1, 1)
-        bars = ax.bar(range(len(labels)), values)
-        ax.set_title(f"{prefix} metrics")
-        ax.grid(visible=True, axis="y", alpha=0.3)
-        ax.set_xticks(range(len(labels)))
-        ax.set_xticklabels(labels, rotation=60, ha="right")
 
-        for bar, val in zip(bars, values, strict=True):
-            ax.text(
-                bar.get_x() + bar.get_width() / 2,
-                bar.get_height(),
-                f"{val:.2f}",
-                ha="center",
-                va="bottom",
+        all_metric_names = []
+        for group in exp_groups.values():
+            for metric_core, _ in group:
+                if metric_core not in all_metric_names:
+                    all_metric_names.append(metric_core)
+
+        exp_labels = list(exp_groups.keys())
+        cmap = cm.get_cmap("tab10", len(exp_labels))
+        values_by_exp = []
+        for exp_prefix in exp_labels:
+            label_to_value = {core: m.value for core, m in exp_groups[exp_prefix]}
+            values = [label_to_value.get(core, 0.0) for core in all_metric_names]
+            values_by_exp.append(values)
+
+        x = range(len(all_metric_names))
+        width = 0.8 / len(exp_labels)
+
+        for i, values in enumerate(values_by_exp):
+            ax.bar(
+                [pos + i * width for pos in x],
+                values,
+                width=width,
+                label=exp_labels[i],
+                color=cmap(i),
             )
-
-        out_path = plots_dir / f"{_safe_filename(prefix)}.png"
+        ax.set_title(f"{util_prefix} metrics")
+        ax.set_xticks([pos + width * (len(exp_labels) - 1) / 2 for pos in x])
+        ax.set_xticklabels(all_metric_names, rotation=30, ha="right")
+        if len(exp_labels) > 1:
+            ax.legend(title="OS")
+        ax.grid(visible=True, axis="y", alpha=0.3)
+        out_path = plots_dir / f"{_safe_filename(util_prefix)}.png"
         fig.tight_layout()
         fig.savefig(out_path)
 
         assets.append(
             PlotAsset(
-                title=prefix,
+                title=util_prefix,
                 relative_path=str(out_path.relative_to(out_dir)),
             ),
         )
@@ -382,5 +719,5 @@ def _format_float(value: float) -> str:
 def _safe_filename(name: str) -> str:
     safe = re.sub(r"[^a-zA-Z0-9_.-]+", "_", name).strip("_")
     if not safe:
-        return "metric"
-    return safe
+        return f"metric_{datetime.now(tz=ZoneInfo('UTC')).strftime('%Y%m%d_%H%M%S')}"
+    return f"{safe}_{datetime.now(tz=ZoneInfo('UTC')).strftime('%Y%m%d_%H%M%S_%f')}"
