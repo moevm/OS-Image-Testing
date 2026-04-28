@@ -489,10 +489,16 @@ class TestsRunner(BaseRunner):
         )
 
     def get_snapshots_info(self) -> ExecResult:
-        commands: list[list[str]] = [
-            ["echo", "info snapshots"],
-            ["nc", "-q", "0", "10.0.2.2", "4444"],
-        ]
+        if self._client.hostname == "10.5.0.13":
+            commands: list[list[str]] = [
+                ["echo", "info", "snapshots"],
+                ["nc", "-q", "0", "10.0.2.2", "4444"],
+            ]
+        else:
+            commands: list[list[str]] = [
+                ["echo", "info", "snapshots"],
+                ["nc", "-c", "10.0.2.2", "4444"],
+            ]
         for result in pipeline(cmds=commands, ssh_client=self._client, pass_output=True):
             if result.returncode:
                 self._logger.error("Failed to get snapshots info: %s.", result.cmd)
@@ -500,10 +506,16 @@ class TestsRunner(BaseRunner):
 
     def switch_to_snapshot(self, snapshot_name: str) -> None:
         self._logger.info("Switching to snapshot %s.", snapshot_name)
-        commands: list[list[str]] = [
-            ["echo", "loadvm", snapshot_name],
-            ["nc", "-q", "0", "10.0.2.2", "4444"],
-        ]
+        if self._client.hostname == "10.5.0.13":
+            commands: list[list[str]] = [
+                ["echo", "loadvm", snapshot_name],
+                ["nc", "-q", "0", "10.0.2.2", "4444"],
+            ]
+        else:
+            commands: list[list[str]] = [
+                ["echo", "loadvm", snapshot_name],
+                ["nc", "-c", "10.0.2.2", "4444"],
+            ]
         for result in pipeline(
             cmds=commands,
             ssh_client=self._client,
@@ -521,10 +533,17 @@ class TestsRunner(BaseRunner):
         self._client.reconnect()
 
     def create_snapshot(self, snapshot_name: str) -> None:
-        commands: list[list[str]] = [
-            ["echo", "savevm", snapshot_name],
-            ["nc", "-q", "0", "10.0.2.2", "4444"],
-        ]
+        self._logger.info("Creating snapshot: %s.", snapshot_name)
+        if self._client.hostname == "10.5.0.13":
+            commands: list[list[str]] = [
+                ["echo", "savevm", snapshot_name],
+                ["nc", "-q", "0", "10.0.2.2", "4444"],
+            ]
+        else:
+            commands: list[list[str]] = [
+                ["echo", "savevm", snapshot_name],
+                ["nc", "-c", "10.0.2.2", "4444"],
+            ]
         for result in pipeline(cmds=commands, ssh_client=self._client, pass_output=True):
             if result.returncode:
                 self._logger.error("Failed to create snapshot %s: %s.", snapshot_name, result.cmd)
