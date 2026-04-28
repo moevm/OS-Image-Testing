@@ -36,6 +36,7 @@ lint = [
 ]
 tests = [
     "pytest~=9.0.3",
+    "pytest-cov~=7.1.0",
 ]
 
 [tool.setuptools.package-data]
@@ -76,8 +77,18 @@ convention = "google"
 [tool.ruff.lint.mccabe]
 max-complexity = 12
 
+[tool.coverage.run]
+branch = true
+
+[tool.coverage.report]
+include_namespace_packages = true
+precision = 2
+
+[tool.coverage.xml]
+output = "tests/pytest-coverage.xml"
+
 [tool.pytest.ini_options]
-addopts = "-v"
+addopts = "-v --cov=src/ --cov-report xml --cov-report term"
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
