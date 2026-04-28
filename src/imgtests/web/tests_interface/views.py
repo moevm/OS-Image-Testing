@@ -1,53 +1,18 @@
 import os
-import subprocess
-import threading
-import uuid
 from typing import TYPE_CHECKING
 
 from django.http import HttpRequest, JsonResponse
 from django.shortcuts import render
+from django.tasks import TaskResultStatus
+
+from .tasks import run_test_task
 
 if TYPE_CHECKING:
     from django.http.response import HttpResponse
+    from django.tasks import TaskResult
 
 
 test_runs = {}
-
-
-def _run_test_task(task_id: str, env_vars: dict) -> None:
-    try:
-        result = subprocess.run(
-            ["/usr/bin/env", "python3", "/home/user/image/runner.py"],
-            check=True,
-            capture_output=True,
-            text=True,
-            timeout=3600,
-            env=env_vars,
-        )
-        test_runs[task_id] = {
-            "status": "completed",
-            "output": result.stdout + (f"\n\nErrors:\n{result.stderr}" if result.stderr else ""),
-            "exit_code": result.returncode,
-        }
-    except subprocess.TimeoutExpired as e:
-        test_runs[task_id] = {
-            "status": "failed",
-            "error": f"Test timed out after {e.timeout} seconds",
-            "output": e.stdout.decode() if e.stdout else "",
-            "stderr": e.stderr.decode() if e.stderr else "",
-        }
-    except subprocess.CalledProcessError as e:
-        test_runs[task_id] = {
-            "status": "failed",
-            "error": str(e),
-            "output": e.stdout,
-            "stderr": e.stderr,
-        }
-    except Exception as e:  # noqa: BLE001
-        test_runs[task_id] = {
-            "status": "failed",
-            "error": str(e),
-        }
 
 
 def index(request: HttpRequest) -> HttpResponse:
@@ -75,12 +40,14 @@ def run_tests(request: HttpRequest) -> JsonResponse:
     env_vars = os.environ.copy()
     env_vars.update(env_req)
 
-    task_id = str(uuid.uuid4())
-    test_runs[task_id] = {"status": "running"}
+    result: TaskResult = run_test_task.enqueue(env_vars)
 
-    thread = threading.Thread(target=_run_test_task, args=(task_id, env_vars))
-    thread.daemon = True
-    thread.start()
+    task_id = str(result.id)
+    test_runs[task_id] = {
+        "status": "running",
+        "result": result,
+        "task_id": task_id,
+    }
 
     return JsonResponse({"success": True, "task_id": task_id, "status": "running"})
 
@@ -90,13 +57,44 @@ def get_test_status(request: HttpRequest, task_id: str) -> JsonResponse:  # noqa
         return JsonResponse({"error": "Task not found"}, status=404)
 
     task_data = test_runs[task_id]
+    result = task_data["result"]
+
+    result.refresh()
+
+    if not result.is_finished:
+        return JsonResponse(
+            {
+                "task_id": task_id,
+                "status": "running",
+                "output": "",
+                "exit_code": None,
+                "error": None,
+                "stderr": "",
+            },
+        )
+
+    if result.status == TaskResultStatus.SUCCESSFUL:
+        task_result = result.return_value
+        return JsonResponse(
+            {
+                "task_id": task_id,
+                "status": task_result.get("status", "completed"),
+                "output": task_result.get("output", ""),
+                "exit_code": task_result.get("exit_code"),
+                "error": task_result.get("error"),
+                "stderr": task_result.get("stderr", ""),
+            },
+        )
+    error_msg = "Task failed"
+    if result.errors:
+        error_msg = str(result.errors[-1])
+
     return JsonResponse(
         {
             "task_id": task_id,
-            "status": task_data.get("status"),
-            "output": task_data.get("output", ""),
-            "exit_code": task_data.get("exit_code"),
-            "error": task_data.get("error"),
-            "stderr": task_data.get("stderr", ""),
+            "status": "failed",
+            "error": error_msg,
+            "output": "",
+            "stderr": "",
         },
     )

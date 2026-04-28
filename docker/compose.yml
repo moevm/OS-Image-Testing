@@ -69,7 +69,6 @@ services:
         USER: ${USER}
         GROUP: ${GROUP}
     image: ${DOCKER_PYTHON_TAG}
-    command: python3 -m imgtests runserver 0.0.0.0:8000
     volumes:
       - ./tests/image:/home/${USER}/image
       - ${HOST_SCRIPTS_PATH}/bencher/bencher-test.sh:/home/${USER}/bencher-test.sh

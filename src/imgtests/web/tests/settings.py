@@ -27,6 +27,8 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django_tasks",
+    "django_tasks_db",
     "tests_interface",
 ]
 
@@ -93,3 +95,14 @@ STATIC_URL = "static/"
 STATICFILES_DIRS = [
     BASE_DIR / "static",
 ]
+
+TASKS = {
+    "default": {
+        "BACKEND": "django_tasks_db.DatabaseBackend",
+        "OPTIONS": {
+            "queue_name": "default",
+            "max_attempts": 1,
+            "expires_after": 3600,
+        },
+    },
+}
