@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import logging
 import subprocess
 from enum import Flag, auto
@@ -110,24 +108,6 @@ class SSHClient:
         logger.info("Connecting to the host '%s'.", self.hostname)
         self.ssh_session.connect(username=self.username, password=self.password)
 
-    @staticmethod
-    def _read_available(
-        session: paramiko.Channel,
-        stdout_chunks: list[bytes],
-        stderr_chunks: list[bytes],
-    ) -> None:
-        while session.recv_ready():
-            chunk = session.recv(32768)
-            if not chunk:
-                break
-            stdout_chunks.append(chunk)
-
-        while session.recv_stderr_ready():
-            chunk = session.recv_stderr(32768)
-            if not chunk:
-                break
-            stderr_chunks.append(chunk)
-
     def __call__(
         self,
         cmd: Sequence[str],
@@ -135,49 +115,36 @@ class SSHClient:
         verbosity: Verbosity = Verbosity.STDERR,
     ) -> ExecResult:
         session = self.ssh_session.open_channel(kind="session")
-        cmd_str = " ".join(str(part) for part in cmd)
-        stdout_chunks: list[bytes] = []
-        stderr_chunks: list[bytes] = []
+        stdout = session.makefile("rb")
+        stderr = session.makefile_stderr("rb")
         logger.debug("Running command '%s' on host '%s'.", cmd, self.hostname)
+        cmd_str = " ".join(cmd)
+        session.exec_command(cmd_str)
 
-        try:
-            session.exec_command(cmd_str)
+        if input_ is not None:
+            stdin_channel = session.makefile_stdin("wb")
+            stdin_channel.write(input_)
+            stdin_channel.flush()
+            stdin_channel.close()
 
-            if input_ is not None:
-                stdin_channel = session.makefile_stdin("wb")
-                stdin_channel.write(input_.encode("utf-8"))
-                stdin_channel.flush()
-                stdin_channel.close()
+        retval = session.recv_exit_status()
+        stdout = stdout.read().decode("utf-8").strip()
+        stderr = stderr.read().decode("utf-8").strip()
 
-            while not session.exit_status_ready():
-                self._read_available(session, stdout_chunks, stderr_chunks)
-                sleep(0.05)
-
-            self._read_available(session, stdout_chunks, stderr_chunks)
-            retval = session.recv_exit_status()
-            self._read_available(session, stdout_chunks, stderr_chunks)
-
-            stdout = b"".join(stdout_chunks).decode("utf-8", errors="replace").strip()
-            stderr = b"".join(stderr_chunks).decode("utf-8", errors="replace").strip()
-
-            if Verbosity.STDERR in verbosity and retval:
-                logger.error("Command '%s' completed with errors on the remote.", cmd_str)
-                if stderr:
-                    logger.error(stderr)
-
-            if Verbosity.STDOUT in verbosity and stdout:
-                logger.info(stdout)
-
-            logger.debug("Exit status: %d.", retval)
-
-            return ExecResult(
-                cmd=tuple(cmd),
-                stdout=stdout,
-                stderr=stderr,
-                returncode=retval,
-            )
-        finally:
-            session.close()
+        if Verbosity.STDERR in verbosity and retval:
+            logger.error("Command '%s' completed with errors on the remote.", cmd_str.strip())
+            if stderr:
+                logger.error(stderr)
+        if Verbosity.STDOUT in verbosity and stdout:
+            logger.info(stdout)
+        logger.debug("Exit status: %d.", retval)
+        session.close()
+        return ExecResult(
+            cmd=tuple(cmd),
+            stdout=stdout,
+            stderr=stderr,
+            returncode=retval,
+        )
 
     @classmethod
     def build_from_env(
