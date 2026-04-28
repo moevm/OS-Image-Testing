@@ -1,9 +1,11 @@
 import re
 from contextlib import suppress
 from dataclasses import dataclass
-from enum import StrEnum
+from datetime import datetime
+from enum import Enum, StrEnum, auto
 from functools import total_ordering
-from typing import NamedTuple
+from typing import Any, NamedTuple
+from zoneinfo import ZoneInfo
 
 
 @total_ordering
@@ -71,6 +73,21 @@ class TestsCounts(NamedTuple):
     passed_count: int = 0
     failed_count: int = 0
     skip_count: int = 0
+
+
+class TestStatus(Enum):
+    PASSED = auto()
+    FAILED = auto()
+    SKIPPED = auto()
+    BROKEN = auto()
+
+
+class TestResult(NamedTuple):
+    status: TestStatus
+    metrics: Any = None
+    command: str = ""
+    started_at: datetime = datetime.now(tz=ZoneInfo("UTC"))
+    ended_at: datetime = datetime.now(tz=ZoneInfo("UTC"))
 
 
 class Subsystem(StrEnum):

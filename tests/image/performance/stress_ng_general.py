@@ -3,9 +3,8 @@ from typing import TYPE_CHECKING, Any
 
 from imgtests.exec.loaders import StressNg
 from imgtests.exec.user_commands import Nproc
-from imgtests.runner import TestResult, TestStatus
 from imgtests.suites.general.stress_ng import StressNgTest
-from imgtests.types import Subsystem
+from imgtests.types import Subsystem, TestResult, TestStatus
 
 if TYPE_CHECKING:
     from collections.abc import Iterable

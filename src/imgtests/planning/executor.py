@@ -17,9 +17,9 @@ from imgtests.exec.observers.systemd_analyze import SystemdAnalyze
 from imgtests.exec.user_commands import Nproc
 from imgtests.planning.profiles import CPU_SCALE_ARG_PREFIX, FIO_SIZE_RATIO_ARG_PREFIX
 from imgtests.reporting.html_report import generate_html_report
-from imgtests.runner import BaseRunner, TestStatus
+from imgtests.runner import BaseRunner
 from imgtests.sizing import parse_size_to_bytes, round_bytes_to_mib_str
-from imgtests.types import MetricSample, TestsCounts
+from imgtests.types import MetricSample, TestsCounts, TestStatus
 
 if TYPE_CHECKING:
     from pathlib import Path
