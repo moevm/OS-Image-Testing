@@ -162,9 +162,10 @@ def main() -> None:
     logger = logging.getLogger()
     set_handlers(logger, Path("processing.log"))
     tested_distro = os.getenv("TESTED_DISTRO", "all")
-    if tested_distro not in ("all", "yocto", "suse"):
+    if tested_distro not in ("all", "yocto", "opensuse"):
         logger.error(
-            "Invalid TESTED_DISTRO value: %s. Use 'all', 'yocto', 'suse'", tested_distro
+            "Invalid TESTED_DISTRO value: %s. Use 'all', 'yocto', 'opensuse'",
+            tested_distro,
         )
         sys.exit(1)
     logger.info("Running tests for %s", tested_distro)
@@ -172,7 +173,7 @@ def main() -> None:
     poky_client = None
     if tested_distro in ("yocto", "all"):
         poky_client = wait_remote(*YOCTO_CONF) or sys.exit(1)
-    if tested_distro in ("suse", "all"):
+    if tested_distro in ("opensuse", "all"):
         suse_client = wait_remote(*SUSE_156_CONF) or sys.exit(1)
         # disable cloud-init for the next boot for Suse according to documentation
         Touch(suse_client, use_sudo=True)(["/etc/cloud/cloud-init.disabled"])

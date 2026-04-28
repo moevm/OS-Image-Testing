@@ -323,3 +323,83 @@ h1 i {
     transform: none;
     box-shadow: 0 2px 10px rgba(255, 200, 162, 0.3);
 }
+
+.controls {
+    margin-bottom: 20px;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.btn-success {
+    background-color: #28a745;
+    color: white;
+}
+
+.btn-warning {
+    background-color: #ffc107;
+    color: #333;
+}
+
+.platform-link {
+    position: relative;
+    text-decoration: none;
+    display: block;
+    transition: transform 0.3s ease;
+}
+
+.platform-link:hover {
+    transform: translateY(-5px);
+}
+
+.delete-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background-color: rgba(255, 0, 0, 0.8);
+    color: white;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.platform-link:hover .delete-btn {
+    opacity: 1;
+}
+
+.delete-btn:hover {
+    background-color: red;
+}
+
+.link-content {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+}
+
+.link-text h2 {
+    color: white;
+    margin: 0 0 10px 0;
+}
+
+.link-text p {
+    color: rgba(255, 255, 255, 0.9);
+    margin: 0;
+}

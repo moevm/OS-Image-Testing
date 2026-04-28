@@ -11,48 +11,18 @@
         </p>
     </div>
 
-    <div class="links-container">
-        <a href="{% url 'yocto' %}" class="platform-link yocto-link">
-            <div class="link-content">
-                <div class="link-text">
-                    <h2>Yocto Project</h2>
-                    <p>Run tests for Yocto platform</p>
-                </div>
-            </div>
-        </a>
-
-        <a href="{% url 'opensuse' %}" class="platform-link opensuse-link">
-            <div class="link-content">
-                <div class="link-text">
-                    <h2>OpenSUSE</h2>
-                    <p>Run tests for OpenSUSE platform</p>
-                </div>
-            </div>
-        </a>
-
-        <a
-            href="{% url 'report_list' %}"
-            class="platform-link"
-            style="text-decoration: none"
-        >
-            <div
-                class="link-content"
-                style="
-                    background: linear-gradient(
-                        135deg,
-                        #667eea 0%,
-                        #764ba2 100%
-                    );
-                "
-            >
-                <div class="link-text">
-                    <h2 style="color: white">View All Reports</h2>
-                    <p style="color: rgba(255, 255, 255, 0.9)">
-                        Browse all generated test reports
-                    </p>
-                </div>
-            </div>
-        </a>
+    <div class="controls">
+        <button id="addDistroBtn" class="btn btn-success">
+            + Add Distribution
+        </button>
+        <button id="resetDistrosBtn" class="btn btn-warning">
+            Reset to Default
+        </button>
     </div>
+
+    <div id="distrosContainer" class="links-container"></div>
 </div>
+
+{% load static %}
+<script src="{% static 'js/dashboard.js' %}"></script>
 {% endblock %}
