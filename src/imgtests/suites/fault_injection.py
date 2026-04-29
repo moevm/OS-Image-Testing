@@ -4,8 +4,9 @@ from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
 from imgtests.exec.loaders import Kirk
+from imgtests.exec.osinfo import get_os_release
 from imgtests.planning import AbstractRunnableTimeLimitedTest
-from imgtests.types import Subsystem, TestResult, TestStatus
+from imgtests.types import Distro, Subsystem, TestResult, TestStatus
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -29,6 +30,11 @@ class FaultInjectionEnduranceTest(AbstractRunnableTimeLimitedTest):
         client: SSHClient | None,
         timeout: int,
     ) -> Iterable[TestResult]:
+        os_id = get_os_release(client).id
+        if os_id and os_id != Distro.POKY.value:
+            self.logger.warning("Skipping test due to fault injection is supported on poky.")
+            return TestResult(status=TestStatus.SKIPPED)
+
         kirk = Kirk(client)
         available_suites = kirk.list_suites()
         scenarios = ["syscalls", "fs", "mm", "dio"]
