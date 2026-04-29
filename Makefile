@@ -33,6 +33,7 @@ BUILD_DIR                  := ${POKY_DIR}/build
 HOST_LAYERS_PATH           := ${CURDIR}/layers
 HOST_CONF_PATH             := ${CURDIR}/conf
 HOST_SCRIPTS_PATH          := ${CURDIR}/scripts
+TESTS_DIR                  := ${CURDIR}/tests
 
 # Python
 PACKAGE_MGR                := uv
@@ -119,7 +120,7 @@ pre-commit-check: ${PACKAGE_MGR}
 .PHONY: unit-test
 unit-test: ${PACKAGE_MGR}
 	@echo "Running tests for the library '${PY_LIB_NAME}''..."
-	@uv run --with pytest pytest
+	@COVERAGE_FILE=${TESTS_DIR}/.coverage uv run --with pytest --with pytest-cov pytest ${TESTS_DIR}/unit ${TESTS_DIR}/misc
 
 .PHONY: help
 help:

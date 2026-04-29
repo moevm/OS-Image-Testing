@@ -4,3 +4,5 @@
 __pycache__
 uv.lock
 .venv
+.coverage
+pytest-coverage.xml
