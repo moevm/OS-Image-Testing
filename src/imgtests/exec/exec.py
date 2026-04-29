@@ -132,9 +132,7 @@ class SSHClient:
             stdin_channel.flush()
             stdin_channel.close()
 
-        if timeout is None:
-            retval = session.recv_exit_status()
-        else:
+        if timeout:
             end = monotonic() + timeout
             while not session.exit_status_ready():
                 if monotonic() >= end:
@@ -145,7 +143,7 @@ class SSHClient:
                         returncode=124,
                     )
                 sleep(0.5)
-            retval = session.recv_exit_status()
+        retval = session.recv_exit_status()
 
         stdout = stdout.read().decode("utf-8").strip()
         stderr = stderr.read().decode("utf-8").strip()
