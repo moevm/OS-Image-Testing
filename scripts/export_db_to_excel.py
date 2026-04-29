@@ -33,7 +33,7 @@ ORDER_COLUMNS = {
 EXCEL_MAX_COLUMNS = 16_384
 EXCEL_MAX_ROWS = 1_048_576
 
-KNOWN_UTILITIES = ("iperf3", "fio", "stress-ng")
+UNNAMED_UTIL_RUN_RESULT_SHEET = "unnamed_util_run_result"
 
 NOISY_COLUMN_PARTS = {
     "result",
@@ -189,7 +189,7 @@ def flatten_util_run_results(
             {
                 "row": row,
                 "headers": headers,
-                "test_name": str(row.get("test_name") or "result"),
+                "test_name": str(row.get("test_name") or ""),
             },
         )
 
@@ -217,7 +217,7 @@ def flatten_util_run_results(
 def flatten_util_run_result(record: Mapping[str, Any]) -> dict[str, Any]:
     result = decode_json(record.get("result"))
     test_name = util_run_result_test_name(record, result)
-    tool_name = detect_utility(record, result) or command_name_from_record(record)
+    tool_name = detect_utility(result)
 
     row = {
         "test_name": test_name,
@@ -236,7 +236,12 @@ def flatten_util_run_result(record: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def util_run_result_sheet_name(prepared_row: Mapping[str, Any]) -> str:
-    return compact_sheet_part(str(prepared_row.get("test_name") or "result"))
+    sheet_name = compact_sheet_part(str(prepared_row.get("test_name") or ""))
+
+    if sheet_name:
+        return sheet_name
+
+    return UNNAMED_UTIL_RUN_RESULT_SHEET
 
 
 def split_rows_to_worksheets(
@@ -333,12 +338,7 @@ def util_run_result_test_name(record: Mapping[str, Any], result: Any) -> str:
     if result_name:
         return result_name
 
-    command = command_name_from_record(record)
-
-    if command:
-        return command
-
-    return "result"
+    return command_name_from_record(record)
 
 
 def result_based_test_name(result: Any) -> str:
@@ -350,12 +350,7 @@ def result_based_test_name(result: Any) -> str:
     if tool:
         return result_tool_test_name(tool, result.get("test_type"))
 
-    known_utilities = known_utilities_in_result(result)
-
-    if known_utilities:
-        return "_".join(known_utilities)
-
-    return result_shape_test_name(result)
+    return ""
 
 
 def result_tool_test_name(tool: str, test_type: Any) -> str:
@@ -371,23 +366,9 @@ def result_tool_test_name(tool: str, test_type: Any) -> str:
     return tool
 
 
-def known_utilities_in_result(result: Mapping[str, Any]) -> list[str]:
-    return [
-        utility
-        for utility in KNOWN_UTILITIES
-        if utility in result or utility.replace("-", "_") in result
-    ]
-
-
-def result_shape_test_name(result: Mapping[str, Any]) -> str:
-    if "client" in result and "server" in result:
-        return "iperf3"
-
-    if "jobs" in result:
-        return "fio"
-
-    if "stress_ng_metrics" in result:
-        return "stress-ng"
+def detect_utility(result: Any) -> str:
+    if isinstance(result, Mapping):
+        return str(result.get("tool") or "").strip()
 
     return ""
 
@@ -417,46 +398,6 @@ def command_name(command: str) -> str:
             and "=" not in executable
         ):
             return executable
-
-    return "command"
-
-
-def detect_utility(record: Mapping[str, Any], result: Any) -> str:
-    if isinstance(result, Mapping):
-        tool = normalize_utility_name(str(result.get("tool") or ""))
-
-        if tool:
-            return tool
-
-        known_utilities = known_utilities_in_result(result)
-
-        if known_utilities:
-            return known_utilities[0]
-
-        if "client" in result and "server" in result:
-            return "iperf3"
-
-        if "jobs" in result:
-            return "fio"
-
-        if "stress_ng_metrics" in result:
-            return "stress-ng"
-
-    candidates = [
-        str(record.get("description") or ""),
-        str(record.get("command") or ""),
-        command_name_from_record(record),
-    ]
-
-    return normalize_utility_name(" ".join(candidates))
-
-
-def normalize_utility_name(value: str) -> str:
-    normalized = value.lower().replace("_", "-")
-
-    for utility in KNOWN_UTILITIES:
-        if utility in normalized:
-            return utility
 
     return ""
 
@@ -505,9 +446,7 @@ def column_path_parts(path: str) -> list[str]:
 
 
 def compact_sheet_part(value: str) -> str:
-    compact = normalize_metric_column(value)
-
-    return compact or "unknown"
+    return "_".join(column_path_parts(value))
 
 
 def decode_json(value: Any) -> Any:
