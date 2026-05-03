@@ -26,7 +26,6 @@ from image.performance.network_scaling import (
     Iperf3PacketRateScalingTest,
     StressNgMaxNetworkLoadTest,
 )
-from image.performance.std_utils import POSIXUtilsTest
 from image.performance.stress_ng_general import (
     StressNgCombineLoadTest,
     StressNgConsecutiveLoadTest,
@@ -47,6 +46,7 @@ from imgtests.reporting.html_report import ReportGenerator
 from imgtests.runner import ProfiledPlanRunner, TestsRunner, TestsRunnerConfig
 from imgtests.suites.fault_injection import FaultInjectionEnduranceTest
 from imgtests.suites.general.joint_bench import JointBench
+from imgtests.suites.general.std_utils import POSIXUtilsTest
 from imgtests.types import Subsystem
 
 ALL_SUBSYSTEMS_SUITE: Final = TestsRunnerConfig(
