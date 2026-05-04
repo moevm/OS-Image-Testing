@@ -44,7 +44,10 @@ from imgtests.exec.user_commands import Touch
 from imgtests.logger import set_handlers
 from imgtests.reporting.html_report import ReportGenerator
 from imgtests.runner import ProfiledPlanRunner, TestsRunner, TestsRunnerConfig
-from imgtests.suites.fault_injection import FaultInjectionEnduranceTest
+from imgtests.suites.fault_injection import (
+    FaultInjectionChaosbladeTest,
+    FaultInjectionEnduranceTest,
+)
 from imgtests.suites.general.joint_bench import JointBench
 from imgtests.suites.general.std_utils import POSIXUtilsTest
 from imgtests.types import Subsystem
@@ -76,6 +79,7 @@ ALL_SUBSYSTEMS_SUITE: Final = TestsRunnerConfig(
         StressNgPerformanceMemoryTest,
         SarWithStressNGTest,
         FaultInjectionEnduranceTest,
+        FaultInjectionChaosbladeTest,
     ),
     experiment_type="performance",
     duration=1200,
