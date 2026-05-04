@@ -6,6 +6,7 @@ from zoneinfo import ZoneInfo
 
 from imgtests.exec.loaders import Chaosblade, Kirk
 from imgtests.exec.osinfo import get_os_release
+from imgtests.exec.user_commands import MkDir
 from imgtests.planning import AbstractRunnableTimeLimitedTest
 from imgtests.types import Distro, Subsystem, TestResult, TestStatus
 
@@ -93,14 +94,16 @@ class FaultInjectionChaosbladeTest(AbstractRunnableTimeLimitedTest):
         if os_id and os_id != Distro.POKY.value:
             self.logger.warning("Skipping test due to fault injection is supported on poky.")
             return TestResult(status=TestStatus.SKIPPED)
-
+        tmp_dir = "/tmp/chaos-fault-injection"  # noqa: S108
+        mkdir = MkDir(client)
+        mkdir([tmp_dir])
         experiments = {
             "dio": {
                 "method": "create_disk_exp",
                 "params": {
                     "action": "fill",
                     "reserve_mb": 512,
-                    "path": "/tmp/chaos-fault-injection",  # noqa: S108
+                    "path": tmp_dir,
                 },
             },
             "sched": {
