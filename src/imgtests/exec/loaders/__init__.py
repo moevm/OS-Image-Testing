@@ -9,3 +9,4 @@ from .perf import Perf as Perf
 from .perf import PerfBenchMetrics as PerfBenchMetrics
 from .pts import PhoronixTestSuite as PhoronixTestSuite
 from .stress_ng import StressNg as StressNg
+from .stress_ng import StressNgParamVerValidationError as StressNgParamVerValidationError
