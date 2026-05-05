@@ -21,5 +21,30 @@ urlpatterns = [
     path("api/distros/add/", views.api_add_distro, name="api_add_distro"),
     path("api/distros/remove/<str:distro_id>/", views.api_remove_distro, name="api_remove_distro"),
     path("api/distros/reset/", views.api_reset_distros, name="api_reset_distros"),
+    path(
+        "api/get_available_suites/",
+        views.api_get_available_suites,
+        name="api_get_available_suites",
+    ),
+    path(
+        "api/get_suite_tests/<str:suite_name>/",
+        views.api_get_suite_tests,
+        name="api_get_suite_tests",
+    ),
+    path(
+        "api/save_test_config/<str:distro_name>/",
+        views.api_save_test_config,
+        name="api_save_test_config",
+    ),
+    path(
+        "api/get_test_config/<str:distro_name>/",
+        views.api_get_test_config,
+        name="api_get_test_config",
+    ),
+    path(
+        "api/reset_test_config/<str:distro_name>/",
+        views.api_reset_test_config,
+        name="api_reset_test_config",
+    ),
     path("<str:distro_id>/", views.distro_page, name="distro_page"),
 ]

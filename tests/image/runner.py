@@ -1,8 +1,9 @@
+import json
 import logging
 import os
 import sys
 from pathlib import Path
-from typing import Final
+from typing import Any, Final
 
 from image.endurance.memory import StressNgEnduranceMemoryTest
 from image.endurance.network import StressNgEnduranceNetworkTest
@@ -158,7 +159,67 @@ SUSE_156_CONF: Final = (
 )
 
 
-def main() -> None:
+def load_test_config(tested_distro: str) -> dict:
+    config_file = Path(f"/home/user/test_configs/{tested_distro}_config.json")
+    logger = logging.getLogger()
+    if config_file.exists():
+        try:
+            with Path.open(config_file, "r") as f:
+                config = json.load(f)
+            logger.info("Loaded custom config for %s", tested_distro)
+        except Exception as e:  # noqa: BLE001
+            logger.warning("Failed to load config: %s, using default", e)
+        else:
+            return config
+
+    return {
+        "suites": [
+            "FILE_SUITE",
+            "MEMORY_SUITE",
+            "SYSCALLS_SUITE",
+            "IPC_SUITE",
+            "NETWORK_SUITE",
+        ],
+        "suite_durations": {},
+        "selected_tests": {},
+    }
+
+
+def get_test_name(test: Any) -> str:
+    if hasattr(test, "__name__"):
+        return test.__name__
+    if hasattr(test, "__class__"):
+        return test.__class__.__name__
+    return str(test)
+
+
+def filter_tests_by_names(
+    suite: TestsRunnerConfig,
+    selected_test_names: list[str],
+    logger: logging.Logger,
+):
+    if not selected_test_names:
+        return suite.tests
+
+    original_tests = suite.tests
+    filtered_tests = []
+
+    for test in original_tests:
+        test_name = get_test_name(test)
+
+        if test_name in selected_test_names:
+            filtered_tests.append(test)
+
+    filtered_count = len(filtered_tests)
+
+    if filtered_count == 0:
+        logger.warning("No tests matched for %s, using all tests", suite.description)
+        return original_tests
+
+    return tuple(filtered_tests)
+
+
+def main() -> None:  # noqa: PLR0912, PLR0915, C901
     logger = logging.getLogger()
     set_handlers(logger, Path("processing.log"))
     tested_distro = os.getenv("TESTED_DISTRO", "all")
@@ -169,6 +230,60 @@ def main() -> None:
         )
         sys.exit(1)
     logger.info("Running tests for %s", tested_distro)
+    config = load_test_config(tested_distro)
+    logger.info("Using suites: %s", config.get("suites", []))
+    suites_to_run = []
+    suites_map = {
+        "FILE_SUITE": FILE_SUITE,
+        "MEMORY_SUITE": MEMORY_SUITE,
+        "SYSCALLS_SUITE": SYSCALLS_SUITE,
+        "IPC_SUITE": IPC_SUITE,
+        "NETWORK_SUITE": NETWORK_SUITE,
+    }
+    for suite_name in config.get("suites", []):
+        if suite_name in suites_map:
+            suite = suites_map[suite_name]
+
+            suite_durations = config.get("suite_durations", {})
+            if suite_name in suite_durations:
+                original_duration = suite.total_duration
+                suite.total_duration = suite_durations[suite_name]
+                logger.info(
+                    "Overriding %s duration: %d -> %ds",
+                    suite_name,
+                    original_duration,
+                    suite.total_duration,
+                )
+
+            selected_tests = config.get("selected_tests", {}).get(suite_name)
+            if selected_tests and len(selected_tests) > 0:
+                original_tests = suite.tests
+                filtered_tests = []
+                for test in original_tests:
+                    test_name = get_test_name(test)
+                    if test_name in selected_tests:
+                        filtered_tests.append(test)
+
+                if filtered_tests:
+                    suite.tests = tuple(filtered_tests)
+                    logger.info(
+                        "Filtered %s: %d -> %d tests",
+                        suite_name,
+                        len(original_tests),
+                        len(filtered_tests),
+                    )
+                    logger.info("Selected tests: %s", selected_tests)
+                else:
+                    logger.warning("No matching tests found for %s, using all tests", suite_name)
+
+            suites_to_run.append(suite)
+        else:
+            logger.warning("Suite %s not found, skipping", suite_name)
+
+    if not suites_to_run:
+        logger.warning("No suites configured, running default ALL_SUBSYSTEMS_SUITE")
+        suites_to_run = [ALL_SUBSYSTEMS_SUITE]
+
     suse_client = None
     poky_client = None
     if tested_distro in ("yocto", "all"):
@@ -183,13 +298,8 @@ def main() -> None:
     if poky_client:
         distros_to_test.append(poky_client)
     database = ImgtestsDatabase()
-    for suite in (
-        FILE_SUITE,
-        MEMORY_SUITE,
-        SYSCALLS_SUITE,
-        IPC_SUITE,
-        ALL_SUBSYSTEMS_SUITE,
-    ):
+    for suite in suites_to_run:
+        logger.info("Running suite %s", suite.description)
         for client in distros_to_test:
             client.reconnect()
             runner = TestsRunner(client, database, suite)

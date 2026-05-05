@@ -26,6 +26,107 @@ if TYPE_CHECKING:
 
 test_runs = {}
 
+METADATA_FILE = Path("/home/user/test_suites_metadata.json")
+CONFIG_DIR = Path("/home/user/test_configs")
+
+
+def load_metadata():
+    if not METADATA_FILE.exists():
+        return {}
+
+    with Path.open(METADATA_FILE, "r") as f:
+        return json.load(f)
+
+
+def api_get_available_suites(request: HttpRequest) -> JsonResponse:  # noqa: ARG001
+    metadata = load_metadata()
+
+    suites_info = {
+        name: {
+            "description": info["description"],
+            "default_duration": info["default_duration"],
+            "test_count": len(info.get("tests", [])),
+        }
+        for name, info in metadata.items()
+    }
+
+    return JsonResponse(suites_info)
+
+
+def api_get_suite_tests(request: HttpRequest, suite_name: str) -> JsonResponse:  # noqa: ARG001
+    metadata = load_metadata()
+
+    if suite_name not in metadata:
+        return JsonResponse({"error": f"Suite {suite_name} not found"}, status=404)
+
+    tests = metadata[suite_name].get("tests", [])
+
+    tests_list = [{"name": test, "type": "class"} for test in tests]
+
+    return JsonResponse(tests_list, safe=False)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_save_test_config(request: HttpRequest, distro_name: str) -> JsonResponse:
+    try:
+        config = json.loads(request.body)
+
+        if not isinstance(config, dict):
+            return JsonResponse({"error": "Invalid config format"}, status=400)
+
+        CONFIG_DIR.mkdir(exist_ok=True, parents=True)
+
+        config_file = CONFIG_DIR / f"{distro_name}_config.json"
+        with Path.open(config_file, "w") as f:
+            json.dump(config, f, indent=2)
+
+        return JsonResponse({"success": True, "config_file": str(config_file)})
+
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+    except Exception as e:  # noqa: BLE001
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+def api_get_test_config(request: HttpRequest, distro_name: str) -> JsonResponse:  # noqa: ARG001
+    config_file = CONFIG_DIR / f"{distro_name}_config.json"
+
+    metadata = load_metadata()
+
+    if config_file.exists():
+        try:
+            with Path.open(config_file, "r") as f:
+                config = json.load(f)
+            return JsonResponse(config)
+        except Exception as e:  # noqa: BLE001
+            return JsonResponse({"error": str(e)}, status=500)
+
+    default_config = {
+        "suites": ["FILE_SUITE", "MEMORY_SUITE", "SYSCALLS_SUITE", "IPC_SUITE", "NETWORK_SUITE"],
+        "suite_durations": {
+            "FILE_SUITE": metadata.get("FILE_SUITE", {}).get("default_duration", 300),
+            "MEMORY_SUITE": metadata.get("MEMORY_SUITE", {}).get("default_duration", 100),
+            "SYSCALLS_SUITE": metadata.get("SYSCALLS_SUITE", {}).get("default_duration", 200),
+            "IPC_SUITE": metadata.get("IPC_SUITE", {}).get("default_duration", 100),
+            "NETWORK_SUITE": metadata.get("NETWORK_SUITE", {}).get("default_duration", 200),
+        },
+        "selected_tests": {},
+    }
+
+    return JsonResponse(default_config)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_reset_test_config(request: HttpRequest, distro_name: str) -> JsonResponse:  # noqa: ARG001
+    config_file = CONFIG_DIR / f"{distro_name}_config.json"
+
+    if config_file.exists():
+        config_file.unlink()
+
+    return JsonResponse({"success": True})
+
 
 def index(request: HttpRequest) -> HttpResponse:
     distributions = get_distributions()
