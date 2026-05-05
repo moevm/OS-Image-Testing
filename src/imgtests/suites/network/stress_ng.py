@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from concurrent.futures import TimeoutError as FuturesTimeoutError
-from datetime import datetime
 from time import monotonic
 from typing import TYPE_CHECKING, Final, NamedTuple
 
@@ -25,6 +24,7 @@ from imgtests.types import Subsystem, TestResult, TestStatus
 if TYPE_CHECKING:
     from collections.abc import Iterable
     from concurrent.futures import Future, ThreadPoolExecutor
+    from datetime import datetime
 
     from imgtests.exec.exec import ExecResult, SSHClient
     from imgtests.exec.loaders.stress_ng import StressNGResult
