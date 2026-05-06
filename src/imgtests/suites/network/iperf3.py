@@ -1,24 +1,14 @@
 from __future__ import annotations
 
 from concurrent.futures import TimeoutError as FuturesTimeoutError
+from datetime import datetime
 from time import monotonic
 from typing import TYPE_CHECKING, Any, Final, NamedTuple
+from zoneinfo import ZoneInfo
 
-from imgtests.exec.loaders import Iperf3
+from imgtests.constant import SSH_CLIENT_MISSING_RESULT
+from imgtests.exec.loaders import Iperf3, Iperf3Bundle
 from imgtests.planning import AbstractRunnableTimeLimitedTest
-from imgtests.suites.network.common import (
-    IPERF3_LOCAL_SERVER_SHUTDOWN_TIMEOUT_SEC,
-    IPERF3_SERVER_SHUTDOWN_TIMEOUT_SEC,
-    IPERF3_SERVER_STARTUP_SEC,
-    Iperf3Tools,
-    iperf3_metrics,
-    iperf3_tools,
-    missing_ssh_client_result,
-    server_wait_timeout,
-    start_iperf3_server,
-    utc_now,
-    wait_iperf3_server,
-)
 from imgtests.types import Subsystem, TestResult, TestStatus
 
 if TYPE_CHECKING:
@@ -56,7 +46,7 @@ class Iperf3PpsProfile(NamedTuple):
 class Iperf3LocalContext(NamedTuple):
     executor: ThreadPoolExecutor
     ssh_client: SSHClient
-    tools: Iperf3Tools
+    iperf3: Iperf3Bundle
     timeout: int
 
 
@@ -74,7 +64,7 @@ class Iperf3ProfileOutcome(NamedTuple):
 class PacketRateContext(NamedTuple):
     executor: ThreadPoolExecutor
     ssh_client: SSHClient
-    tools: Iperf3Tools
+    iperf3: Iperf3Bundle
     deadline: float
 
 
@@ -116,7 +106,7 @@ def _packet_rate_metrics(
 
 
 def _packet_rate_reserved_overhead_sec() -> int:
-    return IPERF3_SERVER_STARTUP_SEC + IPERF3_SUBTEST_OVERHEAD_SEC
+    return Iperf3.IPERF3_SERVER_STARTUP_SEC + IPERF3_SUBTEST_OVERHEAD_SEC
 
 
 def _packet_rate_profile_timing(
@@ -153,23 +143,23 @@ class Iperf3LocalTest(AbstractRunnableTimeLimitedTest):
         timeout: int,
     ) -> Iterable[TestResult]:
         if client is None:
-            yield missing_ssh_client_result()
+            yield SSH_CLIENT_MISSING_RESULT
             return
 
         context = Iperf3LocalContext(
             executor=executor,
             ssh_client=client,
-            tools=iperf3_tools(client),
+            iperf3=Iperf3Bundle(server=client),
             timeout=timeout,
         )
         for udp in IPERF3_LOCAL_MODES_UDP:
             yield self._run_iperf3_mode(context, udp)
 
     def _run_iperf3_mode(self, context: Iperf3LocalContext, udp: bool) -> TestResult:
-        started_at = utc_now()
-        server_future = start_iperf3_server(context.executor, context.tools.server)
+        started_at = datetime.now(tz=ZoneInfo("UTC"))
+        server_future = context.iperf3.start_server(context.executor)
 
-        client_result = context.tools.client.run(
+        client_result = context.iperf3.client.run(
             client=context.ssh_client.hostname,
             time=context.timeout,
             udp=udp,
@@ -177,7 +167,7 @@ class Iperf3LocalTest(AbstractRunnableTimeLimitedTest):
         )
         if client_result.returncode:
             self.logger.error("Error occurred while launching iperf3 client.")
-            context.tools.server.stop_server()
+            context.iperf3.server.stop_server()
             return TestResult(
                 command=" ".join(client_result.cmd),
                 metrics={"client_returncode": client_result.returncode},
@@ -186,10 +176,9 @@ class Iperf3LocalTest(AbstractRunnableTimeLimitedTest):
             )
 
         try:
-            server_result = wait_iperf3_server(
-                context.tools.server,
+            server_result = context.iperf3.wait_server(
                 server_future,
-                IPERF3_LOCAL_SERVER_SHUTDOWN_TIMEOUT_SEC,
+                Iperf3.IPERF3_LOCAL_SERVER_SHUTDOWN_TIMEOUT_SEC,
             )
         except FuturesTimeoutError:
             self.logger.exception("Error occurred while waiting for iperf3 server.")
@@ -203,7 +192,7 @@ class Iperf3LocalTest(AbstractRunnableTimeLimitedTest):
         return TestResult(
             command=" ".join(client_result.cmd),
             metrics=Iperf3.split_result(
-                raw_metrics=iperf3_metrics(context.tools, client_result, server_result),
+                raw_metrics=Iperf3.bundle_metrics_to_json(client_result, server_result),
             ),
             started_at=started_at,
             status=TestStatus.PASSED,
@@ -225,7 +214,7 @@ class Iperf3PacketRateScalingTest(AbstractRunnableTimeLimitedTest):
         timeout: int,
     ) -> Iterable[TestResult]:
         if client is None:
-            yield missing_ssh_client_result()
+            yield SSH_CLIENT_MISSING_RESULT
             return
 
         profiles = build_iperf3_pps_profiles()
@@ -242,7 +231,7 @@ class Iperf3PacketRateScalingTest(AbstractRunnableTimeLimitedTest):
         context = PacketRateContext(
             executor=executor,
             ssh_client=client,
-            tools=iperf3_tools(client),
+            iperf3=Iperf3Bundle(server=client),
             deadline=monotonic() + timeout,
         )
         yield from self._run_profiles(context, profiles, timeout, reserved_overhead_sec)
@@ -317,10 +306,10 @@ class Iperf3PacketRateScalingTest(AbstractRunnableTimeLimitedTest):
         profile: Iperf3PpsProfile,
         timing: Iperf3ProfileTiming,
     ) -> Iperf3ProfileOutcome:
-        started_at = utc_now()
-        server_future = start_iperf3_server(context.executor, context.tools.server)
+        started_at = datetime.now(tz=ZoneInfo("UTC"))
+        server_future = context.iperf3.start_server(context.executor)
 
-        client_result = context.tools.client.run(
+        client_result = context.iperf3.client.run(
             client=context.ssh_client.hostname,
             time=timing.duration_sec,
             interval=1,
@@ -330,13 +319,12 @@ class Iperf3PacketRateScalingTest(AbstractRunnableTimeLimitedTest):
             length=profile.datagram_size_bytes,
         )
         if client_result.returncode:
-            context.tools.server.stop_server()
+            context.iperf3.server.stop_server()
 
         try:
-            server_result = wait_iperf3_server(
-                context.tools.server,
+            server_result = context.iperf3.wait_server(
                 server_future,
-                server_wait_timeout(context.deadline, IPERF3_SERVER_SHUTDOWN_TIMEOUT_SEC),
+                context.iperf3.server_wait_timeout(context.deadline),
             )
         except FuturesTimeoutError:
             self.logger.exception(
@@ -378,7 +366,7 @@ class Iperf3PacketRateScalingTest(AbstractRunnableTimeLimitedTest):
             )
 
         metrics = _packet_rate_metrics(profile, timing.duration_sec)
-        metrics.update(iperf3_metrics(context.tools, client_result, server_result))
+        metrics.update(Iperf3.bundle_metrics_to_json(client_result, server_result))
         return Iperf3ProfileOutcome(
             result=TestResult(
                 command=" ".join(client_result.cmd),

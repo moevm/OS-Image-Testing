@@ -1,30 +1,19 @@
 from __future__ import annotations
 
 from concurrent.futures import TimeoutError as FuturesTimeoutError
+from datetime import datetime
 from time import monotonic
 from typing import TYPE_CHECKING, Final, NamedTuple
+from zoneinfo import ZoneInfo
 
-from imgtests.exec.loaders import StressNg
+from imgtests.constant import SSH_CLIENT_MISSING_RESULT
+from imgtests.exec.loaders import Iperf3, Iperf3Bundle, StressNg
 from imgtests.suites.general.stress_ng import StressNgTest
-from imgtests.suites.network.common import (
-    IPERF3_SERVER_SHUTDOWN_TIMEOUT_SEC,
-    IPERF3_SERVER_STARTUP_SEC,
-    Iperf3Tools,
-    iperf3_metrics,
-    iperf3_tools,
-    join_commands,
-    missing_ssh_client_result,
-    server_wait_timeout,
-    start_iperf3_server,
-    utc_now,
-    wait_iperf3_server,
-)
 from imgtests.types import Subsystem, TestResult, TestStatus
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
     from concurrent.futures import Future, ThreadPoolExecutor
-    from datetime import datetime
 
     from imgtests.exec.exec import ExecResult, SSHClient
     from imgtests.exec.loaders.stress_ng import StressNGResult
@@ -33,13 +22,14 @@ __all__ = ("StressNgEnduranceNetworkTest", "StressNgMaxNetworkLoadTest")
 
 STRESS_NG_RANDOM_SEED: Final = 0x5EED_1234
 NETWORK_STRESS_MIN_RUN_SEC: Final = 1
+DEADLINE_SHIFT_SEC: Final = 5
 
 
 class StressNgNetworkContext(NamedTuple):
     executor: ThreadPoolExecutor
     ssh_client: SSHClient
     stress_ng: StressNg
-    iperf3: Iperf3Tools
+    iperf3: Iperf3Bundle
     run_timeout: int
     deadline: float
 
@@ -53,7 +43,9 @@ class StressNgNetworkRun(NamedTuple):
 
 
 def _network_load_run_timeout(timeout: int) -> int:
-    reserved_overhead_sec = IPERF3_SERVER_STARTUP_SEC + IPERF3_SERVER_SHUTDOWN_TIMEOUT_SEC
+    reserved_overhead_sec = (
+        Iperf3.IPERF3_SERVER_STARTUP_SEC + Iperf3.IPERF3_SERVER_SHUTDOWN_TIMEOUT_SEC
+    )
     return timeout - reserved_overhead_sec
 
 
@@ -106,7 +98,7 @@ class StressNgMaxNetworkLoadTest(StressNgTest):
         timeout: int,
     ) -> Iterable[TestResult]:
         if client is None:
-            yield missing_ssh_client_result()
+            yield SSH_CLIENT_MISSING_RESULT
             return
 
         run_timeout = _network_load_run_timeout(timeout)
@@ -118,16 +110,16 @@ class StressNgMaxNetworkLoadTest(StressNgTest):
             executor=executor,
             ssh_client=client,
             stress_ng=StressNg(client),
-            iperf3=iperf3_tools(client),
+            iperf3=Iperf3Bundle(server=client),
             run_timeout=run_timeout,
-            deadline=monotonic() + timeout,
+            deadline=monotonic() + timeout + DEADLINE_SHIFT_SEC,
         )
         yield self._run_network_load(context)
 
     def _not_enough_run_time_result(self, timeout: int) -> TestResult:
         required_timeout_sec = (
-            IPERF3_SERVER_STARTUP_SEC
-            + IPERF3_SERVER_SHUTDOWN_TIMEOUT_SEC
+            Iperf3.IPERF3_SERVER_STARTUP_SEC
+            + Iperf3.IPERF3_SERVER_SHUTDOWN_TIMEOUT_SEC
             + NETWORK_STRESS_MIN_RUN_SEC
         )
         return TestResult(
@@ -139,8 +131,8 @@ class StressNgMaxNetworkLoadTest(StressNgTest):
         )
 
     def _run_network_load(self, context: StressNgNetworkContext) -> TestResult:
-        started_at = utc_now()
-        server_future = start_iperf3_server(context.executor, context.iperf3.server)
+        started_at = datetime.now(tz=ZoneInfo("UTC"))
+        server_future = context.iperf3.start_server(context.executor)
         stress_ng_future = self._start_network_stress(context)
         iperf3_result = context.iperf3.client.run(
             client=context.ssh_client.hostname,
@@ -161,10 +153,9 @@ class StressNgMaxNetworkLoadTest(StressNgTest):
             return self._stress_ng_timeout_result(started_at, iperf3_result)
 
         try:
-            server_result = wait_iperf3_server(
-                context.iperf3.server,
+            server_result = context.iperf3.wait_server(
                 server_future,
-                server_wait_timeout(context.deadline, IPERF3_SERVER_SHUTDOWN_TIMEOUT_SEC),
+                context.iperf3.server_wait_timeout(context.deadline),
             )
         except FuturesTimeoutError:
             self.logger.exception(
@@ -269,8 +260,7 @@ class StressNgMaxNetworkLoadTest(StressNgTest):
             command=command,
             metrics={
                 **context.stress_ng.metrics_to_json(run.stress_ng_metrics),
-                "iperf3": iperf3_metrics(
-                    context.iperf3,
+                "iperf3": Iperf3.bundle_metrics_to_json(
                     run.iperf3_client_result,
                     run.iperf3_server_result,
                 ),
@@ -289,3 +279,7 @@ class StressNgMaxNetworkLoadTest(StressNgTest):
             command=command,
             metrics=_network_load_returncode_metrics(run),
         )
+
+
+def join_commands(*results: ExecResult) -> str:
+    return " & ".join(" ".join(result.cmd) for result in results)
