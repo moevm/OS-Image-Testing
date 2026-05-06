@@ -37,6 +37,8 @@ class Iperf3(PkgMgrMixin, GenericUtil):
         one_off: bool = False,
         interval: int | None = None,
         udp: bool = False,
+        version4: bool = False,
+        version6: bool = False,
         **kwargs: dict[str, Any],
     ) -> ExecResult:
         """This is a wrapper for iperf3 which used for the network performance estimation.
@@ -49,6 +51,8 @@ class Iperf3(PkgMgrMixin, GenericUtil):
             one_off: Handle one client connection then exit.
             interval: Seconds between periodic throughput reports.
             udp: Use UDP rather than TCP.
+            version4: only use IPv4.
+            version6: only use IPv6.
             **kwargs: Command arguments in the free form with values.
         """
         if client and server:
@@ -79,6 +83,8 @@ class Iperf3(PkgMgrMixin, GenericUtil):
             *create_opt("one-off", one_off),
             *create_opt("interval", interval),
             *create_opt("udp", udp),
+            *create_opt("version4", version4),
+            *create_opt("version6", version6),
             *add_flag("json"),
         ]
         return self(
