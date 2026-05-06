@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import Any, Final
 
 from image.endurance.memory import StressNgEnduranceMemoryTest
-from image.endurance.network import StressNgEnduranceNetworkTest
 from image.endurance.syscalls import (
     LTPSyscallsIPCTest,
     LTPSyscallsTest,
@@ -23,11 +22,6 @@ from image.performance.fio_disks import (
 )
 from image.performance.ipc import SchedPerformanceTest
 from image.performance.memory import SarWithStressNGTest, StressNgPerformanceMemoryTest
-from image.performance.network import Iperf3LocalTest
-from image.performance.network_scaling import (
-    Iperf3PacketRateScalingTest,
-    StressNgMaxNetworkLoadTest,
-)
 from image.performance.stress_ng_general import (
     StressNgCombineLoadTest,
     StressNgConsecutiveLoadTest,
@@ -49,6 +43,12 @@ from imgtests.runner import ProfiledPlanRunner, TestsRunner, TestsRunnerConfig
 from imgtests.suites.fault_injection import FaultInjectionEnduranceTest
 from imgtests.suites.general.joint_bench import JointBench
 from imgtests.suites.general.std_utils import POSIXUtilsTest
+from imgtests.suites.network import (
+    Iperf3LocalTest,
+    Iperf3PacketRateScalingTest,
+    StressNgEnduranceNetworkTest,
+    StressNgMaxNetworkLoadTest,
+)
 from imgtests.types import Subsystem
 
 ALL_SUBSYSTEMS_SUITE: Final = TestsRunnerConfig(
