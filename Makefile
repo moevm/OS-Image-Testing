@@ -5,9 +5,10 @@ GROUP                      := yoctogroup
 POSTGRES_DB                := os-testing-db
 OS_IMAGE                   := core-image-minimal
 SUSE_VER                   ?= 15.6
+LIB_NAME                   := imgtests
 
 # Docker
-DOCKER_PREFIX              := imgtests
+DOCKER_PREFIX              := ${LIB_NAME}
 DOCKER_TAG                 := ${DOCKER_PREFIX}-yocto-builder
 DOCKER_SUSE_TAG            := ${DOCKER_PREFIX}-open-suse-env
 DOCKER_PYTHON_TAG          := ${DOCKER_PREFIX}-analyzer
@@ -75,6 +76,7 @@ docker: init-submodule
 		--tag ${DOCKER_TAG} \
 		--build-arg USER="${USER}" \
 		--build-arg GROUP="${GROUP}" \
+		--build-arg LIB_NAME="${LIB_NAME}" \
 		--build-arg PASSWORD="${PASSWORD}" \
 		--build-arg POKY_DIR="${POKY_DIR}" \
 		--file docker/image_builder.dockerfile .

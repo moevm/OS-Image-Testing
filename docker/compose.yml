@@ -68,6 +68,7 @@ services:
       args:
         USER: ${USER}
         GROUP: ${GROUP}
+        LIB_NAME: ${LIB_NAME}
     image: ${DOCKER_PYTHON_TAG}
     volumes:
       - ./tests/image:/home/${USER}/image

@@ -2,14 +2,17 @@ import json
 import os
 import re
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
+import yaml
 from django.http import Http404, HttpRequest, JsonResponse
 from django.http.response import HttpResponse
 from django.shortcuts import render
 from django.tasks import TaskResultStatus
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
+
+from imgtests.constant import LIB_NAME
 
 from .distros_config import (
     add_distribution,
@@ -26,16 +29,15 @@ if TYPE_CHECKING:
 
 test_runs = {}
 
-METADATA_FILE = Path("/home/user/test_suites_metadata.json")
-CONFIG_DIR = Path("/home/user/test_configs")
+METADATA_FILE = Path.home() / LIB_NAME / "test_suites_metadata.yml"
+CONFIG_DIR = Path.home() / LIB_NAME / "test_configs"
 
 
-def load_metadata():
+def load_metadata() -> dict[str, Any]:
     if not METADATA_FILE.exists():
         return {}
 
-    with Path.open(METADATA_FILE, "r") as f:
-        return json.load(f)
+    return yaml.safe_load(METADATA_FILE.read_text())
 
 
 def api_get_available_suites(request: HttpRequest) -> JsonResponse:  # noqa: ARG001
