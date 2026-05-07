@@ -1,25 +1,22 @@
 import subprocess
+from typing import Final
 
 from django.tasks import task
 
+DEFAULT_TASK_TIMEOUT_SEC: Final = 3600
+
 
 @task()
-def run_test_task(env_vars: dict) -> dict:
+def run_test_task(env_vars: dict[str, str]) -> dict[str, str | int]:
     try:
         result = subprocess.run(
             ["/usr/bin/env", "python3", "/home/user/image/runner.py"],
             check=True,
             capture_output=True,
             text=True,
-            timeout=3600,
+            timeout=DEFAULT_TASK_TIMEOUT_SEC,
             env=env_vars,
         )
-        return {
-            "status": "completed",
-            "output": result.stdout + (f"\n\nErrors:\n{result.stderr}" if result.stderr else ""),
-            "exit_code": result.returncode,
-            "stderr": result.stderr,
-        }
     except subprocess.TimeoutExpired as e:
         return {
             "status": "failed",
@@ -38,4 +35,11 @@ def run_test_task(env_vars: dict) -> dict:
         return {
             "status": "failed",
             "error": str(e),
+        }
+    else:
+        return {
+            "status": "completed",
+            "output": result.stdout + (f"\n\nErrors:\n{result.stderr}" if result.stderr else ""),
+            "exit_code": result.returncode,
+            "stderr": result.stderr,
         }
