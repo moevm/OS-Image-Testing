@@ -38,6 +38,7 @@ TESTS_DIR                  := ${CURDIR}/tests
 
 # Python
 PACKAGE_MGR                := uv
+PYTHON_REQUIRED_LIBS       := $(shell python3 -c "import tomllib; from pathlib import Path; print(' '.join(tomllib.loads(Path('pyproject.toml').read_text())['project']['dependencies']))")
 
 # Docker Network
 DOCKER_NETWORK             := yocto-network
@@ -77,6 +78,7 @@ docker: init-submodule
 		--build-arg USER="${USER}" \
 		--build-arg GROUP="${GROUP}" \
 		--build-arg LIB_NAME="${LIB_NAME}" \
+		--build-arg PYTHON_REQUIRED_LIBS="${PYTHON_REQUIRED_LIBS}" \
 		--build-arg PASSWORD="${PASSWORD}" \
 		--build-arg POKY_DIR="${POKY_DIR}" \
 		--file docker/image_builder.dockerfile .

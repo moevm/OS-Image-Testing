@@ -3,6 +3,7 @@ FROM python:3.14.4-slim-trixie
 ARG USER
 ARG GROUP
 ARG LIB_NAME
+ARG PYTHON_REQUIRED_LIBS
 
 ENV PATH="/home/${USER}/.local/bin:${PATH}"
 ENV USER="$USER"
@@ -13,8 +14,13 @@ RUN apt update && \
     openssh-client \
     curl \
     sudo \
+    less \
+    vim \
+    nano \
     iperf3 \
     supervisor
+RUN apt-get clean
+RUN rm --recursive --force /tmp/* /var/tmp/*
 
 RUN groupadd -g 510 ${GROUP} && \
     useradd -rm -d /home/${USER} -s /bin/bash -g ${GROUP} -u 1010 -G sudo ${USER} && \
@@ -23,6 +29,7 @@ RUN groupadd -g 510 ${GROUP} && \
 USER ${USER}
 WORKDIR /home/${USER}
 
+RUN python3 -m pip install ${PYTHON_REQUIRED_LIBS}
 RUN mkdir /home/${USER}/.ssh
 
 COPY --chown=${USER}:${GROUP} src/ /home/${USER}/python

@@ -69,6 +69,7 @@ services:
         USER: ${USER}
         GROUP: ${GROUP}
         LIB_NAME: ${LIB_NAME}
+        PYTHON_REQUIRED_LIBS: ${PYTHON_REQUIRED_LIBS}
     image: ${DOCKER_PYTHON_TAG}
     volumes:
       - ./tests/image:/home/${USER}/image
