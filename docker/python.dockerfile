@@ -11,8 +11,12 @@ RUN apt update && \
     openssh-client \
     curl \
     sudo \
+    less \
     vim \
+    nano \
     iperf3
+RUN apt-get clean
+RUN rm --recursive --force /tmp/* /var/tmp/*
 
 RUN groupadd -g 510 ${GROUP} && \
     useradd -rm -d /home/${USER} -s /bin/bash -g ${GROUP} -u 1010 -G sudo ${USER} && \
