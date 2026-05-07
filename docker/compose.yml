@@ -68,6 +68,7 @@ services:
       args:
         USER: ${USER}
         GROUP: ${GROUP}
+        PYTHON_REQUIRED_LIBS: ${PYTHON_REQUIRED_LIBS}
     image: ${DOCKER_PYTHON_TAG}
     command: python3 /home/${USER}/image/runner.py
     volumes:
