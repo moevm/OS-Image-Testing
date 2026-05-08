@@ -10,6 +10,8 @@ from imgtests.exec.osinfo import get_os_release
 from imgtests.types import Distro
 
 TIMEOUT_RETURN_CODE: int = 124
+QEMU_MONITOR_ADDRESS: str = "10.0.2.2"
+QEMU_MONITOR_PORT: str = "4444"
 
 
 class SnapshotManager:
@@ -20,9 +22,9 @@ class SnapshotManager:
     def run_command(self, command: str) -> ExecResult:
         os_id = get_os_release(self._client).id
         if os_id and os_id != Distro.POKY.value:
-            connector = ["nc", "-q", "0", "10.0.2.2", "4444"]
+            connector = ["nc", "-q", "0", QEMU_MONITOR_ADDRESS, QEMU_MONITOR_PORT]
         else:
-            connector = ["socat", "-", "TCP:10.0.2.2:4444"]
+            connector = ["socat", "-", f"TCP:{QEMU_MONITOR_ADDRESS}:{QEMU_MONITOR_PORT}"]
         return common_run_command(
             connector,
             ssh_client=self._client,
