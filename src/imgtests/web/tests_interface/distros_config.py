@@ -1,7 +1,8 @@
 import json
 from pathlib import Path
 
-# Default distros list
+from imgtests.constant import CONFIG_FILE
+
 DEFAULT_DISTRIBUTIONS = [
     {
         "id": "yocto",
@@ -19,38 +20,37 @@ DEFAULT_DISTRIBUTIONS = [
     },
 ]
 
-CONFIG_FILE = Path(__file__).parent / "user_distros.json"
 
-
-def get_distributions() -> list[dict]:
+def get_distributions() -> list[dict[str, str]]:
     if CONFIG_FILE.exists():
         try:
             with Path.open(CONFIG_FILE, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                return data.get("distributions", DEFAULT_DISTRIBUTIONS.copy())
-        except OSError:
+        except OSError, json.JSONDecodeError:
             return DEFAULT_DISTRIBUTIONS.copy()
+        else:
+            return data.get("distributions", DEFAULT_DISTRIBUTIONS.copy())
     return DEFAULT_DISTRIBUTIONS.copy()
 
 
-def save_distributions(distributions: list[dict]) -> bool:
+def save_distributions(distributions: list[dict[str, str]]) -> bool:
     try:
         with Path.open(CONFIG_FILE, "w", encoding="utf-8") as f:
-            json.dump({"distributions": distributions}, f, indent=2, ensure_ascii=False)
+            json.dump({"distributions": distributions}, f, indent=4, ensure_ascii=False)
     except OSError:
         return False
     else:
         return True
 
 
-def get_distribution_by_id(distro_id: str) -> dict | None:
+def get_distribution_by_id(distro_id: str) -> dict[str, str] | None:
     for distro in get_distributions():
         if distro.get("id") == distro_id:
             return distro
     return None
 
 
-def add_distribution(name: str, display_name: str, description: str = "") -> dict | None:
+def add_distribution(name: str, display_name: str, description: str = "") -> dict[str, str] | None:
     distributions = get_distributions()
 
     distro_id = name.lower().replace(" ", "_")

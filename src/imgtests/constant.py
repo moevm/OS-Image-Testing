@@ -10,6 +10,7 @@ LIB_NAME: Final = "imgtests"
 LOG_PATH: Final = Path.home() / LIB_NAME / "processing.log"
 METADATA_FILE: Final = Path.home() / LIB_NAME / "test_suites_metadata.yml"
 CONFIG_DIR: Final = Path.home() / LIB_NAME / "test_configs"
+CONFIG_FILE: Final = Path.home() / LIB_NAME / "user_distros.json"
 
 SSH_CLIENT_MISSING_RESULT: Final = TestResult(
     status=TestStatus.BROKEN,
