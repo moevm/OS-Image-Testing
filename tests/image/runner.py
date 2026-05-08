@@ -34,6 +34,7 @@ from image.performance.syscalls import (
     SyscallsWithCpuLoadTest,
 )
 from image.performance.system import PTSSystemTest
+from imgtests.constant import CONFIG_DIR
 from imgtests.database.database import ImgtestsDatabase
 from imgtests.exec.exec import wait_remote
 from imgtests.exec.user_commands import Touch
@@ -159,8 +160,8 @@ SUSE_156_CONF: Final = (
 )
 
 
-def load_test_config(tested_distro: str) -> dict:
-    config_file = Path(f"/home/user/test_configs/{tested_distro}_config.json")
+def load_test_config(tested_distro: str) -> dict[str, Any]:
+    config_file = CONFIG_DIR / f"{tested_distro}_config.json"
     logger = logging.getLogger()
     if config_file.exists():
         try:

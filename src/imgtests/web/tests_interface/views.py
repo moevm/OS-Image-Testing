@@ -12,7 +12,7 @@ from django.tasks import TaskResultStatus
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
-from imgtests.constant import LIB_NAME
+from imgtests.constant import CONFIG_DIR, METADATA_FILE
 
 from .distros_config import (
     add_distribution,
@@ -28,9 +28,6 @@ if TYPE_CHECKING:
 
 
 test_runs = {}
-
-METADATA_FILE = Path.home() / LIB_NAME / "test_suites_metadata.yml"
-CONFIG_DIR = Path.home() / LIB_NAME / "test_configs"
 
 
 def load_metadata() -> dict[str, Any]:
