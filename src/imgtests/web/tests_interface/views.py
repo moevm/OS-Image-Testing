@@ -12,7 +12,7 @@ from django.tasks import TaskResultStatus
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
-from imgtests.constant import CONFIG_DIR, METADATA_FILE
+from imgtests.constant import CONFIG_DIR, METADATA_FILE, REPORTS_DIR
 
 from .distros_config import (
     add_distribution,
@@ -70,22 +70,20 @@ def api_get_suite_tests(request: HttpRequest, suite_name: str) -> JsonResponse: 
 def api_save_test_config(request: HttpRequest, distro_name: str) -> JsonResponse:
     try:
         config = json.loads(request.body)
-
-        if not isinstance(config, dict):
-            return JsonResponse({"error": "Invalid config format"}, status=400)
-
-        CONFIG_DIR.mkdir(exist_ok=True, parents=True)
-
-        config_file = CONFIG_DIR / f"{distro_name}_config.json"
-        with Path.open(config_file, "w") as f:
-            json.dump(config, f, indent=2)
-
-        return JsonResponse({"success": True, "config_file": str(config_file)})
-
     except json.JSONDecodeError:
         return JsonResponse({"error": "Invalid JSON"}, status=400)
+
+    if not isinstance(config, dict):
+        return JsonResponse({"error": "Invalid config format"}, status=400)
+
+    try:
+        CONFIG_DIR.mkdir(exist_ok=True, parents=True)
+        config_file = CONFIG_DIR / f"{distro_name}_config.json"
+        with Path.open(config_file, "w") as f:
+            json.dump(config, f, indent=4)
     except Exception as e:  # noqa: BLE001
         return JsonResponse({"error": str(e)}, status=500)
+    return JsonResponse({"success": True, "config_file": str(config_file)})
 
 
 def api_get_test_config(request: HttpRequest, distro_name: str) -> JsonResponse:  # noqa: ARG001
@@ -97,9 +95,9 @@ def api_get_test_config(request: HttpRequest, distro_name: str) -> JsonResponse:
         try:
             with Path.open(config_file, "r") as f:
                 config = json.load(f)
-            return JsonResponse(config)
         except Exception as e:  # noqa: BLE001
             return JsonResponse({"error": str(e)}, status=500)
+        return JsonResponse(config)
 
     default_config = {
         "suites": ["FILE_SUITE", "MEMORY_SUITE", "SYSCALLS_SUITE", "IPC_SUITE", "NETWORK_SUITE"],
@@ -142,33 +140,32 @@ def distro_page(request: HttpRequest, distro_id: str) -> HttpResponse:
 
 
 def report_list(request: HttpRequest) -> HttpResponse:
-    reports_dir = Path("/home/user/results/profiled")
-    reports = []
-    if reports_dir.exists():
-        for report_dir in sorted(reports_dir.iterdir(), reverse=True):
-            if report_dir.is_dir():
-                html_files = list(report_dir.glob("*.html"))
-                for html_file in html_files:
-                    created_time = html_file.stat().st_mtime
+    reports: list[dict[str, str | float]] = []
+    if REPORTS_DIR.exists():
+        for report_dir in sorted(REPORTS_DIR.iterdir(), reverse=True):
+            if not report_dir.is_dir():
+                continue
+            html_files = list(report_dir.glob("*.html"))
+            for html_file in html_files:
+                created_time = html_file.stat().st_mtime
 
-                    reports.append(
-                        {
-                            "name": f"{report_dir.name} / {html_file.name}",
-                            "report_dir": report_dir.name,
-                            "filename": html_file.name,
-                            "created": created_time,
-                            "size": html_file.stat().st_size,
-                            "dir_name": report_dir.name,
-                            "file_name": html_file.name,
-                        },
-                    )
+                reports.append(
+                    {
+                        "name": f"{report_dir.name} / {html_file.name}",
+                        "report_dir": report_dir.name,
+                        "filename": html_file.name,
+                        "created": created_time,
+                        "size": html_file.stat().st_size,
+                        "dir_name": report_dir.name,
+                        "file_name": html_file.name,
+                    },
+                )
 
     return render(request, "tests_interface/reports_list.html", {"reports": reports})
 
 
 def view_report(request: HttpRequest, report_dir: str, filename: str) -> HttpResponse:  # noqa: ARG001
-    reports_base_dir = Path("/home/user/results/profiled")
-    report_file = reports_base_dir / report_dir / filename
+    report_file = REPORTS_DIR / report_dir / filename
 
     if not report_file.exists() or not report_file.is_file():
         e = f"Report not found: {report_dir}/{filename}"
@@ -191,8 +188,7 @@ def view_report(request: HttpRequest, report_dir: str, filename: str) -> HttpRes
 
 
 def report_static_files(request: HttpRequest, report_dir: str, file_path: str) -> HttpResponse:  # noqa: ARG001
-    reports_base_dir = Path("/home/user/results/profiled")
-    static_file = reports_base_dir / report_dir / file_path
+    static_file = REPORTS_DIR / report_dir / file_path
 
     if not static_file.exists() or not static_file.is_file():
         e = f"Static file not found: {report_dir}/{file_path}"
@@ -299,30 +295,25 @@ def get_test_status(request: HttpRequest, task_id: str) -> JsonResponse:  # noqa
 def api_add_distro(request: HttpRequest) -> JsonResponse:
     try:
         data = json.loads(request.body)
-        name = data.get("name", "").strip()
-        display_name = data.get("display_name", "").strip()
-        description = data.get("description", "").strip()
-
-        if not name or not display_name:
-            return JsonResponse({"error": "Name and display name are required"}, status=400)
-
-        new_distro = add_distribution(name, display_name, description)
-
-        if new_distro:
-            return JsonResponse({"success": True, "distro": new_distro})
-        return JsonResponse({"error": "Distribution already exists"}, status=400)
-
     except json.JSONDecodeError:
         return JsonResponse({"error": "Invalid JSON"}, status=400)
+    name = data.get("name", "").strip()
+    display_name = data.get("display_name", "").strip()
+    description = data.get("description", "").strip()
+
+    if not name or not display_name:
+        return JsonResponse({"error": "Name and display name are required"}, status=400)
+
+    new_distro = add_distribution(name, display_name, description)
+
+    if new_distro:
+        return JsonResponse({"success": True, "distro": new_distro})
+    return JsonResponse({"error": "Distribution already exists"}, status=400)
 
 
 @csrf_exempt
 @require_http_methods(["POST"])
 def api_remove_distro(request: HttpRequest, distro_id: str) -> JsonResponse:  # noqa: ARG001
-    default_ids = ["yocto", "opensuse"]
-    if distro_id in default_ids:
-        return JsonResponse({"error": "Cannot remove default distributions"}, status=400)
-
     if remove_distribution(distro_id):
         return JsonResponse({"success": True})
     return JsonResponse({"error": "Distribution not found"}, status=404)

@@ -7,10 +7,12 @@ from imgtests.types import TestResult, TestStatus
 VER_PATTERN: Final[re.Pattern[str]] = re.compile(r"(\d+[.]?)+")
 LIB_NAME: Final = "imgtests"
 # Paths
-LOG_PATH: Final = Path.home() / LIB_NAME / "processing.log"
-METADATA_FILE: Final = Path.home() / LIB_NAME / "test_suites_metadata.yml"
-CONFIG_DIR: Final = Path.home() / LIB_NAME / "test_configs"
-CONFIG_FILE: Final = Path.home() / LIB_NAME / "user_distros.json"
+LIB_DATA_DIR: Final = Path.home() / LIB_NAME
+LOG_PATH: Final = LIB_DATA_DIR / "processing.log"
+METADATA_FILE: Final = LIB_DATA_DIR / "test_suites_metadata.yml"
+CONFIG_DIR: Final = LIB_DATA_DIR / "test_configs"
+CONFIG_FILE: Final = LIB_DATA_DIR / "user_distros.json"
+REPORTS_DIR: Final = LIB_DATA_DIR / "results/profiled"
 
 SSH_CLIENT_MISSING_RESULT: Final = TestResult(
     status=TestStatus.BROKEN,
