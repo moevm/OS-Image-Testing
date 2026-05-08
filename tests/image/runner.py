@@ -3,7 +3,7 @@ import logging
 import os
 import sys
 from pathlib import Path
-from typing import Any, Final
+from typing import TYPE_CHECKING, Any, Final
 
 from image.endurance.memory import StressNgEnduranceMemoryTest
 from image.endurance.syscalls import (
@@ -40,7 +40,13 @@ from imgtests.exec.exec import wait_remote
 from imgtests.exec.user_commands import Touch
 from imgtests.logger import set_handlers
 from imgtests.reporting.html_report import ReportGenerator
-from imgtests.runner import ProfiledPlanRunner, TestsRunner, TestsRunnerConfig
+from imgtests.runner import (
+    AbstractRunnableManyTimesTest,
+    AbstractRunnableTimeLimitedTest,
+    ProfiledPlanRunner,
+    TestsRunner,
+    TestsRunnerConfig,
+)
 from imgtests.suites.fault_injection import FaultInjectionEnduranceTest
 from imgtests.suites.general.joint_bench import JointBench
 from imgtests.suites.general.std_utils import POSIXUtilsTest
@@ -51,6 +57,10 @@ from imgtests.suites.network import (
     StressNgMaxNetworkLoadTest,
 )
 from imgtests.types import Subsystem
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
 
 ALL_SUBSYSTEMS_SUITE: Final = TestsRunnerConfig(
     description="Test suite for all subsystems.",
@@ -160,17 +170,19 @@ SUSE_156_CONF: Final = (
 )
 
 
+logger = logging.getLogger()
+
+
 def load_test_config(tested_distro: str) -> dict[str, Any]:
     config_file = CONFIG_DIR / f"{tested_distro}_config.json"
-    logger = logging.getLogger()
     if config_file.exists():
         try:
             with Path.open(config_file, "r") as f:
                 config = json.load(f)
-            logger.info("Loaded custom config for %s", tested_distro)
         except Exception as e:  # noqa: BLE001
             logger.warning("Failed to load config: %s, using default", e)
         else:
+            logger.info("Loaded custom config for %s", tested_distro)
             return config
 
     return {
@@ -186,7 +198,9 @@ def load_test_config(tested_distro: str) -> dict[str, Any]:
     }
 
 
-def get_test_name(test: Any) -> str:
+def get_test_name(
+    test: AbstractRunnableManyTimesTest | type[AbstractRunnableTimeLimitedTest],
+) -> str:
     if hasattr(test, "__name__"):
         return test.__name__
     if hasattr(test, "__class__"):
@@ -198,12 +212,12 @@ def filter_tests_by_names(
     suite: TestsRunnerConfig,
     selected_test_names: list[str],
     logger: logging.Logger,
-):
+) -> Iterable[AbstractRunnableManyTimesTest | type[AbstractRunnableTimeLimitedTest]]:
     if not selected_test_names:
         return suite.tests
 
     original_tests = suite.tests
-    filtered_tests = []
+    filtered_tests: list[AbstractRunnableManyTimesTest | type[AbstractRunnableTimeLimitedTest]] = []
 
     for test in original_tests:
         test_name = get_test_name(test)
@@ -217,11 +231,10 @@ def filter_tests_by_names(
         logger.warning("No tests matched for %s, using all tests", suite.description)
         return original_tests
 
-    return tuple(filtered_tests)
+    return filtered_tests
 
 
 def main() -> None:  # noqa: PLR0912, PLR0915, C901
-    logger = logging.getLogger()
     set_handlers(logger, Path("processing.log"))
     tested_distro = os.getenv("TESTED_DISTRO", "all")
     if tested_distro not in ("all", "yocto", "opensuse"):
