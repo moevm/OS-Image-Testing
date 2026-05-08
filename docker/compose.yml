@@ -68,9 +68,9 @@ services:
       args:
         USER: ${USER}
         GROUP: ${GROUP}
+        LIB_NAME: ${LIB_NAME}
         PYTHON_REQUIRED_LIBS: ${PYTHON_REQUIRED_LIBS}
     image: ${DOCKER_PYTHON_TAG}
-    command: python3 /home/${USER}/image/runner.py
     volumes:
       - ./tests/image:/home/${USER}/image
       - ${HOST_SCRIPTS_PATH}/bencher/bencher-test.sh:/home/${USER}/bencher-test.sh
@@ -80,6 +80,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_HOST: imgtests-postgres
       PYTHONPATH: /home/${USER}/
+      DJANGO_SECRET: ${DJANGO_SECRET}
       SSH_YOCTO_USER: ${SSH_QEMU_USER}
       SSH_YOCTO_PASS: ""
       SSH_YOCTO_ADDR: ${YOCTO_ADDRESS}
@@ -91,6 +92,8 @@ services:
       POSTGRES_PORT: ${POSTGRES_PORT}
       VMETRICS_ADDRESS: ${VMETRICS_ADDRESS}
       VMETRICS_PORT: ${VMETRICS_PORT}
+    ports:
+      - ${DJANGO_PORT}:${DJANGO_PORT}
     networks:
       yocto-network:
         ipv4_address: ${PYTHON_ADDRESS}

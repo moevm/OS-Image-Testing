@@ -16,6 +16,7 @@ license = "MIT"
 license-files = ["LICENSE"]
 dependencies = [
     "paramiko~=4.0.0",
+    "PyYAML~=6.0.3",
     "typing-extensions~=4.15.0",
     "python-json-logger~=4.1.0",
     "pydantic~=2.12.5",
@@ -28,6 +29,8 @@ dependencies = [
     "matplotlib~=3.10.8",
     "setuptools~=82.0.1",
     "numpy~=2.4.4",
+    "django~=6.0.4",
+    "django-tasks-db~=0.12.0",
 ]
 
 [dependency-groups]
@@ -41,6 +44,11 @@ tests = [
 
 [tool.setuptools.package-data]
 "imgtests.reporting" = ["templates/**/*", "static/*"]
+"imgtests.web" = [
+    "**/*.css",
+    "**/*.js",
+    "**/*.html"
+]
 
 [tool.ruff]
 line-length = 100
@@ -96,3 +104,7 @@ testpaths = ["tests/unit", "tests/misc"]
 pythonpath = [
     "src",
 ]
+
+[build-system]
+requires = ["setuptools~=80.10.2", "wheel~=0.46.3"]
+build-backend = "setuptools.build_meta"
