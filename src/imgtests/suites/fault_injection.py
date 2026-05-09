@@ -94,7 +94,7 @@ class FaultInjectionChaosbladeTest(AbstractRunnableTimeLimitedTest):
         if os_id and os_id != Distro.POKY.value:
             self.logger.warning("Skipping test due to fault injection is supported on poky.")
             return TestResult(status=TestStatus.SKIPPED)
-        tmp_dir = "/tmp/chaos-fault-injection"  # noqa: S108
+        tmp_dir = "/var/tmp/chaos-fault-injection"  # noqa: S108
         mkdir = MkDir(client)
         mkdir([tmp_dir])
         experiments = {
@@ -102,7 +102,7 @@ class FaultInjectionChaosbladeTest(AbstractRunnableTimeLimitedTest):
                 "method": "create_disk_exp",
                 "params": {
                     "action": "fill",
-                    "reserve_mb": 512,
+                    "percent": 25,
                     "path": tmp_dir,
                 },
             },
@@ -114,7 +114,11 @@ class FaultInjectionChaosbladeTest(AbstractRunnableTimeLimitedTest):
             },
         }
         fault_probs = [0, 50, 70, 90, 95]
-        timeout_suite = max(timeout // (len(experiments.keys()) * len(fault_probs)), 10)
+        min_timeout = len(experiments.keys()) * len(fault_probs) * 10
+        if min_timeout > timeout:
+            err_msg = f"The timeout is insufficient for the test. Requires at least {min_timeout}"
+            raise ValueError(err_msg)
+        timeout_suite = timeout // (len(experiments.keys()) * len(fault_probs))
 
         chaosblade = Chaosblade(client)
         kirk = Kirk(client)
