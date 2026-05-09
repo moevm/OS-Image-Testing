@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 from __future__ import annotations
 
 import argparse
@@ -16,16 +15,14 @@ from sqlalchemy import create_engine, inspect, text
 if TYPE_CHECKING:
     from sqlalchemy.engine import Engine
 
-TABLES = ("configuration", "experiment", "util_run_result")
+TABLES = ("experiment", "util_run_result")
 logger = logging.getLogger(__name__)
 
 JSON_COLUMNS = {
-    "configuration": {"packages", "core_config", "hardware"},
     "util_run_result": {"result"},
 }
 
 ORDER_COLUMNS = {
-    "configuration": "config_id",
     "experiment": "experiment_id",
     "util_run_result": "id",
 }
@@ -102,8 +99,23 @@ def export_database_to_excel(
     output_path: Path,
     tables: Sequence[str],
 ) -> None:
+    unsupported_tables = [table for table in tables if table not in TABLES]
+
+    if unsupported_tables:
+        joined_tables = ", ".join(unsupported_tables)
+        msg = f"Unsupported export tables: {joined_tables}"
+        raise ValueError(msg)
+
     existing_tables = set(inspect(engine).get_table_names())
-    missing_tables = [table for table in tables if table not in existing_tables]
+    required_tables = list(tables)
+
+    if "util_run_result" in tables and "experiment" not in required_tables:
+        required_tables.append("experiment")
+
+    if any(table in tables for table in ("experiment", "util_run_result")):
+        required_tables.append("configuration")
+
+    missing_tables = [table for table in required_tables if table not in existing_tables]
 
     if missing_tables:
         joined_tables = ", ".join(missing_tables)
@@ -124,12 +136,91 @@ def export_database_to_excel(
 
 
 def fetch_table_records(engine: Engine, table: str) -> list[dict[str, Any]]:
+    if table == "experiment":
+        return fetch_experiment_records(engine)
+
+    if table == "util_run_result":
+        return fetch_util_run_result_records(engine)
+
     order_column = ORDER_COLUMNS[table]
     query = text(f'SELECT * FROM "{table}" ORDER BY "{order_column}"')  # noqa: S608
 
     with engine.connect() as connection:
         result = connection.execute(query)
         return [dict(row) for row in result.mappings()]
+
+
+def fetch_experiment_records(engine: Engine) -> list[dict[str, Any]]:
+    query = text(
+        """
+        SELECT
+            configuration.os AS configuration_os,
+            experiment.experiment_id,
+            experiment.config_id,
+            experiment.description,
+            experiment.type,
+            experiment.started_at,
+            experiment.ended_at,
+            experiment.tests_total,
+            experiment.tests_passed,
+            experiment.tests_failed,
+            experiment.tests_broken,
+            experiment.tests_skipped
+        FROM experiment
+        LEFT JOIN configuration
+            ON configuration.config_id = experiment.config_id
+        ORDER BY experiment.experiment_id
+        """,
+    )
+
+    with engine.connect() as connection:
+        result = connection.execute(query)
+        return [add_configuration_id(dict(row)) for row in result.mappings()]
+
+
+def fetch_util_run_result_records(engine: Engine) -> list[dict[str, Any]]:
+    query = text(
+        """
+        SELECT
+            configuration.os AS configuration_os,
+            util_run_result.id,
+            util_run_result.experiment_id,
+            util_run_result.util_type,
+            util_run_result.command,
+            util_run_result.result,
+            util_run_result.description,
+            util_run_result.started_at,
+            util_run_result.ended_at
+        FROM util_run_result
+        LEFT JOIN experiment
+            ON experiment.experiment_id = util_run_result.experiment_id
+        LEFT JOIN configuration
+            ON configuration.config_id = experiment.config_id
+        ORDER BY util_run_result.id
+        """,
+    )
+
+    with engine.connect() as connection:
+        result = connection.execute(query)
+        return [add_configuration_id(dict(row)) for row in result.mappings()]
+
+
+def add_configuration_id(record: dict[str, Any]) -> dict[str, Any]:
+    configuration_id = configuration_id_from_os(record.pop("configuration_os", None))
+    return {"configuration_id": configuration_id, **record}
+
+
+def configuration_id_from_os(os_name: Any) -> str:
+    value = str(os_name or "").strip()
+    lowered_value = value.lower()
+
+    if "opensuse" in lowered_value or "suse" in lowered_value:
+        return "opensuse"
+
+    if "yocto" in lowered_value or "poky" in lowered_value:
+        return "yocto"
+
+    return value
 
 
 def flatten_table_records(
@@ -218,15 +309,17 @@ def flatten_util_run_result(record: Mapping[str, Any]) -> dict[str, Any]:
     result = decode_json(record.get("result"))
     test_name = util_run_result_test_name(record, result)
     tool_name = detect_utility(result)
+    record_without_configuration = dict(record)
 
     row = {
+        "configuration_id": record_without_configuration.pop("configuration_id", ""),
         "test_name": test_name,
         "tool_name": tool_name,
     }
 
     row.update(
         flatten_record_with_column_names(
-            record,
+            record_without_configuration,
             JSON_COLUMNS["util_run_result"],
             readable_util_column_name,
         ),
