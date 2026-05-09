@@ -37,7 +37,6 @@ COPY --chown=${USER}:${GROUP} pyproject.toml /home/${USER}/python
 RUN mkdir --parents /home/${USER}/${LIB_NAME}/conf && \
     chown ${USER}:${GROUP} --recursive /home/${USER}/${LIB_NAME}/
 COPY --chown=${USER}:${GROUP} conf/supervisord.conf /home/${USER}/${LIB_NAME}/conf/supervisord.conf
-COPY --chown=${USER}:${GROUP} conf/test_suites_metadata.yml /home/${USER}/${LIB_NAME}/test_suites_metadata.yml
 RUN cd /home/${USER}/python && python3 -m pip install .
 RUN rm -rf /home/${USER}/python
 

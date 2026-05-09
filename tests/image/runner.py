@@ -5,35 +5,6 @@ import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Final
 
-from image.endurance.memory import StressNgEnduranceMemoryTest
-from image.endurance.syscalls import (
-    LTPSyscallsIPCTest,
-    LTPSyscallsTest,
-    StressNgEnduranceSyscallsTest,
-)
-from image.performance.cpu import ChaosbladeCPUTest, StressNgPerformanceCpuTest
-from image.performance.fio_disks import (
-    FioDisksDMDelay,
-    FioDisksDMDust,
-    FioDisksNightly,
-    FioDisksParallelLoadTest,
-    FioDisksScalingTest,
-    FioDisksVariationTest,
-)
-from image.performance.ipc import SchedPerformanceTest
-from image.performance.memory import SarWithStressNGTest, StressNgPerformanceMemoryTest
-from image.performance.stress_ng_general import (
-    StressNgCombineLoadTest,
-    StressNgConsecutiveLoadTest,
-    StressNgIterTestIPC,
-    StressNgParallelLoadTest,
-)
-from image.performance.syscalls import (
-    StressNgSyscallsWithMemLoadTest,
-    SyscallsFullLoadTest,
-    SyscallsWithCpuLoadTest,
-)
-from image.performance.system import PTSSystemTest
 from imgtests.constant import CONFIG_DIR
 from imgtests.database.database import ImgtestsDatabase
 from imgtests.exec.exec import wait_remote
@@ -47,119 +18,16 @@ from imgtests.runner import (
     TestsRunner,
     TestsRunnerConfig,
 )
-from imgtests.suites.fault_injection import (
-    FaultInjectionChaosbladeTest,
-    FaultInjectionEnduranceTest,
+from imgtests.suites.map import (
+    ALL_SUBSYSTEMS_SUITE,
+    ALL_SUITES,
+    get_test_name,
 )
-from imgtests.suites.general.joint_bench import JointBench
-from imgtests.suites.general.std_utils import POSIXUtilsTest
-from imgtests.suites.network import (
-    Iperf3LocalTest,
-    Iperf3PacketRateScalingTest,
-    StressNgEnduranceNetworkTest,
-    StressNgMaxNetworkLoadTest,
-)
-from imgtests.types import Subsystem
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
 
-ALL_SUBSYSTEMS_SUITE: Final = TestsRunnerConfig(
-    description="Test suite for all subsystems.",
-    tests=(
-        JointBench(iterations=3),
-        SchedPerformanceTest(3),
-        POSIXUtilsTest(10),
-        FioDisksScalingTest,
-        FioDisksNightly,
-        FioDisksDMDelay,
-        FioDisksDMDust,
-        LTPSyscallsTest,
-        StressNgEnduranceSyscallsTest,
-        Iperf3LocalTest,
-        Iperf3PacketRateScalingTest,
-        StressNgMaxNetworkLoadTest,
-        StressNgEnduranceNetworkTest,
-        StressNgPerformanceCpuTest,
-        ChaosbladeCPUTest,
-        PTSSystemTest(2),
-        StressNgIterTestIPC,
-        StressNgConsecutiveLoadTest,
-        StressNgCombineLoadTest,
-        StressNgParallelLoadTest,
-        StressNgEnduranceMemoryTest,
-        StressNgPerformanceMemoryTest,
-        SarWithStressNGTest,
-        FaultInjectionEnduranceTest,
-        FaultInjectionChaosbladeTest,
-    ),
-    experiment_type="performance",
-    duration=1200,
-    install_dependencies=True,
-)
-MEMORY_SUITE: Final = TestsRunnerConfig(
-    description="Test suite for virtual memory.",
-    tests=(
-        StressNgEnduranceMemoryTest,
-        StressNgPerformanceMemoryTest,
-        SarWithStressNGTest,
-    ),
-    experiment_type="performance",
-    duration=100,
-    install_dependencies=True,
-)
-SYSCALLS_SUITE: Final = TestsRunnerConfig(
-    description="Test suite for syscalls.",
-    tests=(
-        StressNgEnduranceSyscallsTest,
-        LTPSyscallsTest,
-        SyscallsWithCpuLoadTest,
-        StressNgSyscallsWithMemLoadTest,
-        SyscallsFullLoadTest,
-        StressNgIterTestIPC,
-    ),
-    experiment_type="performance",
-    duration=200,
-    install_dependencies=True,
-)
-IPC_SUITE: Final = TestsRunnerConfig(
-    description="Test suite for IPC subsystem.",
-    tests=(
-        LTPSyscallsIPCTest,
-        JointBench(subsystems=frozenset({Subsystem.IPC}), iterations=3),
-        StressNgIterTestIPC,
-    ),
-    experiment_type="performance",
-    duration=100,
-    install_dependencies=True,
-)
-NETWORK_SUITE: Final = TestsRunnerConfig(
-    description="Test suite for network subsystem.",
-    tests=(
-        Iperf3LocalTest,
-        Iperf3PacketRateScalingTest,
-        StressNgMaxNetworkLoadTest,
-        StressNgEnduranceNetworkTest,
-    ),
-    experiment_type="performance",
-    duration=200,
-    install_dependencies=True,
-)
-FILE_SUITE: Final = TestsRunnerConfig(
-    description="Test suite for file subsystem.",
-    tests=(
-        FioDisksVariationTest,
-        FioDisksParallelLoadTest,
-        FioDisksNightly,
-        FioDisksScalingTest,
-        FioDisksDMDust,
-        FioDisksDMDelay,
-    ),
-    experiment_type="performance",
-    duration=300,
-    install_dependencies=True,
-)
 YOCTO_CONF: Final = (
     "SSH_YOCTO_ADDR",
     "SSH_YOCTO_USER",
@@ -202,16 +70,6 @@ def load_test_config(tested_distro: str) -> dict[str, Any]:
     }
 
 
-def get_test_name(
-    test: AbstractRunnableManyTimesTest | type[AbstractRunnableTimeLimitedTest],
-) -> str:
-    if hasattr(test, "__name__"):
-        return test.__name__
-    if hasattr(test, "__class__"):
-        return test.__class__.__name__
-    return str(test)
-
-
 def filter_tests_by_names(
     suite: TestsRunnerConfig,
     selected_test_names: list[str],
@@ -251,17 +109,9 @@ def main() -> None:  # noqa: PLR0912, PLR0915, C901
     config = load_test_config(tested_distro)
     logger.info("Using suites: %s", config.get("suites", []))
     suites_to_run = []
-    suites_map = {
-        "FILE_SUITE": FILE_SUITE,
-        "MEMORY_SUITE": MEMORY_SUITE,
-        "SYSCALLS_SUITE": SYSCALLS_SUITE,
-        "IPC_SUITE": IPC_SUITE,
-        "NETWORK_SUITE": NETWORK_SUITE,
-    }
     for suite_name in config.get("suites", []):
-        if suite_name in suites_map:
-            suite = suites_map[suite_name]
-
+        if suite_name in ALL_SUITES:
+            suite = ALL_SUITES[suite_name]
             suite_durations = config.get("suite_durations", {})
             if suite_name in suite_durations:
                 original_duration = suite.total_duration

@@ -30,7 +30,7 @@ from imgtests.sysrep import get_system_info
 from imgtests.types import Subsystem, TestsCounts, TestStatus
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Iterable, Sequence
 
     from imgtests.database.database import ImgtestsDatabase
     from imgtests.database.models.experiment import ExperimentBase, ExperimentType
@@ -52,7 +52,7 @@ class TestsRunnerConfig:
     def __init__(
         self,
         description: str,
-        tests: Iterable[AbstractRunnableManyTimesTest | type[AbstractRunnableTimeLimitedTest]],
+        tests: Sequence[AbstractRunnableManyTimesTest | type[AbstractRunnableTimeLimitedTest]],
         experiment_type: ExperimentType,
         duration: int,
         install_dependencies: bool = False,

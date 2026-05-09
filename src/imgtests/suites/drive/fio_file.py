@@ -7,7 +7,7 @@ from imgtests.exec.loaders.dmsetup import DeviceMapperSetup, setup_block_device
 from imgtests.exec.observers.resource import get_available_ram_size
 from imgtests.exec.osinfo import get_os_release
 from imgtests.planning import AbstractRunnableTimeLimitedTest
-from imgtests.suites.drive.fio import FioSuite, FioSuiteConfig, FioWorkload
+from imgtests.suites.drive.fio import FioSuite, FioSuiteConfig, FioWorkload, IOPattern
 from imgtests.types import Distro, Subsystem, TestResult, TestStatus
 
 if TYPE_CHECKING:
@@ -224,9 +224,9 @@ class FioDisksVariationTest(AbstractRunnableTimeLimitedTest):
         client: SSHClient | None,
         timeout: int,
     ) -> Iterable[TestResult]:
-        bs_values = ["512b", "4k", "2m", "4m"]
-        rw_values = ["write", "read", "randread", "randwrite"]
-        offset_cases = [
+        bs_values = ("512b", "4k", "2m", "4m")
+        rw_values: tuple[IOPattern, ...] = ("write", "read", "randread", "randwrite")
+        offset_cases: list[tuple[str, str | None]] = [
             ("0", "0"),
             ("512b", None),
             ("0", "3k"),
@@ -247,7 +247,7 @@ class FioDisksVariationTest(AbstractRunnableTimeLimitedTest):
                 offset=offset,
                 offset_increment=offset_incr,
                 size=size,
-                filename=f"variation_offset_{offset}_{offset_incr or 'none'}_testfile",
+                filename=Path(f"variation_offset_{offset}_{offset_incr or 'none'}_testfile"),
             )
             yield from _handle_fio_suite(
                 client,
@@ -276,7 +276,7 @@ class FioDisksParallelLoadTest(AbstractRunnableTimeLimitedTest):
                 results_dir=Path().home() / "fio",
                 workloads=SMALL_BLOCK_WORKLOAD,
                 size=size,
-                filename="small_testfile",
+                filename=Path("small_testfile"),
             ),
             FioSuiteConfig(
                 suite="large",
@@ -284,7 +284,7 @@ class FioDisksParallelLoadTest(AbstractRunnableTimeLimitedTest):
                 results_dir=Path().home() / "fio",
                 workloads=LARGE_BLOCK_WORKLOAD,
                 size=size,
-                filename="large_testfile",
+                filename=Path("large_testfile"),
             ),
             FioSuiteConfig(
                 suite="large-with-offset",
@@ -293,10 +293,10 @@ class FioDisksParallelLoadTest(AbstractRunnableTimeLimitedTest):
                 workloads=LARGE_BLOCK_WORKLOAD,
                 offset_increment="3k",
                 size=size,
-                filename="large_with_offset_testfile",
+                filename=Path("large_with_offset_testfile"),
             ),
         ]
-        q = queue.Queue()
+        q: queue.Queue[TestResult] = queue.Queue()
         futures = [
             executor.submit(
                 _enqueue_fio_results,
