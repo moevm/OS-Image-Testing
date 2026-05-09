@@ -322,7 +322,7 @@ class TestsRunner(BaseRunner):
             experiment_id=experiment_id,
             util_type="observer",
             command=" ".join(fs_r.cmd),
-            description="Failed systemd services.",
+            description="failed systemd services",
             result=systemctl.metrics_to_json(fs_m),
         )
 
@@ -338,7 +338,7 @@ class TestsRunner(BaseRunner):
             experiment_id=experiment_id,
             util_type="observer",
             command=" ".join(oom_r.cmd),
-            description="OOM records.",
+            description="OOM records",
             started_at=since,
             ended_at=until,
             result=journalctl.metrics_to_json(oom_m),
@@ -360,7 +360,7 @@ class TestsRunner(BaseRunner):
             experiment_id=experiment_id,
             util_type="observer",
             command=" ".join(sstmd_err_r.cmd),
-            description="Systemd errors records",
+            description="systemd errors records",
             started_at=since,
             ended_at=until,
             result=journalctl.metrics_to_json(sstmd_err_m),
