@@ -1,0 +1,89 @@
+{% extends 'tests_interface/base.html' %}
+
+{% block title %}{{distro.display_name}} Tests{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="header-with-back">
+        <a href="{% url 'index' %}" class="back-button">Back to Dashboard</a>
+        <div class="page-title">
+            <h1>Tests page for {{ distro.display_name }}</h1>
+        </div>
+    </div>
+
+    <div
+        class="test-config-section"
+        style="
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        "
+    >
+        <h3>Test Configuration</h3>
+        <div id="configStatus" style="color: green; margin-bottom: 10px"></div>
+
+        <div class="config-controls">
+            <label style="margin-right: 20px">
+                <input type="radio" name="configMode" value="default" checked />
+                Use Default Configuration
+            </label>
+            <label>
+                <input type="radio" name="configMode" value="custom" /> Custom
+                Configuration
+            </label>
+        </div>
+
+        <div id="customConfigPanel" style="display: none; margin-top: 15px">
+            <div class="suites-selection">
+                <h4>Select Test Suites and Configure Duration:</h4>
+                <div id="suitesCheckboxes"></div>
+            </div>
+
+            <div class="tests-selection" style="margin-top: 15px">
+                <h4>Individual Tests (optional):</h4>
+                <div id="testsSelection"></div>
+            </div>
+
+            <div style="margin-top: 15px">
+                <button id="saveConfigBtn" class="btn">
+                    Save Configuration
+                </button>
+                <button
+                    id="resetConfigBtn"
+                    class="btn"
+                    style="margin-left: 10px"
+                >
+                    Reset to Default
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="placeholder">
+        <button id="runTestsBtn" class="btn">Run tests</button>
+        <div
+            id="outputContainer"
+            style="
+                max-height: 400px;
+                overflow-y: auto;
+                background: #f5f5f5;
+                padding: 10px;
+                margin-top: 10px;
+                border-radius: 5px;
+                font-family: monospace;
+                white-space: pre-wrap;
+                text-align: left;
+            "
+        ></div>
+    </div>
+</div>
+
+{% load static %}
+<script>
+    window.csrfToken = "{{ csrf_token }}";
+    window.distroName = "{{ distro.name }}";
+</script>
+<script src="{% static 'js/launch_test.js' %}"></script>
+<script src="{% static 'js/test_config.js' %}"></script>
+{% endblock %}

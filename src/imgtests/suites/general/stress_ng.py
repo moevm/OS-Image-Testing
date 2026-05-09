@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
+from imgtests.exec.loaders import StressNgParamVerValidationError
 from imgtests.planning import AbstractRunnableTimeLimitedTest
 from imgtests.types import TestResult, TestStatus
 
@@ -22,7 +23,12 @@ class StressNgTest(AbstractRunnableTimeLimitedTest):
     ) -> Iterable[TestResult]:
         started_at = datetime.now(tz=ZoneInfo("UTC"))
         future = executor.submit(stress_ng.run, timeout_sec=timeout, **kwargs)
-        result, metrics = future.result()
+        try:
+            result, metrics = future.result()
+        except StressNgParamVerValidationError as err:
+            self.logger.warning("stress-ng test skipped due absent of options: %s", err)
+            yield TestResult(status=TestStatus.SKIPPED)
+            return
 
         if result.returncode == stress_ng.INCORRECT_OPT_OR_FATAL_ISSUE_CODE:
             self.logger.error("stress-ng test BROKEN")
