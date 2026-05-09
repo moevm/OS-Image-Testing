@@ -13,7 +13,10 @@ from imgtests.suites.drive.fio_file import (
     FioDisksScalingTest,
     FioDisksVariationTest,
 )
-from imgtests.suites.fault_injection import FaultInjectionEnduranceTest
+from imgtests.suites.fault_injection import (
+    FaultInjectionChaosbladeTest,
+    FaultInjectionEnduranceTest,
+)
 from imgtests.suites.general.joint_bench import JointBench
 from imgtests.suites.general.std_utils import POSIXUtilsTest
 from imgtests.suites.general.stress_ng_general import (
@@ -77,6 +80,7 @@ ALL_SUBSYSTEMS_SUITE: Final = TestsRunnerConfig(
         StressNgPerformanceMemoryTest,
         SarWithStressNGTest,
         FaultInjectionEnduranceTest,
+        FaultInjectionChaosbladeTest,
     ),
     experiment_type="performance",
     duration=1200,
