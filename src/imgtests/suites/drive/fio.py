@@ -155,14 +155,12 @@ class FioSuite:
                 **extra,
             )
             result = common_run_command(["cat", str(extra["output"])], self.client)
-            if result.returncode:
-                metrics = {}
-            else:
+            metrics: dict[str, Any] = {}
+            if not result.returncode:
                 try:
                     metrics = json.loads(result.stdout)
                 except json.JSONDecodeError:
                     logger.exception("Failed to parse fio output")
-                    metrics = {}
 
             metrics = Fio.split_result(raw_metrics=metrics)
 
