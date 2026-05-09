@@ -4,8 +4,9 @@ from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
 from imgtests.exec.loaders import Kirk
+from imgtests.exec.osinfo import get_os_release
 from imgtests.planning import AbstractRunnableTimeLimitedTest
-from imgtests.types import Subsystem, TestResult, TestStatus
+from imgtests.types import Distro, Subsystem, TestResult, TestStatus
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -29,9 +30,14 @@ class FaultInjectionEnduranceTest(AbstractRunnableTimeLimitedTest):
         client: SSHClient | None,
         timeout: int,
     ) -> Iterable[TestResult]:
+        os_id = get_os_release(client).id
+        if os_id and os_id != Distro.POKY.value:
+            self.logger.warning("Skipping test due to fault injection is supported on poky.")
+            return TestResult(status=TestStatus.SKIPPED)
+
         kirk = Kirk(client)
         available_suites = kirk.list_suites()
-        scenarios = ["syscalls", "dio", "fs"]
+        scenarios = ["syscalls", "fs", "mm", "dio"]
         for suite in scenarios:
             if suite not in available_suites:
                 self.logger.warning("'%s' suite not available for the image with LTP.", suite)
@@ -39,7 +45,7 @@ class FaultInjectionEnduranceTest(AbstractRunnableTimeLimitedTest):
 
         random.seed(timeout)
         fault_probabilities = [
-            random.randint(0, 100) if i % 2 == 1 else 0  # noqa: S311
+            random.randint(30, 80) if i % 2 == 1 else 0  # noqa: S311
             for i in range(self.iterations)
         ]
         time_per_test = (timeout // self.iterations) + 1
@@ -49,7 +55,8 @@ class FaultInjectionEnduranceTest(AbstractRunnableTimeLimitedTest):
             result, metrics_path = kirk.run(
                 scenarios=scenarios,
                 timeout=time_per_test,
-                fault_injection=fault_probability,
+                fault_prob=fault_probability,
+                fault_interval=10,
             )
 
             if metrics_path:
