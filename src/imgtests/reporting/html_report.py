@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 import re
 import statistics
@@ -18,6 +19,7 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg
 from matplotlib.figure import Figure
 
 from imgtests.constant import LIB_NAME
+from imgtests.exec.exec import common_run_command
 from imgtests.types import MetricSample, Subsystem
 
 if TYPE_CHECKING:
@@ -35,6 +37,15 @@ TEMPLATES_DIR: Final = "templates"
 STATIC_DIR: Final = "static"
 REPORT_TEMPLATE: Final = "base_report.html.j2"
 COMPARE_REPORT_TEMPLATE: Final = "compare_report.html.j2"
+
+SYSTEM_ERROR_DESCRIPTIONS: Final = {
+    "failed systemd services",
+    "OOM records",
+    "systemd errors records",
+}
+
+VMETRICS_ADDRESS: Final = "10.5.0.25"
+VMETRICS_PORT: Final = "8438"
 
 
 class DiagramConfig(NamedTuple):
@@ -146,6 +157,7 @@ class ReportGenerator:
         for i in range(len(exps_data)):
             exp_data = exps_data[i]
             metrics = self._extract_metrics_from_experiment(exp_data)
+            self.add_load_average_metrics(metrics)
             report_data.append(
                 {
                     "header": {
@@ -264,9 +276,22 @@ class ReportGenerator:
             if util_run_result.description == "Planned stage":
                 continue
             result = util_run_result.result
-            if not result or not isinstance(result, dict):
+
+            if util_run_result.description in SYSTEM_ERROR_DESCRIPTIONS:
+                if result == []:
+                    result = 0.0
+                metrics.append(
+                    MetricSample(
+                        stage_name="system-errors",
+                        subsystem="system",
+                        metric_name=util_run_result.description,
+                        value=float(result),
+                        label=util_run_result.description,
+                    ),
+                )
                 continue
-            if "metrics" not in result:
+
+            if not result or not isinstance(result, dict) or "metrics" not in result:
                 continue
             if isinstance(result.get("metrics"), list):
                 metrics.extend(
@@ -447,6 +472,33 @@ class ReportGenerator:
             results[name] = fn(matched, out_dir=out_dir, plots_dir=plots_dir)
 
         return results
+
+    def add_load_average_metrics(self, metrics: list[MetricSample]):
+        for interval in (1, 5, 15):
+            query_url = (
+                f"http://{VMETRICS_ADDRESS}:{VMETRICS_PORT}/api/v1/query_range"
+                f"?query=node_load{interval}&start=-1h&step=1m"
+            )
+            result = common_run_command(["curl", query_url])
+            if result.returncode:
+                self._logger.error("Failed to get load average metrics: %s", result)
+                return
+
+            query_result = json.loads(result.stdout).get("data", {}).get("result", [])
+            if query_result == []:
+                self._logger.warning("No load average metrics found.")
+                return
+
+            for _, value in query_result[0].get("values", []):
+                metrics.append(
+                    MetricSample(
+                        stage_name="load_average",
+                        subsystem="cpu",
+                        metric_name=f"load_average_{interval}min",
+                        value=float(value),
+                        label=f"load_average_{interval}min",
+                    ),
+                )
 
 
 @lru_cache(maxsize=1)
