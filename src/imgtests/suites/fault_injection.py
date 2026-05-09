@@ -4,7 +4,7 @@ from time import sleep
 from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
-from imgtests.exec.loaders import Chaosblade, Kirk
+from imgtests.exec.loaders import Chaosblade, ChaosResponse, Kirk
 from imgtests.exec.osinfo import get_os_release
 from imgtests.exec.user_commands import MkDir
 from imgtests.planning import AbstractRunnableTimeLimitedTest
@@ -12,9 +12,9 @@ from imgtests.types import Distro, Subsystem, TestResult, TestStatus
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
-    from concurrent.futures import ThreadPoolExecutor
+    from concurrent.futures import Future, ThreadPoolExecutor
 
-    from imgtests.exec.exec import SSHClient
+    from imgtests.exec.exec import ExecResult, SSHClient
 
 
 class FaultInjectionEnduranceTest(AbstractRunnableTimeLimitedTest):
@@ -84,6 +84,18 @@ class FaultInjectionChaosbladeTest(AbstractRunnableTimeLimitedTest):
             timeout,
         )
 
+    @property
+    def kirk_suites(self) -> tuple[str, str]:
+        return ("dio", "sched")
+
+    @property
+    def chaosblade_suites(self) -> tuple[str, str]:
+        return ("create_disk_exp", "create_cpu_exp")
+
+    @property
+    def fault_probs(self) -> tuple[int, ...]:
+        return (0, 50, 70, 90, 95)
+
     def _run(
         self,
         executor: ThreadPoolExecutor,
@@ -97,39 +109,22 @@ class FaultInjectionChaosbladeTest(AbstractRunnableTimeLimitedTest):
         tmp_dir = "/var/tmp/chaos-fault-injection"  # noqa: S108
         mkdir = MkDir(client)
         mkdir([tmp_dir])
-        experiments = {
-            "dio": {
-                "method": "create_disk_exp",
-                "params": {
-                    "action": "fill",
-                    "percent": 25,
-                    "path": tmp_dir,
-                },
-            },
-            "sched": {
-                "method": "create_cpu_exp",
-                "params": {
-                    "cpu_percent": 10,
-                },
-            },
-        }
-        fault_probs = [0, 50, 70, 90, 95]
-        min_timeout = len(experiments.keys()) * len(fault_probs) * 10
-        if min_timeout > timeout:
-            err_msg = f"The timeout is insufficient for the test. Requires at least {min_timeout}"
-            raise ValueError(err_msg)
-        timeout_suite = timeout // (len(experiments.keys()) * len(fault_probs))
-
+        self._validate_timeout(timeout)
+        timeout_suite = timeout // (len(self.kirk_suites) * len(self.fault_probs))
         chaosblade = Chaosblade(client)
         kirk = Kirk(client)
         available_suites = kirk.list_suites()
-        for suite in experiments:
+        for suite in self.kirk_suites:
             if suite not in available_suites:
                 self.logger.warning("'%s' suite not available for the image with LTP.", suite)
                 return TestResult(status=TestStatus.SKIPPED)
-        for fault_prob in fault_probs:
+        for fault_prob in self.fault_probs:
             self.logger.info("Run with %d fault_prob and %d timeout", fault_prob, timeout_suite)
-            for kirk_suite, chaosblade_conf in experiments.items():
+            for kirk_suite, chaosblade_suite in zip(
+                self.kirk_suites,
+                self.chaosblade_suites,
+                strict=True,
+            ):
                 started_at = datetime.now(tz=ZoneInfo("UTC"))
                 kirk_future = executor.submit(
                     kirk.run,
@@ -139,12 +134,13 @@ class FaultInjectionChaosbladeTest(AbstractRunnableTimeLimitedTest):
                     fault_interval=1,
                 )
                 sleep(1)
-                chaosblade_future = executor.submit(
-                    getattr(chaosblade, chaosblade_conf["method"]),
-                    **chaosblade_conf["params"],
-                    timeout_sec=timeout_suite,
+                chaosblade_future = self._create_chaosblade_future(
+                    executor,
+                    chaosblade,
+                    chaosblade_suite,
+                    tmp_dir,
+                    timeout_suite,
                 )
-
                 result, chaosblade_result = chaosblade_future.result()
                 status = TestStatus.PASSED
                 if chaosblade_result.success and isinstance(chaosblade_result.result, str):
@@ -182,3 +178,36 @@ class FaultInjectionChaosbladeTest(AbstractRunnableTimeLimitedTest):
                         started_at=started_at,
                         status=TestStatus.FAILED,
                     )
+
+    def _validate_timeout(self, timeout: float) -> None:
+        min_timeout = len(self.kirk_suites) * len(self.fault_probs) * 60
+        if min_timeout > timeout:
+            err_msg = f"The timeout is insufficient for the test. Requires at least {min_timeout}"
+            raise ValueError(err_msg)
+
+    def _create_chaosblade_future(
+        self,
+        executor: ThreadPoolExecutor,
+        chaosblade: Chaosblade,
+        chaosblade_suite: str,
+        tmp_dir: str,
+        timeout_suite: int,
+    ) -> Future[tuple[ExecResult, ChaosResponse]]:
+        match chaosblade_suite:
+            case "create_disk_exp":
+                return executor.submit(
+                    chaosblade.create_disk_exp,
+                    action="fill",
+                    percent=25,
+                    path=tmp_dir,
+                    timeout_sec=timeout_suite,
+                )
+            case "create_cpu_exp":
+                return executor.submit(
+                    chaosblade.create_cpu_exp,
+                    cpu_percent=10,
+                    timeout_sec=timeout_suite,
+                )
+            case _:
+                err_msg = "Unknown chaosblade method."
+                raise ValueError(err_msg)
