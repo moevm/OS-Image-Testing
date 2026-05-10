@@ -148,7 +148,7 @@ FILE_SUITE: Final = TestsRunnerConfig(
         FioDisksDMDelay,
     ),
     experiment_type="performance",
-    duration=300,
+    duration=400,
     install_dependencies=True,
 )
 ALL_SUITES: Final = {
