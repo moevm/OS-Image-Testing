@@ -93,7 +93,10 @@ class PTSSystemTest(AbstractRunnableManyTimesTest):
             started_at = datetime.now(UTC)
             future = executor.submit(pts.run, test_name=test_name, run_count=iterations)
             result, metrics = future.result()
-            if result.returncode:
+            if pts.is_timeout_result(result):
+                self.logger.error("PTS test '%s' timed out.", test_name)
+                yield TestResult(status=TestStatus.BROKEN)
+            elif result.returncode:
                 self.logger.error("PTS test '%s' FAILED.", test_name)
                 yield TestResult(status=TestStatus.FAILED)
             else:
