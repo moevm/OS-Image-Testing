@@ -13,10 +13,10 @@ if TYPE_CHECKING:
     from imgtests.types import TestResult
 
 
-class StressNgEnduranceDisksTest(StressNgTest):
+class StressNgEnduranceFileTest(StressNgTest):
     def __init__(self, timeout: int) -> None:
         super().__init__(
-            "Stress-ng endurance disks test.",
+            "Stress-ng endurance filesystem test.",
             frozenset({Subsystem.FILE}),
             timeout,
         )
