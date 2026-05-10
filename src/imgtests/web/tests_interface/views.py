@@ -2,9 +2,8 @@ import json
 import os
 import re
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
-import yaml
 from django.http import Http404, HttpRequest, JsonResponse
 from django.http.response import HttpResponse
 from django.shortcuts import render
@@ -12,7 +11,8 @@ from django.tasks import TaskResultStatus
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
-from imgtests.constant import CONFIG_DIR, METADATA_FILE, REPORTS_DIR
+from imgtests.constant import CONFIG_DIR, REPORTS_DIR
+from imgtests.suites.map import ALL_SUITES, get_test_name
 
 from .distros_config import (
     add_distribution,
@@ -30,38 +30,25 @@ if TYPE_CHECKING:
 test_runs = {}
 
 
-def load_metadata() -> dict[str, Any]:
-    if not METADATA_FILE.exists():
-        return {}
-
-    return yaml.safe_load(METADATA_FILE.read_text())
-
-
 def api_get_available_suites(request: HttpRequest) -> JsonResponse:  # noqa: ARG001
-    metadata = load_metadata()
-
     suites_info = {
-        name: {
-            "description": info["description"],
-            "default_duration": info["default_duration"],
-            "test_count": len(info.get("tests", [])),
+        suite_name: {
+            "description": suite.description,
+            "default_duration": suite.total_duration,
+            "test_count": len(suite.tests),
         }
-        for name, info in metadata.items()
+        for suite_name, suite in ALL_SUITES.items()
     }
 
     return JsonResponse(suites_info)
 
 
 def api_get_suite_tests(request: HttpRequest, suite_name: str) -> JsonResponse:  # noqa: ARG001
-    metadata = load_metadata()
-
-    if suite_name not in metadata:
+    if suite_name not in ALL_SUITES:
         return JsonResponse({"error": f"Suite {suite_name} not found"}, status=404)
-
-    tests = metadata[suite_name].get("tests", [])
-
-    tests_list = [{"name": test, "type": "class"} for test in tests]
-
+    tests_list = [
+        {"name": get_test_name(test), "type": "class"} for test in ALL_SUITES[suite_name].tests
+    ]
     return JsonResponse(tests_list, safe=False)
 
 
@@ -89,8 +76,6 @@ def api_save_test_config(request: HttpRequest, distro_name: str) -> JsonResponse
 def api_get_test_config(request: HttpRequest, distro_name: str) -> JsonResponse:  # noqa: ARG001
     config_file = CONFIG_DIR / f"{distro_name}_config.json"
 
-    metadata = load_metadata()
-
     if config_file.exists():
         try:
             with Path.open(config_file, "r") as f:
@@ -102,11 +87,11 @@ def api_get_test_config(request: HttpRequest, distro_name: str) -> JsonResponse:
     default_config = {
         "suites": ["FILE_SUITE", "MEMORY_SUITE", "SYSCALLS_SUITE", "IPC_SUITE", "NETWORK_SUITE"],
         "suite_durations": {
-            "FILE_SUITE": metadata.get("FILE_SUITE", {}).get("default_duration", 300),
-            "MEMORY_SUITE": metadata.get("MEMORY_SUITE", {}).get("default_duration", 100),
-            "SYSCALLS_SUITE": metadata.get("SYSCALLS_SUITE", {}).get("default_duration", 200),
-            "IPC_SUITE": metadata.get("IPC_SUITE", {}).get("default_duration", 100),
-            "NETWORK_SUITE": metadata.get("NETWORK_SUITE", {}).get("default_duration", 200),
+            "FILE_SUITE": ALL_SUITES["FILE_SUITE"].total_duration,
+            "MEMORY_SUITE": ALL_SUITES["MEMORY_SUITE"].total_duration,
+            "SYSCALLS_SUITE": ALL_SUITES["SYSCALLS_SUITE"].total_duration,
+            "IPC_SUITE": ALL_SUITES["IPC_SUITE"].total_duration,
+            "NETWORK_SUITE": ALL_SUITES["NETWORK_SUITE"].total_duration,
         },
         "selected_tests": {},
     }
