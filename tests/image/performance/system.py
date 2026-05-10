@@ -3,8 +3,8 @@ from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
 from imgtests.exec.loaders import PhoronixTestSuite
-from imgtests.runner import AbstractRunnableManyTimesTest, TestResult, TestStatus
-from imgtests.types import Subsystem
+from imgtests.runner import AbstractRunnableManyTimesTest, TestStatus
+from imgtests.types import Subsystem, TestResult
 
 if TYPE_CHECKING:
     from collections.abc import Iterable

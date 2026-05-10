@@ -1,15 +1,14 @@
 import logging
 import random
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
-from zoneinfo import ZoneInfo
 
 from imgtests.exec.loaders import StressNg
 from imgtests.exec.observers import Sar
 from imgtests.exec.observers.resource import get_total_ram_size
-from imgtests.runner import AbstractRunnableTimeLimitedTest, TestResult, TestStatus
+from imgtests.planning import AbstractRunnableTimeLimitedTest
 from imgtests.suites.general.stress_ng import StressNgTest
-from imgtests.types import Subsystem
+from imgtests.types import Subsystem, TestResult, TestStatus
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -19,11 +18,20 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+
 HUGE_PAGE_SIZE_KIB = 2048
 STRESSORS_LIMIT = 1024
 RAM_LOAD = 0.7
 
 tests: list[dict[str, Any]] = [
+    # General memory stress test with mmap() callings
+    {"vm": 4, "vm_bytes": "35%", "vm_populate": True, "mmap": 4, "mmap_bytes": "35%"},
+    # Memory bandwidth test
+    {"memrate": 0, "memrate_rd_mbs": 500, "memrate_wr_mbs": 1000},
+    # Memory mappings of various sizes and calls test
+    {"mmaptorture": 0, "mmaptorture_bytes": "70%"},
+]
+perf_tests: list[dict[str, Any]] = [
     # 50% and 70% RAM load tests
     {"vm": 4, "vm_bytes": "25%", "mmap": 4, "mmap_bytes": "25%"},
     {"vm": 4, "vm_bytes": "35%", "mmap": 4, "mmap_bytes": "35%"},
@@ -31,6 +39,30 @@ tests: list[dict[str, Any]] = [
     {"vm": 1024, "vm_bytes": "4M"},  # 4 KiB each (4096 KiB / 1024), equal to page size
     {"vm": 1024, "vm_bytes": "1G"},  # 1 MiB each (1024 MiB / 1024), between page and huge page size
 ]
+
+
+class StressNgEnduranceMemoryTest(StressNgTest):
+    def __init__(self, timeout: int) -> None:
+        super().__init__(
+            "Stress-ng endurance memory test.",
+            frozenset({Subsystem.MEMORY}),
+            timeout,
+        )
+
+    def _run(
+        self,
+        executor: ThreadPoolExecutor,
+        client: SSHClient | None,
+        timeout: int,
+    ) -> Iterable[TestResult]:
+        stress_ng = StressNg(client)
+        for params in tests:
+            yield from self.run_test(
+                stress_ng=stress_ng,
+                executor=executor,
+                timeout=timeout,
+                **params,
+            )
 
 
 class StressNgPerformanceMemoryTest(StressNgTest):
@@ -63,12 +95,12 @@ class StressNgPerformanceMemoryTest(StressNgTest):
         instances = min(instances, STRESSORS_LIMIT)
 
         # Test with huge pages
-        tests.append({"mmaphuge": workers})
+        perf_tests.append({"mmaphuge": workers})
 
         # Randomized test with allocation per instance above huge page size
-        tests.append({"vm": instances, "vm_bytes": "70%"})
+        perf_tests.append({"vm": instances, "vm_bytes": "70%"})
 
-        for params in tests:
+        for params in perf_tests:
             yield from self.run_test(
                 stress_ng=stress_ng,
                 executor=executor,
@@ -96,7 +128,7 @@ class SarWithStressNGTest(AbstractRunnableTimeLimitedTest):
         sar = Sar(client)
 
         stress_ng = StressNg(client)
-        started_at = datetime.now(tz=ZoneInfo("UTC"))
+        started_at = datetime.now(UTC)
         stress_ng_future = executor.submit(
             stress_ng.run,
             timeout_sec=timeout,

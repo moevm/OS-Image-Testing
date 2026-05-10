@@ -1,9 +1,12 @@
+from datetime import UTC, datetime
 from time import sleep
 from typing import TYPE_CHECKING
 
+from imgtests.exec.loaders import Chaosblade, PhoronixTestSuite, StressNg
 from imgtests.exec.observers.systemd_analyze import SystemdAnalyze
-from imgtests.runner import AbstractRunnableManyTimesTest, TestResult, TestStatus
-from imgtests.types import Subsystem
+from imgtests.planning import AbstractRunnableManyTimesTest, AbstractRunnableTimeLimitedTest
+from imgtests.suites.general.stress_ng import StressNgTest
+from imgtests.types import Subsystem, TestResult, TestStatus
 
 if TYPE_CHECKING:
     import logging
@@ -67,3 +70,109 @@ class SystemSlowServicesTest(AbstractRunnableManyTimesTest):
 
     def cleanup(self, client: SSHClient | None, logger: logging.Logger) -> None:  # noqa: ARG002
         logger.debug("Noting to cleanup for system slow services test.")
+
+
+class PTSSystemTest(AbstractRunnableManyTimesTest):
+    def __init__(self, iterations: int = 1) -> None:
+        super().__init__("Load system with PTS.", frozenset({Subsystem.SYSTEM}), iterations)
+
+    def _run(
+        self,
+        executor: ThreadPoolExecutor,
+        client: SSHClient | None,
+        iterations: int,
+    ) -> Iterable[TestResult]:
+        pts = PhoronixTestSuite(client)
+        future = executor.submit(pts.prepare)
+        result = future.result()
+        if result.returncode:
+            self.logger.error("PTS setup failed: '%s'", result.stderr)
+            return TestResult(status=TestStatus.BROKEN)
+
+        for test_name in ("pts/ctx-clock", "pts/appleseed"):
+            started_at = datetime.now(UTC)
+            future = executor.submit(pts.run, test_name=test_name, run_count=iterations)
+            result, metrics = future.result()
+            if result.returncode:
+                self.logger.error("PTS test '%s' FAILED.", test_name)
+                yield TestResult(status=TestStatus.FAILED)
+            else:
+                metrics = PhoronixTestSuite.split_result(raw_metrics=metrics)
+                yield TestResult(
+                    command=" ".join(result.cmd),
+                    metrics=metrics,
+                    started_at=started_at,
+                    status=TestStatus.PASSED,
+                )
+
+
+class StressNgEnduranceCpuTest(StressNgTest):
+    def __init__(self, timeout: int) -> None:
+        super().__init__(
+            "Stress-ng endurance CPU test.",
+            frozenset({Subsystem.SYSTEM}),
+            timeout,
+        )
+
+    def _run(
+        self,
+        executor: ThreadPoolExecutor,
+        client: SSHClient | None,
+        timeout: int,
+    ) -> Iterable[TestResult]:
+        stress_ng = StressNg(client)
+        yield from self.run_test(stress_ng=stress_ng, executor=executor, timeout=timeout, cpu=0)
+
+
+class StressNgPerformanceCpuTest(StressNgTest):
+    def __init__(self, timeout: int) -> None:
+        super().__init__(
+            "Stress-ng performance CPU test.",
+            frozenset({Subsystem.SYSTEM}),
+            timeout,
+        )
+
+    def _run(
+        self,
+        executor: ThreadPoolExecutor,
+        client: SSHClient | None,
+        timeout: int,
+    ) -> Iterable[TestResult]:
+        stress_ng = StressNg(client)
+        yield from self.run_test(stress_ng=stress_ng, executor=executor, timeout=timeout, cpu=0)
+
+
+class ChaosbladeCPUTest(AbstractRunnableTimeLimitedTest):
+    def __init__(self, timeout: int) -> None:
+        super().__init__("Load CPU 70% with chaosblade.", frozenset({Subsystem.SYSTEM}), timeout)
+
+    def _run(
+        self,
+        executor: ThreadPoolExecutor,
+        client: SSHClient | None,
+        timeout: int,
+    ) -> Iterable[TestResult]:
+        chaos = Chaosblade(client)
+        started_at = datetime.now(UTC)
+        future = executor.submit(chaos.create_cpu_exp, cpu_percent=70, timeout_sec=timeout)
+        result, chaos_result = future.result()
+        # actually wait till the experiment is completed
+        if chaos_result.success and isinstance(chaos_result.result, str):
+            future = executor.submit(
+                chaos.await_exp_result,
+                experiment_id=chaos_result.result,
+                timeout=timeout,
+            )
+            result, chaos_result = future.result()
+            if result.returncode:
+                status = TestStatus.BROKEN
+            else:
+                status = TestStatus.PASSED if chaos_result.success else TestStatus.FAILED
+        else:
+            status = TestStatus.BROKEN
+        yield TestResult(
+            metrics=chaos_result,
+            command=" ".join(result.cmd),
+            started_at=started_at,
+            status=status,
+        )

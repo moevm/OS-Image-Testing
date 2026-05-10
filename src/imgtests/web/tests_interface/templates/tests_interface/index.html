@@ -1,0 +1,28 @@
+{% extends 'tests_interface/base.html' %}
+
+{% block title %}Home - Test Dashboard{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="title-container">
+        <h1>Test Platform Dashboard</h1>
+        <p class="subtitle">
+            Select a platform to view test results and reports
+        </p>
+    </div>
+
+    <div class="controls">
+        <button id="addDistroBtn" class="btn btn-success">
+            + Add Distribution
+        </button>
+        <button id="resetDistrosBtn" class="btn btn-warning">
+            Reset to Default
+        </button>
+    </div>
+
+    <div id="distrosContainer" class="links-container"></div>
+</div>
+
+{% load static %}
+<script src="{% static 'js/dashboard.js' %}"></script>
+{% endblock %}

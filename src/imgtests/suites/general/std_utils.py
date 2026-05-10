@@ -1,12 +1,27 @@
+"""Module for testing the performance of standard POSIX utilities.
+
+The module provides the `POSIXUtilsTest` class that measures execution times of various
+utilities across several categories:
+- network utilities (`netstat`, `lsof`, `ping`);
+- file handling utilities (`cat`, `head`, `tail`, `wc`, etc.);
+- directory handling utilities (`mkdir`, `find`, `ls`, `du`, etc.);
+- other common utilities (`ps`, `pgrep`, `echo`, `printf`, etc.).
+
+For each utility run, the following statistical metrics are collected:
+- mean execution time (`mean`);
+- median execution time (`median`);
+- standard deviation (`std`);
+- variance (`var`).
+"""
+
 import tempfile
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Final, NamedTuple
-from zoneinfo import ZoneInfo
 
 from imgtests.exec.exec import common_run_command
-from imgtests.runner import AbstractRunnableManyTimesTest, TestResult, TestStatus
-from imgtests.types import Subsystem
+from imgtests.planning import AbstractRunnableManyTimesTest
+from imgtests.types import Subsystem, TestResult, TestStatus
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -54,7 +69,7 @@ class POSIXUtilsTest(AbstractRunnableManyTimesTest):
             self.test_utils_for_dirs,
             self.test_other_tools,
         ]:
-            started_at = datetime.now(tz=ZoneInfo("UTC"))
+            started_at = datetime.now(UTC)
             result = func(client, iterations)
             for cmd, metrics in result.items():
                 if metrics:
@@ -322,6 +337,16 @@ def time_cmd_many(
 
 
 def tooltimes_to_bmf(tooltimes: ToolTimes) -> dict[str, dict[str, dict[str, float]]]:
+    """Converts a ToolTimes object into a structured metrics dictionary for Bencher.
+
+    The function takes an object with tool execution time metrics and transforms it
+    into a hierarchical dictionary where data is organized by statistics types
+    and time metrics.
+
+    Args:
+        tooltimes (ToolTimes): An object containing statistical data about tool
+            execution times.
+    """
     metrics = ["real", "user", "sys"]
     result: dict[str, dict[str, dict[str, float]]] = {}
 

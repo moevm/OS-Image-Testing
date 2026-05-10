@@ -1,5 +1,7 @@
 import json
-from typing import TYPE_CHECKING, Any
+from concurrent.futures import TimeoutError as FutureTimeoutError
+from time import monotonic, sleep
+from typing import TYPE_CHECKING, Any, Final
 
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult, common_run_command
@@ -8,10 +10,18 @@ from imgtests.exec.utils import add_flag, create_opt
 from imgtests.results_adapter import AdapterResult
 
 if TYPE_CHECKING:
+    from concurrent.futures import Future, ThreadPoolExecutor
+
     from imgtests.exec.exec import SSHClient
 
 
 class Iperf3(PkgMgrMixin, GenericUtil):
+    # Give the iperf3 server a small buffer to bind the socket and start accepting clients.
+    IPERF3_SERVER_STARTUP_SEC: Final = 3
+    # Wait briefly for the one-off iperf3 server to exit after the client finishes.
+    IPERF3_SERVER_SHUTDOWN_TIMEOUT_SEC: Final = 2
+    IPERF3_LOCAL_SERVER_SHUTDOWN_TIMEOUT_SEC: Final = 5
+
     def __init__(self, ssh_client: SSHClient | None = None) -> None:
         super().__init__("iperf3", ssh_client)
 
@@ -27,6 +37,8 @@ class Iperf3(PkgMgrMixin, GenericUtil):
         one_off: bool = False,
         interval: int | None = None,
         udp: bool = False,
+        version4: bool = False,
+        version6: bool = False,
         **kwargs: dict[str, Any],
     ) -> ExecResult:
         """This is a wrapper for iperf3 which used for the network performance estimation.
@@ -39,6 +51,8 @@ class Iperf3(PkgMgrMixin, GenericUtil):
             one_off: Handle one client connection then exit.
             interval: Seconds between periodic throughput reports.
             udp: Use UDP rather than TCP.
+            version4: only use IPv4.
+            version6: only use IPv6.
             **kwargs: Command arguments in the free form with values.
         """
         if client and server:
@@ -69,6 +83,8 @@ class Iperf3(PkgMgrMixin, GenericUtil):
             *create_opt("one-off", one_off),
             *create_opt("interval", interval),
             *create_opt("udp", udp),
+            *create_opt("version4", version4),
+            *create_opt("version6", version6),
             *add_flag("json"),
         ]
         return self(
@@ -111,6 +127,16 @@ class Iperf3(PkgMgrMixin, GenericUtil):
         return json.loads(metrics)
 
     @staticmethod
+    def bundle_metrics_to_json(
+        client_result: ExecResult,
+        server_result: ExecResult,
+    ) -> dict[str, Any]:
+        return {
+            "client": Iperf3.metrics_to_json(client_result.stdout.strip()),
+            "server": Iperf3.metrics_to_json(server_result.stdout.strip()),
+        }
+
+    @staticmethod
     def split_result(
         raw_metrics: dict[str, Any],
         test_index: int = 0,  # noqa: ARG004
@@ -149,3 +175,50 @@ class Iperf3(PkgMgrMixin, GenericUtil):
             time=time,
             metrics=metrics,
         )
+
+
+class Iperf3Bundle:
+    __slots__ = ("__client", "__server")
+
+    def __init__(self, client: SSHClient | None = None, server: SSHClient | None = None) -> None:
+        self.__client = Iperf3(client)
+        self.__server = Iperf3(server)
+
+    @property
+    def client(self) -> Iperf3:
+        return self.__client
+
+    @property
+    def server(self) -> Iperf3:
+        return self.__server
+
+    def start_server(
+        self,
+        executor: ThreadPoolExecutor,
+    ) -> Future[ExecResult]:
+        server_future = executor.submit(
+            self.server.run,
+            server=True,
+            one_off=True,
+            version4=True,
+        )
+        sleep(Iperf3.IPERF3_SERVER_STARTUP_SEC)
+        return server_future
+
+    def wait_server(
+        self,
+        server_future: Future[ExecResult],
+        timeout: float,
+    ) -> ExecResult:
+        try:
+            return server_future.result(timeout=max(0.0, timeout))
+        except FutureTimeoutError:
+            self.server.stop_server()
+            raise
+
+    @staticmethod
+    def server_wait_timeout(
+        deadline: float,
+        max_timeout_sec: float = Iperf3.IPERF3_SERVER_SHUTDOWN_TIMEOUT_SEC,
+    ) -> float:
+        return max(0.0, min(max_timeout_sec, deadline - monotonic()))

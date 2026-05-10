@@ -1,12 +1,11 @@
 from copy import deepcopy
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, NamedTuple
-from zoneinfo import ZoneInfo
 
 from imgtests.exec.loaders.perf import Perf
 from imgtests.exec.loaders.pts import PhoronixTestSuite
-from imgtests.runner import AbstractRunnableManyTimesTest, TestResult, TestStatus
-from imgtests.types import Subsystem
+from imgtests.planning import AbstractRunnableManyTimesTest
+from imgtests.types import Subsystem, TestResult, TestStatus
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable
@@ -28,7 +27,6 @@ TOOLS_CONFIG: dict[str, ToolConfig] = {
         run="run",
         subsystem={
             Subsystem.FILE: ({"test_name": "pts/hdparm-read", "run_count": 1},),
-            Subsystem.NETWORK: ({"test_name": "pts/network-loopback", "run_count": 1},),
             Subsystem.MEMORY: ({"test_name": "pts/tinymembench", "run_count": 1},),
             Subsystem.SYSTEM: (
                 {"test_name": "pts/ctx-clock", "run_count": 1},
@@ -110,7 +108,7 @@ class JointBench(AbstractRunnableManyTimesTest):
                         TOOLS_CONFIG[tool_name].run,
                     )
                     self.logger.info("Run '%s' test '%s'", tool_name, test_copy)
-                    started_at = datetime.now(tz=ZoneInfo("UTC"))
+                    started_at = datetime.now(UTC)
                     # TODO: handle only specific exceptions
                     try:
                         tool_result, metrics = run_method(**test_copy)
@@ -118,7 +116,7 @@ class JointBench(AbstractRunnableManyTimesTest):
                         self.logger.exception("Test failed.")
                         yield TestResult(status=TestStatus.BROKEN)
                         return
-                    ended_at = datetime.now(tz=ZoneInfo("UTC"))
+                    ended_at = datetime.now(UTC)
                     if isinstance(
                         tool_instance,
                         PhoronixTestSuite,
