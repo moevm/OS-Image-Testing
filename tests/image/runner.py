@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Final
 
+from image.endurance.disks import StressNgEnduranceDisksTest
 from image.endurance.memory import StressNgEnduranceMemoryTest
 from image.endurance.syscalls import (
     LTPSyscallsIPCTest,
@@ -68,6 +69,7 @@ ALL_SUBSYSTEMS_SUITE: Final = TestsRunnerConfig(
         JointBench(iterations=3),
         SchedPerformanceTest(3),
         POSIXUtilsTest(10),
+        StressNgEnduranceDisksTest,
         FioDisksScalingTest,
         FioDisksNightly,
         FioDisksDMDelay,
@@ -145,6 +147,7 @@ NETWORK_SUITE: Final = TestsRunnerConfig(
 FILE_SUITE: Final = TestsRunnerConfig(
     description="Test suite for file subsystem.",
     tests=(
+        StressNgEnduranceDisksTest,
         FioDisksVariationTest,
         FioDisksParallelLoadTest,
         FioDisksNightly,

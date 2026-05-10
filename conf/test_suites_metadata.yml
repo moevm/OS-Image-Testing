@@ -2,6 +2,7 @@ FILE_SUITE:
   default_duration: 300
   description: Test suite for file subsystem.
   tests:
+  - StressNgEnduranceDisksTest
   - FioDisksVariationTest
   - FioDisksParallelLoadTest
   - FioDisksNightly

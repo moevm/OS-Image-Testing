@@ -27,11 +27,12 @@ class StressNgEnduranceDisksTest(StressNgTest):
         timeout: int,
     ) -> Iterable[TestResult]:
         stress_ng = StressNg(client)
-        yield from self.run_test(
-            stress_ng=stress_ng,
-            executor=executor,
-            timeout=timeout,
-            hdd=1,
-            hdd_bytes="100M",
-            hdd_opts="sync",
-        )
+        for usage in range(50, 100, 10):
+            yield from self.run_test(
+                stress_ng=stress_ng,
+                executor=executor,
+                timeout=timeout,
+                hdd=0,
+                hdd_bytes=f"{usage}%",
+                hdd_opts="sync",
+            )
