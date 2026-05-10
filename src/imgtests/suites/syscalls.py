@@ -1,7 +1,6 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from time import sleep
 from typing import TYPE_CHECKING
-from zoneinfo import ZoneInfo
 
 from imgtests.exec.loaders import Kirk, Perf, StressNg
 from imgtests.planning import AbstractRunnableTimeLimitedTest
@@ -40,7 +39,7 @@ class SyscallsWithCpuLoadTest(AbstractRunnableTimeLimitedTest):
             raise ValueError(err_msg)
         for cpu_percent in cpu_loads:
             self.logger.info("Running test with %d cpu load...", cpu_percent)
-            started_at = datetime.now(tz=ZoneInfo("UTC"))
+            started_at = datetime.now(UTC)
             future_kirk = executor.submit(kirk.run, ["syscalls"], timeout=timeout)
             future_stress_ng = executor.submit(
                 stress_ng.run,
@@ -91,7 +90,7 @@ class SyscallsWithCpuLoadTest(AbstractRunnableTimeLimitedTest):
                         **kirk.metrics_to_json(kirk_metrics_path),
                     },
                     started_at=started_at,
-                    ended_at=datetime.now(tz=ZoneInfo("UTC")),
+                    ended_at=datetime.now(UTC),
                 )
 
 
@@ -138,7 +137,7 @@ class SyscallsFullLoadTest(AbstractRunnableTimeLimitedTest):
         stress_ng = StressNg(client)
         perf = Perf(client)
 
-        started_at = datetime.now(tz=ZoneInfo("UTC"))
+        started_at = datetime.now(UTC)
         future_stress_ng = executor.submit(
             stress_ng.run,
             timeout_sec=timeout,
@@ -189,7 +188,7 @@ class SyscallsFullLoadTest(AbstractRunnableTimeLimitedTest):
                     "perf_metrics": perf.metrics_to_json(perf_metrics),
                 },
                 started_at=started_at,
-                ended_at=datetime.now(tz=ZoneInfo("UTC")),
+                ended_at=datetime.now(UTC),
             )
 
 
@@ -208,7 +207,7 @@ class LTPSyscallsTest(AbstractRunnableTimeLimitedTest):
         if "syscalls" not in available_suites:
             self.logger.warning("'syscalls' suite not available for the image with LTP.")
             return TestResult(status=TestStatus.SKIPPED)
-        started_at = datetime.now(tz=ZoneInfo("UTC"))
+        started_at = datetime.now(UTC)
         res, metrics_path = kirk.run(["syscalls"], timeout=timeout)
         if metrics_path:
             yield TestResult(

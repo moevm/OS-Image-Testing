@@ -1,7 +1,6 @@
 from copy import deepcopy
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, NamedTuple
-from zoneinfo import ZoneInfo
 
 from imgtests.exec.loaders.perf import Perf
 from imgtests.exec.loaders.pts import PhoronixTestSuite
@@ -109,7 +108,7 @@ class JointBench(AbstractRunnableManyTimesTest):
                         TOOLS_CONFIG[tool_name].run,
                     )
                     self.logger.info("Run '%s' test '%s'", tool_name, test_copy)
-                    started_at = datetime.now(tz=ZoneInfo("UTC"))
+                    started_at = datetime.now(UTC)
                     # TODO: handle only specific exceptions
                     try:
                         tool_result, metrics = run_method(**test_copy)
@@ -117,7 +116,7 @@ class JointBench(AbstractRunnableManyTimesTest):
                         self.logger.exception("Test failed.")
                         yield TestResult(status=TestStatus.BROKEN)
                         return
-                    ended_at = datetime.now(tz=ZoneInfo("UTC"))
+                    ended_at = datetime.now(UTC)
                     status = TestStatus.PASSED if not tool_result.returncode else TestStatus.FAILED
                     yield TestResult(
                         started_at=started_at,

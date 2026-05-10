@@ -10,7 +10,6 @@ from datetime import UTC, datetime
 from itertools import product
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
-from zoneinfo import ZoneInfo
 
 from imgtests.exec.exec import common_run_command
 from imgtests.exec.loaders.fio import Direct, Fio, FioPlot, IOEngine, IOPattern
@@ -140,7 +139,7 @@ class FioSuite:
             if timing.ramp_time_sec > 0:
                 extra["ramp_time"] = timing.ramp_time_sec
 
-            started_at = datetime.now(tz=ZoneInfo("UTC"))
+            started_at = datetime.now(UTC)
             res = fio.run(
                 name=case.workload.name,
                 numjobs=case.numjobs,

@@ -1,8 +1,7 @@
 import logging
 import random
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
-from zoneinfo import ZoneInfo
 
 from imgtests.exec.loaders import StressNg
 from imgtests.exec.observers import Sar
@@ -129,7 +128,7 @@ class SarWithStressNGTest(AbstractRunnableTimeLimitedTest):
         sar = Sar(client)
 
         stress_ng = StressNg(client)
-        started_at = datetime.now(tz=ZoneInfo("UTC"))
+        started_at = datetime.now(UTC)
         stress_ng_future = executor.submit(
             stress_ng.run,
             timeout_sec=timeout,

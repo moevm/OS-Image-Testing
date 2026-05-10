@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 from concurrent.futures import TimeoutError as FuturesTimeoutError
-from datetime import datetime
+from datetime import UTC, datetime
 from time import monotonic
 from typing import TYPE_CHECKING, Final, NamedTuple
-from zoneinfo import ZoneInfo
 
 from imgtests.constant import SSH_CLIENT_MISSING_RESULT
 from imgtests.exec.loaders import Iperf3, Iperf3Bundle, StressNg
@@ -131,7 +130,7 @@ class StressNgMaxNetworkLoadTest(StressNgTest):
         )
 
     def _run_network_load(self, context: StressNgNetworkContext) -> TestResult:
-        started_at = datetime.now(tz=ZoneInfo("UTC"))
+        started_at = datetime.now(UTC)
         server_future = context.iperf3.start_server(context.executor)
         stress_ng_future = self._start_network_stress(context)
         iperf3_result = context.iperf3.client.run(

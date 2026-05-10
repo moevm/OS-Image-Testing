@@ -1,7 +1,6 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from time import sleep
 from typing import TYPE_CHECKING
-from zoneinfo import ZoneInfo
 
 from imgtests.exec.loaders import Chaosblade, PhoronixTestSuite, StressNg
 from imgtests.exec.observers.systemd_analyze import SystemdAnalyze
@@ -91,7 +90,7 @@ class PTSSystemTest(AbstractRunnableManyTimesTest):
             return TestResult(status=TestStatus.BROKEN)
 
         for test_name in ("pts/ctx-clock", "pts/appleseed"):
-            started_at = datetime.now(tz=ZoneInfo("UTC"))
+            started_at = datetime.now(UTC)
             future = executor.submit(pts.run, test_name=test_name, run_count=iterations)
             result, metrics = future.result()
             if result.returncode:
@@ -154,7 +153,7 @@ class ChaosbladeCPUTest(AbstractRunnableTimeLimitedTest):
         timeout: int,
     ) -> Iterable[TestResult]:
         chaos = Chaosblade(client)
-        started_at = datetime.now(tz=ZoneInfo("UTC"))
+        started_at = datetime.now(UTC)
         future = executor.submit(chaos.create_cpu_exp, cpu_percent=70, timeout_sec=timeout)
         result, chaos_result = future.result()
         # actually wait till the experiment is completed

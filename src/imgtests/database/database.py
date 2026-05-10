@@ -1,7 +1,6 @@
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, Literal, get_args
-from zoneinfo import ZoneInfo
 
 from deepdiff import DeepDiff
 from pydantic import Field
@@ -120,9 +119,9 @@ class ImgtestsDatabase:
         ended_at: datetime | None = None,
     ) -> ExperimentBase:
         if started_at is None:
-            started_at = datetime.now(ZoneInfo("UTC"))
+            started_at = datetime.now(UTC)
         if ended_at is None:
-            ended_at = datetime.now(ZoneInfo("UTC"))
+            ended_at = datetime.now(UTC)
 
         experiment_object = ExperimentBase(
             config_id=config_id,
@@ -150,9 +149,9 @@ class ImgtestsDatabase:
         ended_at: datetime | None = None,
     ) -> UtilRunResult:
         if started_at is None:
-            started_at = datetime.now(ZoneInfo("UTC"))
+            started_at = datetime.now(UTC)
         if ended_at is None:
-            ended_at = datetime.now(ZoneInfo("UTC"))
+            ended_at = datetime.now(UTC)
 
         logger.debug("Inserting test '%s' results into experiment '%d'.", command, experiment_id)
         util_run_result = UtilRunResult(
@@ -178,7 +177,7 @@ class ImgtestsDatabase:
         ended_at: datetime | None = None,
     ) -> None:
         if ended_at is None:
-            ended_at = datetime.now(tz=ZoneInfo("UTC"))
+            ended_at = datetime.now(UTC)
 
         self._check_session()
         with self.session() as session:

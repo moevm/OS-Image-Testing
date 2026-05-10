@@ -1,8 +1,7 @@
 import random
-from datetime import datetime
+from datetime import UTC, datetime
 from time import sleep
 from typing import TYPE_CHECKING
-from zoneinfo import ZoneInfo
 
 from imgtests.exec.loaders import Chaosblade, ChaosResponse, Kirk
 from imgtests.exec.osinfo import get_os_release
@@ -53,7 +52,7 @@ class FaultInjectionEnduranceTest(AbstractRunnableTimeLimitedTest):
         time_per_test = (timeout // self.iterations) + 1
 
         for fault_probability in fault_probabilities:
-            started_at = datetime.now(tz=ZoneInfo("UTC"))
+            started_at = datetime.now(UTC)
             result, metrics_path = kirk.run(
                 scenarios=scenarios,
                 timeout=time_per_test,
@@ -125,7 +124,7 @@ class FaultInjectionChaosbladeTest(AbstractRunnableTimeLimitedTest):
                 self.chaosblade_suites,
                 strict=True,
             ):
-                started_at = datetime.now(tz=ZoneInfo("UTC"))
+                started_at = datetime.now(UTC)
                 kirk_future = executor.submit(
                     kirk.run,
                     scenarios=[kirk_suite],

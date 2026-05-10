@@ -1,6 +1,5 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
-from zoneinfo import ZoneInfo
 
 from imgtests.exec.loaders import Kirk, Perf
 from imgtests.planning import AbstractRunnableManyTimesTest, AbstractRunnableTimeLimitedTest
@@ -33,7 +32,7 @@ class SchedPerformanceTest(AbstractRunnableManyTimesTest):
             [[], ["--thread"], []],
             strict=True,
         ):
-            started_at = datetime.now(tz=ZoneInfo("UTC"))
+            started_at = datetime.now(UTC)
             result, metrics = perf.bench("sched", benchmark, args, repeat=iterations)
             metrics_json = {}
             if result.returncode:
@@ -69,7 +68,7 @@ class LTPSyscallsIPCTest(AbstractRunnableTimeLimitedTest):
         if "syscalls-ipc" not in available_suites:
             self.logger.warning("'syscalls-ipc' suite not available for the image with LTP.")
             return TestResult(status=TestStatus.SKIPPED)
-        started_at = datetime.now(tz=ZoneInfo("UTC"))
+        started_at = datetime.now(UTC)
         res, metrics_path = kirk.run(["syscalls-ipc"], timeout=timeout)
         if metrics_path:
             yield TestResult(

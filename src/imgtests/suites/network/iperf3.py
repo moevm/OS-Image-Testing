@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 from concurrent.futures import TimeoutError as FuturesTimeoutError
-from datetime import datetime
+from datetime import UTC, datetime
 from time import monotonic
 from typing import TYPE_CHECKING, Any, Final, NamedTuple
-from zoneinfo import ZoneInfo
 
 from imgtests.constant import SSH_CLIENT_MISSING_RESULT
 from imgtests.exec.loaders import Iperf3, Iperf3Bundle
@@ -156,7 +155,7 @@ class Iperf3LocalTest(AbstractRunnableTimeLimitedTest):
             yield self._run_iperf3_mode(context, udp)
 
     def _run_iperf3_mode(self, context: Iperf3LocalContext, udp: bool) -> TestResult:
-        started_at = datetime.now(tz=ZoneInfo("UTC"))
+        started_at = datetime.now(UTC)
         server_future = context.iperf3.start_server(context.executor)
 
         client_result = context.iperf3.client.run(
@@ -306,7 +305,7 @@ class Iperf3PacketRateScalingTest(AbstractRunnableTimeLimitedTest):
         profile: Iperf3PpsProfile,
         timing: Iperf3ProfileTiming,
     ) -> Iperf3ProfileOutcome:
-        started_at = datetime.now(tz=ZoneInfo("UTC"))
+        started_at = datetime.now(UTC)
         server_future = context.iperf3.start_server(context.executor)
 
         client_result = context.iperf3.client.run(
