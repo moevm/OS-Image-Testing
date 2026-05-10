@@ -5,6 +5,7 @@ from imgtests.runner import (
     AbstractRunnableTimeLimitedTest,
     TestsRunnerConfig,
 )
+from imgtests.suites.drive.disks_stress_ng import StressNgEnduranceDisksTest
 from imgtests.suites.drive.fio_file import (
     FioDisksDMDelay,
     FioDisksDMDust,
@@ -58,6 +59,7 @@ ALL_SUBSYSTEMS_SUITE: Final = TestsRunnerConfig(
         JointBench(iterations=3),
         SchedPerformanceTest(3),
         POSIXUtilsTest(10),
+        StressNgEnduranceDisksTest,
         FioDisksScalingTest,
         FioDisksNightly,
         FioDisksDMDelay,
@@ -137,6 +139,7 @@ NETWORK_SUITE: Final = TestsRunnerConfig(
 FILE_SUITE: Final = TestsRunnerConfig(
     description="Test suite for file subsystem.",
     tests=(
+        StressNgEnduranceDisksTest,
         FioDisksVariationTest,
         FioDisksParallelLoadTest,
         FioDisksNightly,
