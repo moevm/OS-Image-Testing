@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING
 
 from imgtests.exec.loaders import StressNg
+from imgtests.planning.base import calc_subtest_timeout
 from imgtests.suites.general.stress_ng import StressNgTest
 from imgtests.types import Subsystem
 
@@ -12,10 +13,10 @@ if TYPE_CHECKING:
     from imgtests.types import TestResult
 
 
-class StressNgEnduranceDisksTest(StressNgTest):
+class StressNgEnduranceFileTest(StressNgTest):
     def __init__(self, timeout: int) -> None:
         super().__init__(
-            "Stress-ng endurance disks test.",
+            "Stress-ng endurance filesystem test.",
             frozenset({Subsystem.FILE}),
             timeout,
         )
@@ -27,11 +28,14 @@ class StressNgEnduranceDisksTest(StressNgTest):
         timeout: int,
     ) -> Iterable[TestResult]:
         stress_ng = StressNg(client)
-        yield from self.run_test(
-            stress_ng=stress_ng,
-            executor=executor,
-            timeout=timeout,
-            hdd=1,
-            hdd_bytes="100M",
-            hdd_opts="sync",
-        )
+        hdd_bytes_percents = tuple(range(50, 100, 10))
+        subtest_timeout = calc_subtest_timeout(timeout, len(hdd_bytes_percents))
+        for usage in hdd_bytes_percents:
+            yield from self.run_test(
+                stress_ng=stress_ng,
+                executor=executor,
+                timeout=subtest_timeout,
+                hdd=0,
+                hdd_bytes=f"{usage}%",
+                hdd_opts="sync",
+            )

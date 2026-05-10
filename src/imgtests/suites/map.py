@@ -13,6 +13,7 @@ from imgtests.suites.drive.fio_file import (
     FioDisksScalingTest,
     FioDisksVariationTest,
 )
+from imgtests.suites.drive.stress_ng import StressNgEnduranceFileTest
 from imgtests.suites.fault_injection import (
     FaultInjectionChaosbladeTest,
     FaultInjectionEnduranceTest,
@@ -58,6 +59,7 @@ ALL_SUBSYSTEMS_SUITE: Final = TestsRunnerConfig(
         JointBench(iterations=3),
         SchedPerformanceTest(3),
         POSIXUtilsTest(10),
+        StressNgEnduranceFileTest,
         FioDisksScalingTest,
         FioDisksNightly,
         FioDisksDMDelay,
@@ -137,6 +139,7 @@ NETWORK_SUITE: Final = TestsRunnerConfig(
 FILE_SUITE: Final = TestsRunnerConfig(
     description="Test suite for file subsystem.",
     tests=(
+        StressNgEnduranceFileTest,
         FioDisksVariationTest,
         FioDisksParallelLoadTest,
         FioDisksNightly,
@@ -145,7 +148,7 @@ FILE_SUITE: Final = TestsRunnerConfig(
         FioDisksDMDelay,
     ),
     experiment_type="performance",
-    duration=300,
+    duration=400,
     install_dependencies=True,
 )
 ALL_SUITES: Final = {
