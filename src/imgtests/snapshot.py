@@ -1,5 +1,6 @@
 import logging
 from time import sleep
+from typing import Final
 
 import paramiko
 import paramiko.ssh_exception
@@ -9,9 +10,9 @@ from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
 from imgtests.exec.osinfo import get_os_release
 from imgtests.types import Distro
 
-TIMEOUT_RETURN_CODE: int = 124
-QEMU_MONITOR_ADDRESS: str = "10.0.2.2"
-QEMU_MONITOR_PORT: str = "4444"
+TIMEOUT_RETURN_CODE: Final = 124
+QEMU_MONITOR_ADDRESS: Final = "10.0.2.2"
+QEMU_MONITOR_PORT: Final = "4444"
 
 
 class SnapshotManager:

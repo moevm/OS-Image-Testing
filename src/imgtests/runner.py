@@ -185,9 +185,11 @@ class TestsRunner(BaseRunner):
         self.__test_snapshots = SnapshotManager("tests_runner", client)
 
     def run(self) -> None:
-        result = self.__test_snapshots.get_snapshots_info()
         snapshot_name = "vm-snapshot"
-        if snapshot_name in result.stdout:
+        if (
+            self.__test_snapshots.snapshot_loaded
+            or snapshot_name in self.__test_snapshots.get_snapshots_info().stdout
+        ):
             self.__test_snapshots.switch_to_snapshot(snapshot_name)
         elif self.__test_config.install_dependencies:
             self.install_dependencies()
