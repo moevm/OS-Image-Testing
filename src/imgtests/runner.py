@@ -246,7 +246,8 @@ class TestsRunner(BaseRunner):
             test_instance.cleanup(self._client, self._logger)
             test_completed_event.set()
             is_alive_cycle.join(10)
-            test_completed_event.clear()
+            if not self.__test_snapshots.snapshot_loaded:
+                test_completed_event.clear()
             self._database.update_experiment_ended_at(experiment_id)
             self._database.update_experiment_tests_count(
                 experiment_id,
