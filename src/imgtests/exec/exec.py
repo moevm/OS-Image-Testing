@@ -58,7 +58,15 @@ def common_run_command(
         Hello
     """
     call_func = run_command if ssh_client is None else ssh_client
-    return call_func(cmd=cmd, input_=input_, verbosity=verbosity, timeout=timeout)
+    try:
+        return call_func(cmd=cmd, input_=input_, verbosity=verbosity, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        logger.error("Command '%s' timed out after %s seconds.", "".join(cmd), timeout)  # noqa: TRY400
+        return ExecResult(
+            cmd=tuple(cmd),
+            stderr=f"Command timed out after {timeout} seconds.",
+            returncode=124,
+        )
 
 
 def run_command(
@@ -137,11 +145,7 @@ class SSHClient:
             while not session.exit_status_ready():
                 if monotonic() >= end:
                     session.close()
-                    return ExecResult(
-                        cmd=tuple(cmd),
-                        stderr=f"Command timed out after {timeout} seconds.",
-                        returncode=124,
-                    )
+                    raise subprocess.TimeoutExpired(cmd=cmd, timeout=timeout)
                 sleep(0.5)
         retval = session.recv_exit_status()
 
