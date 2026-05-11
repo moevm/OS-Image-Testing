@@ -277,4 +277,4 @@ def pipeline(
         yield result
 
         if pass_output:
-            prev_stdout = f"{result.stdout}\n" if result.stdout else ""
+            prev_stdout = result.stdout

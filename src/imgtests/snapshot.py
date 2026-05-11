@@ -33,10 +33,7 @@ class SnapshotManager:
         )
 
     def get_snapshots_info(self) -> ExecResult:
-        result = self.run_command("info snapshots")
-        if result.returncode:
-            self._logger.error("Failed to get snapshots info: %s.", result.cmd)
-        return result
+        return self.run_command("info snapshots")
 
     def reconnect_after_switch(self) -> None:
         wait_sec = 180
@@ -66,7 +63,5 @@ class SnapshotManager:
     def create_snapshot(self, snapshot_name: str) -> None:
         self._logger.info("Creating snapshot: %s.", snapshot_name)
         result = self.run_command(f"savevm {snapshot_name}")
-        if result.returncode:
-            self._logger.error("Failed to create snapshot %s: %s.", snapshot_name, result.cmd)
-        else:
+        if not result.returncode:
             self._logger.info("Snapshot created: %s.", snapshot_name)
