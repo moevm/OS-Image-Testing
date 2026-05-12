@@ -4,9 +4,10 @@ import re
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from django.core.management import call_command
 from django.http import Http404, HttpRequest, JsonResponse
 from django.http.response import HttpResponse
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, render
 from django.tasks import TaskResultStatus
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
@@ -14,13 +15,7 @@ from django.views.decorators.http import require_http_methods
 from imgtests.constant import CONFIG_DIR, REPORTS_DIR
 from imgtests.suites.map import ALL_SUITES, get_test_name
 
-from .distros_config import (
-    add_distribution,
-    get_distribution_by_id,
-    get_distributions,
-    remove_distribution,
-    reset_to_default,
-)
+from .models import Distribution
 from .tasks import run_test_task
 
 if TYPE_CHECKING:
@@ -111,16 +106,12 @@ def api_reset_test_config(request: HttpRequest, distro_name: str) -> JsonRespons
 
 
 def index(request: HttpRequest) -> HttpResponse:
-    distributions = get_distributions()
+    distributions = Distribution.objects.filter(is_active=True)
     return render(request, "tests_interface/index.html", {"distributions": distributions})
 
 
-def distro_page(request: HttpRequest, distro_id: str) -> HttpResponse:
-    distro = get_distribution_by_id(distro_id)
-    if not distro:
-        e = f"Distribution '{distro_id}' not found"
-        raise Http404(e)
-
+def distro_page(request: HttpRequest, distro_id: int) -> HttpResponse:
+    distro = get_object_or_404(Distribution, id=distro_id, is_active=True)
     return render(request, "tests_interface/distro_page.html", {"distro": distro})
 
 
@@ -208,7 +199,8 @@ def run_tests(request: HttpRequest) -> JsonResponse:
     match = re.search(r"/([^/]+)/$", referer)
     if match:
         distro_id = match.group(1)
-        env_req = {"TESTED_DISTRO": distro_id}
+        distro = get_object_or_404(Distribution, id=distro_id, is_active=True)
+        env_req = {"TESTED_DISTRO": distro.name}
     else:
         env_req = {"TESTED_DISTRO": "None"}
 
@@ -285,21 +277,40 @@ def api_add_distro(request: HttpRequest) -> JsonResponse:
     name = data.get("name", "").strip()
     display_name = data.get("display_name", "").strip()
     description = data.get("description", "").strip()
+    version = data.get("version", "").strip()
 
-    if not name or not display_name:
-        return JsonResponse({"error": "Name and display name are required"}, status=400)
+    if Distribution.objects.filter(name=name, version=version).exists():
+        return JsonResponse(
+            {"error": "Distribution with this name and version already exists"},
+            status=400,
+        )
 
-    new_distro = add_distribution(name, display_name, description)
+    distro = Distribution.objects.create(
+        name=name,
+        display_name=display_name,
+        description=description or f"Run tests for {display_name} platform",
+        version=version,
+    )
 
-    if new_distro:
-        return JsonResponse({"success": True, "distro": new_distro})
-    return JsonResponse({"error": "Distribution already exists"}, status=400)
+    return JsonResponse(
+        {
+            "success": True,
+            "distro": {
+                "id": distro.id,
+                "name": distro.name,
+                "display_name": distro.display_name,
+                "description": distro.description,
+                "version": distro.version,
+            },
+        },
+    )
 
 
 @csrf_exempt
 @require_http_methods(["POST"])
-def api_remove_distro(request: HttpRequest, distro_id: str) -> JsonResponse:  # noqa: ARG001
-    if remove_distribution(distro_id):
+def api_remove_distro(request: HttpRequest, distro_id: int) -> JsonResponse:  # noqa: ARG001
+    deleted, _ = Distribution.objects.filter(id=distro_id).delete()
+    if deleted:
         return JsonResponse({"success": True})
     return JsonResponse({"error": "Distribution not found"}, status=404)
 
@@ -307,11 +318,21 @@ def api_remove_distro(request: HttpRequest, distro_id: str) -> JsonResponse:  # 
 @csrf_exempt
 @require_http_methods(["POST"])
 def api_reset_distros(request: HttpRequest) -> JsonResponse:  # noqa: ARG001
-    if reset_to_default():
+    try:
+        call_command("init_distros")
         return JsonResponse({"success": True})
-    return JsonResponse({"error": "Failed to reset"}, status=500)
+    except Exception as e:  # noqa: BLE001
+        return JsonResponse({"error": f"Failed to reset: {e}"}, status=500)
 
 
 def api_get_distros(request: HttpRequest) -> JsonResponse:  # noqa: ARG001
-    distributions = get_distributions()
+    distributions = list(
+        Distribution.objects.filter(is_active=True).values(
+            "id",
+            "name",
+            "display_name",
+            "description",
+            "version",
+        ),
+    )
     return JsonResponse({"distributions": distributions})
