@@ -1,4 +1,5 @@
 import logging
+import subprocess
 from time import sleep
 from typing import Final
 
@@ -10,7 +11,6 @@ from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
 from imgtests.exec.osinfo import get_os_release
 from imgtests.types import Distro
 
-TIMEOUT_RETURN_CODE: Final = 124
 QEMU_MONITOR_ADDRESS: Final = "10.0.2.2"
 QEMU_MONITOR_PORT: Final = "4444"
 
@@ -51,14 +51,15 @@ class SnapshotManager:
 
     def switch_to_snapshot(self, snapshot_name: str) -> None:
         self._logger.info("Switching to snapshot %s.", snapshot_name)
-        result = self.run_command(f"loadvm {snapshot_name}")
-        if result.returncode and result.returncode != TIMEOUT_RETURN_CODE:
-            self._logger.error(
-                "Failed to switch to snapshot %s: %s.",
-                snapshot_name,
-                result.cmd,
-            )
-        if not result.returncode or result.returncode == TIMEOUT_RETURN_CODE:
+        try:
+            result = self.run_command(f"loadvm {snapshot_name}")
+            if result.returncode:
+                self._logger.error(
+                    "Failed to switch to snapshot %s: %s.",
+                    snapshot_name,
+                    result.cmd,
+                )
+        except subprocess.TimeoutExpired:
             self._logger.info("Snapshots switched to %s.", snapshot_name)
             self.snapshot_loaded = True
         self.reconnect_after_switch()
