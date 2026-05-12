@@ -17,6 +17,8 @@ from jinja2 import Environment, FileSystemLoader, StrictUndefined, select_autoes
 from matplotlib import cm
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from matplotlib.figure import Figure
+from pydantic import Field
+from pydantic_settings import BaseSettings
 
 from imgtests.constant import LIB_NAME
 from imgtests.exec.exec import common_run_command
@@ -44,8 +46,10 @@ SYSTEM_ERROR_DESCRIPTIONS: Final = {
     "systemd errors records",
 }
 
-VMETRICS_ADDRESS: Final = "10.5.0.25"
-VMETRICS_PORT: Final = "8438"
+
+class VMetricsCreds(BaseSettings):
+    host: str = Field(validation_alias="VMETRICS_ADDRESS")
+    port: int = Field(validation_alias="VMETRICS_PORT")
 
 
 class DiagramConfig(NamedTuple):
@@ -408,6 +412,7 @@ class ReportGenerator:
         plots_dir.mkdir(parents=True, exist_ok=True)
 
         metrics = list(execution.metrics)
+        ReportGenerator.add_load_average_metrics(metrics)
 
         report_data = {
             "header": {
@@ -473,20 +478,20 @@ class ReportGenerator:
 
         return results
 
-    def add_load_average_metrics(self, metrics: list[MetricSample]):
+    @staticmethod
+    def add_load_average_metrics(metrics: list[MetricSample]) -> None:
+        vmetrics_creds = VMetricsCreds()
         for interval in (1, 5, 15):
             query_url = (
-                f"http://{VMETRICS_ADDRESS}:{VMETRICS_PORT}/api/v1/query_range"
+                f"http://{vmetrics_creds.host}:{vmetrics_creds.port}/api/v1/query_range"
                 f"?query=node_load{interval}&start=-1h&step=1m"
             )
             result = common_run_command(["curl", query_url])
             if result.returncode:
-                self._logger.error("Failed to get load average metrics: %s", result)
                 return
 
             query_result = json.loads(result.stdout).get("data", {}).get("result", [])
             if query_result == []:
-                self._logger.warning("No load average metrics found.")
                 return
 
             for _, value in query_result[0].get("values", []):
