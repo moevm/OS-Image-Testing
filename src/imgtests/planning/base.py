@@ -126,3 +126,11 @@ class AbstractRunnableTimeLimitedTest(ABC, DefaultCleanupMixin):
         client: SSHClient | None,
         timeout: int,
     ) -> Iterable[TestResult]: ...
+
+
+def calc_subtest_timeout(timeout: int, tests_cnt: int) -> int:
+    subtest_timeout = timeout // tests_cnt
+    if subtest_timeout == 0:
+        err_msg = "Insufficient timeout provided. Needs increase timeout."
+        raise ValueError(err_msg)
+    return subtest_timeout

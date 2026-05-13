@@ -7,7 +7,7 @@ from imgtests.exec.exec import ExecResult
 from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
 from imgtests.exec.utils import add_flag, create_opt
 from imgtests.results_adapter import AdapterResult, drop_json_fields
-from imgtests.types import MetricSample
+from imgtests.types import MetricSample, Version
 
 if TYPE_CHECKING:
     from imgtests.exec.exec import SSHClient
@@ -297,6 +297,11 @@ class StressNg(PkgMgrMixin, GenericUtil):
         Returns:
             tuple[ExecResult, StressNGResult]: Result of stress test work and parsed metrics.
         """
+        current_version = self.version()
+        if current_version is None:
+            err_msg = f"{self.name} version needed for the validation is not available"
+            raise ValueError(err_msg)
+
         params = {
             "sequential": class_sequential,
             "all": class_all,
@@ -341,6 +346,8 @@ class StressNg(PkgMgrMixin, GenericUtil):
             if variable is not None and variable < 0:
                 err_msg = f"Invalid {name} count '{variable}'. Expected more or equal 0."
                 raise ValueError(err_msg)
+        self.__validate_mmaptorture(current_version, mmaptorture, mmaptorture_bytes)
+
         opts = [
             *create_opt("timeout", timeout_sec),
             *create_opt("class", class_name),
@@ -669,6 +676,31 @@ class StressNg(PkgMgrMixin, GenericUtil):
             time=time,
             metrics=metrics,
         )
+
+    def __validate_mmaptorture(
+        self,
+        version: Version,
+        mmaptorture: int | None,
+        mmaptorture_bytes: str | None,
+    ) -> None:
+        min_mmaptorture_version = Version("0.18.11")
+        if (mmaptorture or mmaptorture_bytes) and version < min_mmaptorture_version:
+            raise MmaptortureVersionError(version, min_mmaptorture_version)
+
+
+class StressNgParamVerValidationError(ValueError):
+    """Raised when stress-ng version is not compatible with the given parameters."""
+
+
+class MmaptortureVersionError(StressNgParamVerValidationError):
+    def __init__(self, current_version: Version, min_required_version: Version) -> None:
+        self.current_version = current_version
+        self.min_required_version = min_required_version
+        message = (
+            f"Can't use mmaptorture options with stress-ng version {current_version} "
+            f"< {min_required_version}"
+        )
+        super().__init__(message)
 
 
 def stress_metrics_to_samples(

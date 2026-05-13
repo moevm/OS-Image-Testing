@@ -1,10 +1,9 @@
 import json
 import logging
 import shlex
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
-from zoneinfo import ZoneInfo
 
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
@@ -21,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_LTP_RESULTS_DIR = Path("/var/tmp/ltp-results")  # noqa: S108
 DEBUGFS_MOUNTPOINT = Path("/sys/kernel/debug")
-MAX_FAULT_INJECTION = 100
+MAX_FAULT_PROBABILITY = 100
 
 
 class Kirk(GenericUtil):
@@ -92,10 +91,10 @@ class Kirk(GenericUtil):
         return tuple(line.strip() for line in res.stdout.splitlines() if line.strip())
 
     @staticmethod
-    def _validate_fault_injection(fault_injection: int) -> None:
+    def _validate_fault_probability(fault_prob: int) -> None:
         """Checks if fault injection probability is in between borders."""
-        if not 0 <= fault_injection <= MAX_FAULT_INJECTION:
-            err_msg = f"fault_injection must be in range 0..{MAX_FAULT_INJECTION}."
+        if not 0 <= fault_prob <= MAX_FAULT_PROBABILITY:
+            err_msg = f"fault_probability must be in range 0..{MAX_FAULT_PROBABILITY}."
             raise ValueError(err_msg)
 
     def _ensure_debugfs(self) -> ExecResult:
@@ -122,13 +121,14 @@ class Kirk(GenericUtil):
             common_run_command(("sudo", "umount", debugfs_path), self.ssh_client)
         return result
 
-    def run(  # noqa: PLR0911
+    def run(  # noqa: PLR0911, PLR0913
         self,
         scenarios: Iterable[str],
         results_dir: str | Path = DEFAULT_LTP_RESULTS_DIR,
         run_pattern: str | None = None,
         timeout: int | None = None,
-        fault_injection: int | None = None,
+        fault_prob: int | None = None,
+        fault_interval: int | None = None,
     ) -> tuple[ExecResult, Path | None]:
         """Run an LTP scenario via kirk and store results as JSON.
 
@@ -138,7 +138,8 @@ class Kirk(GenericUtil):
             run_pattern (str | None): Runs tests from suite, which matches
              the given regex pattern.
             timeout (int | None): Timeout before stopping the suite.
-            fault_injection (int | None): Probability of failure, ranges from 0 to 100.
+            fault_prob (int | None): Probability of failure, ranges from 0 to 100.
+            fault_interval (int | None): Amount of calls before the next failure check.
 
         Returns:
             tuple[ExecResult, Path | None]: Result of kirk test work and result path.
@@ -150,8 +151,8 @@ class Kirk(GenericUtil):
             scenarios_empty_msg = "scenarios must not be empty"
             raise ValueError(scenarios_empty_msg)
 
-        if fault_injection is not None:
-            self._validate_fault_injection(fault_injection)
+        if fault_prob is not None:
+            self._validate_fault_probability(fault_prob)
 
             debugfs_res = self._ensure_debugfs()
             if debugfs_res.returncode:
@@ -196,7 +197,7 @@ class Kirk(GenericUtil):
                 )
 
         suites_str = "_".join(scenarios_list)
-        timestamp = datetime.now(tz=ZoneInfo("UTC")).strftime("%Y-%m-%d_%H:%M:%S")
+        timestamp = datetime.now(UTC).strftime("%Y-%m-%d_%H:%M:%S")
         report_name = f"{suites_str}_{timestamp}.json"
 
         remote_json_path = remote_results_dir / report_name
@@ -204,7 +205,8 @@ class Kirk(GenericUtil):
         cmd = [
             *create_opt("run-pattern", run_pattern),
             *create_opt("suite-timeout", timeout),
-            *create_opt("fault-injection", fault_injection),
+            *create_opt("fault-injection", fault_prob),
+            *create_opt("fault-interval", fault_interval),
             "--run-suite",
             *scenarios_list,
             "--json-report",

@@ -2,11 +2,10 @@ from __future__ import annotations
 
 import logging
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from threading import Event, Thread
 from typing import TYPE_CHECKING, ClassVar
-from zoneinfo import ZoneInfo
 
 import paramiko
 import paramiko.ssh_exception
@@ -30,7 +29,7 @@ from imgtests.sysrep import get_system_info
 from imgtests.types import Subsystem, TestsCounts, TestStatus
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Iterable, Sequence
 
     from imgtests.database.database import ImgtestsDatabase
     from imgtests.database.models.experiment import ExperimentBase, ExperimentType
@@ -52,7 +51,7 @@ class TestsRunnerConfig:
     def __init__(
         self,
         description: str,
-        tests: Iterable[AbstractRunnableManyTimesTest | type[AbstractRunnableTimeLimitedTest]],
+        tests: Sequence[AbstractRunnableManyTimesTest | type[AbstractRunnableTimeLimitedTest]],
         experiment_type: ExperimentType,
         duration: int,
         install_dependencies: bool = False,
@@ -209,7 +208,7 @@ class TestsRunner(BaseRunner):
                 self._client.reconnect()
             is_alive_cycle = Thread(target=self.__is_remote_alive, args=(test_completed_event,))
             is_alive_cycle.start()
-            test_started_at = datetime.now(tz=ZoneInfo("UTC"))
+            test_started_at = datetime.now(UTC)
             if isinstance(test_class, AbstractRunnableManyTimesTest):
                 test_instance = test_class
             else:
@@ -231,7 +230,7 @@ class TestsRunner(BaseRunner):
             self._collect_system_errors(
                 experiment_id=experiment_id,
                 since=test_started_at,
-                until=datetime.now(tz=ZoneInfo("UTC")),
+                until=datetime.now(UTC),
             )
             test_instance.cleanup(self._client, self._logger)
             test_completed_event.set()
@@ -478,7 +477,7 @@ class ProfiledPlanRunner(BaseRunner):
 
     @staticmethod
     def _build_run_name(profile: TestKind, pattern: LoadPattern | None) -> str:
-        run_name = datetime.now(tz=ZoneInfo("UTC")).strftime("%Y%m%d_%H%M%S")
+        run_name = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
         run_name = f"{run_name}_{profile.value}"
         if pattern is not None:
             run_name += f"_{pattern.value}"

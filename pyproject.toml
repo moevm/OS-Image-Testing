@@ -28,6 +28,8 @@ dependencies = [
     "matplotlib~=3.10.8",
     "setuptools~=82.0.1",
     "numpy~=2.4.4",
+    "django~=6.0.4",
+    "django-tasks-db~=0.12.0",
 ]
 
 [dependency-groups]
@@ -36,10 +38,16 @@ lint = [
 ]
 tests = [
     "pytest~=9.0.3",
+    "pytest-cov~=7.1.0",
 ]
 
 [tool.setuptools.package-data]
 "imgtests.reporting" = ["templates/**/*", "static/*"]
+"imgtests.web" = [
+    "**/*.css",
+    "**/*.js",
+    "**/*.html"
+]
 
 [tool.ruff]
 line-length = 100
@@ -76,8 +84,18 @@ convention = "google"
 [tool.ruff.lint.mccabe]
 max-complexity = 12
 
+[tool.coverage.run]
+branch = true
+
+[tool.coverage.report]
+include_namespace_packages = true
+precision = 2
+
+[tool.coverage.xml]
+output = "tests/pytest-coverage.xml"
+
 [tool.pytest.ini_options]
-addopts = "-v"
+addopts = "-v --cov=src/ --cov-report xml --cov-report term"
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
@@ -85,3 +103,7 @@ testpaths = ["tests/unit", "tests/misc"]
 pythonpath = [
     "src",
 ]
+
+[build-system]
+requires = ["setuptools~=80.10.2", "wheel~=0.46.3"]
+build-backend = "setuptools.build_meta"
