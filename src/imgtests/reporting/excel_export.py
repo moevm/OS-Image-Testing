@@ -10,21 +10,33 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from openpyxl import Workbook
-from sqlalchemy import create_engine, inspect, text
+from sqlalchemy import create_engine, inspect, select
+from sqlalchemy.orm import Session
+
+from imgtests.database.models.configuration import ConfigurationBase
+from imgtests.database.models.experiment import ExperimentBase
+from imgtests.database.models.util_run_result import UtilRunResult
 
 if TYPE_CHECKING:
     from sqlalchemy.engine import Engine
 
 TABLES = ("experiment", "util_run_result")
 logger = logging.getLogger(__name__)
+CONFIGURATION_SHEET = "configuration"
+
+DISTRIBUTIONS = {
+    "poky": {
+        "configuration_id": 1,
+        "distribution_description": "Poky Linux distribution",
+    },
+    "suse": {
+        "configuration_id": 2,
+        "distribution_description": "SUSE Linux distribution",
+    },
+}
 
 JSON_COLUMNS = {
     "util_run_result": {"result"},
-}
-
-ORDER_COLUMNS = {
-    "experiment": "experiment_id",
-    "util_run_result": "id",
 }
 
 EXCEL_MAX_COLUMNS = 16_384
@@ -124,6 +136,14 @@ def export_database_to_excel(
 
     worksheets: list[WorksheetData] = []
 
+    if any(table in tables for table in ("experiment", "util_run_result")):
+        worksheets.append(
+            flatten_table_records(
+                CONFIGURATION_SHEET,
+                fetch_configuration_records(engine),
+            ),
+        )
+
     for table in tables:
         records = fetch_table_records(engine, table)
 
@@ -142,85 +162,89 @@ def fetch_table_records(engine: Engine, table: str) -> list[dict[str, Any]]:
     if table == "util_run_result":
         return fetch_util_run_result_records(engine)
 
-    order_column = ORDER_COLUMNS[table]
-    query = text(f'SELECT * FROM "{table}" ORDER BY "{order_column}"')  # noqa: S608
-
-    with engine.connect() as connection:
-        result = connection.execute(query)
-        return [dict(row) for row in result.mappings()]
+    msg = f"Unsupported export table: {table}"
+    raise ValueError(msg)
 
 
 def fetch_experiment_records(engine: Engine) -> list[dict[str, Any]]:
-    query = text(
-        """
-        SELECT
-            configuration.os AS configuration_os,
-            experiment.experiment_id,
-            experiment.config_id,
-            experiment.description,
-            experiment.type,
-            experiment.started_at,
-            experiment.ended_at,
-            experiment.tests_total,
-            experiment.tests_passed,
-            experiment.tests_failed,
-            experiment.tests_broken,
-            experiment.tests_skipped
-        FROM experiment
-        LEFT JOIN configuration
-            ON configuration.config_id = experiment.config_id
-        ORDER BY experiment.experiment_id
-        """,
+    query = (
+        select(
+            ConfigurationBase.os.label("configuration_os"),
+            ExperimentBase.experiment_id,
+            ExperimentBase.config_id,
+            ExperimentBase.description,
+            ExperimentBase.type,
+            ExperimentBase.started_at,
+            ExperimentBase.ended_at,
+            ExperimentBase.tests_total,
+            ExperimentBase.tests_passed,
+            ExperimentBase.tests_failed,
+            ExperimentBase.tests_broken,
+            ExperimentBase.tests_skipped,
+        )
+        .select_from(ExperimentBase)
+        .outerjoin(ExperimentBase.configuration)
+        .order_by(ExperimentBase.experiment_id)
     )
 
-    with engine.connect() as connection:
-        result = connection.execute(query)
+    with Session(engine) as session:
+        result = session.execute(query)
         return [add_configuration_id(dict(row)) for row in result.mappings()]
 
 
 def fetch_util_run_result_records(engine: Engine) -> list[dict[str, Any]]:
-    query = text(
-        """
-        SELECT
-            configuration.os AS configuration_os,
-            util_run_result.id,
-            util_run_result.experiment_id,
-            util_run_result.util_type,
-            util_run_result.command,
-            util_run_result.result,
-            util_run_result.description,
-            util_run_result.started_at,
-            util_run_result.ended_at
-        FROM util_run_result
-        LEFT JOIN experiment
-            ON experiment.experiment_id = util_run_result.experiment_id
-        LEFT JOIN configuration
-            ON configuration.config_id = experiment.config_id
-        ORDER BY util_run_result.id
-        """,
+    query = (
+        select(
+            ConfigurationBase.os.label("configuration_os"),
+            UtilRunResult.id,
+            UtilRunResult.experiment_id,
+            UtilRunResult.util_type,
+            UtilRunResult.command,
+            UtilRunResult.result,
+            UtilRunResult.description,
+            UtilRunResult.started_at,
+            UtilRunResult.ended_at,
+        )
+        .select_from(UtilRunResult)
+        .outerjoin(UtilRunResult.experiment)
+        .outerjoin(ExperimentBase.configuration)
+        .order_by(UtilRunResult.id)
     )
 
-    with engine.connect() as connection:
-        result = connection.execute(query)
+    with Session(engine) as session:
+        result = session.execute(query)
         return [add_configuration_id(dict(row)) for row in result.mappings()]
 
 
+def fetch_configuration_records(_engine: Engine) -> list[dict[str, Any]]:
+    return list(DISTRIBUTIONS.values())
+
+
 def add_configuration_id(record: dict[str, Any]) -> dict[str, Any]:
-    configuration_id = configuration_id_from_os(record.pop("configuration_os", None))
-    return {"configuration_id": configuration_id, **record}
+    os_name = record.pop("configuration_os", None)
+    return {"configuration_id": configuration_id_from_os(os_name), **record}
 
 
-def configuration_id_from_os(os_name: Any) -> str:
+def configuration_id_from_os(os_name: Any) -> int | str:
+    distribution_name = distribution_name_from_os(os_name)
+
+    if not distribution_name:
+        return ""
+
+    return int(DISTRIBUTIONS[distribution_name]["configuration_id"])
+
+
+def distribution_name_from_os(os_name: Any) -> str:
     value = str(os_name or "").strip()
     lowered_value = value.lower()
 
-    if "opensuse" in lowered_value or "suse" in lowered_value:
-        return "opensuse"
+    if "poky" in lowered_value or "yocto" in lowered_value:
+        return "poky"
 
-    if "yocto" in lowered_value or "poky" in lowered_value:
-        return "yocto"
+    if "suse" in lowered_value:
+        return "suse"
 
-    return value
+    return ""
 
 
 def flatten_table_records(
