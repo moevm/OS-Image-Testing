@@ -3,7 +3,7 @@ from time import sleep
 from typing import TYPE_CHECKING
 
 from imgtests.exec.loaders import Kirk, Perf, StressNg
-from imgtests.planning import AbstractRunnableTimeLimitedTest
+from imgtests.planning import AbstractRunnableTimeLimitedTest, calc_subtest_timeout
 from imgtests.suites.duration import ONE_MIN_SEC
 from imgtests.suites.general.stress_ng import StressNgTest
 from imgtests.types import Subsystem, TestResult, TestStatus
@@ -33,17 +33,14 @@ class SyscallsWithCpuLoadTest(AbstractRunnableTimeLimitedTest):
         kirk = Kirk(client)
 
         cpu_loads = (50, 60, 70, 80, 90, 100)
-        subtest_timeout = timeout // len(cpu_loads)
-        if subtest_timeout == 0:
-            err_msg = f"Timeout '{timeout}' is too small for the number of subtests."
-            raise ValueError(err_msg)
+        subtest_timeout = calc_subtest_timeout(timeout, len(cpu_loads))
         for cpu_percent in cpu_loads:
             self.logger.info("Running test with %d cpu load...", cpu_percent)
             started_at = datetime.now(UTC)
             future_kirk = executor.submit(kirk.run, ["syscalls"], timeout=timeout)
             future_stress_ng = executor.submit(
                 stress_ng.run,
-                timeout_sec=timeout,
+                timeout_sec=subtest_timeout,
                 syscall=0,
                 syscall_method="all",
                 cpu=0,
@@ -82,6 +79,9 @@ class SyscallsWithCpuLoadTest(AbstractRunnableTimeLimitedTest):
             if stress_ng_res.returncode or kirk_res.returncode:
                 yield TestResult(status=TestStatus.FAILED)
             else:
+                if kirk_metrics_path is None:
+                    yield TestResult(status=TestStatus.FAILED)
+                    return
                 yield TestResult(
                     status=TestStatus.PASSED,
                     command=" ".join(stress_ng_res.cmd) + " & " + " ".join(kirk_res.cmd),

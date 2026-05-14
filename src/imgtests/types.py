@@ -26,7 +26,7 @@ class Version:
                         version_parts.append(converted_part)
                 continue
             version_parts.append(converted_part)
-        self.__version_parts: tuple[str | int] = tuple(version_parts)
+        self.__version_parts: tuple[str | int, ...] = tuple(version_parts)
 
     def __str__(self) -> str:
         return self.version

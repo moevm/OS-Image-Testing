@@ -34,7 +34,7 @@ dependencies = [
 
 [dependency-groups]
 lint = [
-    "ruff~=0.15.10",
+    "ruff~=0.15.12",
 ]
 tests = [
     "pytest~=9.0.3",
