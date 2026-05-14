@@ -182,10 +182,8 @@ class SSHClient:
             logger.error("Command '%s' completed with errors on the remote.", cmd_str)
             if stderr:
                 logger.error(stderr)
-
         if Verbosity.STDOUT in verbosity and stdout:
             logger.info(stdout)
-
         logger.debug("Exit status: %d.", retval)
         close_session()
         atexit.unregister(close_session)
