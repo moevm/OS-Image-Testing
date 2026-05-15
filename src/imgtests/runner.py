@@ -38,8 +38,6 @@ if TYPE_CHECKING:
     from imgtests.exec.base_util import BaseTestUtil
     from imgtests.planning import LoadPattern
 
-TIMEOUT_RETURN_CODE: int = 124
-
 
 # Subsystems, stages (plan, risk analysis, run, cleanup, results, etc), etc
 class TestsRunnerConfig:
