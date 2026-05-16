@@ -18,7 +18,11 @@ class SnapshotManager:
     def __init__(self, name: str, client: SSHClient | None) -> None:
         self._client = client
         self._logger = logging.getLogger(f"{LIB_NAME}.{name}")
-        self.snapshot_loaded = False
+        self.__snapshot_loaded = False
+
+    @property
+    def snapshot_loaded(self) -> bool:
+        return self.__snapshot_loaded
 
     def run_command(self, command: str) -> ExecResult:
         os_id = get_os_release(self._client).id
@@ -60,7 +64,7 @@ class SnapshotManager:
                 )
         except ExecTimeoutExpiredError:
             self._logger.info("Snapshots switched to %s.", snapshot_name)
-            self.snapshot_loaded = True
+            self.__snapshot_loaded = True
         self.reconnect_after_switch()
 
     def create_snapshot(self, snapshot_name: str) -> None:
@@ -68,4 +72,4 @@ class SnapshotManager:
         result = self.run_command(f"savevm {snapshot_name}")
         if not result.returncode:
             self._logger.info("Snapshot created: %s.", snapshot_name)
-            self.snapshot_loaded = False
+            self.__snapshot_loaded = False
