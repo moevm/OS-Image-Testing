@@ -16,6 +16,7 @@ from imgtests.constant import LIB_NAME
 from imgtests.exec.exec import SSHClient, Verbosity, common_run_command
 from imgtests.exec.observers.journalctl import Journalctl
 from imgtests.exec.observers.systemctl import Systemctl
+from imgtests.exec.observers.systemd_detect_virt import SystemdDetectVirt
 from imgtests.planning import (
     AbstractRunnableManyTimesTest,
     AbstractRunnableTimeLimitedTest,
@@ -179,10 +180,17 @@ class TestsRunner(BaseRunner):
             TestStatus.SKIPPED: 0,
             TestStatus.BROKEN: 0,
         }
-        # Use snapshot manager only when works with the remote
-        self.__test_snapshots = (
-            SnapshotManager("tests_runner", client) if client is not None else None
-        )
+        # Use snapshot manager only when works with the remote and qemu
+        if client is not None:
+            systemd_detect_virt = SystemdDetectVirt(client)
+            _, virt_type = systemd_detect_virt()
+            self.__test_snapshots = (
+                SnapshotManager("tests_runner", client)
+                if virt_type is not None and "qemu" in virt_type
+                else None
+            )
+        else:
+            self.__test_snapshots = None
 
     def run(self) -> None:
         snapshot_name = "vm-snapshot"
