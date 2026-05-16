@@ -5,7 +5,7 @@ import logging
 import subprocess
 from enum import Flag, auto
 from pathlib import Path
-from time import sleep
+from time import monotonic, sleep
 from typing import TYPE_CHECKING, NamedTuple
 
 import paramiko
@@ -33,11 +33,23 @@ class Verbosity(Flag):
     STDERR = auto()
 
 
+class ExecTimeoutExpiredError(Exception):
+    """This exception is raised when the timeout expires while waiting for a command execution."""
+
+    def __init__(self, cmd: Sequence[str], timeout: float) -> None:
+        self.cmd = cmd
+        self.timeout = timeout
+
+    def __str__(self) -> str:
+        return f"Command '{self.cmd}' timed out after '{self.timeout}' seconds"
+
+
 def common_run_command(
     cmd: Sequence[str],
     ssh_client: SSHClient | None = None,
     input_: str | None = None,
     verbosity: Verbosity = Verbosity.STDERR,
+    timeout: float | None = None,
 ) -> ExecResult:
     """Executes a command locally or over SSH, depending on the provided client.
 
@@ -54,6 +66,7 @@ def common_run_command(
         input_ (str | None): Input string to be passed to the command's stdin,
                              useful for interactive commands.
         verbosity (Verbosity): Logs verbosity level (stdout, stderr, all, none).
+        timeout (float | None): Maximum time for command execution.
 
     Examples:
         >>> result = common_run_command(["echo", "Hello"])
@@ -61,13 +74,14 @@ def common_run_command(
         Hello
     """
     call_func = run_command if ssh_client is None else ssh_client
-    return call_func(cmd=cmd, input_=input_, verbosity=verbosity)
+    return call_func(cmd=cmd, input_=input_, verbosity=verbosity, timeout=timeout)
 
 
 def run_command(
     cmd: Sequence[str],
     input_: str | None = None,
     verbosity: Verbosity = Verbosity.STDERR,
+    timeout: float | None = None,
 ) -> ExecResult:
     """Executes a command locally."""
     logger.debug("Running command '%s'.", " ".join(cmd))
@@ -77,6 +91,7 @@ def run_command(
         capture_output=True,
         encoding="utf-8",
         check=False,
+        timeout=timeout,
     )
 
     result = ExecResult(
@@ -140,21 +155,28 @@ class SSHClient:
     def _read_until_exit_status_ready(
         cls,
         session: paramiko.Channel,
+        cmd: Sequence[str],
         stdout_chunks: list[bytes],
         stderr_chunks: list[bytes],
+        timeout: float | None = None,
     ) -> None:
+        endtime = monotonic() + timeout if timeout is not None else None
         while True:
             has_read = cls._read_available(session, stdout_chunks, stderr_chunks)
             if session.exit_status_ready() and not has_read:
                 break
             if not has_read:
-                sleep(0.05)
+                sleep(0.1)
+            if timeout and endtime and monotonic() > endtime:
+                session.close()
+                raise ExecTimeoutExpiredError(cmd=cmd, timeout=timeout)
 
     def __call__(
         self,
         cmd: Sequence[str],
         input_: str | None = None,
         verbosity: Verbosity = Verbosity.STDERR,
+        timeout: float | None = None,
     ) -> ExecResult:
         session = self.ssh_session.open_channel(kind="session")
         close_session = session.close
@@ -172,7 +194,7 @@ class SSHClient:
             stdin_channel.flush()
             stdin_channel.close()
 
-        self._read_until_exit_status_ready(session, stdout_chunks, stderr_chunks)
+        self._read_until_exit_status_ready(session, cmd, stdout_chunks, stderr_chunks, timeout)
         retval = session.recv_exit_status()
 
         stdout = b"".join(stdout_chunks).decode("utf-8", errors="replace").strip()
@@ -291,14 +313,20 @@ def pipeline(
     cmds: Sequence[Sequence[str]],
     ssh_client: SSHClient | None = None,
     pass_output: bool = False,
+    timeout: float | None = None,
 ) -> Iterable[ExecResult]:
     prev_stdout = None
 
     for cmd in cmds:
         if pass_output and prev_stdout is not None:
-            result = common_run_command(cmd, ssh_client=ssh_client, input_=prev_stdout)
+            result = common_run_command(
+                cmd,
+                ssh_client=ssh_client,
+                input_=prev_stdout,
+                timeout=timeout,
+            )
         else:
-            result = common_run_command(cmd, ssh_client=ssh_client)
+            result = common_run_command(cmd, ssh_client=ssh_client, timeout=timeout)
 
         yield result
 
