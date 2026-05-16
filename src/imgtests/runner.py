@@ -12,7 +12,7 @@ import paramiko.ssh_exception
 from pydantic import Field
 from pydantic_settings import BaseSettings
 
-from imgtests.constant import LIB_NAME
+from imgtests.constant import LIB_NAME, QEMU
 from imgtests.exec.exec import SSHClient, Verbosity, common_run_command
 from imgtests.exec.observers.journalctl import Journalctl
 from imgtests.exec.observers.systemctl import Systemctl
@@ -186,7 +186,7 @@ class TestsRunner(BaseRunner):
             _, virt_type = systemd_detect_virt()
             self.__test_snapshots = (
                 SnapshotManager("tests_runner", client)
-                if virt_type is not None and "qemu" in virt_type
+                if virt_type is not None and QEMU in virt_type
                 else None
             )
         else:
