@@ -179,18 +179,22 @@ class TestsRunner(BaseRunner):
             TestStatus.SKIPPED: 0,
             TestStatus.BROKEN: 0,
         }
-        self.__test_snapshots = SnapshotManager("tests_runner", client)
+        # Use snapshot manager only when works with the remote
+        self.__test_snapshots = (
+            SnapshotManager("tests_runner", client) if client is not None else None
+        )
 
     def run(self) -> None:
         snapshot_name = "vm-snapshot"
-        if (
+        if self.__test_snapshots and (
             self.__test_snapshots.snapshot_loaded
             or snapshot_name in self.__test_snapshots.get_snapshots_info().stdout
         ):
             self.__test_snapshots.switch_to_snapshot(snapshot_name)
         elif self.__test_config.install_dependencies:
             self.install_dependencies()
-            self.__test_snapshots.create_snapshot(snapshot_name)
+            if self.__test_snapshots:
+                self.__test_snapshots.create_snapshot(snapshot_name)
 
         experiment = self.start_experiment(
             client=self._client,

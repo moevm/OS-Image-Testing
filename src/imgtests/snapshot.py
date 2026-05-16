@@ -15,7 +15,7 @@ QEMU_MONITOR_PORT: Final = "4444"
 
 
 class SnapshotManager:
-    def __init__(self, name: str, client: SSHClient | None) -> None:
+    def __init__(self, name: str, client: SSHClient) -> None:
         self._client = client
         self._logger = logging.getLogger(f"{LIB_NAME}.{name}")
         self.__snapshot_loaded = False
