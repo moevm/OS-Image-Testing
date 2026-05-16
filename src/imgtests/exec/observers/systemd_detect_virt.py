@@ -1,12 +1,9 @@
-import logging
 from typing import TYPE_CHECKING
 
 from imgtests.exec.base_util import GenericUtil
 
 if TYPE_CHECKING:
     from imgtests.exec.exec import ExecResult, SSHClient
-
-logger = logging.getLogger(__name__)
 
 
 class SystemdDetectVirt(GenericUtil):
