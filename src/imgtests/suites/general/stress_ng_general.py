@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING, Any
 
 from imgtests.exec.loaders import StressNg
 from imgtests.exec.user_commands import Nproc
+from imgtests.planning.base import calc_subtest_timeout
 from imgtests.suites.general.stress_ng import StressNgTest
 from imgtests.types import Subsystem, TestResult, TestStatus
 
@@ -65,10 +66,7 @@ class StressNgConsecutiveLoadTest(StressNgTest):
     ) -> Iterable[TestResult]:
         stress_ng = StressNg(client)
 
-        subtest_timeout = timeout // len(tests)
-        if subtest_timeout == 0:
-            err_msg = "Invalid timeout for subtests. Needs increase timeout."
-            raise ValueError(err_msg)
+        subtest_timeout = calc_subtest_timeout(timeout, len(tests))
         self.logger.info(
             "Each subtest running time: %d. Count of subtests: %s.",
             subtest_timeout,
@@ -113,10 +111,7 @@ class StressNgCombineLoadTest(StressNgTest):
             for r in range(2, len(tests))
             for test_combination in combinations(tests, r)
         ]
-        combination_timeout = timeout // len(test_combinations)
-        if combination_timeout == 0:
-            err_msg = "Insufficient timeout for all combinations. Needs increase timeout."
-            raise ValueError(err_msg)
+        combination_timeout = calc_subtest_timeout(timeout, len(test_combinations))
         self.logger.info(
             "Each subtest running time: %d. Count of subtests: %s.",
             combination_timeout,
@@ -196,10 +191,7 @@ class StressNgIterTestIPC(StressNgTest):
             yield TestResult(status=TestStatus.BROKEN)
             return
         ipc_max = int(result.stdout)
-        subtest_timeout = timeout // ipc_max
-        if subtest_timeout == 0:
-            err_msg = "Invalid timeout for IPC stress-ng test. Needs increase timeout."
-            raise ValueError(err_msg)
+        subtest_timeout = calc_subtest_timeout(timeout, ipc_max)
         for param in range(1, ipc_max + 1):
             yield from self.run_test(
                 stress_ng=stress_ng,

@@ -1,13 +1,12 @@
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, Literal, get_args
-from zoneinfo import ZoneInfo
 
 from deepdiff import DeepDiff
 from pydantic import Field
 from pydantic_settings import BaseSettings
 from sqlalchemy import and_, create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import selectinload, sessionmaker
 
 from imgtests.database.models.base import Base
 from imgtests.database.models.configuration import ConfigurationBase
@@ -120,9 +119,9 @@ class ImgtestsDatabase:
         ended_at: datetime | None = None,
     ) -> ExperimentBase:
         if started_at is None:
-            started_at = datetime.now(ZoneInfo("UTC"))
+            started_at = datetime.now(UTC)
         if ended_at is None:
-            ended_at = datetime.now(ZoneInfo("UTC"))
+            ended_at = datetime.now(UTC)
 
         experiment_object = ExperimentBase(
             config_id=config_id,
@@ -150,9 +149,9 @@ class ImgtestsDatabase:
         ended_at: datetime | None = None,
     ) -> UtilRunResult:
         if started_at is None:
-            started_at = datetime.now(ZoneInfo("UTC"))
+            started_at = datetime.now(UTC)
         if ended_at is None:
-            ended_at = datetime.now(ZoneInfo("UTC"))
+            ended_at = datetime.now(UTC)
 
         logger.debug("Inserting test '%s' results into experiment '%d'.", command, experiment_id)
         util_run_result = UtilRunResult(
@@ -178,7 +177,7 @@ class ImgtestsDatabase:
         ended_at: datetime | None = None,
     ) -> None:
         if ended_at is None:
-            ended_at = datetime.now(tz=ZoneInfo("UTC"))
+            ended_at = datetime.now(UTC)
 
         self._check_session()
         with self.session() as session:
@@ -217,6 +216,27 @@ class ImgtestsDatabase:
                 logger.error("Table '%s' doesn't exist.", table_name)
 
             return session.query(models[table_name]).all()
+
+    def get_experiment_with_details(self, experiment_id: int) -> ExperimentBase:
+        """Gets a single experiment with all related entities.
+
+        Args:
+            experiment_id (int): id of the experiment to retrieve.
+
+        Return:
+            ExperimentBase: experiment object with configuration, util_run_results.
+        """
+        self._check_session()
+        with self.session() as session:
+            return (
+                session.query(ExperimentBase)
+                .options(
+                    selectinload(ExperimentBase.configuration),
+                    selectinload(ExperimentBase.util_run_results),
+                )
+                .filter(ExperimentBase.experiment_id == experiment_id)
+                .one()
+            )
 
     def _check_session(self) -> None:
         if not hasattr(self, "session") or self.session is None:

@@ -16,7 +16,7 @@ from imgtests.exec.loaders.stress_ng import StressNg, stress_metrics_to_samples
 from imgtests.exec.observers.systemd_analyze import SystemdAnalyze
 from imgtests.exec.user_commands import Nproc
 from imgtests.planning.profiles import CPU_SCALE_ARG_PREFIX, FIO_SIZE_RATIO_ARG_PREFIX
-from imgtests.reporting.html_report import generate_html_report
+from imgtests.reporting.html_report import ReportGenerator
 from imgtests.runner import BaseRunner
 from imgtests.sizing import parse_size_to_bytes, round_bytes_to_mib_str
 from imgtests.types import MetricSample, TestsCounts, TestStatus
@@ -202,7 +202,7 @@ class PlanExecutor(BaseRunner):
             metrics=tuple(collected_metrics),
             tests_counts=tests_counts,
         )
-        generate_html_report(
+        ReportGenerator.generate_profiled_html_report(
             plan=plan,
             execution=result,
             out_dir=results_dir,

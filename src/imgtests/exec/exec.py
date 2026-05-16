@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+import atexit
 import logging
 import subprocess
 from enum import Flag, auto
@@ -15,6 +18,8 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+SSH_CHANNEL_READ_BYTES = 32768
+
 
 class ExecResult(NamedTuple):
     cmd: tuple[str, ...]
@@ -26,6 +31,17 @@ class ExecResult(NamedTuple):
 class Verbosity(Flag):
     STDOUT = auto()
     STDERR = auto()
+
+
+class ExecTimeoutExpiredError(Exception):
+    """This exception is raised when the timeout expires while waiting for a command execution."""
+
+    def __init__(self, cmd: Sequence[str], timeout: float) -> None:
+        self.cmd = cmd
+        self.timeout = timeout
+
+    def __str__(self) -> str:
+        return f"Command '{self.cmd}' timed out after '{self.timeout}' seconds"
 
 
 def common_run_command(
@@ -112,6 +128,49 @@ class SSHClient:
         logger.info("Connecting to the host '%s'.", self.hostname)
         self.ssh_session.connect(username=self.username, password=self.password)
 
+    @staticmethod
+    def _read_available(
+        session: paramiko.Channel,
+        stdout_chunks: list[bytes],
+        stderr_chunks: list[bytes],
+    ) -> bool:
+        has_read = False
+        while session.recv_ready():
+            chunk = session.recv(SSH_CHANNEL_READ_BYTES)
+            if not chunk:
+                break
+            stdout_chunks.append(chunk)
+            has_read = True
+
+        while session.recv_stderr_ready():
+            chunk = session.recv_stderr(SSH_CHANNEL_READ_BYTES)
+            if not chunk:
+                break
+            stderr_chunks.append(chunk)
+            has_read = True
+
+        return has_read
+
+    @classmethod
+    def _read_until_exit_status_ready(
+        cls,
+        session: paramiko.Channel,
+        cmd: Sequence[str],
+        stdout_chunks: list[bytes],
+        stderr_chunks: list[bytes],
+        timeout: float | None = None,
+    ) -> None:
+        endtime = monotonic() + timeout if timeout is not None else None
+        while True:
+            has_read = cls._read_available(session, stdout_chunks, stderr_chunks)
+            if session.exit_status_ready() and not has_read:
+                break
+            if not has_read:
+                sleep(0.1)
+            if timeout and endtime and monotonic() > endtime:
+                session.close()
+                raise ExecTimeoutExpiredError(cmd=cmd, timeout=timeout)
+
     def __call__(
         self,
         cmd: Sequence[str],
@@ -120,10 +179,13 @@ class SSHClient:
         timeout: float | None = None,
     ) -> ExecResult:
         session = self.ssh_session.open_channel(kind="session")
-        stdout = session.makefile("rb")
-        stderr = session.makefile_stderr("rb")
-        logger.debug("Running command '%s' on host '%s'.", cmd, self.hostname)
+        close_session = session.close
+        atexit.register(close_session)
         cmd_str = " ".join(cmd)
+        stdout_chunks: list[bytes] = []
+        stderr_chunks: list[bytes] = []
+        logger.debug("Running command '%s' on host '%s'.", cmd, self.hostname)
+
         session.exec_command(cmd_str)
 
         if input_ is not None:
@@ -132,26 +194,22 @@ class SSHClient:
             stdin_channel.flush()
             stdin_channel.close()
 
-        if timeout:
-            end = monotonic() + timeout
-            while not session.exit_status_ready():
-                if monotonic() >= end:
-                    session.close()
-                    raise subprocess.TimeoutExpired(cmd=cmd, timeout=timeout)
-                sleep(0.5)
+        self._read_until_exit_status_ready(session, cmd, stdout_chunks, stderr_chunks, timeout)
         retval = session.recv_exit_status()
 
-        stdout = stdout.read().decode("utf-8").strip()
-        stderr = stderr.read().decode("utf-8").strip()
+        stdout = b"".join(stdout_chunks).decode("utf-8", errors="replace").strip()
+        stderr = b"".join(stderr_chunks).decode("utf-8", errors="replace").strip()
 
         if Verbosity.STDERR in verbosity and retval:
-            logger.error("Command '%s' completed with errors on the remote.", cmd_str.strip())
+            logger.error("Command '%s' completed with errors on the remote.", cmd_str)
             if stderr:
                 logger.error(stderr)
         if Verbosity.STDOUT in verbosity and stdout:
             logger.info(stdout)
         logger.debug("Exit status: %d.", retval)
-        session.close()
+        close_session()
+        atexit.unregister(close_session)
+
         return ExecResult(
             cmd=tuple(cmd),
             stdout=stdout,

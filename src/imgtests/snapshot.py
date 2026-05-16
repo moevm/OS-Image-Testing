@@ -1,5 +1,4 @@
 import logging
-import subprocess
 from time import sleep
 from typing import Final
 
@@ -7,7 +6,7 @@ import paramiko
 import paramiko.ssh_exception
 
 from imgtests.constant import LIB_NAME
-from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
+from imgtests.exec.exec import ExecResult, ExecTimeoutExpiredError, SSHClient, common_run_command
 from imgtests.exec.osinfo import get_os_release
 from imgtests.types import Distro
 
@@ -59,7 +58,7 @@ class SnapshotManager:
                     snapshot_name,
                     result.cmd,
                 )
-        except subprocess.TimeoutExpired:
+        except ExecTimeoutExpiredError:
             self._logger.info("Snapshots switched to %s.", snapshot_name)
             self.snapshot_loaded = True
         self.reconnect_after_switch()
