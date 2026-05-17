@@ -6,3 +6,4 @@ uv.lock
 .venv
 .coverage
 pytest-coverage.xml
+imgtests.egg-info

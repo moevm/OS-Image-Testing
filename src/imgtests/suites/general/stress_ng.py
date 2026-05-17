@@ -1,6 +1,5 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
-from zoneinfo import ZoneInfo
 
 from imgtests.exec.loaders import StressNgParamVerValidationError
 from imgtests.planning import AbstractRunnableTimeLimitedTest
@@ -21,7 +20,7 @@ class StressNgTest(AbstractRunnableTimeLimitedTest):
         timeout: int,
         **kwargs: str | float | bool | None,
     ) -> Iterable[TestResult]:
-        started_at = datetime.now(tz=ZoneInfo("UTC"))
+        started_at = datetime.now(UTC)
         future = executor.submit(stress_ng.run, timeout_sec=timeout, **kwargs)
         try:
             result, metrics = future.result()

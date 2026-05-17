@@ -5,9 +5,10 @@ GROUP                      := yoctogroup
 POSTGRES_DB                := os-testing-db
 OS_IMAGE                   := core-image-minimal
 SUSE_VER                   ?= 15.6
+LIB_NAME                   := imgtests
 
 # Docker
-DOCKER_PREFIX              := imgtests
+DOCKER_PREFIX              := ${LIB_NAME}
 DOCKER_TAG                 := ${DOCKER_PREFIX}-yocto-builder
 DOCKER_SUSE_TAG            := ${DOCKER_PREFIX}-open-suse-env
 DOCKER_PYTHON_TAG          := ${DOCKER_PREFIX}-analyzer
@@ -37,6 +38,7 @@ TESTS_DIR                  := ${CURDIR}/tests
 
 # Python
 PACKAGE_MGR                := uv
+PYTHON_REQUIRED_LIBS       := $(shell python3 -c "import tomllib; from pathlib import Path; print(' '.join(tomllib.loads(Path('pyproject.toml').read_text())['project']['dependencies']))")
 
 # Docker Network
 DOCKER_NETWORK             := yocto-network
@@ -53,10 +55,12 @@ SSH_TO_QEMU_PORT		   := 22
 SSH_QEMU_PORT              ?= 2222
 SSH_SUSE_PORT_156          := 1616
 IPERF3_PORT                := 5201
+DJANGO_PORT                := 8000
 BENCHER_API_PORT           := 61016
 BENCHER_CLI_PORT           := 3000
 POSTGRES_PORT              := 5432
 VMETRICS_PORT              := 8438
+DJANGO_SECRET              := $(shell date | sha256sum | tr ' ' '_')
 
 SSH_QEMU_USER              ?= root
 
@@ -73,6 +77,8 @@ docker: init-submodule
 		--tag ${DOCKER_TAG} \
 		--build-arg USER="${USER}" \
 		--build-arg GROUP="${GROUP}" \
+		--build-arg LIB_NAME="${LIB_NAME}" \
+		--build-arg PYTHON_REQUIRED_LIBS="${PYTHON_REQUIRED_LIBS}" \
 		--build-arg PASSWORD="${PASSWORD}" \
 		--build-arg POKY_DIR="${POKY_DIR}" \
 		--file docker/image_builder.dockerfile .

@@ -7,11 +7,10 @@ import statistics
 import textwrap
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from functools import lru_cache
 from pathlib import Path
 from typing import TYPE_CHECKING, Final, NamedTuple
-from zoneinfo import ZoneInfo
 
 from jinja2 import Environment, FileSystemLoader, StrictUndefined, select_autoescape
 from matplotlib import cm
@@ -776,5 +775,5 @@ def _format_float(value: float) -> str:
 def _safe_filename(name: str) -> str:
     safe = re.sub(r"[^a-zA-Z0-9_.-]+", "_", name).strip("_")
     if not safe:
-        return f"metric_{datetime.now(tz=ZoneInfo('UTC')).strftime('%Y%m%d_%H%M%S')}"
-    return f"{safe}_{datetime.now(tz=ZoneInfo('UTC')).strftime('%Y%m%d_%H%M%S_%f')}"
+        return f"metric_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}"
+    return f"{safe}_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S_%f')}"
