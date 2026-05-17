@@ -160,7 +160,7 @@ class ReportGenerator:
         for i in range(len(exps_data)):
             exp_data = exps_data[i]
             metrics = self._extract_metrics_from_experiment(exp_data)
-            self.add_load_average_metrics(metrics)
+            self.add_load_average_metrics(metrics, exp_data.started_at, exp_data.ended_at)
             report_data.append(
                 {
                     "header": {
@@ -411,7 +411,7 @@ class ReportGenerator:
         plots_dir.mkdir(parents=True, exist_ok=True)
 
         metrics = list(execution.metrics)
-        ReportGenerator.add_load_average_metrics(metrics)
+        ReportGenerator.add_load_average_metrics(metrics, execution.started_at, execution.ended_at)
 
         report_data = {
             "header": {
@@ -478,12 +478,18 @@ class ReportGenerator:
         return results
 
     @staticmethod
-    def add_load_average_metrics(metrics: list[MetricSample]) -> None:
+    def add_load_average_metrics(
+        metrics: list[MetricSample],
+        start_time: datetime,
+        end_time: datetime,
+    ) -> None:
         vmetrics_creds = VMetricsCreds()
+        start_time = start_time.astimezone(UTC).isoformat().replace("+00:00", "Z")
+        end_time = end_time.astimezone(UTC).isoformat().replace("+00:00", "Z")
         for interval in (1, 5, 15):
             query_url = (
                 f"http://{vmetrics_creds.host}:{vmetrics_creds.port}/api/v1/query_range"
-                f"?query=node_load{interval}&start=-1h&step=1m"
+                f"?query=node_load{interval}&start={start_time}&end={end_time}&step=1m"
             )
             result = common_run_command(["curl", query_url])
             if result.returncode:
