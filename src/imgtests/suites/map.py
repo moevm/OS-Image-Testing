@@ -17,6 +17,8 @@ from imgtests.suites.drive.stress_ng import StressNgEnduranceFileTest
 from imgtests.suites.fault_injection import (
     FaultInjectionChaosbladeTest,
     FaultInjectionEnduranceTest,
+    FaultInjectionFioTest,
+    FaultInjectionPerfTest,
     FaultInjectionStressNgTest,
 )
 from imgtests.suites.general.joint_bench import JointBench
@@ -85,6 +87,8 @@ ALL_SUBSYSTEMS_SUITE: Final = TestsRunnerConfig(
         FaultInjectionEnduranceTest,
         FaultInjectionChaosbladeTest,
         FaultInjectionStressNgTest,
+        FaultInjectionPerfTest,
+        FaultInjectionFioTest,
     ),
     experiment_type="performance",
     duration=1200,
