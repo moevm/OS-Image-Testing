@@ -18,3 +18,5 @@ SSH_CLIENT_MISSING_RESULT: Final = TestResult(
     # TODO: use frozendict from 3.15
     metrics={"error": "SSH client is not provided"},
 )
+
+QEMU: Final = "qemu"
