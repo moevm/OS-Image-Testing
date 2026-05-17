@@ -1,11 +1,10 @@
 import re
 from contextlib import suppress
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum, StrEnum, auto
 from functools import total_ordering
 from typing import Any, NamedTuple
-from zoneinfo import ZoneInfo
 
 
 @total_ordering
@@ -27,7 +26,7 @@ class Version:
                         version_parts.append(converted_part)
                 continue
             version_parts.append(converted_part)
-        self.__version_parts: tuple[str | int] = tuple(version_parts)
+        self.__version_parts: tuple[str | int, ...] = tuple(version_parts)
 
     def __str__(self) -> str:
         return self.version
@@ -86,8 +85,8 @@ class TestResult(NamedTuple):
     status: TestStatus
     metrics: Any = None
     command: str = ""
-    started_at: datetime = datetime.now(tz=ZoneInfo("UTC"))
-    ended_at: datetime = datetime.now(tz=ZoneInfo("UTC"))
+    started_at: datetime = datetime.now(UTC)
+    ended_at: datetime = datetime.now(UTC)
 
 
 class Subsystem(StrEnum):

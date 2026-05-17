@@ -1,10 +1,20 @@
 from enum import Enum
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pytest
 
-from imgtests.exec.utils import add_flag, add_sudo, create_opt, extract_version, kwargs_to_cmd_args
+from imgtests.exec.utils import (
+    add_flag,
+    add_sudo,
+    create_opt,
+    extract_version,
+    kwargs_to_cmd_args,
+    wrap_with_timeout,
+)
 from imgtests.types import Version
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 
 class TEnum(Enum):
@@ -94,3 +104,107 @@ def test_extract_version(out: str, version: str) -> None:
 def test_kwargs_to_cmd_args(kwargs: dict[str, Any], command: list[str]) -> None:
     result = kwargs_to_cmd_args(**kwargs)
     assert result == command
+
+
+class TestWrapWithTimeout:
+    def test_positive_timeout_sec(self) -> None:
+        cmd = ["ls", "-l"]
+        timeout_sec = 10
+        result = wrap_with_timeout(cmd, timeout_sec)
+
+        expected = [
+            "timeout",
+            "--verbose",
+            "--kill-after=30s",
+            "10s",
+            "ls",
+            "-l",
+        ]
+        assert result == expected
+
+    def test_timeout_sec_negative(self) -> None:
+        cmd = ["pwd"]
+        timeout_sec = -5
+
+        with pytest.raises(ValueError):  # noqa: PT011
+            wrap_with_timeout(cmd, timeout_sec)
+
+    def test_use_sudo_true(self) -> None:
+        cmd = ["df", "-h"]
+        timeout_sec = 20
+        use_sudo = True
+
+        result = wrap_with_timeout(cmd, timeout_sec, use_sudo=use_sudo)
+
+        expected = [
+            "sudo",
+            "timeout",
+            "--verbose",
+            "--kill-after=30s",
+            "20s",
+            "df",
+            "-h",
+        ]
+        assert result == expected
+
+    def test_kill_after_sec_custom(self) -> None:
+        cmd = ["sleep", "5"]
+        timeout_sec = 15
+        kill_after_sec = 60
+
+        result = wrap_with_timeout(cmd, timeout_sec, kill_after_sec=kill_after_sec)
+
+        expected = [
+            "timeout",
+            "--verbose",
+            "--kill-after=60s",
+            "15s",
+            "sleep",
+            "5",
+        ]
+        assert result == expected
+
+    def test_cmd_with_float_arguments(self) -> None:
+        cmd: Sequence[str | float] = ["python", "-c", "print(42)", 3.14]
+        timeout_sec = 30
+
+        result = wrap_with_timeout(cmd, timeout_sec)
+
+        expected = [
+            "timeout",
+            "--verbose",
+            "--kill-after=30s",
+            "30s",
+            "python",
+            "-c",
+            "print(42)",
+            "3.14",
+        ]
+        assert result == expected
+
+    def test_all_options_combined(self) -> None:
+        cmd = ["find", "/tmp", "-name", "*.log"]  # noqa: S108
+        timeout_sec = 45
+        use_sudo = True
+        kill_after_sec = 90
+        verbose = False
+
+        result = wrap_with_timeout(
+            cmd,
+            timeout_sec,
+            use_sudo=use_sudo,
+            kill_after_sec=kill_after_sec,
+            verbose=verbose,
+        )
+
+        expected = [
+            "sudo",
+            "timeout",
+            "--kill-after=90s",
+            "45s",
+            "find",
+            "/tmp",  # noqa: S108
+            "-name",
+            "*.log",
+        ]
+        assert result == expected

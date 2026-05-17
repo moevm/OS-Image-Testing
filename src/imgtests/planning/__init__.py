@@ -1,4 +1,8 @@
-from imgtests.planning.base import AbstractRunnableManyTimesTest, AbstractRunnableTimeLimitedTest
+from imgtests.planning.base import (
+    AbstractRunnableManyTimesTest,
+    AbstractRunnableTimeLimitedTest,
+    calc_subtest_timeout,
+)
 from imgtests.planning.models import (
     LoadPattern,
     LoadTask,
@@ -19,4 +23,5 @@ __all__ = [
     "TestKind",
     "TestPlan",
     "build_plan",
+    "calc_subtest_timeout",
 ]

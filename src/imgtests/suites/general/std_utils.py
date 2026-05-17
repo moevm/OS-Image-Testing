@@ -15,10 +15,9 @@ For each utility run, the following statistical metrics are collected:
 """
 
 import tempfile
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Final, NamedTuple
-from zoneinfo import ZoneInfo
 
 from imgtests.exec.exec import common_run_command
 from imgtests.planning import AbstractRunnableManyTimesTest
@@ -70,7 +69,7 @@ class POSIXUtilsTest(AbstractRunnableManyTimesTest):
             self.test_utils_for_dirs,
             self.test_other_tools,
         ]:
-            started_at = datetime.now(tz=ZoneInfo("UTC"))
+            started_at = datetime.now(UTC)
             result = func(client, iterations)
             for cmd, metrics in result.items():
                 if metrics:

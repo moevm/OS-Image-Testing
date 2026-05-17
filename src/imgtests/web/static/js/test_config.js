@@ -60,22 +60,7 @@ class TestConfigManager {
                 console.log("Loaded config:", this.currentConfig);
             } else {
                 console.warn("No existing config, using default");
-                this.currentConfig = {
-                    suites: [
-                        "FILE_SUITE",
-                        "MEMORY_SUITE",
-                        "SYSCALLS_SUITE",
-                        "IPC_SUITE",
-                    ],
-                    suite_durations: {
-                        FILE_SUITE: 300,
-                        MEMORY_SUITE: 100,
-                        SYSCALLS_SUITE: 200,
-                        IPC_SUITE: 100,
-                        NETWORK_SUITE: 200,
-                    },
-                    selected_tests: {},
-                };
+                this.showStatus("Failed to load tests for " + window.distroName, "error");
             }
         } catch (error) {
             console.error("Failed to load current config:", error);

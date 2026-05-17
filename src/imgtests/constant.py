@@ -9,7 +9,6 @@ LIB_NAME: Final = "imgtests"
 # Paths
 LIB_DATA_DIR: Final = Path.home() / LIB_NAME
 LOG_PATH: Final = LIB_DATA_DIR / "processing.log"
-METADATA_FILE: Final = LIB_DATA_DIR / "test_suites_metadata.yml"
 CONFIG_DIR: Final = LIB_DATA_DIR / "test_configs"
 CONFIG_FILE: Final = LIB_DATA_DIR / "user_distros.json"
 REPORTS_DIR: Final = LIB_DATA_DIR / "results/profiled"
@@ -19,3 +18,5 @@ SSH_CLIENT_MISSING_RESULT: Final = TestResult(
     # TODO: use frozendict from 3.15
     metrics={"error": "SSH client is not provided"},
 )
+
+QEMU: Final = "qemu"

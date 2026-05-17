@@ -7,7 +7,7 @@ DEFAULT_TASK_TIMEOUT_SEC: Final = 3600
 
 
 @task()
-def run_test_task(env_vars: dict[str, str]) -> dict[str, str | int]:
+def run_test_task(env_vars: dict[str, str]) -> dict[str, str | int | bytes]:
     try:
         result = subprocess.run(
             ["/usr/bin/env", "python3", "/home/user/image/runner.py"],

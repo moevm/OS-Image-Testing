@@ -2,26 +2,27 @@ from __future__ import annotations
 
 import logging
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from threading import Event, Thread
 from typing import TYPE_CHECKING, ClassVar
-from zoneinfo import ZoneInfo
 
 import paramiko
 import paramiko.ssh_exception
 from pydantic import Field
 from pydantic_settings import BaseSettings
 
-from imgtests.constant import LIB_NAME
+from imgtests.constant import LIB_NAME, QEMU
 from imgtests.exec.exec import SSHClient, Verbosity, common_run_command
 from imgtests.exec.observers.journalctl import Journalctl
 from imgtests.exec.observers.systemctl import Systemctl
+from imgtests.exec.observers.systemd_detect_virt import SystemdDetectVirt
 from imgtests.planning import (
     AbstractRunnableManyTimesTest,
     AbstractRunnableTimeLimitedTest,
     TestKind,
 )
+from imgtests.snapshot import SnapshotManager
 from imgtests.suites.system import (
     SystemLoadTimeTest,
     SystemSlowServicesTest,
@@ -30,7 +31,7 @@ from imgtests.sysrep import get_system_info
 from imgtests.types import Subsystem, TestsCounts, TestStatus
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Iterable, Sequence
 
     from imgtests.database.database import ImgtestsDatabase
     from imgtests.database.models.experiment import ExperimentBase, ExperimentType
@@ -52,7 +53,7 @@ class TestsRunnerConfig:
     def __init__(
         self,
         description: str,
-        tests: Iterable[AbstractRunnableManyTimesTest | type[AbstractRunnableTimeLimitedTest]],
+        tests: Sequence[AbstractRunnableManyTimesTest | type[AbstractRunnableTimeLimitedTest]],
         experiment_type: ExperimentType,
         duration: int,
         install_dependencies: bool = False,
@@ -179,10 +180,30 @@ class TestsRunner(BaseRunner):
             TestStatus.SKIPPED: 0,
             TestStatus.BROKEN: 0,
         }
+        # Use snapshot manager only when works with the remote and qemu
+        if client is not None:
+            systemd_detect_virt = SystemdDetectVirt(client)
+            _, virt_type = systemd_detect_virt()
+            self.__test_snapshots = (
+                SnapshotManager("tests_runner", client)
+                if virt_type is not None and QEMU in virt_type
+                else None
+            )
+        else:
+            self.__test_snapshots = None
 
     def run(self) -> None:
-        if self.__test_config.install_dependencies:
+        snapshot_name = "vm-snapshot"
+        if self.__test_snapshots and (
+            self.__test_snapshots.snapshot_loaded
+            or snapshot_name in self.__test_snapshots.get_snapshots_info().stdout
+        ):
+            self.__test_snapshots.switch_to_snapshot(snapshot_name)
+        elif self.__test_config.install_dependencies:
             self.install_dependencies()
+            if self.__test_snapshots:
+                self.__test_snapshots.create_snapshot(snapshot_name)
+
         experiment = self.start_experiment(
             client=self._client,
             database=self._database,
@@ -209,7 +230,7 @@ class TestsRunner(BaseRunner):
                 self._client.reconnect()
             is_alive_cycle = Thread(target=self.__is_remote_alive, args=(test_completed_event,))
             is_alive_cycle.start()
-            test_started_at = datetime.now(tz=ZoneInfo("UTC"))
+            test_started_at = datetime.now(UTC)
             if isinstance(test_class, AbstractRunnableManyTimesTest):
                 test_instance = test_class
             else:
@@ -231,7 +252,7 @@ class TestsRunner(BaseRunner):
             self._collect_system_errors(
                 experiment_id=experiment_id,
                 since=test_started_at,
-                until=datetime.now(tz=ZoneInfo("UTC")),
+                until=datetime.now(UTC),
             )
             test_instance.cleanup(self._client, self._logger)
             test_completed_event.set()
@@ -478,7 +499,7 @@ class ProfiledPlanRunner(BaseRunner):
 
     @staticmethod
     def _build_run_name(profile: TestKind, pattern: LoadPattern | None) -> str:
-        run_name = datetime.now(tz=ZoneInfo("UTC")).strftime("%Y%m%d_%H%M%S")
+        run_name = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
         run_name = f"{run_name}_{profile.value}"
         if pattern is not None:
             run_name += f"_{pattern.value}"

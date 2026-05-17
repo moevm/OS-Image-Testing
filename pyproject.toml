@@ -16,7 +16,6 @@ license = "MIT"
 license-files = ["LICENSE"]
 dependencies = [
     "paramiko~=4.0.0",
-    "PyYAML~=6.0.3",
     "typing-extensions~=4.15.0",
     "python-json-logger~=4.1.0",
     "pydantic~=2.12.5",
@@ -39,7 +38,7 @@ imgtests-export-db-to-excel = "imgtests.reporting.excel_export:main"
 
 [dependency-groups]
 lint = [
-    "ruff~=0.15.10",
+    "ruff~=0.15.12",
 ]
 tests = [
     "pytest~=9.0.3",
