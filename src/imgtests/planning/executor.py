@@ -180,10 +180,12 @@ class PlanExecutor(BaseRunner):
             )
 
         ended_at = datetime.now(UTC)
-        self._collect_system_errors(
-            experiment_id=experiment_id,
-            since=started_at,
-            until=ended_at,
+        collected_metrics.extend(
+            self._collect_system_errors(
+                experiment_id=experiment_id,
+                since=started_at,
+                until=ended_at,
+            ),
         )
 
         self.db.update_experiment_ended_at(
@@ -592,13 +594,29 @@ class PlanExecutor(BaseRunner):
             status=status,
         )
 
-    def _collect_system_errors(self, experiment_id: int, since: datetime, until: datetime) -> None:
+    def _collect_system_errors(
+        self,
+        experiment_id: int,
+        since: datetime,
+        until: datetime,
+    ) -> list[MetricSample]:
         systemctl = Systemctl(self._client)
         journalctl = Journalctl(self._client, use_sudo=True)
+        collected_metrics: list[MetricSample] = []
 
         # failed services
         fs_r, fs_m = systemctl.get_failed_services()
         self._logger.info("Failed services: %s", fs_m)
+        collected_metrics.append(
+            MetricSample(
+                stage_name="system-errors",
+                subsystem="system",
+                metric_name="failed systemd services",
+                value=float(len(fs_m)),
+                label="failed systemd services",
+            ),
+        )
+
         self.db.insert_util_run_result(
             experiment_id=experiment_id,
             util_type="observer",
@@ -615,6 +633,16 @@ class PlanExecutor(BaseRunner):
         )
         oom_m = journalctl.calc_records_cnt(oom_r.stdout)
         self._logger.info("OOM records %d", oom_m)
+        collected_metrics.append(
+            MetricSample(
+                stage_name="system-errors",
+                subsystem="system",
+                metric_name="OOM records",
+                value=float(oom_m),
+                label="OOM records",
+            ),
+        )
+
         self.db.insert_util_run_result(
             experiment_id=experiment_id,
             util_type="observer",
@@ -637,6 +665,16 @@ class PlanExecutor(BaseRunner):
             "systemd errors records %d",
             sstmd_err_m,
         )
+        collected_metrics.append(
+            MetricSample(
+                stage_name="system-errors",
+                subsystem="system",
+                metric_name="systemd errors records",
+                value=float(sstmd_err_m),
+                label="systemd errors records",
+            ),
+        )
+
         self.db.insert_util_run_result(
             experiment_id=experiment_id,
             util_type="observer",
@@ -646,6 +684,8 @@ class PlanExecutor(BaseRunner):
             started_at=since,
             ended_at=until,
         )
+
+        return collected_metrics
 
 
 def _try_parse_json(text: str) -> dict[str, Any]:
