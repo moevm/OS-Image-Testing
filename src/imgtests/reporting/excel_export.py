@@ -24,16 +24,16 @@ if TYPE_CHECKING:
 TABLES: Final = ("experiment", "util_run_result")
 logger = logging.getLogger(__name__)
 CONFIGURATION_SHEET: Final = "configuration"
+DEFAULT_OUTPUT_FILENAME: Final = "report.xlsx"
 
-DISTRIBUTIONS: Final[dict[str, dict[str, int | str]]] = {
-    "poky": {
-        "configuration_id": 1,
-        "distribution_description": "Poky Linux distribution",
-    },
-    "suse": {
-        "configuration_id": 2,
-        "distribution_description": "SUSE Linux distribution",
-    },
+DEFAULT_DISTRIBUTION_DESCRIPTIONS: Final[dict[str, str]] = {
+    "poky": "Poky Linux distribution",
+    "suse": "SUSE Linux distribution",
+}
+
+DEFAULT_DISTRIBUTION_IDS: Final[dict[str, int]] = {
+    "poky": 1,
+    "suse": 2,
 }
 
 JSON_COLUMNS: Final = {
@@ -106,6 +106,21 @@ def parse_args() -> argparse.Namespace:
         default=list(TABLES),
         help="Tables to export. Defaults to all project result tables.",
     )
+    parser.add_argument(
+        "--configuration-id",
+        "--distribution-id",
+        dest="distribution_ids",
+        action="append",
+        default=[],
+        metavar="DISTRO=ID",
+        type=parse_distribution_id_override,
+        help=(
+            "Configuration id to write for a distribution. "
+            "Can be passed multiple times, for example: "
+            "--configuration-id poky=10 --configuration-id suse=20. "
+            f"Defaults: {format_distribution_ids(DEFAULT_DISTRIBUTION_IDS)}."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -113,7 +128,10 @@ def export_database_to_excel(
     engine: Engine,
     output_path: Path,
     tables: Sequence[str],
-) -> None:
+    distribution_ids: Mapping[str, int] | None = None,
+) -> Path:
+    output_path = prepare_output_path(output_path)
+    distributions = build_distribution_records(distribution_ids)
     unsupported_tables = [table for table in tables if table not in TABLES]
 
     if unsupported_tables:
@@ -143,12 +161,12 @@ def export_database_to_excel(
         worksheets.append(
             flatten_table_records(
                 CONFIGURATION_SHEET,
-                fetch_configuration_records(engine),
+                fetch_configuration_records(engine, distributions),
             ),
         )
 
     for table in tables:
-        records = fetch_table_records(engine, table)
+        records = fetch_table_records(engine, table, distributions)
 
         if table == "util_run_result":
             worksheets.extend(flatten_util_run_results(records))
@@ -156,20 +174,28 @@ def export_database_to_excel(
             worksheets.append(flatten_table_records(table, records))
 
     write_xlsx(output_path, worksheets)
+    return output_path
 
 
-def fetch_table_records(engine: Engine, table: str) -> list[dict[str, Any]]:
+def fetch_table_records(
+    engine: Engine,
+    table: str,
+    distributions: Mapping[str, Mapping[str, int | str]],
+) -> list[dict[str, Any]]:
     if table == "experiment":
-        return fetch_experiment_records(engine)
+        return fetch_experiment_records(engine, distributions)
 
     if table == "util_run_result":
-        return fetch_util_run_result_records(engine)
+        return fetch_util_run_result_records(engine, distributions)
 
     msg = f"Unsupported export table: {table}"
     raise ValueError(msg)
 
 
-def fetch_experiment_records(engine: Engine) -> list[dict[str, Any]]:
+def fetch_experiment_records(
+    engine: Engine,
+    distributions: Mapping[str, Mapping[str, int | str]],
+) -> list[dict[str, Any]]:
     query = (
         select(
             ConfigurationBase.os.label("configuration_os"),
@@ -192,10 +218,13 @@ def fetch_experiment_records(engine: Engine) -> list[dict[str, Any]]:
 
     with Session(engine) as session:
         result = session.execute(query)
-        return [add_configuration_id(dict(row)) for row in result.mappings()]
+        return [add_configuration_id(dict(row), distributions) for row in result.mappings()]
 
 
-def fetch_util_run_result_records(engine: Engine) -> list[dict[str, Any]]:
+def fetch_util_run_result_records(
+    engine: Engine,
+    distributions: Mapping[str, Mapping[str, int | str]],
+) -> list[dict[str, Any]]:
     query = (
         select(
             ConfigurationBase.os.label("configuration_os"),
@@ -216,25 +245,101 @@ def fetch_util_run_result_records(engine: Engine) -> list[dict[str, Any]]:
 
     with Session(engine) as session:
         result = session.execute(query)
-        return [add_configuration_id(dict(row)) for row in result.mappings()]
+        return [add_configuration_id(dict(row), distributions) for row in result.mappings()]
 
 
-def fetch_configuration_records(_engine: Engine) -> list[dict[str, Any]]:
-    return list(DISTRIBUTIONS.values())
+def fetch_configuration_records(
+    _engine: Engine,
+    distributions: Mapping[str, Mapping[str, int | str]],
+) -> list[dict[str, Any]]:
+    return [dict(record) for record in distributions.values()]
 
 
-def add_configuration_id(record: dict[str, Any]) -> dict[str, Any]:
+def add_configuration_id(
+    record: dict[str, Any],
+    distributions: Mapping[str, Mapping[str, int | str]],
+) -> dict[str, Any]:
     os_name = record.pop("configuration_os", None)
-    return {"configuration_id": configuration_id_from_os(os_name), **record}
+    return {"configuration_id": configuration_id_from_os(os_name, distributions), **record}
 
 
-def configuration_id_from_os(os_name: Any) -> int | str:
+def configuration_id_from_os(
+    os_name: Any,
+    distributions: Mapping[str, Mapping[str, int | str]] | None = None,
+) -> int | str:
+    distributions = distributions or build_distribution_records()
     distribution_name = distribution_name_from_os(os_name)
 
     if not distribution_name:
         return ""
 
-    return int(DISTRIBUTIONS[distribution_name]["configuration_id"])
+    return int(distributions[distribution_name]["configuration_id"])
+
+
+def build_distribution_records(
+    distribution_ids: Mapping[str, int] | Sequence[tuple[str, int]] | None = None,
+) -> dict[str, dict[str, int | str]]:
+    ids = dict(DEFAULT_DISTRIBUTION_IDS)
+    overrides = {
+        distribution_name.strip().lower(): configuration_id
+        for distribution_name, configuration_id in dict(distribution_ids or {}).items()
+    }
+    unsupported_distributions = [
+        distribution_name
+        for distribution_name in overrides
+        if distribution_name not in DEFAULT_DISTRIBUTION_DESCRIPTIONS
+    ]
+
+    if unsupported_distributions:
+        valid_names = ", ".join(DEFAULT_DISTRIBUTION_DESCRIPTIONS)
+        joined_distributions = ", ".join(unsupported_distributions)
+        msg = f"Unsupported distributions: {joined_distributions}. Available: {valid_names}."
+        raise ValueError(msg)
+
+    ids.update(overrides)
+
+    return {
+        distribution_name: {
+            "configuration_id": ids[distribution_name],
+            "distribution_description": distribution_description,
+        }
+        for distribution_name, distribution_description in DEFAULT_DISTRIBUTION_DESCRIPTIONS.items()
+    }
+
+
+def parse_distribution_id_override(value: str) -> tuple[str, int]:
+    distribution_name, separator, raw_id = value.partition("=")
+
+    if not separator:
+        msg = "Expected distribution id in DISTRO=ID format."
+        raise argparse.ArgumentTypeError(msg)
+
+    distribution_name = distribution_name.strip().lower()
+    raw_id = raw_id.strip()
+
+    if distribution_name not in DEFAULT_DISTRIBUTION_DESCRIPTIONS:
+        valid_names = ", ".join(DEFAULT_DISTRIBUTION_DESCRIPTIONS)
+        msg = f"Unsupported distribution '{distribution_name}'. Available: {valid_names}."
+        raise argparse.ArgumentTypeError(msg)
+
+    try:
+        configuration_id = int(raw_id)
+    except ValueError as exc:
+        msg = f"Configuration id for '{distribution_name}' must be an integer."
+        raise argparse.ArgumentTypeError(msg) from exc
+
+    if configuration_id <= 0:
+        msg = f"Configuration id for '{distribution_name}' must be positive."
+        raise argparse.ArgumentTypeError(msg)
+
+    return distribution_name, configuration_id
+
+
+def format_distribution_ids(distribution_ids: Mapping[str, int]) -> str:
+    return ", ".join(
+        f"{distribution_name}={configuration_id}"
+        for distribution_name, configuration_id in distribution_ids.items()
+    )
 
 
 def distribution_name_from_os(os_name: Any) -> str:
@@ -648,7 +753,7 @@ class WorksheetData:
 
 
 def write_xlsx(output_path: Path, worksheets: Sequence[WorksheetData]) -> None:
-    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path = prepare_output_path(output_path)
     sheet_names = unique_sheet_names(worksheet.name for worksheet in worksheets)
 
     workbook = Workbook()
@@ -662,6 +767,38 @@ def write_xlsx(output_path: Path, worksheets: Sequence[WorksheetData]) -> None:
             sheet.append([value_to_cell(row.get(header)) for header in worksheet.headers])
 
     workbook.save(output_path)
+
+
+def prepare_output_path(output_path: Path) -> Path:
+    output_path = output_path.expanduser()
+
+    if (output_path.exists() and output_path.is_dir()) or not output_path.suffix:
+        output_path /= DEFAULT_OUTPUT_FILENAME
+    elif output_path.suffix.lower() != ".xlsx":
+        msg = f"Output file must have .xlsx extension: {output_path}"
+        raise ValueError(msg)
+
+    output_parent = output_path.parent
+
+    if output_parent.exists() and not output_parent.is_dir():
+        msg = f"Output parent path is not a directory: {output_parent}"
+        raise ValueError(msg)
+
+    try:
+        output_parent.mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        msg = f"Cannot create output directory '{output_parent}': {exc}"
+        raise ValueError(msg) from exc
+
+    if output_path.exists() and output_path.is_dir():
+        msg = f"Output path is a directory: {output_path}"
+        raise ValueError(msg)
+
+    if output_path.exists() and not output_path.is_file():
+        msg = f"Output path is not a regular file: {output_path}"
+        raise ValueError(msg)
+
+    return output_path
 
 
 def unique_sheet_names(names: Iterable[str]) -> list[str]:
@@ -707,15 +844,22 @@ def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     args = parse_args()
 
+    try:
+        output_path = prepare_output_path(args.output)
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
+
+    distribution_ids = dict(args.distribution_ids)
     engine = create_engine(args.db_url)
 
-    export_database_to_excel(
+    output_path = export_database_to_excel(
         engine=engine,
-        output_path=args.output,
+        output_path=output_path,
         tables=args.tables,
+        distribution_ids=distribution_ids,
     )
 
-    logger.info("Exported tables %s to %s", ", ".join(args.tables), args.output)
+    logger.info("Exported tables %s to %s", ", ".join(args.tables), output_path)
 
 
 if __name__ == "__main__":
