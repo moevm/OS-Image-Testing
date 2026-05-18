@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 from imgtests.exec.loaders import Chaosblade, ChaosResponse, Kirk, Perf, StressNg
 from imgtests.exec.osinfo import get_os_release
 from imgtests.exec.user_commands import MkDir
-from imgtests.planning import AbstractRunnableTimeLimitedTest
+from imgtests.planning import AbstractRunnableTimeLimitedTest, calc_subtest_timeout
 from imgtests.suites.drive.fio import FioSuite, FioSuiteConfig, FioWorkload
 from imgtests.types import Distro, Subsystem, TestResult, TestStatus
 
@@ -109,8 +109,11 @@ class FaultInjectionChaosbladeTest(AbstractRunnableTimeLimitedTest):
         tmp_dir = "/var/tmp/chaos-fault-injection"  # noqa: S108
         mkdir = MkDir(client)
         mkdir([tmp_dir])
-        self._validate_timeout(timeout)
-        timeout_suite = timeout // (len(self.kirk_suites) * len(self.fault_probs))
+        timeout_suite = calc_subtest_timeout(
+            timeout,
+            len(self.kirk_suites) * len(self.fault_probs),
+            60,
+        )
         chaosblade = Chaosblade(client)
         kirk = Kirk(client)
         if not is_kirk_suites_available(kirk, self.kirk_suites):
@@ -179,12 +182,6 @@ class FaultInjectionChaosbladeTest(AbstractRunnableTimeLimitedTest):
                         status=TestStatus.FAILED,
                     )
 
-    def _validate_timeout(self, timeout: float) -> None:
-        min_timeout = len(self.kirk_suites) * len(self.fault_probs) * 60
-        if min_timeout > timeout:
-            err_msg = f"The timeout is insufficient for the test. Requires at least {min_timeout}"
-            raise ValueError(err_msg)
-
     def _create_chaosblade_future(
         self,
         executor: ThreadPoolExecutor,
@@ -252,7 +249,11 @@ class FaultInjectionStressNgTest(AbstractRunnableTimeLimitedTest):
             return TestResult(status=TestStatus.SKIPPED)
 
         stress_ng = StressNg(client)
-        timeout_suite = 1 + timeout // (len(self.kirk_suites) * len(self.fault_probs))
+        timeout_suite = calc_subtest_timeout(
+            timeout,
+            len(self.kirk_suites) * len(self.fault_probs),
+            60,
+        )
 
         for fault_prob in self.fault_probs:
             self.logger.info("Run with %d fault_prob and %d timeout", fault_prob, timeout_suite)
@@ -346,7 +347,11 @@ class FaultInjectionPerfTest(AbstractRunnableTimeLimitedTest):
             return TestResult(status=TestStatus.SKIPPED)
 
         perf = Perf(client)
-        timeout_suite = 1 + timeout // (len(self.kirk_suites) * len(self.fault_probs))
+        timeout_suite = calc_subtest_timeout(
+            timeout,
+            len(self.kirk_suites) * len(self.fault_probs),
+            60,
+        )
 
         for fault_prob in self.fault_probs:
             self.logger.info("Run with %d fault_prob and %d timeout", fault_prob, timeout_suite)
@@ -439,7 +444,11 @@ class FaultInjectionFioTest(AbstractRunnableTimeLimitedTest):
             self.logger.warning("Kirk suite not available for the image with LTP.")
             return TestResult(status=TestStatus.SKIPPED)
 
-        timeout_suite = 1 + timeout // (len(self.kirk_suites) * len(self.fault_probs))
+        timeout_suite = calc_subtest_timeout(
+            timeout,
+            len(self.kirk_suites) * len(self.fault_probs),
+            60,
+        )
 
         for fault_prob in self.fault_probs:
             self.logger.info("Run with %d fault_prob and %d timeout", fault_prob, timeout_suite)
