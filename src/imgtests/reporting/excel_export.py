@@ -7,7 +7,7 @@ import shlex
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from datetime import date, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Final
 
 from openpyxl import Workbook
 from sqlalchemy import create_engine, inspect, select
@@ -16,15 +16,16 @@ from sqlalchemy.orm import Session
 from imgtests.database.models.configuration import ConfigurationBase
 from imgtests.database.models.experiment import ExperimentBase
 from imgtests.database.models.util_run_result import UtilRunResult
+from imgtests.types import Distro
 
 if TYPE_CHECKING:
     from sqlalchemy.engine import Engine
 
-TABLES = ("experiment", "util_run_result")
+TABLES: Final = ("experiment", "util_run_result")
 logger = logging.getLogger(__name__)
-CONFIGURATION_SHEET = "configuration"
+CONFIGURATION_SHEET: Final = "configuration"
 
-DISTRIBUTIONS = {
+DISTRIBUTIONS: Final[dict[str, dict[str, int | str]]] = {
     "poky": {
         "configuration_id": 1,
         "distribution_description": "Poky Linux distribution",
@@ -35,28 +36,30 @@ DISTRIBUTIONS = {
     },
 }
 
-JSON_COLUMNS = {
+JSON_COLUMNS: Final = {
     "util_run_result": {"result"},
 }
 
-EXCEL_MAX_COLUMNS = 16_384
-EXCEL_MAX_ROWS = 1_048_576
+EXCEL_MAX_COLUMNS: Final = 16_384
+EXCEL_MAX_ROWS: Final = 1_048_576
 
-UNNAMED_UTIL_RUN_RESULT_SHEET = "unnamed_util_run_result"
+UNNAMED_UTIL_RUN_RESULT_SHEET: Final = "unnamed_util_run_result"
 
-NOISY_COLUMN_PARTS = {
-    "result",
-    "metrics",
-    "test_type",
-    "detailed",
-    "start",
-    "end",
-    "connected",
-    "summary",
-    "time",
-}
+NOISY_COLUMN_PARTS: Final = frozenset(
+    {
+        "result",
+        "metrics",
+        "test_type",
+        "detailed",
+        "start",
+        "end",
+        "connected",
+        "summary",
+        "time",
+    },
+)
 
-COLUMN_PART_REPLACEMENTS = {
+COLUMN_PART_REPLACEMENTS: Final = {
     "bits_per_second": "bps",
     "bogo_ops_per_sec_real_time": "bogo_ops_per_sec_real",
     "bogo_ops_per_sec_usr_sys_time": "bogo_ops_per_sec_cpu",
@@ -235,13 +238,11 @@ def configuration_id_from_os(os_name: Any) -> int | str:
 
 
 def distribution_name_from_os(os_name: Any) -> str:
-    value = str(os_name or "").strip()
-    lowered_value = value.lower()
+    value = str(os_name or "").strip().lower()
 
-    if "poky" in lowered_value or "yocto" in lowered_value:
+    if Distro.POKY.value in value or "yocto" in value:
         return "poky"
-
-    if "suse" in lowered_value:
+    if "suse" in value:
         return "suse"
 
     return ""
