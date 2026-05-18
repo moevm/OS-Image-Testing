@@ -28,7 +28,7 @@ class FaultInjectionEnduranceTest(AbstractRunnableTimeLimitedTest):
         self.iterations = iterations
 
     @property
-    def kirk_suites(self) -> tuple[str, str]:
+    def kirk_suites(self) -> tuple[str, ...]:
         return ("syscalls", "fs", "mm", "dio")
 
     def _run(
@@ -37,12 +37,12 @@ class FaultInjectionEnduranceTest(AbstractRunnableTimeLimitedTest):
         client: SSHClient | None,
         timeout: int,
     ) -> Iterable[TestResult]:
-        if not validate_fault_injection(client):
+        if not is_fault_injection_available(client):
             self.logger.warning("Skipping test due to fault injection is supported on poky.")
             return TestResult(status=TestStatus.SKIPPED)
 
         kirk = Kirk(client)
-        if not validate_kirk_suites(kirk, self.kirk_suites):
+        if not is_kirk_suites_available(kirk, self.kirk_suites):
             self.logger.warning("Kirk suite not available for the image with LTP.")
             return TestResult(status=TestStatus.SKIPPED)
 
@@ -56,7 +56,7 @@ class FaultInjectionEnduranceTest(AbstractRunnableTimeLimitedTest):
         for fault_probability in fault_probabilities:
             started_at = datetime.now(UTC)
             result, metrics_path = kirk.run(
-                scenarios=[kirk.suites],
+                scenarios=self.kirk_suites,
                 timeout=time_per_test,
                 fault_prob=fault_probability,
                 fault_interval=10,
@@ -103,7 +103,7 @@ class FaultInjectionChaosbladeTest(AbstractRunnableTimeLimitedTest):
         client: SSHClient | None,
         timeout: int,
     ) -> Iterable[TestResult]:
-        if not validate_fault_injection(client):
+        if not is_fault_injection_available(client):
             self.logger.warning("Skipping test due to fault injection is supported on poky.")
             return TestResult(status=TestStatus.SKIPPED)
         tmp_dir = "/var/tmp/chaos-fault-injection"  # noqa: S108
@@ -113,7 +113,7 @@ class FaultInjectionChaosbladeTest(AbstractRunnableTimeLimitedTest):
         timeout_suite = timeout // (len(self.kirk_suites) * len(self.fault_probs))
         chaosblade = Chaosblade(client)
         kirk = Kirk(client)
-        if not validate_kirk_suites(kirk, self.kirk_suites):
+        if not is_kirk_suites_available(kirk, self.kirk_suites):
             self.logger.warning("Kirk suite not available for the image with LTP.")
             return TestResult(status=TestStatus.SKIPPED)
         for fault_prob in self.fault_probs:
@@ -226,7 +226,7 @@ class FaultInjectionStressNgTest(AbstractRunnableTimeLimitedTest):
         return ("dio", "syscalls")
 
     @property
-    def stress_ng_suites(self) -> tuple[str, str]:
+    def stress_ng_suites(self) -> tuple[dict[str, str | int], dict[str, str | int]]:
         return (
             {"vm": 4, "vm_bytes": "35%", "mmap": 4, "mmap_bytes": "35%"},
             {"syscall": 0},
@@ -242,12 +242,12 @@ class FaultInjectionStressNgTest(AbstractRunnableTimeLimitedTest):
         client: SSHClient | None,
         timeout: int,
     ) -> Iterable[TestResult]:
-        if not validate_fault_injection(client):
+        if not is_fault_injection_available(client):
             self.logger.warning("Skipping test due to fault injection is supported on poky.")
             return TestResult(status=TestStatus.SKIPPED)
 
         kirk = Kirk(client)
-        if not validate_kirk_suites(kirk, self.kirk_suites):
+        if not is_kirk_suites_available(kirk, self.kirk_suites):
             self.logger.warning("Kirk suite not available for the image with LTP.")
             return TestResult(status=TestStatus.SKIPPED)
 
@@ -336,12 +336,12 @@ class FaultInjectionPerfTest(AbstractRunnableTimeLimitedTest):
         client: SSHClient | None,
         timeout: int,
     ) -> Iterable[TestResult]:
-        if not validate_fault_injection(client):
+        if not is_fault_injection_available(client):
             self.logger.warning("Skipping test due to fault injection is supported on poky.")
             return TestResult(status=TestStatus.SKIPPED)
 
         kirk = Kirk(client)
-        if not validate_kirk_suites(kirk, self.kirk_suites):
+        if not is_kirk_suites_available(kirk, self.kirk_suites):
             self.logger.warning("Kirk suite not available for the image with LTP.")
             return TestResult(status=TestStatus.SKIPPED)
 
@@ -430,12 +430,12 @@ class FaultInjectionFioTest(AbstractRunnableTimeLimitedTest):
         client: SSHClient | None,
         timeout: int,
     ) -> Iterable[TestResult]:
-        if not validate_fault_injection(client):
+        if not is_fault_injection_available(client):
             self.logger.warning("Skipping test due to fault injection is supported on poky.")
             return TestResult(status=TestStatus.SKIPPED)
 
         kirk = Kirk(client)
-        if not validate_kirk_suites(kirk, self.kirk_suites):
+        if not is_kirk_suites_available(kirk, self.kirk_suites):
             self.logger.warning("Kirk suite not available for the image with LTP.")
             return TestResult(status=TestStatus.SKIPPED)
 
@@ -484,13 +484,11 @@ class FaultInjectionFioTest(AbstractRunnableTimeLimitedTest):
                     )
 
 
-def validate_fault_injection(client: SSHClient) -> bool:
+def is_fault_injection_available(client: SSHClient | None) -> bool:
     os_id = get_os_release(client).id
-    if os_id and os_id != Distro.POKY.value:
-        return False
     return not (os_id and os_id != Distro.POKY.value)
 
 
-def validate_kirk_suites(kirk: Kirk, required_suites: tuple[str, ...]) -> bool:
+def is_kirk_suites_available(kirk: Kirk, required_suites: tuple[str, ...]) -> bool:
     available_suites = kirk.list_suites()
     return all(suite in available_suites for suite in required_suites)
