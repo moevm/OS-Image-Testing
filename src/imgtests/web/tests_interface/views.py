@@ -277,11 +277,10 @@ def api_add_distro(request: HttpRequest) -> JsonResponse:
     name = data.get("name", "").strip()
     display_name = data.get("display_name", "").strip()
     description = data.get("description", "").strip()
-    version = data.get("version", "").strip()
 
-    if Distribution.objects.filter(name=name, version=version).exists():
+    if Distribution.objects.filter(name=name).exists():
         return JsonResponse(
-            {"error": "Distribution with this name and version already exists"},
+            {"error": "Distribution with this name already exists"},
             status=400,
         )
 
@@ -289,7 +288,6 @@ def api_add_distro(request: HttpRequest) -> JsonResponse:
         name=name,
         display_name=display_name,
         description=description or f"Run tests for {display_name} platform",
-        version=version,
     )
 
     return JsonResponse(
@@ -300,7 +298,6 @@ def api_add_distro(request: HttpRequest) -> JsonResponse:
                 "name": distro.name,
                 "display_name": distro.display_name,
                 "description": distro.description,
-                "version": distro.version,
             },
         },
     )
@@ -332,7 +329,6 @@ def api_get_distros(request: HttpRequest) -> JsonResponse:  # noqa: ARG001
             "name",
             "display_name",
             "description",
-            "version",
         ),
     )
     return JsonResponse({"distributions": distributions})

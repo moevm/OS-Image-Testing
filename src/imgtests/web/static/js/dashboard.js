@@ -22,14 +22,11 @@ function renderDistributions(distributions) {
             e.stopPropagation();
             removeDistro(distro.id);
         };
-        const versionHtml = distro.version
-            ? `<span class="version">${escapeHtml(distro.version)}</span>`
-            : "";
         const linkContent = document.createElement("div");
         linkContent.className = "link-content";
         linkContent.innerHTML = `
             <div class="link-text">
-                <h2>${escapeHtml(distro.display_name)} ${versionHtml}</h2>
+                <h2>${escapeHtml(distro.display_name)}</h2>
                 <p>${escapeHtml(distro.description)}</p>
             </div>
         `;
@@ -59,7 +56,6 @@ function addDistro() {
     if (!name) return;
     const displayName = prompt("Enter display name (e.g., Ubuntu):");
     if (!displayName) return;
-    const version = prompt("Enter version (optional, e.g., 24.04):", "");
     const description = prompt(
         "Enter description (optional):",
         `Run tests for ${displayName} platform`,
@@ -74,7 +70,6 @@ function addDistro() {
             name: name,
             display_name: displayName,
             description: description,
-            version: version,
         }),
     })
         .then((response) => response.json())

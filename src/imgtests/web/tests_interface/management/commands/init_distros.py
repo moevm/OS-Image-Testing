@@ -8,14 +8,12 @@ DEFAULT_DISTROS = [
         "name": "yocto",
         "display_name": "Yocto Project",
         "description": "Run tests for Yocto platform",
-        "version": "",
         "order": 1,
     },
     {
         "name": "opensuse",
         "display_name": "OpenSUSE",
         "description": "Run tests for OpenSUSE platform",
-        "version": "",
         "order": 2,
     },
 ]
