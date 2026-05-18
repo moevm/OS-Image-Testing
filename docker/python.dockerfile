@@ -40,7 +40,7 @@ COPY --chown=${USER}:${GROUP} conf/supervisord.conf /home/${USER}/${LIB_NAME}/co
 RUN cd /home/${USER}/python && python3 -m pip install .
 RUN rm -rf /home/${USER}/python
 
-COPY --chown=${USER}:${GROUP} scripts/entrypoint-analyzer.sh /home/${USER}/entrypoint-analyzer.sh
-RUN chmod +x /home/${USER}/entrypoint-analyzer.sh
+COPY --chown=${USER}:${GROUP} scripts/entrypoint-analyzer.sh /home/${USER}/${LIB_NAME}/entrypoint-analyzer.sh
+RUN chmod +x /home/${USER}/${LIB_NAME}/entrypoint-analyzer.sh
 
-ENTRYPOINT ["/home/user/entrypoint-analyzer.sh"]
+ENTRYPOINT ["/home/user/imgtests/entrypoint-analyzer.sh"]
