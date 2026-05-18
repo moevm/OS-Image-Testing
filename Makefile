@@ -4,7 +4,6 @@ PASSWORD                   := password
 GROUP                      := yoctogroup
 POSTGRES_DB                := os-testing-db
 OS_IMAGE                   := core-image-minimal
-SUSE_VER                   ?= 15.6
 LIB_NAME                   := imgtests
 
 # Docker
