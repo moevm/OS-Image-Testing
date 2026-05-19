@@ -99,6 +99,9 @@ class PTSSystemTest(AbstractRunnableManyTimesTest):
             elif result.returncode:
                 self.logger.error("PTS test '%s' FAILED.", test_name)
                 yield TestResult(status=TestStatus.FAILED)
+            elif metrics is None:
+                self.logger.error("PTS test '%s' metrics not found.", test_name)
+                yield TestResult(status=TestStatus.FAILED)
             else:
                 metrics = PhoronixTestSuite.split_result(raw_metrics=metrics)
                 yield TestResult(

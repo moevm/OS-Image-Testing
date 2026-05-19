@@ -128,9 +128,14 @@ class AbstractRunnableTimeLimitedTest(ABC, DefaultCleanupMixin):
     ) -> Iterable[TestResult]: ...
 
 
-def calc_subtest_timeout(timeout: int, tests_cnt: int) -> int:
+def calc_subtest_timeout(timeout: int, tests_cnt: int, min_subtest_timeout: int = 1) -> int:
     subtest_timeout = timeout // tests_cnt
-    if subtest_timeout == 0:
-        err_msg = "Insufficient timeout provided. Needs increase timeout."
+    if min_subtest_timeout < 0:
+        err_msg = "min_subtest_timeout must be positive"
+        raise ValueError(err_msg)
+    if subtest_timeout < min_subtest_timeout:
+        err_msg = (
+            f"Insufficient timeout provided. Needs at least '{min_subtest_timeout * tests_cnt}'."
+        )
         raise ValueError(err_msg)
     return subtest_timeout
