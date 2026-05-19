@@ -137,6 +137,26 @@ def report_list(request: HttpRequest) -> HttpResponse:
                         "file_name": html_file.name,
                     },
                 )
+    profiled_dir = REPORTS_DIR / "profiled"
+    if profiled_dir.exists():
+        for report_dir in sorted(profiled_dir.iterdir(), reverse=True):
+            if not report_dir.is_dir():
+                continue
+            html_files = list(report_dir.glob("*.html"))
+            for html_file in html_files:
+                created_time = html_file.stat().st_mtime
+
+                reports.append(
+                    {
+                        "name": f"{report_dir.name} / {html_file.name}",
+                        "report_dir": report_dir.name,
+                        "filename": html_file.name,
+                        "created": created_time,
+                        "size": html_file.stat().st_size,
+                        "dir_name": report_dir.name,
+                        "file_name": html_file.name,
+                    },
+                )
 
     return render(request, "tests_interface/reports_list.html", {"reports": reports})
 
