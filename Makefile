@@ -41,6 +41,7 @@ PYTHON_REQUIRED_LIBS       := $(shell python3 -c "import tomllib; from pathlib i
 
 # Docker Network
 DOCKER_NETWORK             := yocto-network
+QEMU_MONITOR_ADDRESS       := 10.0.2.2
 YOCTO_ADDRESS              := 10.5.0.10
 PYTHON_ADDRESS             := 10.5.0.11
 SUSE_ADDRESS_156           := 10.5.0.13
@@ -53,6 +54,7 @@ GATEWAY                    := 10.5.0.1
 SSH_TO_QEMU_PORT		   := 22
 SSH_QEMU_PORT              ?= 2222
 SSH_SUSE_PORT_156          := 1616
+QEMU_MONITOR_PORT          := 4444
 IPERF3_PORT                := 5201
 DJANGO_PORT                := 8000
 BENCHER_API_PORT           := 61016
