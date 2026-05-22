@@ -109,7 +109,7 @@ class StressNgPerformanceMemoryTest(StressNgTest):
             )
 
 
-class SarWithStressNGTest(AbstractRunnableTimeLimitedTest):
+class SarWithStressNgTest(AbstractRunnableTimeLimitedTest):
     """Tests that run stress-ng with sar to measure pgscan time."""
 
     def __init__(self, timeout: int) -> None:
