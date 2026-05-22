@@ -3,7 +3,7 @@ from typing import Any
 from django.core.management.base import BaseCommand
 from tests_interface.models import Distribution
 
-DEFAULT_DISTROS = [
+DEFAULT_DISTROS: list[dict[str, str | int]] = [
     {
         "name": "yocto",
         "display_name": "Yocto Project",
@@ -20,7 +20,7 @@ DEFAULT_DISTROS = [
 
 
 class Command(BaseCommand):
-    def handle(self, *args: Any, **options: Any):  # noqa: ARG002
+    def handle(self, *args: Any, **options: Any) -> None:  # noqa: ARG002
         Distribution.objects.all().delete()
 
         created = 0
