@@ -10,11 +10,9 @@ from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
-from imgtests.exec.exec import Verbosity, common_run_command
+from imgtests.exec.exec import common_run_command
 from imgtests.exec.loaders.fio import Fio, fio_metrics_to_samples, get_available_bytes
 from imgtests.exec.loaders.stress_ng import StressNg, stress_metrics_to_samples
-from imgtests.exec.observers.journalctl import Journalctl
-from imgtests.exec.observers.systemctl import Systemctl
 from imgtests.exec.observers.systemd_analyze import SystemdAnalyze
 from imgtests.exec.user_commands import Nproc
 from imgtests.planning.profiles import CPU_SCALE_ARG_PREFIX, FIO_SIZE_RATIO_ARG_PREFIX
@@ -593,99 +591,6 @@ class PlanExecutor(BaseRunner):
             metrics=samples,
             status=status,
         )
-
-    def _collect_system_errors(
-        self,
-        experiment_id: int,
-        since: datetime,
-        until: datetime,
-    ) -> list[MetricSample]:
-        systemctl = Systemctl(self._client)
-        journalctl = Journalctl(self._client, use_sudo=True)
-        collected_metrics: list[MetricSample] = []
-
-        # failed services
-        fs_r, fs_m = systemctl.get_failed_services()
-        self._logger.info("Failed services: %s", fs_m)
-        collected_metrics.append(
-            MetricSample(
-                stage_name="system-errors",
-                subsystem="system",
-                metric_name="failed systemd services",
-                value=float(len(fs_m)),
-                label="failed systemd services",
-            ),
-        )
-
-        self.db.insert_util_run_result(
-            experiment_id=experiment_id,
-            util_type="observer",
-            command=" ".join(fs_r.cmd),
-            result=systemctl.metrics_to_json(fs_m),
-            description="failed systemd services",
-        )
-
-        # OOM
-        oom_r = journalctl.oom_records(
-            since=since.strftime(journalctl.DATE_FORMAT),
-            until=until.strftime(journalctl.DATE_FORMAT),
-            verbosity=Verbosity(0),
-        )
-        oom_m = journalctl.calc_records_cnt(oom_r.stdout)
-        self._logger.info("OOM records %d", oom_m)
-        collected_metrics.append(
-            MetricSample(
-                stage_name="system-errors",
-                subsystem="system",
-                metric_name="OOM records",
-                value=float(oom_m),
-                label="OOM records",
-            ),
-        )
-
-        self.db.insert_util_run_result(
-            experiment_id=experiment_id,
-            util_type="observer",
-            command=" ".join(oom_r.cmd),
-            result=journalctl.metrics_to_json(oom_m),
-            description="OOM records",
-            started_at=since,
-            ended_at=until,
-        )
-
-        # systemd errors
-        sstmd_err_r = journalctl.systemd_only_records(
-            since=since.strftime(journalctl.DATE_FORMAT),
-            until=until.strftime(journalctl.DATE_FORMAT),
-            priority="err",
-            verbosity=Verbosity(0),
-        )
-        sstmd_err_m = journalctl.calc_records_cnt(sstmd_err_r.stdout)
-        self._logger.info(
-            "systemd errors records %d",
-            sstmd_err_m,
-        )
-        collected_metrics.append(
-            MetricSample(
-                stage_name="system-errors",
-                subsystem="system",
-                metric_name="systemd errors records",
-                value=float(sstmd_err_m),
-                label="systemd errors records",
-            ),
-        )
-
-        self.db.insert_util_run_result(
-            experiment_id=experiment_id,
-            util_type="observer",
-            command=" ".join(sstmd_err_r.cmd),
-            result=journalctl.metrics_to_json(sstmd_err_m),
-            description="systemd errors records",
-            started_at=since,
-            ended_at=until,
-        )
-
-        return collected_metrics
 
 
 def _try_parse_json(text: str) -> dict[str, Any]:

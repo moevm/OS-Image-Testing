@@ -28,7 +28,7 @@ from imgtests.suites.system import (
     SystemSlowServicesTest,
 )
 from imgtests.sysrep import get_system_info
-from imgtests.types import Subsystem, TestsCounts, TestStatus
+from imgtests.types import MetricSample, Subsystem, TestsCounts, TestStatus
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
@@ -159,6 +159,99 @@ class BaseRunner:
             started_at=started_at,
             ended_at=ended_at,
         )
+
+    def _collect_system_errors(
+        self,
+        experiment_id: int,
+        since: datetime,
+        until: datetime,
+    ) -> list[MetricSample]:
+        systemctl = Systemctl(self._client)
+        journalctl = Journalctl(self._client, use_sudo=True)
+        collected_metrics: list[MetricSample] = []
+
+        # failed services
+        fs_r, fs_m = systemctl.get_failed_services()
+        self._logger.info("Failed services: %s", fs_m)
+        collected_metrics.append(
+            MetricSample(
+                stage_name="system-errors",
+                subsystem="system",
+                metric_name="failed systemd services",
+                value=float(len(fs_m)),
+                label="failed systemd services",
+            ),
+        )
+
+        self._database.insert_util_run_result(
+            experiment_id=experiment_id,
+            util_type="observer",
+            command=" ".join(fs_r.cmd),
+            result=systemctl.metrics_to_json(fs_m),
+            description="failed systemd services",
+        )
+
+        # OOM
+        oom_r = journalctl.oom_records(
+            since=since.strftime(journalctl.DATE_FORMAT),
+            until=until.strftime(journalctl.DATE_FORMAT),
+            verbosity=Verbosity(0),
+        )
+        oom_m = journalctl.calc_records_cnt(oom_r.stdout)
+        self._logger.info("OOM records %d", oom_m)
+        collected_metrics.append(
+            MetricSample(
+                stage_name="system-errors",
+                subsystem="system",
+                metric_name="OOM records",
+                value=float(oom_m),
+                label="OOM records",
+            ),
+        )
+
+        self._database.insert_util_run_result(
+            experiment_id=experiment_id,
+            util_type="observer",
+            command=" ".join(oom_r.cmd),
+            result=journalctl.metrics_to_json(oom_m),
+            description="OOM records",
+            started_at=since,
+            ended_at=until,
+        )
+
+        # systemd errors
+        sstmd_err_r = journalctl.systemd_only_records(
+            since=since.strftime(journalctl.DATE_FORMAT),
+            until=until.strftime(journalctl.DATE_FORMAT),
+            priority="err",
+            verbosity=Verbosity(0),
+        )
+        sstmd_err_m = journalctl.calc_records_cnt(sstmd_err_r.stdout)
+        self._logger.info(
+            "systemd errors records %d",
+            sstmd_err_m,
+        )
+        collected_metrics.append(
+            MetricSample(
+                stage_name="system-errors",
+                subsystem="system",
+                metric_name="systemd errors records",
+                value=float(sstmd_err_m),
+                label="systemd errors records",
+            ),
+        )
+
+        self._database.insert_util_run_result(
+            experiment_id=experiment_id,
+            util_type="observer",
+            command=" ".join(sstmd_err_r.cmd),
+            description="systemd errors records",
+            started_at=since,
+            ended_at=until,
+            result=journalctl.metrics_to_json(sstmd_err_m),
+        )
+
+        return collected_metrics
 
     def close(self) -> None:
         self._executor.shutdown(wait=False)
@@ -331,61 +424,6 @@ class TestsRunner(BaseRunner):
             if self._client is not None:
                 self._client.close()
             self._executor.shutdown(cancel_futures=True)
-
-    def _collect_system_errors(self, experiment_id: int, since: datetime, until: datetime) -> None:
-        systemctl = Systemctl(self._client)
-        journalctl = Journalctl(self._client, use_sudo=True)
-
-        # failed services
-        fs_r, fs_m = systemctl.get_failed_services()
-        self._logger.info("Failed services: %s", fs_m)
-        self._database.insert_util_run_result(
-            experiment_id=experiment_id,
-            util_type="observer",
-            command=" ".join(fs_r.cmd),
-            description="failed systemd services",
-            result=systemctl.metrics_to_json(fs_m),
-        )
-
-        # OOM
-        oom_r = journalctl.oom_records(
-            since=since.strftime(journalctl.DATE_FORMAT),
-            until=until.strftime(journalctl.DATE_FORMAT),
-            verbosity=Verbosity(0),
-        )
-        oom_m = journalctl.calc_records_cnt(oom_r.stdout)
-        self._logger.info("OOM records %d", oom_m)
-        self._database.insert_util_run_result(
-            experiment_id=experiment_id,
-            util_type="observer",
-            command=" ".join(oom_r.cmd),
-            description="OOM records",
-            started_at=since,
-            ended_at=until,
-            result=journalctl.metrics_to_json(oom_m),
-        )
-
-        # systemd errors
-        sstmd_err_r = journalctl.systemd_only_records(
-            since=since.strftime(journalctl.DATE_FORMAT),
-            until=until.strftime(journalctl.DATE_FORMAT),
-            priority="err",
-            verbosity=Verbosity(0),
-        )
-        sstmd_err_m = journalctl.calc_records_cnt(sstmd_err_r.stdout)
-        self._logger.info(
-            "systemd errors records %d",
-            sstmd_err_m,
-        )
-        self._database.insert_util_run_result(
-            experiment_id=experiment_id,
-            util_type="observer",
-            command=" ".join(sstmd_err_r.cmd),
-            description="systemd errors records",
-            started_at=since,
-            ended_at=until,
-            result=journalctl.metrics_to_json(sstmd_err_m),
-        )
 
 
 class ProfiledPlanRunner(BaseRunner):
