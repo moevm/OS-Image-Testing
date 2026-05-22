@@ -89,6 +89,7 @@ def api_get_test_config(request: HttpRequest, distro_name: str) -> JsonResponse:
             "NETWORK_SUITE": ALL_SUITES["NETWORK_SUITE"].total_duration,
         },
         "selected_tests": {},
+        "test_runs_count": 1,
     }
 
     return JsonResponse(default_config)
@@ -200,7 +201,16 @@ def run_tests(request: HttpRequest) -> JsonResponse:
     if match:
         distro_id = match.group(1)
         distro = get_object_or_404(Distribution, id=distro_id, is_active=True)
-        env_req = {"TESTED_DISTRO": distro.name}
+        try:
+            body = json.loads(request.body)
+        except json.JSONDecodeError, AttributeError:
+            test_runs_count = 1
+        else:
+            test_runs_count = body.get("test_runs_count", 1)
+        env_req = {
+            "TESTED_DISTRO": distro.name,
+            "TEST_RUNS_COUNT": str(test_runs_count),
+        }
     else:
         env_req = {"TESTED_DISTRO": "None"}
 
