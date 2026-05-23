@@ -9,8 +9,9 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from itertools import product
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Final
 
+from imgtests.constant import LIB_DATA_DIR
 from imgtests.exec.exec import common_run_command
 from imgtests.exec.loaders.fio import Direct, Fio, FioPlot, IOEngine, IOPattern
 from imgtests.exec.user_commands import MkDir, Rm
@@ -23,6 +24,8 @@ if TYPE_CHECKING:
     from imgtests.exec.exec import SSHClient
 
 logger = logging.getLogger(__name__)
+
+FIO_RESULTS_DIR: Final = LIB_DATA_DIR / "fio"
 
 _DIFF_GUARD_MAX = 1_000_000
 _DEFAULT_TMP_ROOT = Path(tempfile.gettempdir()) / "imgtests-fio"

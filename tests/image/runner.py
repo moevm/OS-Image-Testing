@@ -96,8 +96,7 @@ def filter_tests_by_names(
     return filtered_tests
 
 
-def main() -> None:  # noqa: PLR0912, PLR0915, C901
-    set_handlers(logger, Path("processing.log"))
+def run_tests() -> None:  # noqa: PLR0912, PLR0915, C901
     tested_distro = os.getenv("TESTED_DISTRO", "all")
     if tested_distro not in ("all", "yocto", "opensuse"):
         logger.error(
@@ -192,6 +191,15 @@ def main() -> None:  # noqa: PLR0912, PLR0915, C901
     report_generator.generate_last_two_experiments_report(out_dir=Path("results"))
 
     database.session.close_all()
+
+
+def main():
+    set_handlers(logger, Path("processing.log"))
+    test_runs_count = int(os.getenv("TEST_RUNS_COUNT", "1"))
+    for i in range(test_runs_count):
+        logger.info("Starting test run %d of %d", i + 1, test_runs_count)
+        run_tests()
+        logger.info("Completed test run %d of %d", i + 1, test_runs_count)
 
 
 if __name__ == "__main__":
