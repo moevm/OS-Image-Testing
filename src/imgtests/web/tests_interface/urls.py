@@ -19,7 +19,7 @@ urlpatterns = [
     ),
     path("api/distros/", views.api_get_distros, name="api_get_distros"),
     path("api/distros/add/", views.api_add_distro, name="api_add_distro"),
-    path("api/distros/remove/<str:distro_id>/", views.api_remove_distro, name="api_remove_distro"),
+    path("api/distros/remove/<int:distro_id>/", views.api_remove_distro, name="api_remove_distro"),
     path("api/distros/reset/", views.api_reset_distros, name="api_reset_distros"),
     path(
         "api/get_available_suites/",
@@ -46,5 +46,5 @@ urlpatterns = [
         views.api_reset_test_config,
         name="api_reset_test_config",
     ),
-    path("<str:distro_id>/", views.distro_page, name="distro_page"),
+    path("<int:distro_id>/", views.distro_page, name="distro_page"),
 ]

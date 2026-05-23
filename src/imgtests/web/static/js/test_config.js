@@ -60,7 +60,10 @@ class TestConfigManager {
                 console.log("Loaded config:", this.currentConfig);
             } else {
                 console.warn("No existing config, using default");
-                this.showStatus("Failed to load tests for " + window.distroName, "error");
+                this.showStatus(
+                    "Failed to load tests for " + window.distroName,
+                    "error",
+                );
             }
         } catch (error) {
             console.error("Failed to load current config:", error);
@@ -118,6 +121,11 @@ class TestConfigManager {
                     '<p style="color: red;">Failed to load test suites. Please refresh the page.</p>';
             }
             return;
+        }
+
+        const runsInput = document.getElementById("testRunsCount");
+        if (runsInput && this.currentConfig) {
+            runsInput.value = this.currentConfig.test_runs_count || 1;
         }
 
         const suitesDiv = document.getElementById("suitesCheckboxes");
@@ -354,11 +362,16 @@ class TestConfigManager {
                         }
                     }
                 });
+            const testRunsCount = parseInt(
+                document.getElementById("testRunsCount")?.value || "1",
+                10,
+            );
 
             const config = {
                 suites: selectedSuites,
                 suite_durations: suiteDurations,
                 selected_tests: this.currentConfig.selected_tests || {},
+                test_runs_count: testRunsCount,
             };
 
             console.log("Saving config:", config);
@@ -423,7 +436,12 @@ class TestConfigManager {
                         NETWORK_SUITE: 200,
                     },
                     selected_tests: {},
+                    test_runs_count: 1,
                 };
+                const runsInput = document.getElementById("testRunsCount");
+                if (runsInput) {
+                    runsInput.value = 1;
+                }
                 this.renderConfigUI();
                 this.showStatus("Configuration reset to default", "success");
             }
