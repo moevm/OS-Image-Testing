@@ -26,7 +26,7 @@ class PostgresCreds(BaseSettings):
     password: str = Field(validation_alias="POSTGRES_PASSWORD")
     database_name: str = Field(validation_alias="POSTGRES_DB")
     host: str = Field(validation_alias="POSTGRES_HOST")
-    port: int = Field(validation_alias="POSTGRES_PORT")
+    port: int = Field(validation_alias="POSTGRES_PORT", ge=0, le=65535)
 
 
 class ImgtestsDatabase:

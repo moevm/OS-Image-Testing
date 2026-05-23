@@ -1,11 +1,13 @@
 import json
 import logging
-import os
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Final
+from typing import TYPE_CHECKING, Any, Final, Literal
 
-from imgtests.constant import CONFIG_DIR
+from pydantic import Field
+from pydantic_settings import BaseSettings
+
+from imgtests.constant import CONFIG_DIR, LOG_PATH
 from imgtests.database.database import ImgtestsDatabase
 from imgtests.exec.exec import wait_remote
 from imgtests.exec.user_commands import Touch
@@ -28,6 +30,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterable
 
 
+Distros = Literal["all", "yocto", "opensuse"]
 YOCTO_CONF: Final = (
     "SSH_YOCTO_ADDR",
     "SSH_YOCTO_USER",
@@ -45,8 +48,8 @@ SUSE_156_CONF: Final = (
 logger = logging.getLogger()
 
 
-def load_test_config(tested_distro: str) -> dict[str, Any]:
-    config_file = CONFIG_DIR / f"{tested_distro}_config.json"
+def load_test_config(distro: Distros) -> dict[str, Any]:
+    config_file = CONFIG_DIR / f"{distro}_config.json"
     if config_file.exists():
         try:
             with Path.open(config_file, "r") as f:
@@ -54,7 +57,7 @@ def load_test_config(tested_distro: str) -> dict[str, Any]:
         except Exception as e:  # noqa: BLE001
             logger.warning("Failed to load config: %s, using default", e)
         else:
-            logger.info("Loaded custom config for %s", tested_distro)
+            logger.info("Loaded custom config for %s", distro)
             return config
 
     return {
@@ -96,16 +99,9 @@ def filter_tests_by_names(
     return filtered_tests
 
 
-def run_tests() -> None:  # noqa: PLR0912, PLR0915, C901
-    tested_distro = os.getenv("TESTED_DISTRO", "all")
-    if tested_distro not in ("all", "yocto", "opensuse"):
-        logger.error(
-            "Invalid TESTED_DISTRO value: %s. Use 'all', 'yocto', 'opensuse'",
-            tested_distro,
-        )
-        sys.exit(1)
-    logger.info("Running tests for %s", tested_distro)
-    config = load_test_config(tested_distro)
+def run_tests(distro: Distros) -> None:  # noqa: PLR0912, PLR0915, C901
+    logger.info("Running tests for %s", distro)
+    config = load_test_config(distro)
     logger.info("Using suites: %s", config.get("suites", []))
     suites_to_run = []
     for suite_name in config.get("suites", []):
@@ -153,9 +149,9 @@ def run_tests() -> None:  # noqa: PLR0912, PLR0915, C901
 
     suse_client = None
     poky_client = None
-    if tested_distro in ("yocto", "all"):
+    if distro in ("yocto", "all"):
         poky_client = wait_remote(*YOCTO_CONF) or sys.exit(1)
-    if tested_distro in ("opensuse", "all"):
+    if distro in ("opensuse", "all"):
         suse_client = wait_remote(*SUSE_156_CONF) or sys.exit(1)
         # disable cloud-init for the next boot for Suse according to documentation
         Touch(suse_client, use_sudo=True)(["/etc/cloud/cloud-init.disabled"])
@@ -193,13 +189,18 @@ def run_tests() -> None:  # noqa: PLR0912, PLR0915, C901
     database.session.close_all()
 
 
-def main():
-    set_handlers(logger, Path("processing.log"))
-    test_runs_count = int(os.getenv("TEST_RUNS_COUNT", "1"))
-    for i in range(test_runs_count):
-        logger.info("Starting test run %d of %d", i + 1, test_runs_count)
-        run_tests()
-        logger.info("Completed test run %d of %d", i + 1, test_runs_count)
+class TestsConfig(BaseSettings):
+    distro: Distros = Field(validation_alias="TESTED_DISTRO", default="all")
+    test_runs_count: int = Field(validation_alias="TEST_RUNS_COUNT", ge=1, default=1)
+
+
+def main() -> None:
+    set_handlers(logger, LOG_PATH)
+    test_config = TestsConfig()
+    for i in range(test_config.test_runs_count):
+        logger.info("Starting test run %d of %d", i + 1, test_config.test_runs_count)
+        run_tests(test_config.distro)
+        logger.info("Completed test run %d of %d", i + 1, test_config.test_runs_count)
 
 
 if __name__ == "__main__":
