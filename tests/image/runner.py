@@ -165,28 +165,35 @@ def main() -> None:  # noqa: PLR0912, PLR0915, C901
         distros_to_test.append(suse_client)
     if poky_client:
         distros_to_test.append(poky_client)
+
     database = ImgtestsDatabase()
-    for suite in suites_to_run:
-        logger.info("Running suite %s", suite.description)
-        for client in distros_to_test:
-            client.reconnect()
-            runner = TestsRunner(client, database, suite)
-            runner.run()
-            runner.close()
-    if poky_client:
-        poky_client.reconnect()
-        ProfiledPlanRunner(
-            client=poky_client,
-            database=database,
-        ).run_from_env()
-        poky_client.close()
-    if suse_client:
-        suse_client.reconnect()
-        ProfiledPlanRunner(
-            client=suse_client,
-            database=database,
-        ).run_from_env()
-        suse_client.close()
+
+    # testing mode differentiation
+    mode = os.getenv("TESTING_MODE", "default")
+    logger.info("Current tesing mode is %s", mode)
+    if mode == "default":
+        for suite in suites_to_run:
+            logger.info("Running suite %s", suite.description)
+            for client in distros_to_test:
+                client.reconnect()
+                runner = TestsRunner(client, database, suite)
+                runner.run()
+                runner.close()
+    if mode == "profiled":
+        if poky_client:
+            poky_client.reconnect()
+            ProfiledPlanRunner(
+                client=poky_client,
+                database=database,
+            ).run_from_env()
+            poky_client.close()
+        if suse_client:
+            suse_client.reconnect()
+            ProfiledPlanRunner(
+                client=suse_client,
+                database=database,
+            ).run_from_env()
+            suse_client.close()
 
     report_generator = ReportGenerator(database)
     report_generator.generate_last_two_experiments_report(out_dir=Path("results"))
