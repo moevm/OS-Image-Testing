@@ -168,7 +168,7 @@ def run_tests() -> None:  # noqa: PLR0912, PLR0915, C901
     database = ImgtestsDatabase()
 
     # testing mode differentiation
-    mode = os.getenv("TESTING_MODE", "default")
+    mode = os.getenv("TESTING_MODE", "default")  # noqa: F821
     logger.info("Current tesing mode is %s", mode)
     if mode == "default":
         for suite in suites_to_run:
