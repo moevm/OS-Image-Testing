@@ -154,6 +154,7 @@ help:
 	@echo -n "  ${PACKAGE_MGR}"
 	@echo     "                                 Updates the project's Python environment with the '${PACKAGE_MGR}';"
 	@echo "  ensure-volumes                     Creates volumes if missing and changes ownership;"
+	@echo "  ensure-python-dependencies         Checks that Python 3.11+ is available and required dependencies can be extracted;"
 	@echo "  init-submodule                     Recursive initialization git submodules;"
 	@echo "  pre-commit-check                   Check source code with pre-commit hooks;"
 	@echo "  unit-test                          Run unit tests for the Python library '${PY_LIB_NAME}';"
