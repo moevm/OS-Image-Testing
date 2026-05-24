@@ -7,9 +7,9 @@ GROUP                      := yoctogroup
 POSTGRES_DB                := os-testing-db
 OS_IMAGE                   := core-image-minimal
 SUSE_VER                   ?= 15.6
-METABASE_META_DB_NAME	   :=metabase
-METABASE_META_USER		   :=metabase
-METABASE_META_PASS         :=metabase
+METABASE_META_DB_NAME	   := metabase
+METABASE_META_USER		   := metabase
+METABASE_META_PASS         := metabase
 
 LIB_NAME                   := imgtests
 # Docker

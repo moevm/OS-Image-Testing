@@ -6,7 +6,7 @@
 
 **Metabase** поднимается вместе со своей дополнительной базой данных, где хранит все данные для входа, а также данные о графиках и дашбордах.
 
-Для того чтобы сделать бэкап у вас должна быть запущена эта БД `os-image-testing-imgtests-metabase-db-1`.
+Для того чтобы сделать бэкап у вас должна быть запущена эта БД `os-image-testing-imgtests-metabase-meta-db-1`.
 
 Далее выполните команду в терминале:
 
@@ -23,7 +23,7 @@ docker exec os-image-testing-imgtests-metabase-db-1 pg_dump -U metabase -d metab
 ### **Шаг 1. Запустите проект**
 
 ```bash
-make docker-compose-up  
+make docker-run-metabase
 ```
 
 ### **Шаг 2. Остановите контейнер metabase**
@@ -37,15 +37,15 @@ docker stop os-image-testing-imgtests-metabase-1
 Так как Metabase при первом старте уже успел создать пустые таблицы, их надо удалить, чтобы не было конфликтов при восстановлении.
 
 ```bash
-docker exec -i os-image-testing-imgtests-metabase-db-1 psql -U metabase -d postgres -c "DROP DATABASE metabase;"
+docker exec -i os-image-testing-imgtests-metabase-meta-db-1 psql -U metabase -d postgres -c "DROP DATABASE metabase;"
 
-docker exec -i os-image-testing-imgtests-metabase-db-1 psql -U metabase -d postgres -c "CREATE DATABASE metabase;"
+docker exec -i os-image-testing-imgtests-metabase-meta-db-1 psql -U metabase -d postgres -c "CREATE DATABASE metabase;"
 ```
 
 ### **Шаг 4. Запишите дамп в базу**
 
 ```bash
-docker exec -i os-image-testing-imgtests-metabase-db-1 pg_restore -U metabase -d metabase < ваш_дамп_файл.dump
+docker exec -i os-image-testing-imgtests-metabase-meta-db-1 pg_restore -U metabase -d metabase < ваш_дамп_файл.dump
 ```
 
 ### **Шаг 5. Снова запустите Metabase**
