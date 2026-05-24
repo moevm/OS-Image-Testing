@@ -8,13 +8,15 @@ import statistics
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Final
+from typing import TYPE_CHECKING, Any, Final, Literal, cast, get_args
 
 from openpyxl import Workbook, load_workbook
 from openpyxl.chart import AreaChart, BarChart, LineChart, Reference, StockChart
 from openpyxl.chart.axis import ChartLines
 from openpyxl.chart.updown_bars import UpDownBars
 from openpyxl.styles import Font, PatternFill
+
+from imgtests.database.models.experiment import ExperimentType
 
 if TYPE_CHECKING:
     from collections.abc import Iterator, Sequence
@@ -39,6 +41,9 @@ DEFAULT_CHARTS_PER_SHEET: Final = 30
 SHORT_TOKEN_LENGTH: Final = 3
 EXPLICIT_PAIR_EXPERIMENT_COUNT: Final = 2
 MIN_TREND_POINTS: Final = 3
+MAX_SHEET_NAME_LENGTH: Final = 31
+ID_COLUMN_SUFFIX: Final = "_id"
+EXPERIMENT_TYPE_VALUES: Final = frozenset(get_args(ExperimentType))
 
 SKIP_SOURCE_SHEETS: Final = {
     COMPARISON_SELECTION_SHEET,
@@ -50,7 +55,6 @@ SKIP_SOURCE_SHEETS: Final = {
 }
 
 LABEL_COLUMNS: Final = {
-    "distribution_id",
     "configuration_id",
     "distribution_description",
     "experiment_id",
@@ -218,11 +222,11 @@ class SheetRows:
 
 @dataclass(frozen=True)
 class ExperimentInfo:
-    experiment_id: str
+    experiment_id: int
     distro: str
-    configuration_id: str
+    configuration_id: int
     description: str
-    experiment_type: str
+    experiment_type: ExperimentType | Literal[""]
     started_at: str
 
 
@@ -488,7 +492,7 @@ def build_configuration_distro_map(workbook: Any) -> dict[str, str]:
 def build_experiment_info_map(
     workbook: Any,
     config_distro: dict[str, str],
-) -> dict[str, ExperimentInfo]:
+) -> dict[int, ExperimentInfo]:
     if EXPERIMENT_SHEET not in workbook.sheetnames:
         return {}
     ws = workbook[EXPERIMENT_SHEET]
@@ -506,40 +510,41 @@ def build_experiment_info_map(
     if config_index is None or experiment_index is None:
         return {}
 
-    result: dict[str, ExperimentInfo] = {}
+    result: dict[int, ExperimentInfo] = {}
     for row in rows:
-        experiment_id = id_key(cell_value(row, experiment_index))
-        configuration_id = id_key(cell_value(row, config_index))
-        if not experiment_id:
+        experiment_id = int_id_or_none(cell_value(row, experiment_index))
+        configuration_id = int_id_or_none(cell_value(row, config_index))
+        if experiment_id is None or configuration_id is None:
             continue
         result[experiment_id] = ExperimentInfo(
             experiment_id=experiment_id,
-            distro=config_distro.get(configuration_id, ""),
+            distro=config_distro.get(id_key(configuration_id), ""),
             configuration_id=configuration_id,
             description=str(cell_value(row, description_index) or "").strip(),
-            experiment_type=str(cell_value(row, type_index) or "").strip(),
+            experiment_type=normalize_experiment_type(cell_value(row, type_index)),
             started_at=str(cell_value(row, started_at_index) or "").strip(),
         )
     return result
 
 
 def build_comparison_groups(
-    experiment_info: dict[str, ExperimentInfo],
+    experiment_info: dict[int, ExperimentInfo],
     *,
     experiment_ids: list[str] | None,
     latest_pair_only: bool,
 ) -> list[ComparisonGroup]:
     selected_ids = normalize_selected_ids(experiment_ids)
+    if experiment_ids and not selected_ids:
+        logger.warning("No valid integer experiment IDs were provided.")
+        return []
 
     if selected_ids and len(selected_ids) == EXPLICIT_PAIR_EXPERIMENT_COUNT:
-        infos = [
-            experiment_info.get(experiment_id)
-            for experiment_id in sorted(selected_ids, key=sortable_value)
-        ]
-        if not all(infos):
+        ordered_ids = sorted(selected_ids)
+        infos = [experiment_info.get(experiment_id) for experiment_id in ordered_ids]
+        if not all(info is not None for info in infos):
             missing = [
-                experiment_id
-                for experiment_id, info in zip(sorted(selected_ids), infos, strict=False)
+                str(experiment_id)
+                for experiment_id, info in zip(ordered_ids, infos, strict=True)
                 if info is None
             ]
             logger.warning("Experiment IDs not found in experiment sheet: %s", ", ".join(missing))
@@ -573,7 +578,22 @@ def build_comparison_groups(
             continue
         poky_items = sorted(by_distro["poky"], key=experiment_sort_key)
         suse_items = sorted(by_distro["suse"], key=experiment_sort_key)
-        for poky_info, suse_info in zip(poky_items, suse_items, strict=False):
+        pair_count = min(len(poky_items), len(suse_items))
+        if len(poky_items) != len(suse_items):
+            logger.warning(
+                "Experiment group '%s/%s' has %s Poky and %s SUSE runs; "
+                "only %s comparable pairs will be used.",
+                key[0],
+                key[1],
+                len(poky_items),
+                len(suse_items),
+                pair_count,
+            )
+        for poky_info, suse_info in zip(
+            poky_items[:pair_count],
+            suse_items[:pair_count],
+            strict=True,
+        ):
             groups.append(make_group(poky_info, suse_info, order=order))
             order += 1
 
@@ -612,18 +632,25 @@ def make_group(
     )
 
 
-def normalize_selected_ids(experiment_ids: list[str] | None) -> set[str]:
+def normalize_selected_ids(experiment_ids: list[str] | None) -> set[int]:
     if not experiment_ids:
         return set()
-    return {
-        normalized_id
-        for experiment_id in experiment_ids
-        if (normalized_id := id_key(experiment_id))
-    }
+    selected_ids: set[int] = set()
+    invalid_ids: list[str] = []
+    for experiment_id in experiment_ids:
+        normalized_id = int_id_or_none(experiment_id)
+        if normalized_id is None:
+            invalid_ids.append(str(experiment_id))
+            continue
+        selected_ids.add(normalized_id)
+
+    if invalid_ids:
+        logger.warning("Experiment IDs must be integers and were ignored: %s", invalid_ids)
+    return selected_ids
 
 
-def experiment_sort_key(info: ExperimentInfo) -> tuple[str, tuple[int, int, str]]:
-    return info.started_at, sortable_value(info.experiment_id)
+def experiment_sort_key(info: ExperimentInfo) -> tuple[str, int]:
+    return info.started_at, info.experiment_id
 
 
 def extract_metric_buckets(
@@ -648,7 +675,7 @@ def build_group_by_experiment(groups: list[ComparisonGroup]) -> dict[str, Compar
     group_by_experiment: dict[str, ComparisonGroup] = {}
     for group in groups:
         for info in group.experiments.values():
-            group_by_experiment[info.experiment_id] = group
+            group_by_experiment[id_key(info.experiment_id)] = group
     return group_by_experiment
 
 
@@ -746,7 +773,7 @@ def get_or_create_metric_bucket(
 def find_metric_columns(headers: list[str]) -> list[int]:
     metric_indexes: list[int] = []
     for index, header in enumerate(headers):
-        if not header or header in LABEL_COLUMNS:
+        if not header or header in LABEL_COLUMNS or header.endswith(ID_COLUMN_SUFFIX):
             continue
         normalized_header = normalize_metric_text(header)
         if not normalized_header:
@@ -1013,10 +1040,7 @@ def write_comparison_selection(
             )
     rows.append([])
     rows.append(["charts_built", chart_count, None, None, None, None, None, None, None, None, None])
-    write_matrix(ws, rows)
-    style_table(ws, len(rows), len(rows[0]))
-    ws.freeze_panes = "A2"
-    ws.auto_filter.ref = ws.dimensions
+    write_styled_table(ws, rows)
 
 
 def write_comparison_index(
@@ -1046,10 +1070,7 @@ def write_comparison_index(
         ]
         for chart in charts
     )
-    write_matrix(ws, rows)
-    style_table(ws, len(rows), len(rows[0]))
-    ws.freeze_panes = "A2"
-    ws.auto_filter.ref = ws.dimensions
+    write_styled_table(ws, rows)
 
 
 def write_comparison_data(
@@ -1082,10 +1103,7 @@ def write_comparison_data(
         for chart in charts
         for point in chart.points
     )
-    write_matrix(ws, rows)
-    style_table(ws, len(rows), len(rows[0]))
-    ws.freeze_panes = "A2"
-    ws.auto_filter.ref = ws.dimensions
+    write_styled_table(ws, rows)
 
 
 def write_comparison_charts(
@@ -1125,7 +1143,7 @@ def chart_sheet_name(test_type: str, sheet_number: int) -> str:
     suffix = f"_{sheet_number}" if sheet_number > 1 else ""
     cleaned_base = sanitize_sheet_name(base_name)
     if suffix:
-        return f"{cleaned_base[: 31 - len(suffix)]}{suffix}"
+        return f"{cleaned_base[: MAX_SHEET_NAME_LENGTH - len(suffix)]}{suffix}"
     return cleaned_base
 
 
@@ -1284,8 +1302,14 @@ def chart_title(chart: ChartSpec) -> str:
 
 def write_table_sheet(ws: Any, sheet: SheetRows) -> None:
     rows = [sheet.headers, *sheet.rows]
+    write_styled_table(ws, rows)
+
+
+def write_styled_table(ws: Any, rows: list[list[Any]]) -> None:
     write_matrix(ws, rows)
-    style_table(ws, len(rows), len(sheet.headers))
+    if not rows or not rows[0]:
+        return
+    style_table(ws, len(rows), len(rows[0]))
     ws.freeze_panes = "A2"
     ws.auto_filter.ref = ws.dimensions
 
@@ -1360,6 +1384,23 @@ def id_key(value: Any) -> str:
     return str(value).strip()
 
 
+def int_id_or_none(value: Any) -> int | None:
+    if isinstance(value, bool) or value is None:
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float):
+        return int(value) if value.is_integer() else None
+
+    text = str(value).strip()
+    if not text:
+        return None
+    try:
+        return int(text)
+    except ValueError:
+        return None
+
+
 def normalize_distro(value: Any) -> str:
     text = str(value or "").strip().lower()
     if "suse" in text:
@@ -1373,6 +1414,13 @@ def normalize_metric_text(value: str) -> str:
     normalized = re.sub(r"[^a-zA-Z0-9]+", "_", str(value).lower())
     normalized = re.sub(r"_+", "_", normalized)
     return normalized.strip("_")
+
+
+def normalize_experiment_type(value: Any) -> ExperimentType | Literal[""]:
+    text = str(value or "").strip()
+    if text in EXPERIMENT_TYPE_VALUES:
+        return cast("ExperimentType", text)
+    return ""
 
 
 def metric_matches(metric_text: str, metric_tokens: set[str], pattern: str) -> bool:
@@ -1458,7 +1506,7 @@ def unique_sheet_name(name: str, used_names: set[str]) -> str:
     suffix = 1
     while cleaned in used_names:
         suffix_text = f"_{suffix}"
-        cleaned = f"{original[: 31 - len(suffix_text)]}{suffix_text}"
+        cleaned = f"{original[: MAX_SHEET_NAME_LENGTH - len(suffix_text)]}{suffix_text}"
         suffix += 1
     used_names.add(cleaned)
     return cleaned
@@ -1466,7 +1514,7 @@ def unique_sheet_name(name: str, used_names: set[str]) -> str:
 
 def sanitize_sheet_name(name: str) -> str:
     cleaned = "".join("_" if char in r":\/?*[]" else char for char in str(name)).strip("'")
-    return (cleaned or "Sheet")[:31]
+    return (cleaned or "Sheet")[:MAX_SHEET_NAME_LENGTH]
 
 
 def main() -> None:

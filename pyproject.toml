@@ -35,7 +35,6 @@ dependencies = [
 
 [project.scripts]
 imgtests-export-db-to-excel = "imgtests.reporting.excel_export:main"
-imgtests-export-distro-comparison-to-excel = "imgtests.reporting.distro_comparison_export:main"
 
 [dependency-groups]
 lint = [
