@@ -164,6 +164,40 @@ services:
       yocto-network:
         ipv4_address: ${BENCHER_CLI_ADDRESS}
 
+  imgtests-metabase-meta-db:
+    image: postgres:17.7
+    environment:
+      POSTGRES_DB: ${METABASE_META_DB_NAME}
+      POSTGRES_USER: ${METABASE_META_USER}
+      POSTGRES_PASSWORD: ${METABASE_META_PASS}
+    volumes:
+      - ${METABASE_META_VOLUME}:/var/lib/postgresql/data
+    networks:
+      yocto-network:
+        ipv4_address: ${METABASE_META_DB_ADDRESS}
+    restart: unless-stopped
+
+  imgtests-metabase:
+    image: metabase/metabase:v0.61.2.6
+    depends_on:
+      - imgtests-metabase-meta-db
+      - imgtests-postgres
+    environment:
+      MB_DB_TYPE: postgres
+      MB_DB_DBNAME: ${METABASE_META_DB_NAME}
+      MB_DB_PORT: 5432
+      MB_DB_USER: ${METABASE_META_USER}
+      MB_DB_PASS: ${METABASE_META_PASS}
+      MB_DB_HOST: imgtests-metabase-meta-db
+    ports:
+      - "${METABASE_PORT}:3000"
+    volumes:
+      - ${METABASE_APP_VOLUME}:/metabase-data
+    networks:
+      yocto-network:
+        ipv4_address: ${METABASE_ADDRESS}
+    restart: unless-stopped
+
 volumes:
   imgtests-yocto-build:
     external: true
@@ -184,6 +218,9 @@ volumes:
   imgtests-postgres-data:
     external: true
   imgtests-analyzer-data:
+  imgtests-metabase-meta-data:
+    external: true
+  imgtests-metabase-app:
     external: true
 
 networks:
