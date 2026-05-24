@@ -1,7 +1,6 @@
 services:
-  postgres:
-    image: postgres:16
-    container_name: mvp-postgres
+  imgtests-postgres:
+    image: postgres:17.7
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -19,9 +18,8 @@ services:
       timeout: 5s
       retries: 20
 
-  metabase-meta-db:
-    image: postgres:16
-    container_name: mvp-metabase-meta-db
+  imgtests-metabase-meta-db:
+    image: postgres:17.7
     environment:
       POSTGRES_DB: ${METABASE_META_DB_NAME}
       POSTGRES_USER: ${METABASE_META_USER}
@@ -29,19 +27,18 @@ services:
     volumes:
       - ${METABASE_META_VOLUME:-metabase_meta_data}:/var/lib/postgresql/data
 
-  metabase:
-    image: ${METABASE_IMAGE}
-    container_name: mvp-metabase
+  imgtests-metabase:
+    image: metabase/metabase:v0.61.2.6
     depends_on:
-      - metabase-meta-db
-      - postgres
+      - imgtests-metabase-meta-db
+      - imgtests-postgres
     environment:
       MB_DB_TYPE: postgres
       MB_DB_DBNAME: ${METABASE_META_DB_NAME}
       MB_DB_PORT: 5432
       MB_DB_USER: ${METABASE_META_USER}
       MB_DB_PASS: ${METABASE_META_PASS}
-      MB_DB_HOST: metabase-meta-db
+      MB_DB_HOST: imgtests-metabase-meta-db
     ports:
       - "${METABASE_PORT:-3000}:3000"
     volumes:
