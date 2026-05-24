@@ -36,8 +36,17 @@ HOST_SCRIPTS_PATH          := ${CURDIR}/scripts
 TESTS_DIR                  := ${CURDIR}/tests
 
 # Python
+define get_python_required_libs
+	python3 -c "import sys; \
+		sys.exit(1) if sys.version_info < (3,11) else None;
+		import tomllib; from pathlib import Path; \
+		print(' '.join(tomllib.loads(Path('pyproject.toml').read_text())['project']['dependencies']))"
+endef
+
 PACKAGE_MGR                := uv
-PYTHON_REQUIRED_LIBS       := $(shell python3 -c "import tomllib; from pathlib import Path; print(' '.join(tomllib.loads(Path('pyproject.toml').read_text())['project']['dependencies']))")
+PYTHON_REQUIRED_LIBS       := $(shell $(call get_python_required_libs))
+PYTHONDONTWRITEBYTECODE    := 1
+PY_LIB_NAME                := $(shell grep -Po 'name\s*=\s*"\K(\w+)' pyproject.toml)
 
 # Docker Network
 DOCKER_NETWORK             := yocto-network
@@ -67,12 +76,18 @@ SSH_QEMU_USER              ?= root
 # 3Gb of virtual memory for each system
 QEMU_VM_RAM				   := 3072
 
-# Library
-PYTHONDONTWRITEBYTECODE    := 1
-PY_LIB_NAME                := $(shell grep -Po 'name\s*=\s*"\K(\w+)' pyproject.toml)
+.PHONY: ensure-python-dependencies
+ensure-python-dependencies:
+	@if [ -z "${PYTHON_REQUIRED_LIBS}" ]; then \
+		echo "ERROR: PYTHON_REQUIRED_LIBS is empty."; \
+		echo "This might be because you're using Python < 3.11 which doesn't have tomllib module."; \
+		echo "Please use Python 3.11 or higher."; \
+		echo "You are using $(shell python --version)."; \
+		exit 1; \
+	fi
 
 .PHONY: docker
-docker: init-submodule
+docker: ensure-python-dependencies init-submodule
 	docker build \
 		--tag ${DOCKER_TAG} \
 		--build-arg USER="${USER}" \
@@ -84,7 +99,7 @@ docker: init-submodule
 		--file docker/image_builder.dockerfile .
 
 .PHONY: docker-compose-up
-docker-compose-up: ensure-volumes
+docker-compose-up: ensure-python-dependencies ensure-volumes
 	docker compose --file docker/compose.yml --project-directory ./ up --detach --build
 
 .PHONY: docker-compose-down
