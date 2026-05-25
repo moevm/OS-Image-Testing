@@ -98,28 +98,20 @@ COLUMN_PART_REPLACEMENTS: Final = {
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     raw_args = list(sys.argv[1:] if argv is None else argv)
 
-    if raw_args and raw_args[0] not in EXPORT_COMMANDS and not raw_args[0].startswith("-"):
-        return parse_database_args(raw_args)
-
     parser = argparse.ArgumentParser(
         description="Export imgtests database data and report comparisons to XLSX workbooks.",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
     add_database_subparser(subparsers)
     add_distro_comparison_subparser(subparsers)
-    return parser.parse_args(raw_args)
+    return parser.parse_args(add_default_database_command(raw_args))
 
 
-def parse_database_args(args: Sequence[str]) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description=(
-            "Export imgtests database tables to an XLSX workbook with flattened JSON fields."
-        ),
-    )
-    add_database_arguments(parser)
-    parsed_args = parser.parse_args(args)
-    parsed_args.command = DATABASE_COMMAND
-    return parsed_args
+def add_default_database_command(args: list[str]) -> list[str]:
+    if args and args[0] not in EXPORT_COMMANDS and not args[0].startswith("-"):
+        return [DATABASE_COMMAND, *args]
+
+    return args
 
 
 def add_database_subparser(subparsers: Any) -> None:
