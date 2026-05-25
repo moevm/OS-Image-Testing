@@ -23,6 +23,11 @@ from imgtests.reporting.distro_comparison_export import (
     DistroComparisonExportOptions,
     export_distro_comparison_to_excel,
 )
+from imgtests.reporting.distro_comparison_status_export import (
+    DEFAULT_EPSILON_PERCENT,
+    DistroComparisonStatusOptions,
+    export_distro_comparison_status_to_excel,
+)
 from imgtests.types import Distro
 
 if TYPE_CHECKING:
@@ -33,8 +38,16 @@ logger = logging.getLogger(__name__)
 CONFIGURATION_SHEET: Final = "configuration"
 DATABASE_COMMAND: Final = "database"
 DISTRO_COMPARISON_COMMAND: Final = "distro-comparison"
+DISTRO_COMPARISON_STATUS_COMMAND: Final = "comparison-status"
 EXPORT_COMMANDS: Final = frozenset(
-    {DATABASE_COMMAND, "db", DISTRO_COMPARISON_COMMAND, "comparison"},
+    {
+        DATABASE_COMMAND,
+        "db",
+        DISTRO_COMPARISON_COMMAND,
+        "comparison",
+        DISTRO_COMPARISON_STATUS_COMMAND,
+        "status",
+    },
 )
 
 DISTRIBUTIONS: Final[dict[str, dict[str, int | str]]] = {
@@ -104,6 +117,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     subparsers = parser.add_subparsers(dest="command", required=True)
     add_database_subparser(subparsers)
     add_distro_comparison_subparser(subparsers)
+    add_distro_comparison_status_subparser(subparsers)
     return parser.parse_args(add_default_database_command(raw_args))
 
 
@@ -154,7 +168,7 @@ def add_distro_comparison_subparser(subparsers: Any) -> None:
     parser.set_defaults(command=DISTRO_COMPARISON_COMMAND)
 
 
-def add_distro_comparison_arguments(parser: argparse.ArgumentParser) -> None:
+def add_comparison_report_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "input",
         type=Path,
@@ -184,6 +198,10 @@ def add_distro_comparison_arguments(parser: argparse.ArgumentParser) -> None:
             "By default all comparable pairs are used."
         ),
     )
+
+
+def add_distro_comparison_arguments(parser: argparse.ArgumentParser) -> None:
+    add_comparison_report_arguments(parser)
     parser.add_argument(
         "--max-charts",
         type=int,
@@ -211,6 +229,26 @@ def add_distro_comparison_arguments(parser: argparse.ArgumentParser) -> None:
         help="Copy source sheets only, do not build comparison tables/charts.",
     )
     parser.set_defaults(include_comparison=True)
+
+
+def add_distro_comparison_status_subparser(subparsers: Any) -> None:
+    parser = subparsers.add_parser(
+        DISTRO_COMPARISON_STATUS_COMMAND,
+        aliases=["status"],
+        help="build Poky/SUSE PASS/FAIL status tables from an exported report.xlsx",
+    )
+    add_distro_comparison_status_arguments(parser)
+    parser.set_defaults(command=DISTRO_COMPARISON_STATUS_COMMAND)
+
+
+def add_distro_comparison_status_arguments(parser: argparse.ArgumentParser) -> None:
+    add_comparison_report_arguments(parser)
+    parser.add_argument(
+        "--epsilon-percent",
+        type=float,
+        default=DEFAULT_EPSILON_PERCENT,
+        help="Relative tolerance for status decisions, in percent. Default: 1.0.",
+    )
 
 
 def export_database_to_excel(
@@ -815,6 +853,10 @@ def main() -> None:
         export_distro_comparison_command(args)
         return
 
+    if args.command == DISTRO_COMPARISON_STATUS_COMMAND:
+        export_distro_comparison_status_command(args)
+        return
+
     engine = create_engine(args.db_url)
 
     export_database_to_excel(
@@ -840,6 +882,19 @@ def export_distro_comparison_command(args: argparse.Namespace) -> None:
         ),
     )
     logger.info("Exported comparison XLSX file: %s", output_path)
+
+
+def export_distro_comparison_status_command(args: argparse.Namespace) -> None:
+    output_path = export_distro_comparison_status_to_excel(
+        input_path=args.input,
+        options=DistroComparisonStatusOptions(
+            output_path=args.output,
+            experiment_ids=args.experiment_ids,
+            latest_pair_only=args.latest_pair_only,
+            epsilon_percent=args.epsilon_percent,
+        ),
+    )
+    logger.info("Exported comparison status XLSX file: %s", output_path)
 
 
 if __name__ == "__main__":
