@@ -65,5 +65,5 @@ To add a new utility, you need to update the [packages.conf](conf/packages.conf)
 [.env.dist](.env.dist) is used to store env variables, which is included by Makefile. It describes the parameters:
 * Common variables (users, passwords)
 * VMs parameters (Yocto and Suse paths, Yocto image)
-* QEMU paramwters (RAM size)
+* QEMU parameters (RAM size)
 * Network parameters (IP addresses, ports, including SSH ports for VMs)
