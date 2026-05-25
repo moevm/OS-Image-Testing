@@ -1,5 +1,6 @@
 -include .env.dist
 
+LIB_NAME                   := imgtests
 # Docker
 DOCKER_PREFIX              := ${LIB_NAME}
 DOCKER_TAG                 := ${DOCKER_PREFIX}-yocto-builder
