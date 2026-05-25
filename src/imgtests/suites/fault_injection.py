@@ -383,7 +383,6 @@ class FaultInjectionFioTest(AbstractRunnableTimeLimitedTest):
                     yield from fio
         finally:
             change_fault_parameters(client, 0, 1)
-            self.logger.info("Reset fault injection parameters to default.")
 
 
 def is_fault_injection_available(client: SSHClient | None) -> bool:
