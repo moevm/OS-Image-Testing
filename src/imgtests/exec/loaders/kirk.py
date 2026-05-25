@@ -97,7 +97,7 @@ class Kirk(GenericUtil):
             err_msg = f"fault_probability must be in range 0..{MAX_FAULT_PROBABILITY}."
             raise ValueError(err_msg)
 
-    def _ensure_debugfs(self) -> ExecResult:
+    def ensure_debugfs(self) -> ExecResult:
         """Ensures that debugfs is created and mounted."""
         debugfs_path = str(DEBUGFS_MOUNTPOINT)
         result = common_run_command(("sudo", "mkdir", "-p", debugfs_path), self.ssh_client)
@@ -154,7 +154,7 @@ class Kirk(GenericUtil):
         if fault_prob is not None:
             self._validate_fault_probability(fault_prob)
 
-            debugfs_res = self._ensure_debugfs()
+            debugfs_res = self.ensure_debugfs()
             if debugfs_res.returncode:
                 return debugfs_res, None
 
