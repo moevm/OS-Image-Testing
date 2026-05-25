@@ -1,4 +1,4 @@
--include .env.dist
+include .env.dist
 
 LIB_NAME                   := imgtests
 # Docker
