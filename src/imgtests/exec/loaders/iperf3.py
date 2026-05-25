@@ -39,7 +39,7 @@ class Iperf3(PkgMgrMixin, GenericUtil):
         udp: bool = False,
         version4: bool = False,
         version6: bool = False,
-        **kwargs: dict[str, Any],
+        **kwargs: str | float | bool | None,
     ) -> ExecResult:
         """This is a wrapper for iperf3 which used for the network performance estimation.
 

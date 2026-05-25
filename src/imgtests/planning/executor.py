@@ -178,6 +178,14 @@ class PlanExecutor(BaseRunner):
             )
 
         ended_at = datetime.now(UTC)
+        collected_metrics.extend(
+            self._collect_system_errors(
+                experiment_id=experiment_id,
+                since=started_at,
+                until=ended_at,
+            ),
+        )
+
         self.db.update_experiment_ended_at(
             experiment_id=experiment_id,
             ended_at=ended_at,

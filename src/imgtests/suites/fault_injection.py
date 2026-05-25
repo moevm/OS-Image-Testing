@@ -1,7 +1,6 @@
 import logging
 import random
 from datetime import UTC, datetime
-from pathlib import Path
 from time import sleep
 from typing import TYPE_CHECKING
 
@@ -10,7 +9,7 @@ from imgtests.exec.loaders import Chaosblade, ChaosResponse, Kirk, Perf, StressN
 from imgtests.exec.osinfo import get_os_release
 from imgtests.exec.user_commands import MkDir
 from imgtests.planning import AbstractRunnableTimeLimitedTest, calc_subtest_timeout
-from imgtests.suites.drive.fio import FioSuite, FioSuiteConfig, FioWorkload
+from imgtests.suites.drive.fio import FIO_RESULTS_DIR, FioSuite, FioSuiteConfig, FioWorkload
 from imgtests.types import Distro, Subsystem, TestResult, TestStatus
 
 if TYPE_CHECKING:
@@ -376,7 +375,7 @@ class FaultInjectionFioTest(AbstractRunnableTimeLimitedTest):
                     fio_config = FioSuiteConfig(
                         suite="fault_injection",
                         duration_sec=timeout_suite,
-                        results_dir=Path().home() / "fio",
+                        results_dir=FIO_RESULTS_DIR,
                         workloads=(fio_suite,),
                     )
 

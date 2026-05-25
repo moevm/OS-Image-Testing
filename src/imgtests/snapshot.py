@@ -1,17 +1,20 @@
 import logging
 from time import sleep
-from typing import Final
 
 import paramiko
 import paramiko.ssh_exception
+from pydantic import Field
+from pydantic_settings import BaseSettings
 
 from imgtests.constant import LIB_NAME
 from imgtests.exec.exec import ExecResult, ExecTimeoutExpiredError, SSHClient, common_run_command
 from imgtests.exec.osinfo import get_os_release
 from imgtests.types import Distro
 
-QEMU_MONITOR_ADDRESS: Final = "10.0.2.2"
-QEMU_MONITOR_PORT: Final = "4444"
+
+class QemuMonitorCreds(BaseSettings):
+    host: str = Field(validation_alias="QEMU_MONITOR_ADDRESS")
+    port: int = Field(validation_alias="QEMU_MONITOR_PORT", ge=0, le=65535)
 
 
 class SnapshotManager:
@@ -25,11 +28,12 @@ class SnapshotManager:
         return self.__snapshot_loaded
 
     def run_command(self, command: str) -> ExecResult:
+        qemu_monitor_creds = QemuMonitorCreds()
         os_id = get_os_release(self._client).id
         if os_id and os_id != Distro.POKY.value:
-            connector = ["nc", "-q", "0", QEMU_MONITOR_ADDRESS, QEMU_MONITOR_PORT]
+            connector = ["nc", "-q", "0", qemu_monitor_creds.host, str(qemu_monitor_creds.port)]
         else:
-            connector = ["socat", "-", f"TCP:{QEMU_MONITOR_ADDRESS}:{QEMU_MONITOR_PORT}"]
+            connector = ["socat", "-", f"TCP:{qemu_monitor_creds.host}:{qemu_monitor_creds.port}"]
         return common_run_command(
             connector,
             ssh_client=self._client,

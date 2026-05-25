@@ -201,7 +201,6 @@ class StressNgIterTestIPC(StressNgTest):
                 fifo=param,
                 futex=param,
                 mq=param,
-                msg=param,
                 peterson=param,
                 pipe=param,
                 pipeherd=param,

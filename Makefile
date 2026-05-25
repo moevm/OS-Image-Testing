@@ -36,11 +36,21 @@ HOST_SCRIPTS_PATH          := ${CURDIR}/scripts
 TESTS_DIR                  := ${CURDIR}/tests
 
 # Python
+define get_python_required_libs
+	python3 -c "import sys; \
+		sys.exit(1) if sys.version_info < (3,11) else None;
+		import tomllib; from pathlib import Path; \
+		print(' '.join(tomllib.loads(Path('pyproject.toml').read_text())['project']['dependencies']))"
+endef
+
 PACKAGE_MGR                := uv
-PYTHON_REQUIRED_LIBS       := $(shell python3 -c "import tomllib; from pathlib import Path; print(' '.join(tomllib.loads(Path('pyproject.toml').read_text())['project']['dependencies']))")
+PYTHON_REQUIRED_LIBS       := $(shell $(call get_python_required_libs))
+PYTHONDONTWRITEBYTECODE    := 1
+PY_LIB_NAME                := $(shell grep -Po 'name\s*=\s*"\K(\w+)' pyproject.toml)
 
 # Docker Network
 DOCKER_NETWORK             := yocto-network
+QEMU_MONITOR_ADDRESS       := 10.0.2.2
 YOCTO_ADDRESS              := 10.5.0.10
 PYTHON_ADDRESS             := 10.5.0.11
 SUSE_ADDRESS_156           := 10.5.0.13
@@ -53,25 +63,31 @@ GATEWAY                    := 10.5.0.1
 SSH_TO_QEMU_PORT		   := 22
 SSH_QEMU_PORT              ?= 2222
 SSH_SUSE_PORT_156          := 1616
+QEMU_MONITOR_PORT          := 4444
 IPERF3_PORT                := 5201
 DJANGO_PORT                := 8000
 BENCHER_API_PORT           := 61016
 BENCHER_CLI_PORT           := 3000
 POSTGRES_PORT              := 5432
 VMETRICS_PORT              := 8438
-DJANGO_SECRET              := $(shell date | sha256sum | tr ' ' '_')
 
 SSH_QEMU_USER              ?= root
 
 # 3Gb of virtual memory for each system
 QEMU_VM_RAM				   := 3072
 
-# Library
-PYTHONDONTWRITEBYTECODE    := 1
-PY_LIB_NAME                := $(shell grep -Po 'name\s*=\s*"\K(\w+)' pyproject.toml)
+.PHONY: ensure-python-dependencies
+ensure-python-dependencies:
+	@if [ -z "${PYTHON_REQUIRED_LIBS}" ]; then \
+		echo "ERROR: PYTHON_REQUIRED_LIBS is empty."; \
+		echo "This might be because you're using Python < 3.11 which doesn't have tomllib module."; \
+		echo "Please use Python 3.11 or higher."; \
+		echo "You are using $(shell python --version)."; \
+		exit 1; \
+	fi
 
 .PHONY: docker
-docker: init-submodule
+docker: ensure-python-dependencies init-submodule
 	docker build \
 		--tag ${DOCKER_TAG} \
 		--build-arg USER="${USER}" \
@@ -83,7 +99,7 @@ docker: init-submodule
 		--file docker/image_builder.dockerfile .
 
 .PHONY: docker-compose-up
-docker-compose-up: ensure-volumes
+docker-compose-up: ensure-python-dependencies ensure-volumes
 	docker compose --file docker/compose.yml --project-directory ./ up --detach --build
 
 .PHONY: docker-compose-down
@@ -138,6 +154,7 @@ help:
 	@echo -n "  ${PACKAGE_MGR}"
 	@echo     "                                 Updates the project's Python environment with the '${PACKAGE_MGR}';"
 	@echo "  ensure-volumes                     Creates volumes if missing and changes ownership;"
+	@echo "  ensure-python-dependencies         Checks that Python 3.11+ is available and required dependencies can be extracted;"
 	@echo "  init-submodule                     Recursive initialization git submodules;"
 	@echo "  pre-commit-check                   Check source code with pre-commit hooks;"
 	@echo "  unit-test                          Run unit tests for the Python library '${PY_LIB_NAME}';"

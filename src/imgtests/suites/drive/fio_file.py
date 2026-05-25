@@ -7,7 +7,13 @@ from imgtests.exec.loaders.dmsetup import DeviceMapperSetup, setup_block_device
 from imgtests.exec.observers.resource import get_available_ram_size
 from imgtests.exec.osinfo import get_os_release
 from imgtests.planning import AbstractRunnableTimeLimitedTest
-from imgtests.suites.drive.fio import FioSuite, FioSuiteConfig, FioWorkload, IOPattern
+from imgtests.suites.drive.fio import (
+    FIO_RESULTS_DIR,
+    FioSuite,
+    FioSuiteConfig,
+    FioWorkload,
+    IOPattern,
+)
 from imgtests.types import Distro, Subsystem, TestResult, TestStatus
 
 if TYPE_CHECKING:
@@ -82,7 +88,7 @@ class FioDisksScalingTest(AbstractRunnableTimeLimitedTest):
         cfg = FioSuiteConfig(
             suite="scaling",
             duration_sec=timeout,
-            results_dir=Path().home() / "fio",
+            results_dir=FIO_RESULTS_DIR,
             workloads=SCALING_WORKLOADS,
         )
         yield from _handle_fio_suite(client, cfg, "FIO scaling PASSED.")
@@ -103,7 +109,7 @@ class FioDisksNightly(AbstractRunnableTimeLimitedTest):
         cfg = FioSuiteConfig(
             suite="nightly",
             duration_sec=timeout,
-            results_dir=Path().home() / "fio",
+            results_dir=FIO_RESULTS_DIR,
             workloads=NIGHTLY_WORKLOADS,
         )
         yield from _handle_fio_suite(client, cfg, "FIO nightly PASSED.")
@@ -140,7 +146,7 @@ class FioDisksDMDelay(AbstractRunnableTimeLimitedTest):
         cfg = FioSuiteConfig(
             suite="dm-delay",
             duration_sec=timeout,
-            results_dir=Path().home() / "fio",
+            results_dir=FIO_RESULTS_DIR,
             workloads=SCALING_WORKLOADS,
             filename=Path("/dev/mapper/delay1"),
         )
@@ -187,14 +193,14 @@ class FioDisksDMDust(AbstractRunnableTimeLimitedTest):
         read_cfg = FioSuiteConfig(
             suite="dm-dust",
             duration_sec=timeout,
-            results_dir=Path().home() / "fio",
+            results_dir=FIO_RESULTS_DIR,
             workloads=DMDUST_READ_WORKLOAD,
             filename=Path("/dev/mapper/dust1"),
         )
         write_cfg = FioSuiteConfig(
             suite="dm-dust",
             duration_sec=timeout,
-            results_dir=Path().home() / "fio",
+            results_dir=FIO_RESULTS_DIR,
             workloads=DMDUST_WRITE_WORKLOAD,
             filename=Path("/dev/mapper/dust1"),
         )
@@ -242,7 +248,7 @@ class FioDisksVariationTest(AbstractRunnableTimeLimitedTest):
             cfg = FioSuiteConfig(
                 suite=f"variation-offset-{offset}-{offset_incr or 'none'}",
                 duration_sec=timeout,
-                results_dir=Path().home() / "fio",
+                results_dir=FIO_RESULTS_DIR,
                 workloads=workloads,
                 offset=offset,
                 offset_increment=offset_incr,
@@ -273,7 +279,7 @@ class FioDisksParallelLoadTest(AbstractRunnableTimeLimitedTest):
             FioSuiteConfig(
                 suite="small",
                 duration_sec=timeout,
-                results_dir=Path().home() / "fio",
+                results_dir=FIO_RESULTS_DIR,
                 workloads=SMALL_BLOCK_WORKLOAD,
                 size=size,
                 filename=Path("small_testfile"),
@@ -281,7 +287,7 @@ class FioDisksParallelLoadTest(AbstractRunnableTimeLimitedTest):
             FioSuiteConfig(
                 suite="large",
                 duration_sec=timeout,
-                results_dir=Path().home() / "fio",
+                results_dir=FIO_RESULTS_DIR,
                 workloads=LARGE_BLOCK_WORKLOAD,
                 size=size,
                 filename=Path("large_testfile"),
@@ -289,7 +295,7 @@ class FioDisksParallelLoadTest(AbstractRunnableTimeLimitedTest):
             FioSuiteConfig(
                 suite="large-with-offset",
                 duration_sec=timeout,
-                results_dir=Path().home() / "fio",
+                results_dir=FIO_RESULTS_DIR,
                 workloads=LARGE_BLOCK_WORKLOAD,
                 offset_increment="3k",
                 size=size,
