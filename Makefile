@@ -1,10 +1,4 @@
-USER                       := user
-S_USER                     := suser
-PASSWORD                   := password
-GROUP                      := yoctogroup
-POSTGRES_DB                := os-testing-db
-OS_IMAGE                   := core-image-minimal
-LIB_NAME                   := imgtests
+-include .env.dist
 
 # Docker
 DOCKER_PREFIX              := ${LIB_NAME}
@@ -21,15 +15,7 @@ BENCHER_API_DB_VOLUME      := ${DOCKER_PREFIX}-bencher-database
 BENCHER_API_LOGS_VOLUME    := ${DOCKER_PREFIX}-bencher-logs
 VMETRICS_DATA_VOLUME	   := ${DOCKER_PREFIX}-vmetrics-data
 
-# VictoriaMetrics-docker-network
-DEFAULT_NE_PORT		       := 9100
-YOCTO_NE_PORT		   	   := 9100
-SUSE_156_NE_PORT		   := 9166
-
 # Paths
-POKY_DIR                   := /home/${USER}/poky
-SUSE_DIR                   := /home/${USER}/suse
-BUILD_DIR                  := ${POKY_DIR}/build
 HOST_LAYERS_PATH           := ${CURDIR}/layers
 HOST_CONF_PATH             := ${CURDIR}/conf
 HOST_SCRIPTS_PATH          := ${CURDIR}/scripts
@@ -47,34 +33,6 @@ PACKAGE_MGR                := uv
 PYTHON_REQUIRED_LIBS       := $(shell $(call get_python_required_libs))
 PYTHONDONTWRITEBYTECODE    := 1
 PY_LIB_NAME                := $(shell grep -Po 'name\s*=\s*"\K(\w+)' pyproject.toml)
-
-# Docker Network
-DOCKER_NETWORK             := yocto-network
-QEMU_MONITOR_ADDRESS       := 10.0.2.2
-YOCTO_ADDRESS              := 10.5.0.10
-PYTHON_ADDRESS             := 10.5.0.11
-SUSE_ADDRESS_156           := 10.5.0.13
-BENCHER_API_ADDRESS        := 10.5.0.14
-BENCHER_CLI_ADDRESS        := 10.5.0.15
-POSTGRES_ADDRESS           := 10.5.0.20
-VMETRICS_ADDRESS 		   := 10.5.0.25
-SUBNET                     := 10.5.0.0/24
-GATEWAY                    := 10.5.0.1
-SSH_TO_QEMU_PORT		   := 22
-SSH_QEMU_PORT              ?= 2222
-SSH_SUSE_PORT_156          := 1616
-QEMU_MONITOR_PORT          := 4444
-IPERF3_PORT                := 5201
-DJANGO_PORT                := 8000
-BENCHER_API_PORT           := 61016
-BENCHER_CLI_PORT           := 3000
-POSTGRES_PORT              := 5432
-VMETRICS_PORT              := 8438
-
-SSH_QEMU_USER              ?= root
-
-# 3Gb of virtual memory for each system
-QEMU_VM_RAM				   := 3072
 
 .PHONY: ensure-python-dependencies
 ensure-python-dependencies:
