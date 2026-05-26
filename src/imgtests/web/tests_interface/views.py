@@ -220,9 +220,10 @@ def run_tests(request: HttpRequest) -> JsonResponse:
     # catch testing mode
     try:
         mode = json.loads(request.body)["TESTING_MODE"]
-        env_vars.update({"TESTING_MODE": mode})
     except json.JSONDecodeError, KeyError:
         return JsonResponse({"error": "Invalid JSON"}, status=400)
+    else:
+        env_vars.update({"TESTING_MODE": mode})
 
     result: TaskResult = run_test_task.enqueue(env_vars)
 

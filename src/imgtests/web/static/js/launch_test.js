@@ -21,9 +21,7 @@ document.getElementById("runTestsBtn").addEventListener("click", function () {
     const btn = this;
     const outputContainer = document.getElementById("outputContainer");
 
-    const testing_mode = document.getElementsByName('configTestingMode')[0].checked
-        ? 'profiled'
-        : 'default';
+    const testing_mode = document.getElementById('configTestingMode').value;
     const testRunsCountInput = document.getElementById("testRunsCount");
     const testRunsCount = testRunsCountInput
         ? parseInt(testRunsCountInput.value, 10)
