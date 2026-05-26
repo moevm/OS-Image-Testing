@@ -217,7 +217,6 @@ def run_tests(request: HttpRequest) -> JsonResponse:
     env_vars = os.environ.copy()
     env_vars.update(env_req)
 
-    # catch testing mode
     try:
         mode = json.loads(request.body)["TESTING_MODE"]
     except json.JSONDecodeError, KeyError:
