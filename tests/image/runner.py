@@ -27,6 +27,7 @@ from imgtests.suites.map import (
 )
 
 if TYPE_CHECKING:
+    from imgtests.exec.base_util import SSHClient
     from collections.abc import Iterable
 
 
@@ -100,7 +101,7 @@ def filter_tests_by_names(
     return filtered_tests
 
 
-def run_profiled(client, database):
+def run_profiled(client: SSHClient, database: ImgtestsDatabase):
     client.reconnect()
     ProfiledPlanRunner(
         client=client,
