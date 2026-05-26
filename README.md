@@ -83,16 +83,16 @@ To add a new utility, you need to update the local.conf and write the appropriat
 ### 3. View test results with Metabase
 #### 3.1 Start Metabase
 
-Runs PosgreSQL containers with tests data, Metabase metadata and Metabase service itself:
+Runs PosgreSQL containers with test data, Metabase metadata and Metabase service itself:
 ```bash
 make docker-run-metabase
 ```
 
-After start, Metabase will be accessable at `localhost:3001`
+After start, Metabase will be accessible at `localhost:3001`
 
 #### 3.2 Import Metabase dashboard
 
-To view tests results, you need to import Metabase dashboard or make it from scratch.
+To view test results, you need to import Metabase dashboard or make it from scratch.
 
 To import Metabase dashboard from `.dump` file:
 
