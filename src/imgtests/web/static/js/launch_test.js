@@ -21,6 +21,7 @@ document.getElementById("runTestsBtn").addEventListener("click", function () {
     const btn = this;
     const outputContainer = document.getElementById("outputContainer");
 
+    const testing_mode = document.getElementById('configTestingMode').value;
     const testRunsCountInput = document.getElementById("testRunsCount");
     const testRunsCount = testRunsCountInput
         ? parseInt(testRunsCountInput.value, 10)
@@ -38,6 +39,7 @@ document.getElementById("runTestsBtn").addEventListener("click", function () {
         },
         body: JSON.stringify({
             test_runs_count: testRunsCount,
+            TESTING_MODE: testing_mode,
         }),
     })
         .then((response) => response.json())

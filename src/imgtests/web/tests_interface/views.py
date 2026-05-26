@@ -207,6 +207,13 @@ def run_tests(request: HttpRequest) -> JsonResponse:
     env_vars = os.environ.copy()
     env_vars.update(env_req)
 
+    try:
+        mode = json.loads(request.body)["TESTING_MODE"]
+    except json.JSONDecodeError, KeyError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+    else:
+        env_vars.update({"TESTING_MODE": mode})
+
     result: TaskResult = run_test_task.enqueue(env_vars)
 
     task_id = str(result.id)
