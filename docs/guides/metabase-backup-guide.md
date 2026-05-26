@@ -11,7 +11,7 @@
 Далее выполните команду в терминале:
 
 ```bash
-docker exec os-image-testing-imgtests-metabase-db-1 pg_dump -U metabase -d metabase -F c -b -v > metabase_backup_$(date +%Y%m%d).dump
+docker exec os-image-testing-imgtests-metabase-meta-db-1 pg_dump -U metabase -d metabase -F c -b -v > metabase_backup_$(date +%Y%m%d).dump
 ```
 
 После выполнения этой команды в текущей директории создастся дамп БД metabase *(пр. metabase_backup_20260407.dump)*. Далее можно передать его другому разработчику. Также, не забудьте передать ему данные для входа на сайт.

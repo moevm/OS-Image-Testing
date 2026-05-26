@@ -67,3 +67,58 @@ To add a new utility, you need to update the [packages.conf](conf/packages.conf)
 * VMs parameters (Yocto and Suse paths, Yocto image)
 * QEMU parameters (RAM size)
 * Network parameters (IP addresses, ports, including SSH ports for VMs)
+
+```bash
+make docker-init-volumes
+```
+
+Runs QEMU in an assembled docker image.
+
+```bash
+make docker-run-image
+```
+
+To add a new utility, you need to update the local.conf and write the appropriate recipe, then add the paths to the recipe and dependent files for all called containers in the `Makefile`.
+
+### 3. View test results with Metabase
+#### 3.1 Start Metabase
+
+Runs PosgreSQL containers with tests data, Metabase metadata and Metabase service itself:
+```bash
+make docker-run-metabase
+```
+
+After start, Metabase will be accessable at `localhost:3001`
+
+#### 3.2 Import Metabase dashboard
+
+To view tests results, you need to import Metabase dashboard or make it from scratch.
+
+To import Metabase dashboard from `.dump` file:
+
+- Start all Metabase containers:
+```bash
+make docker-run-metabase
+```
+
+- Stop Metabase container with:
+```bash
+docker stop os-image-testing-imgtests-metabase-1
+```
+
+- Clear Metabase metadata:
+```bash
+docker exec -i os-image-testing-imgtests-metabase-meta-db-1 psql -U metabase -d postgres -c "DROP DATABASE metabase;"
+
+docker exec -i os-image-testing-imgtests-metabase-meta-db-1 psql -U metabase -d postgres -c "CREATE DATABASE metabase;"
+```
+
+- Import data from `.dump` file:
+```bash
+docker exec -i os-image-testing-imgtests-metabase-meta-db-1 pg_restore -U metabase -d metabase < your_dump_file.dump
+```
+
+- Start Metabase:
+```bash
+docker start os-image-testing-imgtests-metabase-1
+```
