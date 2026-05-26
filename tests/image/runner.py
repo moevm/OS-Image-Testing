@@ -27,8 +27,9 @@ from imgtests.suites.map import (
 )
 
 if TYPE_CHECKING:
-    from imgtests.exec.base_util import SSHClient
     from collections.abc import Iterable
+
+    from imgtests.exec.base_util import SSHClient
 
 
 Runners = Literal["default", "profiled"]
