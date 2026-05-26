@@ -121,44 +121,12 @@ def report_list(request: HttpRequest) -> HttpResponse:
     if not REPORTS_DIR.exists():
         return render(request, "tests_interface/reports_list.html", {"reports": reports})
     for report_dir in sorted(REPORTS_DIR.iterdir(), reverse=True):
-        if not report_dir.is_dir():
-            continue
-        html_files = list(report_dir.glob("*.html"))
-        for html_file in html_files:
-            created_time = html_file.stat().st_mtime
-
-            reports.append(
-                {
-                    "name": f"{report_dir.name} / {html_file.name}",
-                    "report_dir": report_dir.name,
-                    "filename": html_file.name,
-                    "created": created_time,
-                    "size": html_file.stat().st_size,
-                    "dir_name": report_dir.name,
-                    "file_name": html_file.name,
-                },
-            )
+        reports.extend(__find_reports(report_dir))
     profiled_dir = REPORTS_DIR / "profiled"
     if not profiled_dir.exists():
         return render(request, "tests_interface/reports_list.html", {"reports": reports})
     for report_dir in sorted(profiled_dir.iterdir(), reverse=True):
-        if not report_dir.is_dir():
-            continue
-        html_files = list(report_dir.glob("*.html"))
-        for html_file in html_files:
-            created_time = html_file.stat().st_mtime
-
-            reports.append(
-                {
-                    "name": f"{report_dir.name} / {html_file.name}",
-                    "report_dir": report_dir.name,
-                    "filename": html_file.name,
-                    "created": created_time,
-                    "size": html_file.stat().st_size,
-                    "dir_name": report_dir.name,
-                    "file_name": html_file.name,
-                },
-            )
+        reports.extend(__find_reports(report_dir))
 
     return render(request, "tests_interface/reports_list.html", {"reports": reports})
 
@@ -364,3 +332,21 @@ def api_get_distros(request: HttpRequest) -> JsonResponse:  # noqa: ARG001
         ),
     )
     return JsonResponse({"distributions": distributions})
+
+
+def __find_reports(reports_path: Path) -> list[dict[str, str | float]]:
+    if not reports_path.is_dir():
+        return []
+    html_files = list(reports_path.glob("*.html"))
+    return [
+        {
+            "name": f"{reports_path.name} / {html_file.name}",
+            "report_dir": reports_path.name,
+            "filename": html_file.name,
+            "created": html_file.stat().st_mtime,
+            "size": html_file.stat().st_size,
+            "dir_name": reports_path.name,
+            "file_name": html_file.name,
+        }
+        for html_file in html_files
+    ]
