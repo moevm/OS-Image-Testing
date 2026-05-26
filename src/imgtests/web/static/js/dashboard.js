@@ -36,19 +36,33 @@ function renderDistributions(distributions) {
         container.appendChild(link);
     });
 
-    const reportsLink = document.createElement("a");
-    reportsLink.href = "/reports/";
-    reportsLink.className = "platform-link";
-    reportsLink.style.textDecoration = "none";
-    reportsLink.innerHTML = `
+    const htmlReportsLink = document.createElement("a");
+    htmlReportsLink.href = "/reports/";
+    htmlReportsLink.className = "platform-link";
+    htmlReportsLink.style.textDecoration = "none";
+    htmlReportsLink.innerHTML = `
         <div class="link-content" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
             <div class="link-text">
-                <h2 style="color: white">View All Reports</h2>
-                <p style="color: rgba(255, 255, 255, 0.9)">Browse all generated test reports</p>
+                <h2 style="color: white">View All .html Reports</h2>
+                <p style="color: rgba(255, 255, 255, 0.9)">Browse all generated .html test reports</p>
             </div>
         </div>
     `;
-    container.appendChild(reportsLink);
+    const excelReportsLink = document.createElement("a");
+    excelReportsLink.href = "/excel-reports/";
+    excelReportsLink.className = "platform-link";
+    excelReportsLink.style.textDecoration = "none";
+    excelReportsLink.innerHTML = `
+        <div class="link-content" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+            <div class="link-text">
+                <h2 style="color: white">View All .xls Reports</h2>
+                <p style="color: rgba(255, 255, 255, 0.9)">Browse all exported .xls test reports</p>
+            </div>
+        </div>
+    `;
+
+    container.appendChild(htmlReportsLink);
+    container.appendChild(excelReportsLink);
 }
 
 function addDistro() {
