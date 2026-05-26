@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, Final, Literal
 from pydantic import Field
 from pydantic_settings import BaseSettings
 
-from imgtests.constant import CONFIG_DIR, LOG_PATH
+from imgtests.constant import CONFIG_DIR, LOG_PATH, REPORTS_DIR
 from imgtests.database.database import ImgtestsDatabase
 from imgtests.exec.exec import wait_remote
 from imgtests.exec.user_commands import Touch
@@ -184,7 +184,7 @@ def run_tests(distro: Distros) -> None:  # noqa: PLR0912, PLR0915, C901
         suse_client.close()
 
     report_generator = ReportGenerator(database)
-    report_generator.generate_last_two_experiments_report(out_dir=Path("results"))
+    report_generator.generate_last_two_experiments_report(out_dir=REPORTS_DIR)
 
     database.session.close_all()
 
