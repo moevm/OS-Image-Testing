@@ -14,7 +14,7 @@ from imgtests.types import Distro
 
 class QemuMonitorCreds(BaseSettings):
     host: str = Field(validation_alias="QEMU_MONITOR_ADDRESS")
-    port: int = Field(validation_alias="QEMU_MONITOR_PORT")
+    port: int = Field(validation_alias="QEMU_MONITOR_PORT", ge=0, le=65535)
 
 
 class SnapshotManager:
@@ -31,7 +31,7 @@ class SnapshotManager:
         qemu_monitor_creds = QemuMonitorCreds()
         os_id = get_os_release(self._client).id
         if os_id and os_id != Distro.POKY.value:
-            connector = ["nc", "-q", "0", qemu_monitor_creds.host, qemu_monitor_creds.port]
+            connector = ["nc", "-q", "0", qemu_monitor_creds.host, str(qemu_monitor_creds.port)]
         else:
             connector = ["socat", "-", f"TCP:{qemu_monitor_creds.host}:{qemu_monitor_creds.port}"]
         return common_run_command(

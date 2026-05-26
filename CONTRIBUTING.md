@@ -4,7 +4,12 @@ First of all, thank you for your desire to contribute in that project.
 
 ## Development environment
 
-You will need to install `make` in order to run Makefile targets and `uv` as a package manager for Python.
+You will need to install the following tools to work with the project:
+
+- **Python 3.11 or higher**: Required for project dependencies and scripts (uses tomllib module available since Python 3.11)
+- **Docker**: Required for building and running containers
+- **make**: Required to run Makefile targets
+- **uv**: Package manager and project manager for Python
 
 ### Installation on Ubuntu
 

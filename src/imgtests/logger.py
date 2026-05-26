@@ -8,6 +8,9 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 
+LogLevel = Literal["debug", "info", "warning", "error", "critical"]
+
+
 class StreamFormatter(logging.Formatter):
     def __init__(self: Self) -> None:
         self._level_fmt = "[%(levelname)s]"
@@ -23,7 +26,7 @@ class StreamFormatter(logging.Formatter):
 def set_handlers(
     logger: logging.Logger,
     filename: Path,
-    log_level: Literal["debug", "info", "warning", "error", "critical"] = "info",
+    log_level: LogLevel = "info",
 ) -> None:
     """Sets up logging handlers for the provided logger instance.
 
