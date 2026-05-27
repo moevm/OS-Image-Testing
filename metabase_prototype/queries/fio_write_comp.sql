@@ -5,7 +5,7 @@ SELECT
   experiment.type,
   experiment.started_at,
   sub.item ->> 'jobname' AS job_name,
-  (CASE 
+  (CASE
     WHEN {{metric}} = 'min' THEN NULLIF((sub.item -> 'write' -> 'lat_ns' ->> 'min')::float, 0)
     WHEN {{metric}} = 'max' THEN NULLIF((sub.item -> 'write' -> 'lat_ns' ->> 'max')::float, 0)
     WHEN {{metric}} = 'stddev' THEN NULLIF((sub.item -> 'write' -> 'lat_ns' ->> 'stddev')::float, 0)
@@ -36,7 +36,7 @@ SELECT
   experiment.type,
   experiment.started_at,
   sub.item ->> 'jobname' AS job_name,
-  (CASE 
+  (CASE
     WHEN {{metric}} = 'min' THEN NULLIF((sub.item -> 'write' -> 'lat_ns' ->> 'min')::float, 0)
     WHEN {{metric}} = 'max' THEN NULLIF((sub.item -> 'write' -> 'lat_ns' ->> 'max')::float, 0)
     WHEN {{metric}} = 'stddev' THEN NULLIF((sub.item -> 'write' -> 'lat_ns' ->> 'stddev')::float, 0)

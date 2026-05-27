@@ -3,7 +3,7 @@ SELECT
   configuration.os,
   configuration.core_info,
   (item ->> 'jobname') AS job_name,
-  (CASE 
+  (CASE
     WHEN {{metric}} = 'min' THEN NULLIF((item -> 'write' -> 'lat_ns' ->> 'min')::float, 0)
     WHEN {{metric}} = 'max' THEN NULLIF((item -> 'write' -> 'lat_ns' ->> 'max')::float, 0)
     WHEN {{metric}} = 'stddev' THEN NULLIF((item -> 'write' -> 'lat_ns' ->> 'stddev')::float, 0)
@@ -24,9 +24,9 @@ FROM
 WHERE
   1 = 1
   AND (item->>'jobname') LIKE '%write%'
-  [[ AND {{os}} ]] 
-  [[ AND {{core_info}} ]] 
-  [[ AND {{date_range}} ]] 
+  [[ AND {{os}} ]]
+  [[ AND {{core_info}} ]]
+  [[ AND {{date_range}} ]]
   [[ AND {{experiment_filter}} ]]
 ORDER BY
   job_name;
