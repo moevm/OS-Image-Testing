@@ -218,6 +218,7 @@ volumes:
   imgtests-postgres-data:
     external: true
   imgtests-analyzer-data:
+    external: true
   imgtests-metabase-meta-data:
     external: true
   imgtests-metabase-app:

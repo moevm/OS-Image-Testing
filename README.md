@@ -68,6 +68,9 @@ To add a new utility, you need to update the [packages.conf](conf/packages.conf)
 * QEMU parameters (RAM size)
 * Network parameters (IP addresses, ports, including SSH ports for VMs)
 
+### 4. View test results with Metabase
+#### 4.1 Start Metabase
+
 ```bash
 make docker-init-volumes
 ```
@@ -80,8 +83,6 @@ make docker-run-image
 
 To add a new utility, you need to update the local.conf and write the appropriate recipe, then add the paths to the recipe and dependent files for all called containers in the `Makefile`.
 
-### 3. View test results with Metabase
-#### 3.1 Start Metabase
 
 Runs PosgreSQL containers with test data, Metabase metadata and Metabase service itself:
 ```bash
@@ -90,7 +91,7 @@ make docker-run-metabase
 
 After start, Metabase will be accessible at `localhost:3001`
 
-#### 3.2 Import Metabase dashboard
+#### 4.2 Import Metabase dashboard
 
 To view test results, you need to import Metabase dashboard or make it from scratch.
 

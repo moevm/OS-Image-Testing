@@ -1,16 +1,5 @@
 include .env.dist
 
-USER                       := user
-S_USER                     := suser
-PASSWORD                   := password
-GROUP                      := yoctogroup
-POSTGRES_DB                := os-testing-db
-OS_IMAGE                   := core-image-minimal
-SUSE_VER                   ?= 15.6
-METABASE_META_DB_NAME	   := metabase
-METABASE_META_USER		   := metabase
-METABASE_META_PASS         := metabase
-
 LIB_NAME                   := imgtests
 # Docker
 DOCKER_PREFIX              := ${LIB_NAME}
@@ -45,29 +34,6 @@ endef
 
 PACKAGE_MGR                := uv
 PYTHON_REQUIRED_LIBS       := $(shell $(call get_python_required_libs))
-
-# Docker Network
-DOCKER_NETWORK             := yocto-network
-YOCTO_ADDRESS              := 10.5.0.10
-PYTHON_ADDRESS             := 10.5.0.11
-SUSE_ADDRESS_156           := 10.5.0.13
-BENCHER_API_ADDRESS        := 10.5.0.14
-BENCHER_CLI_ADDRESS        := 10.5.0.15
-POSTGRES_ADDRESS           := 10.5.0.20
-METABASE_ADDRESS		   := 10.5.0.30
-METABASE_META_DB_ADDRESS   := 10.5.0.31
-SUBNET                     := 10.5.0.0/24
-GATEWAY                    := 10.5.0.1
-SSH_QEMU_PORT              ?= 2222
-SSH_SUSE_PORT_156          := 1616
-BENCHER_API_PORT           := 61016
-BENCHER_CLI_PORT           := 3000
-SSH_POSTGRES_PORT          := 5432
-METABASE_PORT			   := 3001
-
-SSH_QEMU_USER              ?= root
-
-# Library
 PYTHONDONTWRITEBYTECODE    := 1
 PY_LIB_NAME                := $(shell grep -Po 'name\s*=\s*"\K(\w+)' pyproject.toml)
 
@@ -93,39 +59,6 @@ docker: ensure-python-dependencies init-submodule
 		--build-arg POKY_DIR="${POKY_DIR}" \
 		--file docker/image_builder.dockerfile .
 
-.PHONY: docker-init-volumes
-docker-init-volumes: ensure-volumes
-	docker run -it --rm \
-		--env BUILD_DIR=${BUILD_DIR} \
-		--env POKY_DIR=${POKY_DIR} \
-		--env USER=${USER} \
-		--env GROUP=${GROUP} \
-		--volume ${DOCKER_BUILD_VOLUME}:${BUILD_DIR} \
-		--volume ${DOCKER_DOWNLOADS_VOLUME}:${POKY_DIR}/downloads \
-		--volume ${DOCKER_SSTATE_VOLUME}:${POKY_DIR}/sstate-cache \
-		--volume "${HOST_CONF_PATH}/local.conf:${BUILD_DIR}/conf/local.conf" \
-		--volume "${HOST_CONF_PATH}/packages.conf:${BUILD_DIR}/conf/packages.conf" \
-		--volume "${HOST_LAYERS_PATH}/meta-image-tests:${POKY_DIR}/meta-image-tests" \
-		--volume "${HOST_SCRIPTS_PATH}/add-layers.sh:${POKY_DIR}/add-layers.sh" \
-		${DOCKER_TAG} \
-		bash -c "cd .. && ./add-layers.sh && bitbake ${OS_IMAGE}"
-
-.PHONY: docker-run-image
-docker-run-image: docker-init-volumes
-	docker run -it --rm \
-		--env BUILD_DIR=${BUILD_DIR} \
-		--env POKY_DIR=${POKY_DIR} \
-		--env USER=${USER} \
-		--env GROUP=${GROUP} \
-		--volume ${DOCKER_BUILD_VOLUME}:${BUILD_DIR} \
-		--volume ${DOCKER_DOWNLOADS_VOLUME}:${POKY_DIR}/downloads \
-		--volume ${DOCKER_SSTATE_VOLUME}:${POKY_DIR}/sstate-cache \
-		--volume "${HOST_CONF_PATH}/local.conf:${BUILD_DIR}/conf/local.conf" \
-		--volume "${HOST_CONF_PATH}/packages.conf:${BUILD_DIR}/conf/packages.conf" \
-		--volume "${HOST_LAYERS_PATH}/meta-image-tests:${POKY_DIR}/meta-image-tests" \
-		${DOCKER_TAG} \
-		runqemu qemux86-64 slirp nographic
-
 .PHONY: docker-run-metabase
 docker-run-metabase: ensure-volumes
 	docker compose --file docker/compose.yml --project-directory ./ up --detach imgtests-postgres imgtests-metabase-meta-db imgtests-metabase
@@ -141,6 +74,7 @@ docker-compose-down:
 .PHONY: ensure-volumes
 ensure-volumes: docker
 	@for volume in ${DOCKER_OPENSUSE_VOLUME} ${BENCHER_API_CONF_VOLUME} ${BENCHER_API_DB_VOLUME} ${METABASE_META_VOLUME} ${METABASE_APP_VOLUME}; do \
+	                ${BENCHER_API_LOGS_VOLUME} ${VMETRICS_DATA_VOLUME} ${DOCKER_POSTGRES_VOLUME}; do \
 		if ! docker volume inspect $$volume > /dev/null 2>&1; then \
 			docker volume create $$volume; \
 		fi \
