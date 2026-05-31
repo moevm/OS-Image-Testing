@@ -503,11 +503,17 @@ class ReportGenerator:
         start_time = start_time.astimezone(UTC).isoformat().replace("+00:00", "Z")
         end_time = end_time.astimezone(UTC).isoformat().replace("+00:00", "Z")
         for interval in (1, 5, 15):
-            query_url = (
-                f"http://{vmetrics_creds.host}:{vmetrics_creds.port}/api/v1/query_range"
-                f'?query=node_load{interval}{{job="{job_name}"}}'
-                f"&start={start_time}&end={end_time}&step=1m"
-            )
+            if not job_name:
+                query_url = (
+                    f"http://{vmetrics_creds.host}:{vmetrics_creds.port}/api/v1/query_range"
+                    f"?query=node_load{interval}&start={start_time}&end={end_time}&step=1m"
+                )
+            else:
+                query_url = (
+                    f"http://{vmetrics_creds.host}:{vmetrics_creds.port}/api/v1/query_range"
+                    f'?query=node_load{interval}{{job="{job_name}"}}'
+                    f"&start={start_time}&end={end_time}&step=1m"
+                )
             result = common_run_command(["curl", "--globoff", query_url])
             if result.returncode:
                 return
