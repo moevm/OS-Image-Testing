@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, Final, Literal
 from pydantic import Field
 from pydantic_settings import BaseSettings
 
-from imgtests.constant import CONFIG_DIR, LOG_PATH
+from imgtests.constant import CONFIG_DIR, LOG_PATH, REPORTS_DIR
 from imgtests.database.database import ImgtestsDatabase
 from imgtests.exec.exec import wait_remote
 from imgtests.exec.user_commands import Touch
@@ -29,7 +29,10 @@ from imgtests.suites.map import (
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
+    from imgtests.exec.base_util import SSHClient
 
+
+Runners = Literal["default", "profiled"]
 Distros = Literal["all", "yocto", "opensuse"]
 YOCTO_CONF: Final = (
     "SSH_YOCTO_ADDR",
@@ -99,7 +102,16 @@ def filter_tests_by_names(
     return filtered_tests
 
 
-def run_tests(distro: Distros) -> None:  # noqa: PLR0912, PLR0915, C901
+def run_profiled(client: SSHClient, database: ImgtestsDatabase):
+    client.reconnect()
+    ProfiledPlanRunner(
+        client=client,
+        database=database,
+    ).run_from_env()
+    client.close()
+
+
+def run_tests(distro: Distros, mode: Runners) -> None:  # noqa: PLR0912, PLR0915, C901
     logger.info("Running tests for %s", distro)
     config = load_test_config(distro)
     logger.info("Using suites: %s", config.get("suites", []))
@@ -160,31 +172,27 @@ def run_tests(distro: Distros) -> None:  # noqa: PLR0912, PLR0915, C901
         distros_to_test.append(suse_client)
     if poky_client:
         distros_to_test.append(poky_client)
+
     database = ImgtestsDatabase()
-    for suite in suites_to_run:
-        logger.info("Running suite %s", suite.description)
-        for client in distros_to_test:
-            client.reconnect()
-            runner = TestsRunner(client, database, suite)
-            runner.run()
-            runner.close()
-    if poky_client:
-        poky_client.reconnect()
-        ProfiledPlanRunner(
-            client=poky_client,
-            database=database,
-        ).run_from_env()
-        poky_client.close()
-    if suse_client:
-        suse_client.reconnect()
-        ProfiledPlanRunner(
-            client=suse_client,
-            database=database,
-        ).run_from_env()
-        suse_client.close()
+
+    # testing mode differentiation
+    logger.info("Current tesing mode is %s", mode)
+    if mode == "default":
+        for suite in suites_to_run:
+            logger.info("Running suite %s", suite.description)
+            for client in distros_to_test:
+                client.reconnect()
+                runner = TestsRunner(client, database, suite)
+                runner.run()
+                runner.close()
+    if mode == "profiled":
+        if poky_client:
+            run_profiled(poky_client, database)
+        if suse_client:
+            run_profiled(suse_client, database)
 
     report_generator = ReportGenerator(database)
-    report_generator.generate_last_two_experiments_report(out_dir=Path("results"))
+    report_generator.generate_last_two_experiments_report(out_dir=REPORTS_DIR)
 
     database.session.close_all()
 
@@ -192,6 +200,7 @@ def run_tests(distro: Distros) -> None:  # noqa: PLR0912, PLR0915, C901
 class TestsConfig(BaseSettings):
     distro: Distros = Field(validation_alias="TESTED_DISTRO", default="all")
     test_runs_count: int = Field(validation_alias="TEST_RUNS_COUNT", ge=1, default=1)
+    runner: Runners = Field(validation_alias="TESTING_MODE", default="default")
 
 
 def main() -> None:
@@ -199,7 +208,7 @@ def main() -> None:
     test_config = TestsConfig()
     for i in range(test_config.test_runs_count):
         logger.info("Starting test run %d of %d", i + 1, test_config.test_runs_count)
-        run_tests(test_config.distro)
+        run_tests(test_config.distro, test_config.runner)
         logger.info("Completed test run %d of %d", i + 1, test_config.test_runs_count)
 
 

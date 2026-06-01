@@ -12,7 +12,7 @@ import paramiko.ssh_exception
 from pydantic import Field
 from pydantic_settings import BaseSettings
 
-from imgtests.constant import LIB_NAME, QEMU
+from imgtests.constant import LIB_NAME, QEMU, REPORTS_DIR
 from imgtests.exec.exec import SSHClient, Verbosity, common_run_command
 from imgtests.exec.observers.journalctl import Journalctl
 from imgtests.exec.observers.systemctl import Systemctl
@@ -82,7 +82,7 @@ class TestsRunnerConfig:
 class ProfiledPlanRunnerSettings(BaseSettings):
     subsystems: str = Field(default="all", validation_alias="PLAN_SUBSYSTEMS")
     results_dir: Path = Field(
-        default=Path("results/profiled"),
+        default=Path(REPORTS_DIR / "profiled"),
         validation_alias="PLAN_RESULTS_DIR",
     )
     pattern: str = Field(default="", validation_alias="PLAN_PATTERN")

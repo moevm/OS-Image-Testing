@@ -11,7 +11,7 @@ LIB_DATA_DIR: Final = Path.home() / LIB_NAME
 LOG_PATH: Final = LIB_DATA_DIR / "processing.log"
 CONFIG_DIR: Final = LIB_DATA_DIR / "test_configs"
 CONFIG_FILE: Final = LIB_DATA_DIR / "user_distros.json"
-REPORTS_DIR: Final = LIB_DATA_DIR / "results/profiled"
+REPORTS_DIR: Final = LIB_DATA_DIR / "results"
 
 SSH_CLIENT_MISSING_RESULT: Final = TestResult(
     status=TestStatus.BROKEN,
