@@ -45,6 +45,9 @@ SYSTEM_ERROR_DESCRIPTIONS: Final = {
     "systemd errors records",
 }
 
+YOCTO_JOB: Final = "yocto-node"
+SUSE_JOB: Final = "suse-156-node"
+
 
 class VMetricsCreds(BaseSettings):
     host: str = Field(validation_alias="VMETRICS_ADDRESS")
@@ -160,7 +163,13 @@ class ReportGenerator:
         for i in range(len(exps_data)):
             exp_data = exps_data[i]
             metrics = self._extract_metrics_from_experiment(exp_data)
-            self.add_load_average_metrics(metrics, exp_data.started_at, exp_data.ended_at)
+            job_name = (
+                YOCTO_JOB
+                if "poky" in exp_data.configuration.os.lower()
+                or "yocto" in exp_data.configuration.os.lower()
+                else SUSE_JOB
+            )
+            self.add_load_average_metrics(metrics, exp_data.started_at, exp_data.ended_at, job_name)
             report_data.append(
                 {
                     "header": {
@@ -405,13 +414,19 @@ class ReportGenerator:
         plan: TestPlan,
         execution: PlanExecutionResult,
         out_dir: Path,
+        job_name: str | None,
     ) -> Path:
         out_dir.mkdir(parents=True, exist_ok=True)
         plots_dir = out_dir / PLOTS_DIR
         plots_dir.mkdir(parents=True, exist_ok=True)
 
         metrics = list(execution.metrics)
-        ReportGenerator.add_load_average_metrics(metrics, execution.started_at, execution.ended_at)
+        ReportGenerator.add_load_average_metrics(
+            metrics,
+            execution.started_at,
+            execution.ended_at,
+            job_name,
+        )
 
         report_data = {
             "header": {
@@ -482,16 +497,24 @@ class ReportGenerator:
         metrics: list[MetricSample],
         start_time: datetime,
         end_time: datetime,
+        job_name: str | None,
     ) -> None:
         vmetrics_creds = VMetricsCreds()
         start_time = start_time.astimezone(UTC).isoformat().replace("+00:00", "Z")
         end_time = end_time.astimezone(UTC).isoformat().replace("+00:00", "Z")
         for interval in (1, 5, 15):
-            query_url = (
-                f"http://{vmetrics_creds.host}:{vmetrics_creds.port}/api/v1/query_range"
-                f"?query=node_load{interval}&start={start_time}&end={end_time}&step=1m"
-            )
-            result = common_run_command(["curl", query_url])
+            if not job_name:
+                query_url = (
+                    f"http://{vmetrics_creds.host}:{vmetrics_creds.port}/api/v1/query_range"
+                    f"?query=node_load{interval}&start={start_time}&end={end_time}&step=1m"
+                )
+            else:
+                query_url = (
+                    f"http://{vmetrics_creds.host}:{vmetrics_creds.port}/api/v1/query_range"
+                    f'?query=node_load{interval}{{job="{job_name}"}}'
+                    f"&start={start_time}&end={end_time}&step=1m"
+                )
+            result = common_run_command(["curl", "--globoff", query_url])
             if result.returncode:
                 return
 
