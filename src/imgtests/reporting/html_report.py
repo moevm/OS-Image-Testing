@@ -290,14 +290,13 @@ class ReportGenerator:
             result = util_run_result.result
 
             if util_run_result.description in SYSTEM_ERROR_DESCRIPTIONS:
-                if result == []:
-                    result = 0.0
+                value = float(len(result)) if isinstance(result, list) else float(result)
                 metrics.append(
                     MetricSample(
                         stage_name="system-errors",
                         subsystem="system",
                         metric_name=util_run_result.description,
-                        value=float(result),
+                        value=value,
                         label=util_run_result.description,
                     ),
                 )
