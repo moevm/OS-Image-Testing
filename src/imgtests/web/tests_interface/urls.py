@@ -8,7 +8,7 @@ urlpatterns = [
     path("test-status/<str:task_id>/", views.get_test_status, name="test_status"),
     path("reports/", views.report_list, name="report_list"),
     re_path(
-        r"^reports/view/(?P<report_dir>[^/]+)/(?P<filename>.+\.html)$",
+        r"^reports/view/(?P<report_dir>.+)/(?P<filename>[^/]+\.html)$",
         views.view_report,
         name="view_report",
     ),
