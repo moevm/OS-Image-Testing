@@ -2,15 +2,15 @@ from typing import Any, Final
 
 from django.tasks import task
 
-from imgtests.runner import run_tests
+from imgtests.runner import Distros, Runners, run_tests
 
 DEFAULT_TASK_TIMEOUT_SEC: Final = 3600
 
 
 @task()
 def run_test_task(
-    distro: str = "all",
-    mode: str = "default",
+    distro: Distros = "all",
+    mode: Runners = "default",
     test_runs_count: int = 1,
     config: dict[str, Any] | None = None,
 ) -> dict[str, str | int]:
