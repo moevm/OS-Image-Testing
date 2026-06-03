@@ -131,7 +131,8 @@ def report_list(request: HttpRequest) -> HttpResponse:
 
 
 def view_report(request: HttpRequest, report_dir: str, filename: str) -> HttpResponse:  # noqa: ARG001
-    report_file = REPORTS_DIR / report_dir / filename
+    report_path = __safe_relative_path(report_dir, filename)
+    report_file = REPORTS_DIR / report_path
 
     if not report_file.exists() or not report_file.is_file():
         e = f"Report not found: {report_dir}/{filename}"
@@ -143,7 +144,7 @@ def view_report(request: HttpRequest, report_dir: str, filename: str) -> HttpRes
 
         content_str = content_str.replace(
             'src="plots/',
-            f'src="/reports/static/{report_dir}/plots/',
+            f'src="/reports/static/{report_path.parent.as_posix()}/plots/',
         )
 
         content_bytes = content_str.encode("utf-8")
@@ -154,7 +155,8 @@ def view_report(request: HttpRequest, report_dir: str, filename: str) -> HttpRes
 
 
 def report_static_files(request: HttpRequest, report_dir: str, file_path: str) -> HttpResponse:  # noqa: ARG001
-    static_file = REPORTS_DIR / report_dir / file_path
+    static_path = __safe_relative_path(report_dir, file_path)
+    static_file = REPORTS_DIR / static_path
 
     if not static_file.exists() or not static_file.is_file():
         e = f"Static file not found: {report_dir}/{file_path}"
@@ -338,15 +340,24 @@ def __find_reports(reports_path: Path) -> list[dict[str, str | float]]:
     if not reports_path.is_dir():
         return []
     html_files = list(reports_path.glob("*.html"))
+    report_dir = reports_path.relative_to(REPORTS_DIR).as_posix()
     return [
         {
-            "name": f"{reports_path.name} / {html_file.name}",
-            "report_dir": reports_path.name,
+            "name": f"{report_dir} / {html_file.name}",
+            "report_dir": report_dir,
             "filename": html_file.name,
             "created": html_file.stat().st_mtime,
             "size": html_file.stat().st_size,
-            "dir_name": reports_path.name,
+            "dir_name": report_dir,
             "file_name": html_file.name,
         }
         for html_file in html_files
     ]
+
+
+def __safe_relative_path(*parts: str) -> Path:
+    relative_path = Path(*parts)
+    if relative_path.is_absolute() or ".." in relative_path.parts:
+        e = "Invalid report path"
+        raise Http404(e)
+    return relative_path
