@@ -1,5 +1,4 @@
 import json
-import os
 import re
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -13,7 +12,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
 from imgtests.constant import CONFIG_DIR, REPORTS_DIR
-from imgtests.suites.map import ALL_SUITES, get_test_name
+from imgtests.runner import get_test_name
+from imgtests.suites.map import ALL_SUITES
 
 from .models import Distribution
 from .tasks import run_test_task
@@ -196,27 +196,21 @@ def run_tests(request: HttpRequest) -> JsonResponse:
         try:
             body = json.loads(request.body)
         except json.JSONDecodeError, AttributeError:
-            test_runs_count = 1
-        else:
-            test_runs_count = body.get("test_runs_count", 1)
-        env_req = {
-            "TESTED_DISTRO": distro.name,
-            "TEST_RUNS_COUNT": str(test_runs_count),
-        }
+            body = {}
+        test_runs_count = body.get("test_runs_count", 1)
     else:
-        env_req = {"TESTED_DISTRO": "None"}
-
-    env_vars = os.environ.copy()
-    env_vars.update(env_req)
+        return JsonResponse({"error": "Invalid referer"}, status=400)
 
     try:
-        mode = json.loads(request.body)["TESTING_MODE"]
-    except json.JSONDecodeError, KeyError:
+        mode = body.get("TESTING_MODE", "default")
+    except AttributeError:
         return JsonResponse({"error": "Invalid JSON"}, status=400)
-    else:
-        env_vars.update({"TESTING_MODE": mode})
 
-    result: TaskResult = run_test_task.enqueue(env_vars)
+    result: TaskResult = run_test_task.enqueue(
+        distro=distro.name,
+        mode=mode,
+        test_runs_count=test_runs_count,
+    )
 
     task_id = str(result.id)
     test_runs[task_id] = {

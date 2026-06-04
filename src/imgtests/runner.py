@@ -1,22 +1,26 @@
 from __future__ import annotations
 
+import json
 import logging
+import sys
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 from pathlib import Path
 from threading import Event, Thread
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, Final, Literal
 
 import paramiko
 import paramiko.ssh_exception
 from pydantic import Field
 from pydantic_settings import BaseSettings
 
-from imgtests.constant import LIB_NAME, QEMU, REPORTS_DIR
-from imgtests.exec.exec import SSHClient, Verbosity, common_run_command
+from imgtests.constant import CONFIG_DIR, LIB_NAME, QEMU, REPORTS_DIR
+from imgtests.database.database import ImgtestsDatabase
+from imgtests.exec.exec import SSHClient, Verbosity, common_run_command, wait_remote
 from imgtests.exec.observers.journalctl import Journalctl
 from imgtests.exec.observers.systemctl import Systemctl
 from imgtests.exec.observers.systemd_detect_virt import SystemdDetectVirt
+from imgtests.exec.user_commands import Touch
 from imgtests.planning import (
     AbstractRunnableManyTimesTest,
     AbstractRunnableTimeLimitedTest,
@@ -33,10 +37,28 @@ from imgtests.types import MetricSample, Subsystem, TestsCounts, TestStatus
 if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
 
-    from imgtests.database.database import ImgtestsDatabase
     from imgtests.database.models.experiment import ExperimentBase, ExperimentType
     from imgtests.exec.base_util import BaseTestUtil
     from imgtests.planning import LoadPattern
+
+
+Runner = Literal["default", "profiled"]
+Distro = Literal["all", "yocto", "opensuse"]
+
+YOCTO_CONF: Final = (
+    "SSH_YOCTO_ADDR",
+    "SSH_YOCTO_USER",
+    "SSH_YOCTO_PASS",
+    "SSH_YOCTO_PORT",
+)
+SUSE_156_CONF: Final = (
+    "SSH_SUSE_ADDR_156",
+    "SSH_SUSE_USER",
+    "SSH_SUSE_PASS",
+    "SSH_SUSE_PORT_156",
+)
+
+logger = logging.getLogger()
 
 
 # Subsystems, stages (plan, risk analysis, run, cleanup, results, etc), etc
@@ -615,3 +637,179 @@ class ProfiledPlanRunner(BaseRunner):
             allowed = ", ".join(item.value for item in LoadPattern)
             msg = f"Unknown pattern '{raw}'. Allowed: {allowed}"
             raise ValueError(msg) from exc
+
+
+def load_test_config(distro: str) -> dict[str, Any]:
+    config_file = CONFIG_DIR / f"{distro}_config.json"
+    if config_file.exists():
+        try:
+            with Path.open(config_file, "r") as f:
+                config = json.load(f)
+        except Exception as e:  # noqa: BLE001
+            logger.warning("Failed to load config: %s, using default", e)
+        else:
+            logger.info("Loaded custom config for %s", distro)
+            return config
+
+    return {
+        "suites": [
+            "FILE_SUITE",
+            "MEMORY_SUITE",
+            "SYSCALLS_SUITE",
+            "IPC_SUITE",
+            "NETWORK_SUITE",
+        ],
+        "suite_durations": {},
+        "selected_tests": {},
+    }
+
+
+def filter_tests_by_names(
+    suite: TestsRunnerConfig,
+    selected_test_names: list[str],
+) -> Iterable[AbstractRunnableManyTimesTest | type[AbstractRunnableTimeLimitedTest]]:
+    if not selected_test_names:
+        return suite.tests
+
+    original_tests = suite.tests
+    filtered_tests: list[AbstractRunnableManyTimesTest | type[AbstractRunnableTimeLimitedTest]] = []
+
+    for test in original_tests:
+        test_name = get_test_name(test)
+
+        if test_name in selected_test_names:
+            filtered_tests.append(test)
+
+    filtered_count = len(filtered_tests)
+
+    if filtered_count == 0:
+        logger.warning("No tests matched for %s, using all tests", suite.description)
+        return original_tests
+
+    return filtered_tests
+
+
+def run_profiled(client: SSHClient, database: ImgtestsDatabase) -> None:
+    client.reconnect()
+    ProfiledPlanRunner(
+        client=client,
+        database=database,
+    ).run_from_env()
+    client.close()
+
+
+def _get_clients(distro: str) -> tuple[SSHClient | None, SSHClient | None]:
+    suse_client = None
+    poky_client = None
+    if distro in ("yocto", "all"):
+        poky_client = wait_remote(*YOCTO_CONF) or sys.exit(1)
+    if distro in ("opensuse", "all"):
+        suse_client = wait_remote(*SUSE_156_CONF) or sys.exit(1)
+        Touch(suse_client, use_sudo=True)(["/etc/cloud/cloud-init.disabled"])
+    return suse_client, poky_client
+
+
+def _run_single(distro: Distro, mode: Runner, config: dict[str, Any]) -> None:  # noqa: PLR0912, PLR0915, C901
+    from imgtests.reporting.html_report import ReportGenerator  # noqa: PLC0415
+    from imgtests.suites.map import (  # noqa: PLC0415
+        ALL_SUBSYSTEMS_SUITE,
+        ALL_SUITES,
+    )
+
+    logger.info("Running tests for %s", distro)
+    logger.info("Using suites: %s", config.get("suites", []))
+    suites_to_run = []
+    for suite_name in config.get("suites", []):
+        if suite_name in ALL_SUITES:
+            suite = ALL_SUITES[suite_name]
+            suite_durations = config.get("suite_durations", {})
+            if suite_name in suite_durations:
+                original_duration = suite.total_duration
+                suite.total_duration = suite_durations[suite_name]
+                logger.info(
+                    "Overriding %s duration: %d -> %ds",
+                    suite_name,
+                    original_duration,
+                    suite.total_duration,
+                )
+
+            selected_tests = config.get("selected_tests", {}).get(suite_name)
+            if selected_tests and len(selected_tests) > 0:
+                original_tests = suite.tests
+                filtered_tests = []
+                for test in original_tests:
+                    test_name = get_test_name(test)
+                    if test_name in selected_tests:
+                        filtered_tests.append(test)
+
+                if filtered_tests:
+                    suite.tests = tuple(filtered_tests)
+                    logger.info(
+                        "Filtered %s: %d -> %d tests",
+                        suite_name,
+                        len(original_tests),
+                        len(filtered_tests),
+                    )
+                    logger.info("Selected tests: %s", selected_tests)
+                else:
+                    logger.warning("No matching tests found for %s, using all tests", suite_name)
+
+            suites_to_run.append(suite)
+        else:
+            logger.warning("Suite %s not found, skipping", suite_name)
+
+    if not suites_to_run:
+        logger.warning("No suites configured, running default ALL_SUBSYSTEMS_SUITE")
+        suites_to_run = [ALL_SUBSYSTEMS_SUITE]
+
+    suse_client, poky_client = _get_clients(distro)
+    distros_to_test: list[SSHClient] = []
+    if suse_client:
+        distros_to_test.append(suse_client)
+    if poky_client:
+        distros_to_test.append(poky_client)
+
+    database = ImgtestsDatabase()
+    logger.info("Current testing mode is %s", mode)
+    if mode == "default":
+        for suite in suites_to_run:
+            logger.info("Running suite %s", suite.description)
+            for client in distros_to_test:
+                client.reconnect()
+                runner = TestsRunner(client, database, suite)
+                runner.run()
+                runner.close()
+    if mode == "profiled":
+        if poky_client:
+            run_profiled(poky_client, database)
+        if suse_client:
+            run_profiled(suse_client, database)
+
+    report_generator = ReportGenerator(database)
+    report_generator.generate_last_two_experiments_report(out_dir=REPORTS_DIR)
+
+    database.session.close_all()
+
+
+def run_tests(
+    distro: Distro = "all",
+    mode: Runner = "default",
+    test_runs_count: int = 1,
+    config: dict[str, Any] | None = None,
+) -> None:
+    if config is None:
+        config = load_test_config(distro)
+    for i in range(test_runs_count):
+        logger.info("Starting test run %d of %d", i + 1, test_runs_count)
+        _run_single(distro, mode, config)
+        logger.info("Completed test run %d of %d", i + 1, test_runs_count)
+
+
+def get_test_name(
+    test: AbstractRunnableManyTimesTest | type[AbstractRunnableTimeLimitedTest],
+) -> str:
+    if hasattr(test, "__name__"):
+        return test.__name__
+    if hasattr(test, "__class__"):
+        return test.__class__.__name__
+    return str(test)
