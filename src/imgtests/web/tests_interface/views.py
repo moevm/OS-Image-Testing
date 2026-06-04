@@ -12,7 +12,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
 from imgtests.constant import CONFIG_DIR, REPORTS_DIR
-from imgtests.suites.map import ALL_SUITES, get_test_name
+from imgtests.runner import get_test_name
+from imgtests.suites.map import ALL_SUITES
 
 from .models import Distribution
 from .tasks import run_test_task

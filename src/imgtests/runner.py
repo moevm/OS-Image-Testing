@@ -668,8 +668,6 @@ def filter_tests_by_names(
     suite: TestsRunnerConfig,
     selected_test_names: list[str],
 ) -> Iterable[AbstractRunnableManyTimesTest | type[AbstractRunnableTimeLimitedTest]]:
-    from imgtests.suites.map import get_test_name  # noqa: PLC0415
-
     if not selected_test_names:
         return suite.tests
 
@@ -716,7 +714,6 @@ def _run_single(distro: Distro, mode: Runner, config: dict[str, Any]) -> None:  
     from imgtests.suites.map import (  # noqa: PLC0415
         ALL_SUBSYSTEMS_SUITE,
         ALL_SUITES,
-        get_test_name,
     )
 
     logger.info("Running tests for %s", distro)
@@ -766,14 +763,13 @@ def _run_single(distro: Distro, mode: Runner, config: dict[str, Any]) -> None:  
         suites_to_run = [ALL_SUBSYSTEMS_SUITE]
 
     suse_client, poky_client = _get_clients(distro)
-    distros_to_test = []
+    distros_to_test: list[SSHClient] = []
     if suse_client:
         distros_to_test.append(suse_client)
     if poky_client:
         distros_to_test.append(poky_client)
 
     database = ImgtestsDatabase()
-
     logger.info("Current testing mode is %s", mode)
     if mode == "default":
         for suite in suites_to_run:
@@ -807,3 +803,13 @@ def run_tests(
         logger.info("Starting test run %d of %d", i + 1, test_runs_count)
         _run_single(distro, mode, config)
         logger.info("Completed test run %d of %d", i + 1, test_runs_count)
+
+
+def get_test_name(
+    test: AbstractRunnableManyTimesTest | type[AbstractRunnableTimeLimitedTest],
+) -> str:
+    if hasattr(test, "__name__"):
+        return test.__name__
+    if hasattr(test, "__class__"):
+        return test.__class__.__name__
+    return str(test)
