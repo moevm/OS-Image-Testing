@@ -42,6 +42,25 @@ if TYPE_CHECKING:
     from imgtests.planning import LoadPattern
 
 
+Runner = Literal["default", "profiled"]
+Distro = Literal["all", "yocto", "opensuse"]
+
+YOCTO_CONF: Final = (
+    "SSH_YOCTO_ADDR",
+    "SSH_YOCTO_USER",
+    "SSH_YOCTO_PASS",
+    "SSH_YOCTO_PORT",
+)
+SUSE_156_CONF: Final = (
+    "SSH_SUSE_ADDR_156",
+    "SSH_SUSE_USER",
+    "SSH_SUSE_PASS",
+    "SSH_SUSE_PORT_156",
+)
+
+logger = logging.getLogger()
+
+
 # Subsystems, stages (plan, risk analysis, run, cleanup, results, etc), etc
 class TestsRunnerConfig:
     __slots__ = (
@@ -620,25 +639,6 @@ class ProfiledPlanRunner(BaseRunner):
             raise ValueError(msg) from exc
 
 
-Runners = Literal["default", "profiled"]
-Distros = Literal["all", "yocto", "opensuse"]
-
-YOCTO_CONF: Final = (
-    "SSH_YOCTO_ADDR",
-    "SSH_YOCTO_USER",
-    "SSH_YOCTO_PASS",
-    "SSH_YOCTO_PORT",
-)
-SUSE_156_CONF: Final = (
-    "SSH_SUSE_ADDR_156",
-    "SSH_SUSE_USER",
-    "SSH_SUSE_PASS",
-    "SSH_SUSE_PORT_156",
-)
-
-logger = logging.getLogger()
-
-
 def load_test_config(distro: str) -> dict[str, Any]:
     config_file = CONFIG_DIR / f"{distro}_config.json"
     if config_file.exists():
@@ -711,7 +711,7 @@ def _get_clients(distro: str) -> tuple[SSHClient | None, SSHClient | None]:
     return suse_client, poky_client
 
 
-def _run_single(distro: Distros, mode: Runners, config: dict[str, Any]) -> None:  # noqa: PLR0912, PLR0915, C901
+def _run_single(distro: Distro, mode: Runner, config: dict[str, Any]) -> None:  # noqa: PLR0912, PLR0915, C901
     from imgtests.reporting.html_report import ReportGenerator  # noqa: PLC0415
     from imgtests.suites.map import (  # noqa: PLC0415
         ALL_SUBSYSTEMS_SUITE,
@@ -796,8 +796,8 @@ def _run_single(distro: Distros, mode: Runners, config: dict[str, Any]) -> None:
 
 
 def run_tests(
-    distro: Distros = "all",
-    mode: Runners = "default",
+    distro: Distro = "all",
+    mode: Runner = "default",
     test_runs_count: int = 1,
     config: dict[str, Any] | None = None,
 ) -> None:
