@@ -89,7 +89,7 @@ Runs PosgreSQL containers with test data, Metabase metadata and Metabase service
 make docker-run-metabase
 ```
 
-After start, Metabase will be accessible at `localhost:3001`
+After start, Metabase will be accessible at `localhost:3000`
 
 #### 4.2 Import Metabase dashboard
 
