@@ -16,6 +16,11 @@ from sqlalchemy.orm import Session
 from imgtests.database.models.configuration import ConfigurationBase
 from imgtests.database.models.experiment import ExperimentBase
 from imgtests.database.models.util_run_result import UtilRunResult
+from imgtests.reporting.distro_comparison_export import (
+    DistroComparisonExportOptions,
+    add_distro_comparison_arguments,
+    export_distro_comparison_to_excel,
+)
 from imgtests.types import Distro
 
 if TYPE_CHECKING:
@@ -24,7 +29,8 @@ if TYPE_CHECKING:
 TABLES: Final = ("experiment", "util_run_result")
 logger = logging.getLogger(__name__)
 CONFIGURATION_SHEET: Final = "configuration"
-
+DATABASE_COMMAND: Final = "database"
+DISTRO_COMPARISON_COMMAND: Final = "distro-comparison"
 DISTRIBUTIONS: Final[dict[str, dict[str, int | str]]] = {
     "poky": {
         "configuration_id": 1,
@@ -83,12 +89,30 @@ COLUMN_PART_REPLACEMENTS: Final = {
 }
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description=(
-            "Export imgtests database tables to an XLSX workbook with flattened JSON fields."
-        ),
+        description="Export imgtests database data and report comparisons to XLSX workbooks.",
     )
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    database_parser = subparsers.add_parser(
+        DATABASE_COMMAND,
+        help="export database tables to an XLSX workbook",
+    )
+    add_database_arguments(database_parser)
+    database_parser.set_defaults(command=DATABASE_COMMAND)
+
+    distro_comparison_parser = subparsers.add_parser(
+        DISTRO_COMPARISON_COMMAND,
+        help="build Poky/SUSE comparison tables and charts from an exported report.xlsx",
+    )
+    add_distro_comparison_arguments(distro_comparison_parser)
+    distro_comparison_parser.set_defaults(command=DISTRO_COMPARISON_COMMAND)
+
+    return parser.parse_args(argv)
+
+
+def add_database_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "output",
         type=Path,
@@ -106,7 +130,6 @@ def parse_args() -> argparse.Namespace:
         default=list(TABLES),
         help="Tables to export. Defaults to all project result tables.",
     )
-    return parser.parse_args()
 
 
 def export_database_to_excel(
@@ -707,6 +730,10 @@ def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     args = parse_args()
 
+    if args.command == DISTRO_COMPARISON_COMMAND:
+        export_distro_comparison_command(args)
+        return
+
     engine = create_engine(args.db_url)
 
     export_database_to_excel(
@@ -716,6 +743,22 @@ def main() -> None:
     )
 
     logger.info("Exported tables %s to %s", ", ".join(args.tables), args.output)
+
+
+def export_distro_comparison_command(args: argparse.Namespace) -> None:
+    output_path = export_distro_comparison_to_excel(
+        input_path=args.input,
+        options=DistroComparisonExportOptions(
+            output_path=args.output,
+            experiment_ids=args.experiment_ids,
+            latest_pair_only=args.latest_pair_only,
+            max_charts=args.max_charts,
+            charts_per_sheet=args.charts_per_sheet,
+            copy_source_sheets=args.copy_source_sheets,
+            include_comparison=args.include_comparison,
+        ),
+    )
+    logger.info("Exported comparison XLSX file: %s", output_path)
 
 
 if __name__ == "__main__":
