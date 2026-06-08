@@ -1,5 +1,4 @@
 import json
-import os
 import re
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -13,7 +12,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
 from imgtests.constant import CONFIG_DIR, REPORTS_DIR
-from imgtests.suites.map import ALL_SUITES, get_test_name
+from imgtests.runner import get_test_name
+from imgtests.suites.map import ALL_SUITES
 
 from .models import Distribution
 from .tasks import run_test_task
@@ -89,6 +89,7 @@ def api_get_test_config(request: HttpRequest, distro_name: str) -> JsonResponse:
             "NETWORK_SUITE": ALL_SUITES["NETWORK_SUITE"].total_duration,
         },
         "selected_tests": {},
+        "test_runs_count": 1,
     }
 
     return JsonResponse(default_config)
@@ -117,31 +118,22 @@ def distro_page(request: HttpRequest, distro_id: int) -> HttpResponse:
 
 def report_list(request: HttpRequest) -> HttpResponse:
     reports: list[dict[str, str | float]] = []
-    if REPORTS_DIR.exists():
-        for report_dir in sorted(REPORTS_DIR.iterdir(), reverse=True):
-            if not report_dir.is_dir():
-                continue
-            html_files = list(report_dir.glob("*.html"))
-            for html_file in html_files:
-                created_time = html_file.stat().st_mtime
-
-                reports.append(
-                    {
-                        "name": f"{report_dir.name} / {html_file.name}",
-                        "report_dir": report_dir.name,
-                        "filename": html_file.name,
-                        "created": created_time,
-                        "size": html_file.stat().st_size,
-                        "dir_name": report_dir.name,
-                        "file_name": html_file.name,
-                    },
-                )
+    if not REPORTS_DIR.exists():
+        return render(request, "tests_interface/reports_list.html", {"reports": reports})
+    for report_dir in sorted(REPORTS_DIR.iterdir(), reverse=True):
+        reports.extend(__find_reports(report_dir))
+    profiled_dir = REPORTS_DIR / "profiled"
+    if not profiled_dir.exists():
+        return render(request, "tests_interface/reports_list.html", {"reports": reports})
+    for report_dir in sorted(profiled_dir.iterdir(), reverse=True):
+        reports.extend(__find_reports(report_dir))
 
     return render(request, "tests_interface/reports_list.html", {"reports": reports})
 
 
 def view_report(request: HttpRequest, report_dir: str, filename: str) -> HttpResponse:  # noqa: ARG001
-    report_file = REPORTS_DIR / report_dir / filename
+    report_path = __safe_relative_path(report_dir, filename)
+    report_file = REPORTS_DIR / report_path
 
     if not report_file.exists() or not report_file.is_file():
         e = f"Report not found: {report_dir}/{filename}"
@@ -153,7 +145,7 @@ def view_report(request: HttpRequest, report_dir: str, filename: str) -> HttpRes
 
         content_str = content_str.replace(
             'src="plots/',
-            f'src="/reports/static/{report_dir}/plots/',
+            f'src="/reports/static/{report_path.parent.as_posix()}/plots/',
         )
 
         content_bytes = content_str.encode("utf-8")
@@ -164,7 +156,8 @@ def view_report(request: HttpRequest, report_dir: str, filename: str) -> HttpRes
 
 
 def report_static_files(request: HttpRequest, report_dir: str, file_path: str) -> HttpResponse:  # noqa: ARG001
-    static_file = REPORTS_DIR / report_dir / file_path
+    static_path = __safe_relative_path(report_dir, file_path)
+    static_file = REPORTS_DIR / static_path
 
     if not static_file.exists() or not static_file.is_file():
         e = f"Static file not found: {report_dir}/{file_path}"
@@ -200,14 +193,24 @@ def run_tests(request: HttpRequest) -> JsonResponse:
     if match:
         distro_id = match.group(1)
         distro = get_object_or_404(Distribution, id=distro_id, is_active=True)
-        env_req = {"TESTED_DISTRO": distro.name}
+        try:
+            body = json.loads(request.body)
+        except json.JSONDecodeError, AttributeError:
+            body = {}
+        test_runs_count = body.get("test_runs_count", 1)
     else:
-        env_req = {"TESTED_DISTRO": "None"}
+        return JsonResponse({"error": "Invalid referer"}, status=400)
 
-    env_vars = os.environ.copy()
-    env_vars.update(env_req)
+    try:
+        mode = body.get("TESTING_MODE", "default")
+    except AttributeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
 
-    result: TaskResult = run_test_task.enqueue(env_vars)
+    result: TaskResult = run_test_task.enqueue(
+        distro=distro.name,
+        mode=mode,
+        test_runs_count=test_runs_count,
+    )
 
     task_id = str(result.id)
     test_runs[task_id] = {
@@ -332,3 +335,30 @@ def api_get_distros(request: HttpRequest) -> JsonResponse:  # noqa: ARG001
         ),
     )
     return JsonResponse({"distributions": distributions})
+
+
+def __find_reports(reports_path: Path) -> list[dict[str, str | float]]:
+    if not reports_path.is_dir():
+        return []
+    html_files = list(reports_path.glob("*.html"))
+    report_dir = reports_path.relative_to(REPORTS_DIR).as_posix()
+    return [
+        {
+            "name": f"{report_dir} / {html_file.name}",
+            "report_dir": report_dir,
+            "filename": html_file.name,
+            "created": html_file.stat().st_mtime,
+            "size": html_file.stat().st_size,
+            "dir_name": report_dir,
+            "file_name": html_file.name,
+        }
+        for html_file in html_files
+    ]
+
+
+def __safe_relative_path(*parts: str) -> Path:
+    relative_path = Path(*parts)
+    if relative_path.is_absolute() or ".." in relative_path.parts:
+        e = "Invalid report path"
+        raise Http404(e)
+    return relative_path
