@@ -349,7 +349,7 @@ class TestsRunner(BaseRunner):
             if isinstance(test_class, AbstractRunnableManyTimesTest):
                 test_instance = test_class
             else:
-                test_instance = test_class(self.__test_config.test_duration)
+                test_instance = test_class(timeout=self.__test_config.test_duration)
             for result in test_instance(self._executor, self._client):
                 self._database.insert_util_run_result(
                     experiment_id=experiment_id,

@@ -50,11 +50,11 @@ class SchedPerformanceTest(AbstractRunnableManyTimesTest):
 
 
 class LTPSyscallsIPCTest(AbstractRunnableTimeLimitedTest):
-    def __init__(self, iterations: int = 1) -> None:
+    def __init__(self, timeout: int = 1) -> None:
         super().__init__(
             "Test syscalls-ipc with LTP.",
             frozenset({Subsystem.IPC, Subsystem.SYSCALLS}),
-            iterations,
+            timeout,
         )
 
     def _run(
