@@ -143,7 +143,7 @@ class ImgtestsDatabase:
         experiment_id: int,
         util_type: UtilType,
         command: str,
-        result: dict[str, Any],
+        result: dict[str, Any] | list[str],
         description: str,
         started_at: datetime | None = None,
         ended_at: datetime | None = None,
