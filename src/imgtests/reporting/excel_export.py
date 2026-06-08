@@ -94,18 +94,22 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         description="Export imgtests database data and report comparisons to XLSX workbooks.",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
-    add_database_subparser(subparsers)
-    add_distro_comparison_subparser(subparsers)
-    return parser.parse_args(argv)
 
-
-def add_database_subparser(subparsers: Any) -> None:
-    parser = subparsers.add_parser(
+    database_parser = subparsers.add_parser(
         DATABASE_COMMAND,
         help="export database tables to an XLSX workbook",
     )
-    add_database_arguments(parser)
-    parser.set_defaults(command=DATABASE_COMMAND)
+    add_database_arguments(database_parser)
+    database_parser.set_defaults(command=DATABASE_COMMAND)
+
+    distro_comparison_parser = subparsers.add_parser(
+        DISTRO_COMPARISON_COMMAND,
+        help="build Poky/SUSE comparison tables and charts from an exported report.xlsx",
+    )
+    add_distro_comparison_arguments(distro_comparison_parser)
+    distro_comparison_parser.set_defaults(command=DISTRO_COMPARISON_COMMAND)
+
+    return parser.parse_args(argv)
 
 
 def add_database_arguments(parser: argparse.ArgumentParser) -> None:
@@ -126,15 +130,6 @@ def add_database_arguments(parser: argparse.ArgumentParser) -> None:
         default=list(TABLES),
         help="Tables to export. Defaults to all project result tables.",
     )
-
-
-def add_distro_comparison_subparser(subparsers: Any) -> None:
-    parser = subparsers.add_parser(
-        DISTRO_COMPARISON_COMMAND,
-        help="build Poky/SUSE comparison tables and charts from an exported report.xlsx",
-    )
-    add_distro_comparison_arguments(parser)
-    parser.set_defaults(command=DISTRO_COMPARISON_COMMAND)
 
 
 def export_database_to_excel(
