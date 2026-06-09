@@ -1,17 +1,21 @@
 import json
+import os
 import re
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from django.core.management import call_command
-from django.http import Http404, HttpRequest, JsonResponse
+from django.http import FileResponse, Http404, HttpRequest, JsonResponse
 from django.http.response import HttpResponse
 from django.shortcuts import get_object_or_404, render
 from django.tasks import TaskResultStatus
+from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
+from sqlalchemy import create_engine
 
-from imgtests.constant import CONFIG_DIR, REPORTS_DIR
+from imgtests.constant import CONFIG_DIR, EXCEL_REPORTS_DIR, REPORTS_DIR
+from imgtests.reporting.excel_export import export_database_to_excel
 from imgtests.runner import get_test_name
 from imgtests.suites.map import ALL_SUITES
 
@@ -362,3 +366,64 @@ def __safe_relative_path(*parts: str) -> Path:
         e = "Invalid report path"
         raise Http404(e)
     return relative_path
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_export_excel(request: HttpRequest) -> JsonResponse:  # noqa: ARG001
+    timestamp = timezone.now().strftime("%Y%m%d_%H%M%S")
+    output_path = EXCEL_REPORTS_DIR / f"export_{timestamp}.xlsx"
+    db_url = (
+        f"postgresql+psycopg://{os.environ.get('POSTGRES_USER', 'user')}:"
+        f"{os.environ.get('POSTGRES_PASSWORD', 'password')}@"
+        f"{os.environ.get('POSTGRES_HOST', 'imgtests-postgres')}:"
+        f"{os.environ.get('POSTGRES_PORT', '5432')}/"
+        f"{os.environ.get('POSTGRES_DB', 'os-testing-db')}"
+    )
+
+    try:
+        engine = create_engine(db_url)
+        export_database_to_excel(engine=engine, output_path=output_path)
+    except Exception as err:  # noqa: BLE001
+        return JsonResponse({"error": f"Export failed: {err}"}, status=500)
+
+    return JsonResponse(
+        {
+            "success": True,
+            "file_url": f"excel_reports/{output_path.name}",
+            "filename": output_path.name,
+            "created": timestamp,
+        },
+    )
+
+
+def excel_report_list(request: HttpRequest) -> HttpResponse:
+    reports = []
+    if not EXCEL_REPORTS_DIR.exists():
+        return render(request, "tests_interface/excel_reports.html", {"reports": reports})
+
+    for file_path in sorted(EXCEL_REPORTS_DIR.glob("*.xlsx"), reverse=True):
+        stat = file_path.stat()
+        reports.append(
+            {
+                "name": file_path.name,
+                "size": stat.st_size,
+                "created": stat.st_mtime,
+            },
+        )
+
+    return render(request, "tests_interface/excel_reports.html", {"reports": reports})
+
+
+def download_excel_report(request: HttpRequest, filename: str) -> FileResponse:  # noqa: ARG001
+    file_path = EXCEL_REPORTS_DIR / filename
+
+    if not file_path.exists():
+        e = "File not found"
+        raise Http404(e)
+
+    return FileResponse(
+        Path.open(file_path, "rb"),
+        filename=filename,
+        as_attachment=True,
+    )
