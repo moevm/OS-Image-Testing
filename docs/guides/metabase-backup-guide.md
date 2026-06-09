@@ -58,6 +58,6 @@ docker start os-image-testing-imgtests-metabase-1
 
 ## Полезные ссылки
 
-* [Руководство по созданию дампов БД metabase](https://www.mintlify.com/metabase/metabase/operations/backing-up)
+* [Руководство по созданию дампов БД metabase](https://mintlify.wiki/metabase/metabase/operations/backing-up)
 
 * [Установка metabase в production](https://www.metabase.com/docs/latest/installation-and-operation/running-metabase-on-docker#production-installation)

@@ -6,6 +6,8 @@
 
 - [Сборка минимального образа Yocto и его запуск в QEMU](./guides/yocto-qemu-minimal-image-guide.md)
 - [Тестирование образа Yocto](./guides/yocto-testing-guide.md)
+- [Работа с metabase: backup](./guides/metabase-backup-guide.md)
+- [Работа с metabase: создание dashboard-ов](./guides/metabase-dashboard-creating-guide.md)
 
 ## 2. Методологии
 
