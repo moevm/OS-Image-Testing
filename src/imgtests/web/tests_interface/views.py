@@ -370,50 +370,50 @@ def __safe_relative_path(*parts: str) -> Path:
 @csrf_exempt
 @require_http_methods(["POST"])
 def api_export_excel(request: HttpRequest) -> JsonResponse:  # noqa: ARG001
+    timestamp = timezone.now().strftime("%Y%m%d_%H%M%S")
+    output_path = EXCEL_REPORTS_DIR / f"export_{timestamp}.xlsx"
+    db_url = (
+        f"postgresql+psycopg://{os.environ.get('POSTGRES_USER', 'user')}:"
+        f"{os.environ.get('POSTGRES_PASSWORD', 'password')}@"
+        f"{os.environ.get('POSTGRES_HOST', 'imgtests-postgres')}:"
+        f"{os.environ.get('POSTGRES_PORT', '5432')}/"
+        f"{os.environ.get('POSTGRES_DB', 'os-testing-db')}"
+    )
+
     try:
-        timestamp = timezone.now().strftime("%Y%m%d_%H%M%S")
-        output_path = EXCEL_REPORTS_DIR / f"export_{timestamp}.xlsx"
-
-        db_url = (
-            f"postgresql+psycopg://{os.environ.get('POSTGRES_USER', 'user')}:"
-            f"{os.environ.get('POSTGRES_PASSWORD', 'password')}@"
-            f"{os.environ.get('POSTGRES_HOST', 'imgtests-postgres')}:"
-            f"{os.environ.get('POSTGRES_PORT', '5432')}/"
-            f"{os.environ.get('POSTGRES_DB', 'os-testing-db')}"
+        result = subprocess.run(
+            args=[
+                "imgtests-export-db-to-excel",
+                str(output_path),
+                "--db-url",
+                db_url,
+            ],
+            capture_output=True,
+            text=True,
+            timeout=50,
+            check=False,
         )
-
-        cmd = [
-            "imgtests-export-db-to-excel",
-            str(output_path),
-            "--db-url",
-            db_url,
-        ]
-
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=50, check=False)  # noqa: S603
-
-        if result.returncode != 0:
-            return JsonResponse(
-                {
-                    "error": f"Export failed: {result.stderr}",
-                    "stdout": result.stdout,
-                    "stderr": result.stderr,
-                },
-                status=500,
-            )
-
-        return JsonResponse(
-            {
-                "success": True,
-                "file_url": f"excel_reports/{output_path.name}",
-                "filename": output_path.name,
-                "created": timestamp,
-            },
-        )
-
     except subprocess.TimeoutExpired:
         return JsonResponse({"error": "Export timeout (50 seconds)"}, status=500)
-    except Exception as e:  # noqa: BLE001
-        return JsonResponse({"error": str(e)}, status=500)
+
+    if result.returncode:
+        return JsonResponse(
+            {
+                "error": f"Export failed: {result.stderr}",
+                "stdout": result.stdout,
+                "stderr": result.stderr,
+            },
+            status=500,
+        )
+
+    return JsonResponse(
+        {
+            "success": True,
+            "file_url": f"excel_reports/{output_path.name}",
+            "filename": output_path.name,
+            "created": timestamp,
+        },
+    )
 
 
 def excel_report_list(request: HttpRequest) -> HttpResponse:
