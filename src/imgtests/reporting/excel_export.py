@@ -454,12 +454,11 @@ def flatten_util_run_result(record: Mapping[str, Any]) -> dict[str, Any]:
     tool_name = detect_utility(result)
     record_without_configuration = dict(record)
 
-    row = {
+    row: dict[str, str] = {
         "configuration_id": record_without_configuration.pop("configuration_id", ""),
         "test_name": test_name,
         "tool_name": tool_name,
     }
-
     row.update(
         flatten_record_with_column_names(
             record_without_configuration,
@@ -578,11 +577,10 @@ def util_run_result_test_name(record: Mapping[str, Any], result: Any) -> str:
 
 
 def result_based_test_name(result: Any) -> str:
-    if not isinstance(result, Mapping):
+    if not isinstance(result, dict):
         return ""
 
-    tool = str(result.get("tool") or "").strip()
-
+    tool = str(result.get("tool", "")).strip()
     if tool:
         return result_tool_test_name(tool, result.get("test_type"))
 
@@ -590,12 +588,11 @@ def result_based_test_name(result: Any) -> str:
 
 
 def result_tool_test_name(tool: str, test_type: Any) -> str:
-    if not isinstance(test_type, Mapping):
+    if not isinstance(test_type, dict):
         return tool
 
     for field in ("name", "stressor", "protocol"):
-        value = str(test_type.get(field) or "").strip()
-
+        value = str(test_type.get(field, "")).strip()
         if value and value != "unknown":
             return f"{tool}_{value}"
 
@@ -603,14 +600,14 @@ def result_tool_test_name(tool: str, test_type: Any) -> str:
 
 
 def detect_utility(result: Any) -> str:
-    if isinstance(result, Mapping):
-        return str(result.get("tool") or "").strip()
+    if isinstance(result, dict):
+        return str(result.get("tool", "")).strip()
 
     return ""
 
 
 def command_name_from_record(record: Mapping[str, Any]) -> str:
-    command = str(record.get("command") or "").strip()
+    command = str(record.get("command", "")).strip()
 
     if not command:
         return ""
@@ -643,34 +640,28 @@ def readable_util_column_name(key: str) -> str:
 
 
 def normalize_metric_column(path: str) -> str:
-    parts = []
-
+    parts: list[str] = []
     for raw_part in column_path_parts(path):
         if raw_part.isdecimal():
             continue
-
         part = COLUMN_PART_REPLACEMENTS.get(raw_part, raw_part)
-
         if part in NOISY_COLUMN_PARTS:
             continue
-
         if parts and parts[-1] == part:
             continue
-
         parts.append(part)
 
     return "_".join(parts) or "value"
 
 
 def column_path_parts(path: str) -> list[str]:
-    parts = []
-    current = []
+    parts: list[str] = []
+    current: list[str] = []
 
     for char in path:
         if char.isalnum() or char == "_":
             current.append(char.lower())
             continue
-
         if current:
             parts.append("".join(current))
             current.clear()
@@ -701,12 +692,11 @@ def flatten_json(prefix: str, value: Any) -> list[tuple[str, Any]]:
     if decoded_value is not value:
         return flatten_json(prefix, decoded_value)
 
-    if isinstance(value, Mapping):
+    if isinstance(value, dict):
         if not value:
             return [(prefix, None)]
 
         flattened: list[tuple[str, Any]] = []
-
         for key, nested_value in value.items():
             nested_prefix = f"{prefix}.{key}"
             flattened.extend(flatten_json(nested_prefix, nested_value))
