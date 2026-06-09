@@ -30,7 +30,13 @@ class VdbenchTest(AbstractRunnableTimeLimitedTest):
     ) -> Iterable[TestResult]:
         vdbench = Vdbench(client)
         started_at = datetime.now(UTC)
-        future = executor.submit(vdbench.run, timeout_sec=timeout, block_size=4096, read_percentage=70, iorate=1000)
+        future = executor.submit(
+            vdbench.run,
+            timeout_sec=timeout,
+            block_size=4096,
+            read_percentage=70,
+            iorate=1000,
+        )
         result, output_dir = future.result()
         yield TestResult(
             metrics={"output_dir": output_dir},
