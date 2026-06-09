@@ -135,7 +135,7 @@ def add_database_arguments(parser: argparse.ArgumentParser) -> None:
 def export_database_to_excel(
     engine: Engine,
     output_path: Path,
-    tables: Sequence[str],
+    tables: Sequence[str] = tuple(TABLES),
 ) -> None:
     unsupported_tables = [table for table in tables if table not in TABLES]
 

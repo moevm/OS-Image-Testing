@@ -1,7 +1,6 @@
 import json
 import os
 import re
-import subprocess
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -13,8 +12,10 @@ from django.tasks import TaskResultStatus
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
+from sqlalchemy import create_engine
 
 from imgtests.constant import CONFIG_DIR, EXCEL_REPORTS_DIR, REPORTS_DIR
+from imgtests.reporting.excel_export import export_database_to_excel
 from imgtests.runner import get_test_name
 from imgtests.suites.map import ALL_SUITES
 
@@ -381,30 +382,10 @@ def api_export_excel(request: HttpRequest) -> JsonResponse:  # noqa: ARG001
     )
 
     try:
-        result = subprocess.run(
-            args=[
-                "imgtests-export-db-to-excel",
-                str(output_path),
-                "--db-url",
-                db_url,
-            ],
-            capture_output=True,
-            text=True,
-            timeout=50,
-            check=False,
-        )
-    except subprocess.TimeoutExpired:
-        return JsonResponse({"error": "Export timeout (50 seconds)"}, status=500)
-
-    if result.returncode:
-        return JsonResponse(
-            {
-                "error": f"Export failed: {result.stderr}",
-                "stdout": result.stdout,
-                "stderr": result.stderr,
-            },
-            status=500,
-        )
+        engine = create_engine(db_url)
+        export_database_to_excel(engine=engine, output_path=output_path)
+    except Exception as err:  # noqa: BLE001
+        return JsonResponse({"error": f"Export failed: {err}"}, status=500)
 
     return JsonResponse(
         {
