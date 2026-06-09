@@ -124,11 +124,11 @@ def add_database_arguments(parser: argparse.ArgumentParser) -> None:
     )
     parser.add_argument(
         "--configuration-id",
-        dest="distribution_ids",
+        dest="configuration_ids",
         action="append",
         required=True,
         metavar="DISTRO=ID",
-        type=parse_distribution_id_override,
+        type=parse_configuration_id_override,
         help=(
             "Configuration id to write for a distribution. "
             "Must be passed for each supported distribution, for example: "
@@ -140,11 +140,11 @@ def add_database_arguments(parser: argparse.ArgumentParser) -> None:
 def export_database_to_excel(
     engine: Engine,
     output_path: Path,
+    configuration_ids: Mapping[str, int] | Sequence[tuple[str, int]],
     tables: Sequence[str] = tuple(TABLES),
-    distribution_ids: Mapping[str, int] | Sequence[tuple[str, int]] | None = None,
 ) -> Path:
     output_path = prepare_output_path(output_path)
-    distributions = build_distribution_records(distribution_ids)
+    distributions = build_distribution_records(configuration_ids)
     unsupported_tables = [table for table in tables if table not in TABLES]
 
     if unsupported_tables:
@@ -289,11 +289,11 @@ def configuration_id_from_os(
 
 
 def build_distribution_records(
-    distribution_ids: Mapping[str, int] | Sequence[tuple[str, int]],
+    configuration_ids: Mapping[str, int] | Sequence[tuple[str, int]],
 ) -> dict[str, dict[str, int | str]]:
     ids = {
         distribution_name.strip().lower(): configuration_id
-        for distribution_name, configuration_id in dict(distribution_ids).items()
+        for distribution_name, configuration_id in dict(configuration_ids).items()
     }
     unsupported_distributions = [
         distribution_name
@@ -327,7 +327,7 @@ def build_distribution_records(
     }
 
 
-def parse_distribution_id_override(value: str) -> tuple[str, int]:
+def parse_configuration_id_override(value: str) -> tuple[str, int]:
     distribution_name, separator, raw_id = value.partition("=")
 
     if not separator:
@@ -862,14 +862,14 @@ def main() -> None:
         return
 
     engine = create_engine(args.db_url)
-    distribution_ids = dict(args.distribution_ids)
+    configuration_ids = dict(args.configuration_ids)
 
     try:
         output_path = export_database_to_excel(
             engine=engine,
             output_path=args.output,
             tables=args.tables,
-            distribution_ids=distribution_ids,
+            configuration_ids=configuration_ids,
         )
     except ValueError as exc:
         raise SystemExit(str(exc)) from exc
