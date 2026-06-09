@@ -1,23 +1,32 @@
 import logging
-import os
-import sys
 from pathlib import Path
+from typing import Final
+
+from django.core.management.utils import get_random_secret_key
+from pydantic import Field
+from pydantic_settings import BaseSettings
 
 from imgtests.constant import LOG_PATH
-from imgtests.logger import set_handlers
+from imgtests.logger import LogLevel, set_handlers
 
+
+class DjangoSettings(BaseSettings):
+    log_level: LogLevel = Field(default="info", validation_alias="LOG_LEVEL")
+    db_name: str = Field(validation_alias="POSTGRES_DB")
+    db_user: str = Field(validation_alias="POSTGRES_USER")
+    db_password: str = Field(validation_alias="POSTGRES_PASSWORD")
+    db_host: str = Field(validation_alias="POSTGRES_HOST")
+    db_port: int = Field(validation_alias="POSTGRES_PORT", ge=0, le=65535)
+
+
+ENV_SETTINGS: Final = DjangoSettings()
 LOG_PATH.parent.mkdir(exist_ok=True)
-set_handlers(logging.getLogger(), Path(LOG_PATH))
+set_handlers(logging.getLogger(), Path(LOG_PATH), log_level=ENV_SETTINGS.log_level)
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-SECRET_KEY = os.environ.get("DJANGO_SECRET")
-if not SECRET_KEY:
-    logger = logging.getLogger(__name__)
-    logger.critical("Failed to get secret for the correct working of web.")
-    sys.exit(1)
-
+SECRET_KEY = get_random_secret_key()
 DEBUG = True
 ALLOWED_HOSTS = []
 INSTALLED_APPS = [
@@ -60,8 +69,12 @@ TEMPLATES = [
 WSGI_APPLICATION = "tests.wsgi.application"
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": ENV_SETTINGS.db_name,
+        "USER": ENV_SETTINGS.db_user,
+        "PASSWORD": ENV_SETTINGS.db_password,
+        "HOST": ENV_SETTINGS.db_host,
+        "PORT": ENV_SETTINGS.db_port,
     },
 }
 

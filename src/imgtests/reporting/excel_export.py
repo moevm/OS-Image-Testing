@@ -13,9 +13,15 @@ from openpyxl import Workbook
 from sqlalchemy import create_engine, inspect, select
 from sqlalchemy.orm import Session
 
+from imgtests.constant import DISTRIBUTION_DESCRIPTIONS
 from imgtests.database.models.configuration import ConfigurationBase
 from imgtests.database.models.experiment import ExperimentBase
 from imgtests.database.models.util_run_result import UtilRunResult
+from imgtests.reporting.distro_comparison_export import (
+    DistroComparisonExportOptions,
+    add_distro_comparison_arguments,
+    export_distro_comparison_to_excel,
+)
 from imgtests.types import Distro
 
 if TYPE_CHECKING:
@@ -25,16 +31,8 @@ TABLES: Final = ("experiment", "util_run_result")
 logger = logging.getLogger(__name__)
 CONFIGURATION_SHEET: Final = "configuration"
 DEFAULT_OUTPUT_FILENAME: Final = "report.xlsx"
-
-DEFAULT_DISTRIBUTION_DESCRIPTIONS: Final[dict[str, str]] = {
-    "poky": "Poky Linux distribution",
-    "suse": "SUSE Linux distribution",
-}
-
-DEFAULT_DISTRIBUTION_IDS: Final[dict[str, int]] = {
-    "poky": 1,
-    "suse": 2,
-}
+DATABASE_COMMAND: Final = "database"
+DISTRO_COMPARISON_COMMAND: Final = "distro-comparison"
 
 JSON_COLUMNS: Final = {
     "util_run_result": {"result"},
@@ -83,12 +81,30 @@ COLUMN_PART_REPLACEMENTS: Final = {
 }
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description=(
-            "Export imgtests database tables to an XLSX workbook with flattened JSON fields."
-        ),
+        description="Export imgtests database data and report comparisons to XLSX workbooks.",
     )
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    database_parser = subparsers.add_parser(
+        DATABASE_COMMAND,
+        help="export database tables to an XLSX workbook",
+    )
+    add_database_arguments(database_parser)
+    database_parser.set_defaults(command=DATABASE_COMMAND)
+
+    distro_comparison_parser = subparsers.add_parser(
+        DISTRO_COMPARISON_COMMAND,
+        help="build Poky/SUSE comparison tables and charts from an exported report.xlsx",
+    )
+    add_distro_comparison_arguments(distro_comparison_parser)
+    distro_comparison_parser.set_defaults(command=DISTRO_COMPARISON_COMMAND)
+
+    return parser.parse_args(argv)
+
+
+def add_database_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "output",
         type=Path,
@@ -108,27 +124,24 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--configuration-id",
-        "--distribution-id",
         dest="distribution_ids",
         action="append",
-        default=[],
+        required=True,
         metavar="DISTRO=ID",
         type=parse_distribution_id_override,
         help=(
             "Configuration id to write for a distribution. "
-            "Can be passed multiple times, for example: "
-            "--configuration-id poky=10 --configuration-id suse=20. "
-            f"Defaults: {format_distribution_ids(DEFAULT_DISTRIBUTION_IDS)}."
+            "Must be passed for each supported distribution, for example: "
+            "--configuration-id poky=10 --configuration-id suse=20."
         ),
     )
-    return parser.parse_args()
 
 
 def export_database_to_excel(
     engine: Engine,
     output_path: Path,
-    tables: Sequence[str],
-    distribution_ids: Mapping[str, int] | None = None,
+    tables: Sequence[str] = tuple(TABLES),
+    distribution_ids: Mapping[str, int] | Sequence[tuple[str, int]] | None = None,
 ) -> Path:
     output_path = prepare_output_path(output_path)
     distributions = build_distribution_records(distribution_ids)
@@ -265,9 +278,8 @@ def add_configuration_id(
 
 def configuration_id_from_os(
     os_name: Any,
-    distributions: Mapping[str, Mapping[str, int | str]] | None = None,
+    distributions: Mapping[str, Mapping[str, int | str]],
 ) -> int | str:
-    distributions = distributions or build_distribution_records()
     distribution_name = distribution_name_from_os(os_name)
 
     if not distribution_name:
@@ -277,33 +289,41 @@ def configuration_id_from_os(
 
 
 def build_distribution_records(
-    distribution_ids: Mapping[str, int] | Sequence[tuple[str, int]] | None = None,
+    distribution_ids: Mapping[str, int] | Sequence[tuple[str, int]],
 ) -> dict[str, dict[str, int | str]]:
-    ids = dict(DEFAULT_DISTRIBUTION_IDS)
-    overrides = {
+    ids = {
         distribution_name.strip().lower(): configuration_id
-        for distribution_name, configuration_id in dict(distribution_ids or {}).items()
+        for distribution_name, configuration_id in dict(distribution_ids).items()
     }
     unsupported_distributions = [
         distribution_name
-        for distribution_name in overrides
-        if distribution_name not in DEFAULT_DISTRIBUTION_DESCRIPTIONS
+        for distribution_name in ids
+        if distribution_name not in DISTRIBUTION_DESCRIPTIONS
     ]
 
     if unsupported_distributions:
-        valid_names = ", ".join(DEFAULT_DISTRIBUTION_DESCRIPTIONS)
+        valid_names = ", ".join(DISTRIBUTION_DESCRIPTIONS)
         joined_distributions = ", ".join(unsupported_distributions)
         msg = f"Unsupported distributions: {joined_distributions}. Available: {valid_names}."
         raise ValueError(msg)
 
-    ids.update(overrides)
+    missing_distributions = [
+        distribution_name
+        for distribution_name in DISTRIBUTION_DESCRIPTIONS
+        if distribution_name not in ids
+    ]
+
+    if missing_distributions:
+        joined_distributions = ", ".join(missing_distributions)
+        msg = f"Missing configuration ids for distributions: {joined_distributions}."
+        raise ValueError(msg)
 
     return {
         distribution_name: {
             "configuration_id": ids[distribution_name],
             "distribution_description": distribution_description,
         }
-        for distribution_name, distribution_description in DEFAULT_DISTRIBUTION_DESCRIPTIONS.items()
+        for distribution_name, distribution_description in DISTRIBUTION_DESCRIPTIONS.items()
     }
 
 
@@ -311,14 +331,14 @@ def parse_distribution_id_override(value: str) -> tuple[str, int]:
     distribution_name, separator, raw_id = value.partition("=")
 
     if not separator:
-        msg = "Expected distribution id in DISTRO=ID format."
+        msg = "Expected configuration id in DISTRO=ID format."
         raise argparse.ArgumentTypeError(msg)
 
     distribution_name = distribution_name.strip().lower()
     raw_id = raw_id.strip()
 
-    if distribution_name not in DEFAULT_DISTRIBUTION_DESCRIPTIONS:
-        valid_names = ", ".join(DEFAULT_DISTRIBUTION_DESCRIPTIONS)
+    if distribution_name not in DISTRIBUTION_DESCRIPTIONS:
+        valid_names = ", ".join(DISTRIBUTION_DESCRIPTIONS)
         msg = f"Unsupported distribution '{distribution_name}'. Available: {valid_names}."
         raise argparse.ArgumentTypeError(msg)
 
@@ -333,13 +353,6 @@ def parse_distribution_id_override(value: str) -> tuple[str, int]:
         raise argparse.ArgumentTypeError(msg)
 
     return distribution_name, configuration_id
-
-
-def format_distribution_ids(distribution_ids: Mapping[str, int]) -> str:
-    return ", ".join(
-        f"{distribution_name}={configuration_id}"
-        for distribution_name, configuration_id in distribution_ids.items()
-    )
 
 
 def distribution_name_from_os(os_name: Any) -> str:
@@ -844,22 +857,40 @@ def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     args = parse_args()
 
+    if args.command == DISTRO_COMPARISON_COMMAND:
+        export_distro_comparison_command(args)
+        return
+
+    engine = create_engine(args.db_url)
+    distribution_ids = dict(args.distribution_ids)
+
     try:
-        output_path = prepare_output_path(args.output)
+        output_path = export_database_to_excel(
+            engine=engine,
+            output_path=args.output,
+            tables=args.tables,
+            distribution_ids=distribution_ids,
+        )
     except ValueError as exc:
         raise SystemExit(str(exc)) from exc
 
-    distribution_ids = dict(args.distribution_ids)
-    engine = create_engine(args.db_url)
-
-    output_path = export_database_to_excel(
-        engine=engine,
-        output_path=output_path,
-        tables=args.tables,
-        distribution_ids=distribution_ids,
-    )
-
     logger.info("Exported tables %s to %s", ", ".join(args.tables), output_path)
+
+
+def export_distro_comparison_command(args: argparse.Namespace) -> None:
+    output_path = export_distro_comparison_to_excel(
+        input_path=args.input,
+        options=DistroComparisonExportOptions(
+            output_path=args.output,
+            experiment_ids=args.experiment_ids,
+            latest_pair_only=args.latest_pair_only,
+            max_charts=args.max_charts,
+            charts_per_sheet=args.charts_per_sheet,
+            copy_source_sheets=args.copy_source_sheets,
+            include_comparison=args.include_comparison,
+        ),
+    )
+    logger.info("Exported comparison XLSX file: %s", output_path)
 
 
 if __name__ == "__main__":

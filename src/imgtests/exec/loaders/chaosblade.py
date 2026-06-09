@@ -6,7 +6,7 @@ from time import sleep
 from typing import Any, Final, Literal, NamedTuple, get_args
 
 from imgtests.exec.base_util import GenericUtil
-from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
+from imgtests.exec.exec import ExecResult, SSHClient, Verbosity, common_run_command
 from imgtests.exec.osinfo import get_os_release
 from imgtests.exec.pkgmgrs.zypper import Zypper
 from imgtests.exec.utils import create_opt, extract_version
@@ -188,6 +188,7 @@ class Chaosblade(GenericUtil):
                 *create_opt("timeout", timeout_sec),
                 *create_opt("cpu-percent", cpu_percent),
             ],
+            verbosity=Verbosity.STDERR,
             **kwargs,
         )
         return result, self._extract_result(result)
@@ -208,7 +209,7 @@ class Chaosblade(GenericUtil):
         mode: MemoryMode = "ram",
         include_buffer_cache: bool = False,
         rate_mbps: int | None = None,
-        **kwargs: dict[str, Any],
+        **kwargs: str | float | bool | None,
     ) -> tuple[ExecResult, ChaosResponse]:
         """Create memory load experiment.
 
@@ -219,7 +220,7 @@ class Chaosblade(GenericUtil):
             mode (MemoryMode): experiment mode (ram or cache).
             include_buffer_cache (bool): Include buffer, cache memory when calculating percentage.
             rate_mbps (int | None): Memory consumption rate in MB/s.
-            **kwargs (dict[str, Any]): Command arguments in the free form with values.
+            **kwargs (str | float | bool | None): Command arguments in the free form with values.
 
         Raises:
             ValueError: When invalid parameters provided, required flags missing.
@@ -248,6 +249,7 @@ class Chaosblade(GenericUtil):
                 *create_opt("reserve", reserve_mb),
                 *ram_args,
             ],
+            verbosity=Verbosity.STDERR,
             **kwargs,
         )
         return result, self._extract_result(result)
@@ -300,7 +302,7 @@ class Chaosblade(GenericUtil):
         read: bool = False,
         write: bool = False,
         retain_handle: bool = False,
-        **kwargs: dict[str, Any],
+        **kwargs: str | float | bool | None,
     ) -> tuple[ExecResult, ChaosResponse]:
         """Create disk experiment.
 
@@ -314,7 +316,7 @@ class Chaosblade(GenericUtil):
             read (bool): Enable read I/O load.
             write (bool): Enable write I/O load.
             retain_handle (bool): Keep file handle open.
-            **kwargs (dict[str, Any]): Command arguments in the free form with values.
+            **kwargs (str | float | bool | None): Command arguments in the free form with values.
 
         Raises:
             ValueError: When invalid parameters provided, required flags missing.
@@ -353,6 +355,7 @@ class Chaosblade(GenericUtil):
                 *create_opt("timeout", timeout_sec),
                 *action_args,
             ],
+            verbosity=Verbosity.STDERR,
             **kwargs,
         )
         return result, self._extract_result(result)
@@ -415,7 +418,7 @@ class Chaosblade(GenericUtil):
         allow_domain: str | None = None,
         force: bool = False,
         port: int | None = None,
-        **kwargs: dict[str, Any],
+        **kwargs: str | float | bool | None,
     ) -> tuple[ExecResult, ChaosResponse]:
         """Create network experiment.
 
@@ -440,7 +443,7 @@ class Chaosblade(GenericUtil):
             allow_domain (str | None): List of domains that should continue resolving.
             force (bool): Force kill process using the port.
             port (int | None): Port number.
-            **kwargs (dict[str, Any]): Command arguments in the free form with values.
+            **kwargs (str | float | bool | None): Command arguments in the free form with values.
 
         Raises:
             ValueError: When invalid parameters provided, required flags missing.
@@ -511,6 +514,7 @@ class Chaosblade(GenericUtil):
                 *create_opt("timeout", timeout_sec),
                 *action_args,
             ],
+            verbosity=Verbosity.STDERR,
             **kwargs,
         )
         return result, self._extract_result(result)
@@ -707,7 +711,7 @@ class Chaosblade(GenericUtil):
             "result": result,
         }
 
-        test_type = {
+        test_type: dict[str, dict[str, str] | str] = {
             "command": result.get("Command", "unknown"),
             "detailed": {
                 "sub_command": result.get("SubCommand", "unknown"),

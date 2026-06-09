@@ -8,6 +8,8 @@ def main() -> None:
         "runserver",
         "migrate",
         "db_worker",
+        "makemigrations",
+        "init_distros",
     ]
     if len(sys.argv) > 1 and sys.argv[1] in django_commands:
         sys.argv[0] = "manage.py"

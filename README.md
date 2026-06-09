@@ -59,3 +59,11 @@ docker logs os-image-testing-imgtests-analyzer-1
 Note: To create an image with all the packages specified in conf/packages.conf, you will need at least 200 GB of free disk space. If your memory is running low, consider removing unnecessary packages.
 
 To add a new utility, you need to update the [packages.conf](conf/packages.conf), [local.conf](conf/local.conf) and write the appropriate [recipe](layers/meta-image-tests/).
+
+### 3. Enviroment configuration
+
+[.env.dist](.env.dist) is used to store env variables, which is included by Makefile. It describes the parameters:
+* Common variables (users, passwords)
+* VMs parameters (Yocto and Suse paths, Yocto image)
+* QEMU parameters (RAM size)
+* Network parameters (IP addresses, ports, including SSH ports for VMs)

@@ -14,12 +14,13 @@ from imgtests.exec.exec import common_run_command
 from imgtests.exec.loaders.fio import Fio, fio_metrics_to_samples, get_available_bytes
 from imgtests.exec.loaders.stress_ng import StressNg, stress_metrics_to_samples
 from imgtests.exec.observers.systemd_analyze import SystemdAnalyze
+from imgtests.exec.osinfo import get_os_release
 from imgtests.exec.user_commands import Nproc
 from imgtests.planning.profiles import CPU_SCALE_ARG_PREFIX, FIO_SIZE_RATIO_ARG_PREFIX
-from imgtests.reporting.html_report import ReportGenerator
+from imgtests.reporting.html_report import SUSE_JOB, YOCTO_JOB, ReportGenerator
 from imgtests.runner import BaseRunner
 from imgtests.sizing import parse_size_to_bytes, round_bytes_to_mib_str
-from imgtests.types import MetricSample, TestsCounts, TestStatus
+from imgtests.types import Distro, MetricSample, TestsCounts, TestStatus
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -178,6 +179,14 @@ class PlanExecutor(BaseRunner):
             )
 
         ended_at = datetime.now(UTC)
+        collected_metrics.extend(
+            self._collect_system_errors(
+                experiment_id=experiment_id,
+                since=started_at,
+                until=ended_at,
+            ),
+        )
+
         self.db.update_experiment_ended_at(
             experiment_id=experiment_id,
             ended_at=ended_at,
@@ -202,10 +211,15 @@ class PlanExecutor(BaseRunner):
             metrics=tuple(collected_metrics),
             tests_counts=tests_counts,
         )
+
+        os_id = get_os_release(self.client).id
+        job_name = YOCTO_JOB if os_id and os_id == Distro.POKY.value else SUSE_JOB
+
         ReportGenerator.generate_profiled_html_report(
             plan=plan,
             execution=result,
             out_dir=results_dir,
+            job_name=job_name,
         )
         return result
 

@@ -1,10 +1,6 @@
 from typing import Final
 
-from imgtests.runner import (
-    AbstractRunnableManyTimesTest,
-    AbstractRunnableTimeLimitedTest,
-    TestsRunnerConfig,
-)
+from imgtests.runner import TestsRunnerConfig
 from imgtests.suites.drive.fio_file import (
     FioDisksDMDelay,
     FioDisksDMDust,
@@ -17,6 +13,9 @@ from imgtests.suites.drive.stress_ng import StressNgEnduranceFileTest
 from imgtests.suites.fault_injection import (
     FaultInjectionChaosbladeTest,
     FaultInjectionEnduranceTest,
+    FaultInjectionFioTest,
+    FaultInjectionPerfTest,
+    FaultInjectionStressNgTest,
 )
 from imgtests.suites.general.joint_bench import JointBench
 from imgtests.suites.general.std_utils import POSIXUtilsTest
@@ -28,7 +27,7 @@ from imgtests.suites.general.stress_ng_general import (
 )
 from imgtests.suites.ipc import LTPSyscallsIPCTest, SchedPerformanceTest
 from imgtests.suites.memory import (
-    SarWithStressNGTest,
+    SarWithStressNgTest,
     StressNgEnduranceMemoryTest,
     StressNgPerformanceMemoryTest,
 )
@@ -80,9 +79,12 @@ ALL_SUBSYSTEMS_SUITE: Final = TestsRunnerConfig(
         StressNgParallelLoadTest,
         StressNgEnduranceMemoryTest,
         StressNgPerformanceMemoryTest,
-        SarWithStressNGTest,
+        SarWithStressNgTest,
         FaultInjectionEnduranceTest,
         FaultInjectionChaosbladeTest,
+        FaultInjectionStressNgTest,
+        FaultInjectionPerfTest,
+        FaultInjectionFioTest,
     ),
     experiment_type="performance",
     duration=1200,
@@ -93,7 +95,7 @@ MEMORY_SUITE: Final = TestsRunnerConfig(
     tests=(
         StressNgEnduranceMemoryTest,
         StressNgPerformanceMemoryTest,
-        SarWithStressNGTest,
+        SarWithStressNgTest,
     ),
     experiment_type="performance",
     duration=100,
@@ -158,13 +160,3 @@ ALL_SUITES: Final = {
     "IPC_SUITE": IPC_SUITE,
     "NETWORK_SUITE": NETWORK_SUITE,
 }
-
-
-def get_test_name(
-    test: AbstractRunnableManyTimesTest | type[AbstractRunnableTimeLimitedTest],
-) -> str:
-    if hasattr(test, "__name__"):
-        return test.__name__
-    if hasattr(test, "__class__"):
-        return test.__class__.__name__
-    return str(test)

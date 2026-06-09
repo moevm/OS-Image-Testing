@@ -8,7 +8,7 @@ urlpatterns = [
     path("test-status/<str:task_id>/", views.get_test_status, name="test_status"),
     path("reports/", views.report_list, name="report_list"),
     re_path(
-        r"^reports/view/(?P<report_dir>[^/]+)/(?P<filename>.+\.html)$",
+        r"^reports/view/(?P<report_dir>.+)/(?P<filename>[^/]+\.html)$",
         views.view_report,
         name="view_report",
     ),
@@ -19,7 +19,7 @@ urlpatterns = [
     ),
     path("api/distros/", views.api_get_distros, name="api_get_distros"),
     path("api/distros/add/", views.api_add_distro, name="api_add_distro"),
-    path("api/distros/remove/<str:distro_id>/", views.api_remove_distro, name="api_remove_distro"),
+    path("api/distros/remove/<int:distro_id>/", views.api_remove_distro, name="api_remove_distro"),
     path("api/distros/reset/", views.api_reset_distros, name="api_reset_distros"),
     path(
         "api/get_available_suites/",
@@ -46,5 +46,12 @@ urlpatterns = [
         views.api_reset_test_config,
         name="api_reset_test_config",
     ),
-    path("<str:distro_id>/", views.distro_page, name="distro_page"),
+    path("<int:distro_id>/", views.distro_page, name="distro_page"),
+    path("excel-reports/", views.excel_report_list, name="excel_report_list"),
+    path(
+        "excel-reports/<str:filename>/",
+        views.download_excel_report,
+        name="download_excel_report",
+    ),
+    path("api/export-excel/", views.api_export_excel, name="api_export_excel"),
 ]
