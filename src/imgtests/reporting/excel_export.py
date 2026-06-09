@@ -7,7 +7,7 @@ import shlex
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from datetime import date, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Final
+from typing import TYPE_CHECKING, Any, Final, TypedDict
 
 from openpyxl import Workbook
 from sqlalchemy import create_engine, inspect, select
@@ -140,7 +140,7 @@ def add_database_arguments(parser: argparse.ArgumentParser) -> None:
 def export_database_to_excel(
     engine: Engine,
     output_path: Path,
-    configuration_ids: Mapping[str, int] | Sequence[tuple[str, int]],
+    configuration_ids: dict[str, int],
     tables: Sequence[str] = tuple(TABLES),
 ) -> Path:
     output_path = prepare_output_path(output_path)
@@ -193,7 +193,7 @@ def export_database_to_excel(
 def fetch_table_records(
     engine: Engine,
     table: str,
-    distributions: Mapping[str, Mapping[str, int | str]],
+    distributions: Mapping[str, DistributionRecord],
 ) -> list[dict[str, Any]]:
     if table == "experiment":
         return fetch_experiment_records(engine, distributions)
@@ -207,7 +207,7 @@ def fetch_table_records(
 
 def fetch_experiment_records(
     engine: Engine,
-    distributions: Mapping[str, Mapping[str, int | str]],
+    distributions: Mapping[str, DistributionRecord],
 ) -> list[dict[str, Any]]:
     query = (
         select(
@@ -236,7 +236,7 @@ def fetch_experiment_records(
 
 def fetch_util_run_result_records(
     engine: Engine,
-    distributions: Mapping[str, Mapping[str, int | str]],
+    distributions: Mapping[str, DistributionRecord],
 ) -> list[dict[str, Any]]:
     query = (
         select(
@@ -263,14 +263,14 @@ def fetch_util_run_result_records(
 
 def fetch_configuration_records(
     _engine: Engine,
-    distributions: Mapping[str, Mapping[str, int | str]],
+    distributions: Mapping[str, DistributionRecord],
 ) -> list[dict[str, Any]]:
     return [dict(record) for record in distributions.values()]
 
 
 def add_configuration_id(
     record: dict[str, Any],
-    distributions: Mapping[str, Mapping[str, int | str]],
+    distributions: Mapping[str, DistributionRecord],
 ) -> dict[str, Any]:
     os_name = record.pop("configuration_os", None)
     return {"configuration_id": configuration_id_from_os(os_name, distributions), **record}
@@ -278,7 +278,7 @@ def add_configuration_id(
 
 def configuration_id_from_os(
     os_name: Any,
-    distributions: Mapping[str, Mapping[str, int | str]],
+    distributions: Mapping[str, DistributionRecord],
 ) -> int | str:
     distribution_name = distribution_name_from_os(os_name)
 
@@ -288,12 +288,17 @@ def configuration_id_from_os(
     return int(distributions[distribution_name]["configuration_id"])
 
 
+class DistributionRecord(TypedDict):
+    configuration_id: int
+    distribution_description: str
+
+
 def build_distribution_records(
-    configuration_ids: Mapping[str, int] | Sequence[tuple[str, int]],
-) -> dict[str, dict[str, int | str]]:
+    configuration_ids: dict[str, int],
+) -> dict[str, DistributionRecord]:
     ids = {
         distribution_name.strip().lower(): configuration_id
-        for distribution_name, configuration_id in dict(configuration_ids).items()
+        for distribution_name, configuration_id in configuration_ids.items()
     }
     unsupported_distributions = [
         distribution_name
@@ -319,10 +324,10 @@ def build_distribution_records(
         raise ValueError(msg)
 
     return {
-        distribution_name: {
-            "configuration_id": ids[distribution_name],
-            "distribution_description": distribution_description,
-        }
+        distribution_name: DistributionRecord(
+            configuration_id=ids[distribution_name],
+            distribution_description=distribution_description,
+        )
         for distribution_name, distribution_description in DISTRIBUTION_DESCRIPTIONS.items()
     }
 
@@ -852,14 +857,13 @@ def main() -> None:
         return
 
     engine = create_engine(args.db_url)
-    configuration_ids = dict(args.configuration_ids)
 
     try:
         output_path = export_database_to_excel(
             engine=engine,
             output_path=args.output,
             tables=args.tables,
-            configuration_ids=configuration_ids,
+            configuration_ids=dict(args.configuration_ids),
         )
     except ValueError as exc:
         raise SystemExit(str(exc)) from exc
