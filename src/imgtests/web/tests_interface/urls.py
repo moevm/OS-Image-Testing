@@ -47,4 +47,11 @@ urlpatterns = [
         name="api_reset_test_config",
     ),
     path("<int:distro_id>/", views.distro_page, name="distro_page"),
+    path("excel-reports/", views.excel_report_list, name="excel_report_list"),
+    path(
+        "excel-reports/<str:filename>/",
+        views.download_excel_report,
+        name="download_excel_report",
+    ),
+    path("api/export-excel/", views.api_export_excel, name="api_export_excel"),
 ]
