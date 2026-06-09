@@ -26,6 +26,7 @@ LAYERS=(
     "meta-security"
     "meta-virtualization"
     "meta-cloud-services"
+    "meta-openjdk-temurin"
 )
 
 for layer in "${LAYERS[@]}"; do
@@ -39,3 +40,5 @@ for layer in "${LAYERS[@]}"; do
         echo "Warning: Layer $layer not found!"
     fi
 done
+
+rm -rf /home/user/poky/meta-openjdk-temurin/recipes-java/helloworld-java
