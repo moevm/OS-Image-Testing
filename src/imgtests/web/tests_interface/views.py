@@ -1,5 +1,5 @@
 import json
-import os
+import logging
 import re
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -12,10 +12,11 @@ from django.tasks import TaskResultStatus
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
+from pydantic_core._pydantic_core import ValidationError
 from sqlalchemy import create_engine
 
 from imgtests.constant import CONFIG_DIR, EXCEL_REPORTS_DIR, REPORTS_DIR
-from imgtests.database.database import ImgtestsDatabase
+from imgtests.database.database import ImgtestsDatabase, PostgresCreds
 from imgtests.reporting.excel_export import export_database_to_excel
 from imgtests.reporting.html_report import ReportGenerator
 from imgtests.runner import get_test_name
@@ -28,6 +29,7 @@ if TYPE_CHECKING:
     from django.tasks import TaskResult
 
 
+logger = logging.getLogger(__name__)
 test_runs = {}
 
 
@@ -375,12 +377,15 @@ def __safe_relative_path(*parts: str) -> Path:
 def api_export_excel(request: HttpRequest) -> JsonResponse:  # noqa: ARG001
     timestamp = timezone.now().strftime("%Y%m%d_%H%M%S")
     output_path = EXCEL_REPORTS_DIR / f"export_{timestamp}.xlsx"
+    try:
+        db_creds = PostgresCreds()
+    except ValidationError:
+        logger.exception("Failed to get database credentials from environment.")
+        return JsonResponse({"error": "Export failed."}, status=500)
+
     db_url = (
-        f"postgresql+psycopg://{os.environ.get('POSTGRES_USER', 'user')}:"
-        f"{os.environ.get('POSTGRES_PASSWORD', 'password')}@"
-        f"{os.environ.get('POSTGRES_HOST', 'imgtests-postgres')}:"
-        f"{os.environ.get('POSTGRES_PORT', '5432')}/"
-        f"{os.environ.get('POSTGRES_DB', 'os-testing-db')}"
+        f"postgresql+psycopg://{db_creds.user}:{db_creds.password}@"
+        f"{db_creds.host}:{db_creds.port}/{db_creds.database_name}"
     )
 
     try:
@@ -393,6 +398,7 @@ def api_export_excel(request: HttpRequest) -> JsonResponse:  # noqa: ARG001
     except Exception as err:  # noqa: BLE001
         return JsonResponse({"error": f"Export failed: {err}"}, status=500)
 
+    logger.info("Report '%s' successfully created.", str(output_path))
     return JsonResponse(
         {
             "success": True,
@@ -404,7 +410,7 @@ def api_export_excel(request: HttpRequest) -> JsonResponse:  # noqa: ARG001
 
 
 def excel_report_list(request: HttpRequest) -> HttpResponse:
-    reports = []
+    reports: list[dict[str, str | float]] = []
     if not EXCEL_REPORTS_DIR.exists():
         return render(request, "tests_interface/excel_reports.html", {"reports": reports})
 
