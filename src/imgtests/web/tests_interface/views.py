@@ -385,7 +385,11 @@ def api_export_excel(request: HttpRequest) -> JsonResponse:  # noqa: ARG001
 
     try:
         engine = create_engine(db_url)
-        export_database_to_excel(engine=engine, output_path=output_path)
+        export_database_to_excel(
+            engine=engine,
+            output_path=output_path,
+            configuration_ids={"poky": 1, "suse": 2},
+        )
     except Exception as err:  # noqa: BLE001
         return JsonResponse({"error": f"Export failed: {err}"}, status=500)
 
