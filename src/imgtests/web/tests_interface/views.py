@@ -437,26 +437,29 @@ def download_excel_report(request: HttpRequest, filename: str) -> FileResponse: 
 
 def api_list_experiments(request: HttpRequest) -> JsonResponse:  # noqa: ARG001
     try:
-        database = ImgtestsDatabase()
-        experiments = database.list_experiments()
-        data = [
-            {
-                "id": exp.experiment_id,
-                "description": exp.description,
-                "os": exp.configuration.os if exp.configuration else "unknown",
-                "started_at": (exp.started_at.isoformat() if exp.started_at else None),
-                "ended_at": exp.ended_at.isoformat() if exp.ended_at else None,
-                "tests_total": exp.tests_total,
-                "tests_passed": exp.tests_passed,
-                "tests_failed": exp.tests_failed,
-                "tests_broken": exp.tests_broken,
-                "tests_skipped": exp.tests_skipped,
-            }
-            for exp in experiments
-        ]
-        return JsonResponse({"experiments": data})
+        experiments = ImgtestsDatabase().list_experiments()
     except Exception as e:  # noqa: BLE001
         return JsonResponse({"error": str(e)}, status=500)
+
+    return JsonResponse(
+        {
+            "experiments": [
+                {
+                    "id": exp.experiment_id,
+                    "description": exp.description,
+                    "os": exp.configuration.os if exp.configuration else "unknown",
+                    "started_at": (exp.started_at.isoformat() if exp.started_at else None),
+                    "ended_at": exp.ended_at.isoformat() if exp.ended_at else None,
+                    "tests_total": exp.tests_total,
+                    "tests_passed": exp.tests_passed,
+                    "tests_failed": exp.tests_failed,
+                    "tests_broken": exp.tests_broken,
+                    "tests_skipped": exp.tests_skipped,
+                }
+                for exp in experiments
+            ],
+        },
+    )
 
 
 @csrf_exempt
@@ -464,25 +467,29 @@ def api_list_experiments(request: HttpRequest) -> JsonResponse:  # noqa: ARG001
 def api_generate_compare_report(request: HttpRequest) -> JsonResponse:
     try:
         body = json.loads(request.body)
-        exp_id_1 = int(body.get("experiment_id_1"))
-        exp_id_2 = int(body.get("experiment_id_2"))
-    except json.JSONDecodeError, TypeError, ValueError:
+    except json.JSONDecodeError:
         return JsonResponse({"error": "Invalid request body"}, status=400)
 
     try:
-        database = ImgtestsDatabase()
-        report_gen = ReportGenerator(database)
+        exp_id_1 = int(body.get("experiment_id_1"))
+        exp_id_2 = int(body.get("experiment_id_2"))
+    except TypeError, ValueError:
+        return JsonResponse({"error": "Invalid experiment id type"}, status=400)
+
+    try:
+        report_gen = ReportGenerator(ImgtestsDatabase())
         report_path = report_gen.generate_compare_html_report(
             sorted([exp_id_1, exp_id_2]),
             out_dir=REPORTS_DIR,
         )
-        if report_path is None:
-            return JsonResponse({"error": "Failed to generate report"}, status=500)
-        return JsonResponse(
-            {
-                "success": True,
-                "report_url": str(report_path.relative_to(REPORTS_DIR)),
-            },
-        )
     except Exception as e:  # noqa: BLE001
         return JsonResponse({"error": str(e)}, status=500)
+
+    if report_path is None:
+        return JsonResponse({"error": "Failed to generate report"}, status=500)
+    return JsonResponse(
+        {
+            "success": True,
+            "report_url": str(report_path.relative_to(REPORTS_DIR)),
+        },
+    )
