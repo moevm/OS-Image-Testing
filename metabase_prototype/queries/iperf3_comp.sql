@@ -12,10 +12,10 @@ CROSS JOIN LATERAL jsonb_array_elements(
     (l.result::jsonb)->'client'->'intervals'
 ) AS interval_item
 WHERE l.command LIKE '%iperf3%'
-  [[ AND {{os1}} ]]
-  [[ AND {{core_info1}} ]]
-  [[ AND {{date1}} ]]
-  [[ AND {{type}} ]]
+  [[ AND os = {{os1}} ]]
+  [[ AND core_info = {{core_info1}} ]]
+  [[ AND started_at BETWEEN {{start1}} AND {{end1}} ]]
+  [[ AND type = {{type}} ]]
 
 UNION ALL
 
@@ -33,9 +33,9 @@ CROSS JOIN LATERAL jsonb_array_elements(
     (l.result::jsonb)->'client'->'intervals'
 ) AS interval_item
 WHERE l.command LIKE '%iperf3%'
-  [[ AND {{os2}} ]]
-  [[ AND {{core_info2}} ]]
-  [[ AND {{date2}} ]]
-  [[ AND {{type}} ]]
+  [[ AND os = {{os2}} ]]
+  [[ AND core_info = {{core_info2}} ]]
+  [[ AND CASE WHEN {{start2}} IS NULL THEN started_at BETWEEN {{start1}} AND {{end1}} ELSE started_at BETWEEN {{start2}} AND {{end2}} END ]]
+  [[ AND type = {{type}} ]]
 
 ORDER BY interval_start
