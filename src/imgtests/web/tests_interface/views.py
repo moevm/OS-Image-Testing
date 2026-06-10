@@ -15,7 +15,9 @@ from django.views.decorators.http import require_http_methods
 from sqlalchemy import create_engine
 
 from imgtests.constant import CONFIG_DIR, EXCEL_REPORTS_DIR, REPORTS_DIR
+from imgtests.database.database import ImgtestsDatabase
 from imgtests.reporting.excel_export import export_database_to_excel
+from imgtests.reporting.html_report import ReportGenerator
 from imgtests.runner import get_test_name
 from imgtests.suites.map import ALL_SUITES
 
@@ -430,4 +432,64 @@ def download_excel_report(request: HttpRequest, filename: str) -> FileResponse: 
         Path.open(file_path, "rb"),
         filename=filename,
         as_attachment=True,
+    )
+
+
+def api_list_experiments(request: HttpRequest) -> JsonResponse:  # noqa: ARG001
+    try:
+        experiments = ImgtestsDatabase().list_experiments()
+    except Exception as e:  # noqa: BLE001
+        return JsonResponse({"error": str(e)}, status=500)
+
+    return JsonResponse(
+        {
+            "experiments": [
+                {
+                    "id": exp.experiment_id,
+                    "description": exp.description,
+                    "os": exp.configuration.os if exp.configuration else "unknown",
+                    "started_at": (exp.started_at.isoformat() if exp.started_at else None),
+                    "ended_at": exp.ended_at.isoformat() if exp.ended_at else None,
+                    "tests_total": exp.tests_total,
+                    "tests_passed": exp.tests_passed,
+                    "tests_failed": exp.tests_failed,
+                    "tests_broken": exp.tests_broken,
+                    "tests_skipped": exp.tests_skipped,
+                }
+                for exp in experiments
+            ],
+        },
+    )
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_generate_compare_report(request: HttpRequest) -> JsonResponse:
+    try:
+        body = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid request body"}, status=400)
+
+    try:
+        exp_id_1 = int(body.get("experiment_id_1"))
+        exp_id_2 = int(body.get("experiment_id_2"))
+    except TypeError, ValueError:
+        return JsonResponse({"error": "Invalid experiment id type"}, status=400)
+
+    try:
+        report_gen = ReportGenerator(ImgtestsDatabase())
+        report_path = report_gen.generate_compare_html_report(
+            sorted([exp_id_1, exp_id_2]),
+            out_dir=REPORTS_DIR,
+        )
+    except Exception as e:  # noqa: BLE001
+        return JsonResponse({"error": str(e)}, status=500)
+
+    if report_path is None:
+        return JsonResponse({"error": "Failed to generate report"}, status=500)
+    return JsonResponse(
+        {
+            "success": True,
+            "report_url": str(report_path.relative_to(REPORTS_DIR)),
+        },
     )

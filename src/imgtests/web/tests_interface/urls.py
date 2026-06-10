@@ -54,4 +54,14 @@ urlpatterns = [
         name="download_excel_report",
     ),
     path("api/export-excel/", views.api_export_excel, name="api_export_excel"),
+    path(
+        "api/experiments/",
+        views.api_list_experiments,
+        name="api_list_experiments",
+    ),
+    path(
+        "api/generate-compare-report/",
+        views.api_generate_compare_report,
+        name="api_generate_compare_report",
+    ),
 ]

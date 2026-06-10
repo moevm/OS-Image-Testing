@@ -223,27 +223,6 @@ class ReportGenerator:
         )
         return report_path
 
-    def generate_last_two_experiments_report(self, out_dir: Path) -> Path | None:
-        from sqlalchemy import desc  #  noqa: PLC0415
-
-        from imgtests.database.models.experiment import ExperimentBase  #  noqa: PLC0415
-
-        self._database._check_session()  #  noqa: SLF001
-        with self._database.session() as session:
-            experiments = (
-                session.query(ExperimentBase)
-                .order_by(desc(ExperimentBase.started_at))
-                .limit(2)
-                .all()
-            )
-            ids = [exp.experiment_id for exp in experiments]
-        if len(ids) != 2:  #  noqa: PLR2004
-            self._logger.error(
-                "Couldn't build a report: there are incorrect amount of experiments.",
-            )
-            return None
-        return self.generate_compare_html_report(sorted(ids), out_dir)
-
     def __distribute_metrics(
         self,
         metrics_by_exp: list[list[MetricSample]],

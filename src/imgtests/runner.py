@@ -709,8 +709,7 @@ def _get_clients(distro: str) -> tuple[SSHClient | None, SSHClient | None]:
     return suse_client, poky_client
 
 
-def _run_single(distro: Distro, mode: Runner, config: dict[str, Any]) -> None:  # noqa: PLR0912, PLR0915, C901
-    from imgtests.reporting.html_report import ReportGenerator  # noqa: PLC0415
+def _run_single(distro: Distro, mode: Runner, config: dict[str, Any]) -> None:  # noqa: PLR0912, C901
     from imgtests.suites.map import (  # noqa: PLC0415
         ALL_SUBSYSTEMS_SUITE,
         ALL_SUITES,
@@ -784,9 +783,6 @@ def _run_single(distro: Distro, mode: Runner, config: dict[str, Any]) -> None:  
             run_profiled(poky_client, database)
         if suse_client:
             run_profiled(suse_client, database)
-
-    report_generator = ReportGenerator(database)
-    report_generator.generate_last_two_experiments_report(out_dir=REPORTS_DIR)
 
     database.session.close_all()
 
