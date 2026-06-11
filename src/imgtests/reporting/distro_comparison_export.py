@@ -317,6 +317,7 @@ def extract_metric_buckets(
         MetricExtractionOptions(column_selector=find_metric_columns),
     )
 
+
 def build_chart_specs(
     buckets: list[MetricBucket],
     groups: list[ComparisonGroup],
