@@ -1,9 +1,9 @@
-Для работы рецепта нужно прикрепить архив со следующим содержимым:
+To make the recipe work, you will need to attach an archive containing the following files:
 
-- Бинарные файлы инструмента;
+- binary tool files;
 
-- Linux x64 файл и скрипт конфигурации;
+- linux x64 file and config script;
 
-- Лицензию для рецепта.
+- recipe license.
 
-Затем нужно добавить рецепт в конфигурацию сборки.
+After that, you should add the recipe to the poky config.
