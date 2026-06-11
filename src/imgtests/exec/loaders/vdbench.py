@@ -6,7 +6,8 @@ from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
 logger = logging.getLogger(__name__)
 
 VDBENCH_DIR = "/usr/bin/vdbench"
-OUTPUT_DIR = VDBENCH_DIR + "/output"
+CONFIG_FILE = "/root/vdbench-config"
+OUTPUT_DIR = "/root/vdbench-output"
 
 
 class Vdbench(GenericUtil):
@@ -36,7 +37,7 @@ class Vdbench(GenericUtil):
             "-e",
             f"'{configuration}'",
             ">",
-            "vdbench-config",
+            CONFIG_FILE,
         ]
 
         return common_run_command(cmd, self.ssh_client)
@@ -45,7 +46,7 @@ class Vdbench(GenericUtil):
         self.validate_setup()
         self.configure_params(timeout_sec=timeout_sec, **kwargs)
         result = common_run_command(
-            [f"{VDBENCH_DIR}/vdbench", "-f", "vdbench-config"],
+            [f"{VDBENCH_DIR}/vdbench", "-f", CONFIG_FILE, "-o", OUTPUT_DIR],
             self.ssh_client,
         )
         return result, OUTPUT_DIR
