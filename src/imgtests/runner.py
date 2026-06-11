@@ -1,22 +1,26 @@
 from __future__ import annotations
 
+import json
 import logging
+import sys
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 from pathlib import Path
 from threading import Event, Thread
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, Final, Literal
 
 import paramiko
 import paramiko.ssh_exception
 from pydantic import Field
 from pydantic_settings import BaseSettings
 
-from imgtests.constant import LIB_NAME, QEMU
-from imgtests.exec.exec import SSHClient, Verbosity, common_run_command
+from imgtests.constant import CONFIG_DIR, LIB_NAME, QEMU, REPORTS_DIR
+from imgtests.database.database import ImgtestsDatabase
+from imgtests.exec.exec import SSHClient, Verbosity, common_run_command, wait_remote
 from imgtests.exec.observers.journalctl import Journalctl
 from imgtests.exec.observers.systemctl import Systemctl
 from imgtests.exec.observers.systemd_detect_virt import SystemdDetectVirt
+from imgtests.exec.user_commands import Touch
 from imgtests.planning import (
     AbstractRunnableManyTimesTest,
     AbstractRunnableTimeLimitedTest,
@@ -28,15 +32,33 @@ from imgtests.suites.system import (
     SystemSlowServicesTest,
 )
 from imgtests.sysrep import get_system_info
-from imgtests.types import Subsystem, TestsCounts, TestStatus
+from imgtests.types import MetricSample, Subsystem, TestsCounts, TestStatus
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
 
-    from imgtests.database.database import ImgtestsDatabase
     from imgtests.database.models.experiment import ExperimentBase, ExperimentType
     from imgtests.exec.base_util import BaseTestUtil
     from imgtests.planning import LoadPattern
+
+
+Runner = Literal["default", "profiled"]
+Distro = Literal["all", "yocto", "opensuse"]
+
+YOCTO_CONF: Final = (
+    "SSH_YOCTO_ADDR",
+    "SSH_YOCTO_USER",
+    "SSH_YOCTO_PASS",
+    "SSH_YOCTO_PORT",
+)
+SUSE_156_CONF: Final = (
+    "SSH_SUSE_ADDR_156",
+    "SSH_SUSE_USER",
+    "SSH_SUSE_PASS",
+    "SSH_SUSE_PORT_156",
+)
+
+logger = logging.getLogger()
 
 
 # Subsystems, stages (plan, risk analysis, run, cleanup, results, etc), etc
@@ -82,7 +104,7 @@ class TestsRunnerConfig:
 class ProfiledPlanRunnerSettings(BaseSettings):
     subsystems: str = Field(default="all", validation_alias="PLAN_SUBSYSTEMS")
     results_dir: Path = Field(
-        default=Path("results/profiled"),
+        default=Path(REPORTS_DIR / "profiled"),
         validation_alias="PLAN_RESULTS_DIR",
     )
     pattern: str = Field(default="", validation_alias="PLAN_PATTERN")
@@ -160,6 +182,99 @@ class BaseRunner:
             ended_at=ended_at,
         )
 
+    def _collect_system_errors(
+        self,
+        experiment_id: int,
+        since: datetime,
+        until: datetime,
+    ) -> list[MetricSample]:
+        systemctl = Systemctl(self._client)
+        journalctl = Journalctl(self._client, use_sudo=True)
+        collected_metrics: list[MetricSample] = []
+
+        # failed services
+        fs_r, fs_m = systemctl.get_failed_services()
+        self._logger.info("Failed services: %s", fs_m)
+        collected_metrics.append(
+            MetricSample(
+                stage_name="system-errors",
+                subsystem="system",
+                metric_name="failed systemd services",
+                value=float(len(fs_m)),
+                label="failed systemd services",
+            ),
+        )
+
+        self._database.insert_util_run_result(
+            experiment_id=experiment_id,
+            util_type="observer",
+            command=" ".join(fs_r.cmd),
+            result=systemctl.metrics_to_json(fs_m),
+            description="failed systemd services",
+        )
+
+        # OOM
+        oom_r = journalctl.oom_records(
+            since=since.strftime(journalctl.DATE_FORMAT),
+            until=until.strftime(journalctl.DATE_FORMAT),
+            verbosity=Verbosity(0),
+        )
+        oom_m = journalctl.calc_records_cnt(oom_r.stdout)
+        self._logger.info("OOM records %d", oom_m)
+        collected_metrics.append(
+            MetricSample(
+                stage_name="system-errors",
+                subsystem="system",
+                metric_name="OOM records",
+                value=float(oom_m),
+                label="OOM records",
+            ),
+        )
+
+        self._database.insert_util_run_result(
+            experiment_id=experiment_id,
+            util_type="observer",
+            command=" ".join(oom_r.cmd),
+            result=journalctl.metrics_to_json(oom_m),
+            description="OOM records",
+            started_at=since,
+            ended_at=until,
+        )
+
+        # systemd errors
+        sstmd_err_r = journalctl.systemd_only_records(
+            since=since.strftime(journalctl.DATE_FORMAT),
+            until=until.strftime(journalctl.DATE_FORMAT),
+            priority="err",
+            verbosity=Verbosity(0),
+        )
+        sstmd_err_m = journalctl.calc_records_cnt(sstmd_err_r.stdout)
+        self._logger.info(
+            "systemd errors records %d",
+            sstmd_err_m,
+        )
+        collected_metrics.append(
+            MetricSample(
+                stage_name="system-errors",
+                subsystem="system",
+                metric_name="systemd errors records",
+                value=float(sstmd_err_m),
+                label="systemd errors records",
+            ),
+        )
+
+        self._database.insert_util_run_result(
+            experiment_id=experiment_id,
+            util_type="observer",
+            command=" ".join(sstmd_err_r.cmd),
+            description="systemd errors records",
+            started_at=since,
+            ended_at=until,
+            result=journalctl.metrics_to_json(sstmd_err_m),
+        )
+
+        return collected_metrics
+
     def close(self) -> None:
         self._executor.shutdown(wait=False)
 
@@ -234,7 +349,7 @@ class TestsRunner(BaseRunner):
             if isinstance(test_class, AbstractRunnableManyTimesTest):
                 test_instance = test_class
             else:
-                test_instance = test_class(self.__test_config.test_duration)
+                test_instance = test_class(timeout=self.__test_config.test_duration)
             for result in test_instance(self._executor, self._client):
                 self._database.insert_util_run_result(
                     experiment_id=experiment_id,
@@ -331,61 +446,6 @@ class TestsRunner(BaseRunner):
             if self._client is not None:
                 self._client.close()
             self._executor.shutdown(cancel_futures=True)
-
-    def _collect_system_errors(self, experiment_id: int, since: datetime, until: datetime) -> None:
-        systemctl = Systemctl(self._client)
-        journalctl = Journalctl(self._client, use_sudo=True)
-
-        # failed services
-        fs_r, fs_m = systemctl.get_failed_services()
-        self._logger.info("Failed services: %s", fs_m)
-        self._database.insert_util_run_result(
-            experiment_id=experiment_id,
-            util_type="observer",
-            command=" ".join(fs_r.cmd),
-            description="Failed systemd services.",
-            result=systemctl.metrics_to_json(fs_m),
-        )
-
-        # OOM
-        oom_r = journalctl.oom_records(
-            since=since.strftime(journalctl.DATE_FORMAT),
-            until=until.strftime(journalctl.DATE_FORMAT),
-            verbosity=Verbosity(0),
-        )
-        oom_m = journalctl.calc_records_cnt(oom_r.stdout)
-        self._logger.info("OOM records %d", oom_m)
-        self._database.insert_util_run_result(
-            experiment_id=experiment_id,
-            util_type="observer",
-            command=" ".join(oom_r.cmd),
-            description="OOM records.",
-            started_at=since,
-            ended_at=until,
-            result=journalctl.metrics_to_json(oom_m),
-        )
-
-        # systemd errors
-        sstmd_err_r = journalctl.systemd_only_records(
-            since=since.strftime(journalctl.DATE_FORMAT),
-            until=until.strftime(journalctl.DATE_FORMAT),
-            priority="err",
-            verbosity=Verbosity(0),
-        )
-        sstmd_err_m = journalctl.calc_records_cnt(sstmd_err_r.stdout)
-        self._logger.info(
-            "systemd errors records %d",
-            sstmd_err_m,
-        )
-        self._database.insert_util_run_result(
-            experiment_id=experiment_id,
-            util_type="observer",
-            command=" ".join(sstmd_err_r.cmd),
-            description="Systemd errors records",
-            started_at=since,
-            ended_at=until,
-            result=journalctl.metrics_to_json(sstmd_err_m),
-        )
 
 
 class ProfiledPlanRunner(BaseRunner):
@@ -577,3 +637,175 @@ class ProfiledPlanRunner(BaseRunner):
             allowed = ", ".join(item.value for item in LoadPattern)
             msg = f"Unknown pattern '{raw}'. Allowed: {allowed}"
             raise ValueError(msg) from exc
+
+
+def load_test_config(distro: str) -> dict[str, Any]:
+    config_file = CONFIG_DIR / f"{distro}_config.json"
+    if config_file.exists():
+        try:
+            with Path.open(config_file, "r") as f:
+                config = json.load(f)
+        except Exception as e:  # noqa: BLE001
+            logger.warning("Failed to load config: %s, using default", e)
+        else:
+            logger.info("Loaded custom config for %s", distro)
+            return config
+
+    return {
+        "suites": [
+            "FILE_SUITE",
+            "MEMORY_SUITE",
+            "SYSCALLS_SUITE",
+            "IPC_SUITE",
+            "NETWORK_SUITE",
+        ],
+        "suite_durations": {},
+        "selected_tests": {},
+    }
+
+
+def filter_tests_by_names(
+    suite: TestsRunnerConfig,
+    selected_test_names: list[str],
+) -> Iterable[AbstractRunnableManyTimesTest | type[AbstractRunnableTimeLimitedTest]]:
+    if not selected_test_names:
+        return suite.tests
+
+    original_tests = suite.tests
+    filtered_tests: list[AbstractRunnableManyTimesTest | type[AbstractRunnableTimeLimitedTest]] = []
+
+    for test in original_tests:
+        test_name = get_test_name(test)
+
+        if test_name in selected_test_names:
+            filtered_tests.append(test)
+
+    filtered_count = len(filtered_tests)
+
+    if filtered_count == 0:
+        logger.warning("No tests matched for %s, using all tests", suite.description)
+        return original_tests
+
+    return filtered_tests
+
+
+def run_profiled(client: SSHClient, database: ImgtestsDatabase) -> None:
+    client.reconnect()
+    ProfiledPlanRunner(
+        client=client,
+        database=database,
+    ).run_from_env()
+    client.close()
+
+
+def _get_clients(distro: str) -> tuple[SSHClient | None, SSHClient | None]:
+    suse_client = None
+    poky_client = None
+    if distro in ("yocto", "all"):
+        poky_client = wait_remote(*YOCTO_CONF) or sys.exit(1)
+    if distro in ("opensuse", "all"):
+        suse_client = wait_remote(*SUSE_156_CONF) or sys.exit(1)
+        Touch(suse_client, use_sudo=True)(["/etc/cloud/cloud-init.disabled"])
+    return suse_client, poky_client
+
+
+def _run_single(distro: Distro, mode: Runner, config: dict[str, Any]) -> None:  # noqa: PLR0912, C901
+    from imgtests.suites.map import (  # noqa: PLC0415
+        ALL_SUBSYSTEMS_SUITE,
+        ALL_SUITES,
+    )
+
+    logger.info("Running tests for %s", distro)
+    logger.info("Using suites: %s", config.get("suites", []))
+    suites_to_run = []
+    for suite_name in config.get("suites", []):
+        if suite_name in ALL_SUITES:
+            suite = ALL_SUITES[suite_name]
+            suite_durations = config.get("suite_durations", {})
+            if suite_name in suite_durations:
+                original_duration = suite.total_duration
+                suite.total_duration = suite_durations[suite_name]
+                logger.info(
+                    "Overriding %s duration: %d -> %ds",
+                    suite_name,
+                    original_duration,
+                    suite.total_duration,
+                )
+
+            selected_tests = config.get("selected_tests", {}).get(suite_name)
+            if selected_tests and len(selected_tests) > 0:
+                original_tests = suite.tests
+                filtered_tests = []
+                for test in original_tests:
+                    test_name = get_test_name(test)
+                    if test_name in selected_tests:
+                        filtered_tests.append(test)
+
+                if filtered_tests:
+                    suite.tests = tuple(filtered_tests)
+                    logger.info(
+                        "Filtered %s: %d -> %d tests",
+                        suite_name,
+                        len(original_tests),
+                        len(filtered_tests),
+                    )
+                    logger.info("Selected tests: %s", selected_tests)
+                else:
+                    logger.warning("No matching tests found for %s, using all tests", suite_name)
+
+            suites_to_run.append(suite)
+        else:
+            logger.warning("Suite %s not found, skipping", suite_name)
+
+    if not suites_to_run:
+        logger.warning("No suites configured, running default ALL_SUBSYSTEMS_SUITE")
+        suites_to_run = [ALL_SUBSYSTEMS_SUITE]
+
+    suse_client, poky_client = _get_clients(distro)
+    distros_to_test: list[SSHClient] = []
+    if suse_client:
+        distros_to_test.append(suse_client)
+    if poky_client:
+        distros_to_test.append(poky_client)
+
+    database = ImgtestsDatabase()
+    logger.info("Current testing mode is %s", mode)
+    if mode == "default":
+        for suite in suites_to_run:
+            logger.info("Running suite %s", suite.description)
+            for client in distros_to_test:
+                client.reconnect()
+                runner = TestsRunner(client, database, suite)
+                runner.run()
+                runner.close()
+    if mode == "profiled":
+        if poky_client:
+            run_profiled(poky_client, database)
+        if suse_client:
+            run_profiled(suse_client, database)
+
+    database.session.close_all()
+
+
+def run_tests(
+    distro: Distro = "all",
+    mode: Runner = "default",
+    test_runs_count: int = 1,
+    config: dict[str, Any] | None = None,
+) -> None:
+    if config is None:
+        config = load_test_config(distro)
+    for i in range(test_runs_count):
+        logger.info("Starting test run %d of %d", i + 1, test_runs_count)
+        _run_single(distro, mode, config)
+        logger.info("Completed test run %d of %d", i + 1, test_runs_count)
+
+
+def get_test_name(
+    test: AbstractRunnableManyTimesTest | type[AbstractRunnableTimeLimitedTest],
+) -> str:
+    if hasattr(test, "__name__"):
+        return test.__name__
+    if hasattr(test, "__class__"):
+        return test.__class__.__name__
+    return str(test)

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 import re
 import statistics
@@ -15,8 +16,11 @@ from jinja2 import Environment, FileSystemLoader, StrictUndefined, select_autoes
 from matplotlib import cm
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from matplotlib.figure import Figure
+from pydantic import Field
+from pydantic_settings import BaseSettings
 
 from imgtests.constant import LIB_NAME
+from imgtests.exec.exec import common_run_command
 from imgtests.types import MetricSample, Subsystem
 
 if TYPE_CHECKING:
@@ -34,6 +38,20 @@ TEMPLATES_DIR: Final = "templates"
 STATIC_DIR: Final = "static"
 REPORT_TEMPLATE: Final = "base_report.html.j2"
 COMPARE_REPORT_TEMPLATE: Final = "compare_report.html.j2"
+
+SYSTEM_ERROR_DESCRIPTIONS: Final = {
+    "failed systemd services",
+    "OOM records",
+    "systemd errors records",
+}
+
+YOCTO_JOB: Final = "yocto-node"
+SUSE_JOB: Final = "suse-156-node"
+
+
+class VMetricsCreds(BaseSettings):
+    host: str = Field(validation_alias="VMETRICS_ADDRESS")
+    port: int = Field(validation_alias="VMETRICS_PORT")
 
 
 class DiagramConfig(NamedTuple):
@@ -145,6 +163,13 @@ class ReportGenerator:
         for i in range(len(exps_data)):
             exp_data = exps_data[i]
             metrics = self._extract_metrics_from_experiment(exp_data)
+            job_name = (
+                YOCTO_JOB
+                if "poky" in exp_data.configuration.os.lower()
+                or "yocto" in exp_data.configuration.os.lower()
+                else SUSE_JOB
+            )
+            self.add_load_average_metrics(metrics, exp_data.started_at, exp_data.ended_at, job_name)
             report_data.append(
                 {
                     "header": {
@@ -198,27 +223,6 @@ class ReportGenerator:
         )
         return report_path
 
-    def generate_last_two_experiments_report(self, out_dir: Path) -> Path | None:
-        from sqlalchemy import desc  #  noqa: PLC0415
-
-        from imgtests.database.models.experiment import ExperimentBase  #  noqa: PLC0415
-
-        self._database._check_session()  #  noqa: SLF001
-        with self._database.session() as session:
-            experiments = (
-                session.query(ExperimentBase)
-                .order_by(desc(ExperimentBase.started_at))
-                .limit(2)
-                .all()
-            )
-            ids = [exp.experiment_id for exp in experiments]
-        if len(ids) != 2:  #  noqa: PLR2004
-            self._logger.error(
-                "Couldn't build a report: there are incorrect amount of experiments.",
-            )
-            return None
-        return self.generate_compare_html_report(sorted(ids), out_dir)
-
     def __distribute_metrics(
         self,
         metrics_by_exp: list[list[MetricSample]],
@@ -263,9 +267,21 @@ class ReportGenerator:
             if util_run_result.description == "Planned stage":
                 continue
             result = util_run_result.result
-            if not result or not isinstance(result, dict):
+
+            if util_run_result.description in SYSTEM_ERROR_DESCRIPTIONS:
+                value = float(len(result)) if isinstance(result, list) else float(result)
+                metrics.append(
+                    MetricSample(
+                        stage_name="system-errors",
+                        subsystem="system",
+                        metric_name=util_run_result.description,
+                        value=value,
+                        label=util_run_result.description,
+                    ),
+                )
                 continue
-            if "metrics" not in result:
+
+            if not result or not isinstance(result, dict) or "metrics" not in result:
                 continue
             if isinstance(result.get("metrics"), list):
                 metrics.extend(
@@ -376,12 +392,19 @@ class ReportGenerator:
         plan: TestPlan,
         execution: PlanExecutionResult,
         out_dir: Path,
+        job_name: str | None,
     ) -> Path:
         out_dir.mkdir(parents=True, exist_ok=True)
         plots_dir = out_dir / PLOTS_DIR
         plots_dir.mkdir(parents=True, exist_ok=True)
 
         metrics = list(execution.metrics)
+        ReportGenerator.add_load_average_metrics(
+            metrics,
+            execution.started_at,
+            execution.ended_at,
+            job_name,
+        )
 
         report_data = {
             "header": {
@@ -446,6 +469,47 @@ class ReportGenerator:
             results[name] = fn(matched, out_dir=out_dir, plots_dir=plots_dir)
 
         return results
+
+    @staticmethod
+    def add_load_average_metrics(
+        metrics: list[MetricSample],
+        start_time: datetime,
+        end_time: datetime,
+        job_name: str | None,
+    ) -> None:
+        vmetrics_creds = VMetricsCreds()
+        start_time = start_time.astimezone(UTC).isoformat().replace("+00:00", "Z")
+        end_time = end_time.astimezone(UTC).isoformat().replace("+00:00", "Z")
+        for interval in (1, 5, 15):
+            if not job_name:
+                query_url = (
+                    f"http://{vmetrics_creds.host}:{vmetrics_creds.port}/api/v1/query_range"
+                    f"?query=node_load{interval}&start={start_time}&end={end_time}&step=1m"
+                )
+            else:
+                query_url = (
+                    f"http://{vmetrics_creds.host}:{vmetrics_creds.port}/api/v1/query_range"
+                    f'?query=node_load{interval}{{job="{job_name}"}}'
+                    f"&start={start_time}&end={end_time}&step=1m"
+                )
+            result = common_run_command(["curl", "--globoff", query_url])
+            if result.returncode:
+                return
+
+            query_result = json.loads(result.stdout).get("data", {}).get("result", [])
+            if query_result == []:
+                return
+
+            for _, value in query_result[0].get("values", []):
+                metrics.append(
+                    MetricSample(
+                        stage_name="load_average",
+                        subsystem="cpu",
+                        metric_name=f"load_average_{interval}min",
+                        value=float(value),
+                        label=f"load_average_{interval}min",
+                    ),
+                )
 
 
 @lru_cache(maxsize=1)

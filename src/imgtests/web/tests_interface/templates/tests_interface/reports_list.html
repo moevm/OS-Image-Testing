@@ -11,6 +11,85 @@
         </div>
     </div>
 
+    <div
+        class="compare-section"
+        style="
+            margin-bottom: 24px;
+            padding: 20px;
+            background: #fff8e1;
+            border-radius: 12px;
+            border: 1px solid #ffe082;
+        "
+    >
+        <h3 style="margin: 0 0 12px; color: #000000">
+            Generate Comparison Report
+        </h3>
+        <div
+            style="
+                display: flex;
+                gap: 16px;
+                flex-wrap: wrap;
+                align-items: flex-end;
+            "
+        >
+            <div style="flex: 1; min-width: 200px">
+                <label
+                    style="
+                        display: block;
+                        margin-bottom: 4px;
+                        font-size: 0.85rem;
+                        color: #795548;
+                    "
+                    >Experiment 1</label
+                >
+                <select
+                    id="exp-select-1"
+                    style="
+                        width: 100%;
+                        padding: 8px;
+                        border: 1px solid #ccc;
+                        border-radius: 6px;
+                    "
+                >
+                    <option value="">Select</option>
+                </select>
+            </div>
+            <div style="flex: 1; min-width: 200px">
+                <label
+                    style="
+                        display: block;
+                        margin-bottom: 4px;
+                        font-size: 0.85rem;
+                        color: #795548;
+                    "
+                    >Experiment 2</label
+                >
+                <select
+                    id="exp-select-2"
+                    style="
+                        width: 100%;
+                        padding: 8px;
+                        border: 1px solid #ccc;
+                        border-radius: 6px;
+                    "
+                >
+                    <option value="">Select</option>
+                </select>
+            </div>
+            <div>
+                <button
+                    id="generate-btn"
+                    class="btn"
+                    style="padding: 8px 20px"
+                    disabled
+                >
+                    Generate
+                </button>
+            </div>
+        </div>
+        <div id="compare-result" style="margin-top: 12px; display: none"></div>
+    </div>
+
     {% if reports %}
     <div class="reports-list">
         {% for report in reports %}
@@ -96,6 +175,9 @@
     </div>
     {% endif %}
 </div>
+
+{% load static %}
+<script src="{% static 'js/html_reports.js' %}"></script>
 
 <style>
     .report-item:hover {

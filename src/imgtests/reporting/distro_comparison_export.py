@@ -59,6 +59,8 @@ from imgtests.reporting.distro_comparison_common import (
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from openpyxl.worksheet.worksheet import Worksheet
+
 logger = logging.getLogger(__name__)
 
 COMPARISON_OUTPUT_NAME: Final = "comparison"
@@ -137,13 +139,7 @@ class DistroComparisonExportOptions:
     include_comparison: bool = True
 
 
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description=(
-            "Build one Excel comparison report from report.xlsx. "
-            "One chart is built per metric; each chart compares Poky and SUSE across the same runs."
-        ),
-    )
+def add_distro_comparison_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "input",
         type=Path,
@@ -200,7 +196,17 @@ def parse_args() -> argparse.Namespace:
         help="Copy source sheets only, do not build comparison tables/charts.",
     )
     parser.set_defaults(include_comparison=True)
-    return parser.parse_args()
+
+
+def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description=(
+            "Build one Excel comparison report from report.xlsx. "
+            "One chart is built per metric; each chart compares Poky and SUSE across the same runs."
+        ),
+    )
+    add_distro_comparison_arguments(parser)
+    return parser.parse_args(argv)
 
 
 def build_report(
@@ -209,27 +215,30 @@ def build_report(
     options: DistroComparisonExportOptions,
 ) -> Path:
     source_wb = load_workbook(input_path, read_only=True, data_only=True)
-    source_sheets = read_source_sheets(source_wb) if should_copy_source_sheets(options) else []
-    config_distro = build_configuration_distro_map(source_wb)
-    experiment_info = build_experiment_info_map(source_wb, config_distro)
+    try:
+        source_sheets = read_source_sheets(source_wb) if should_copy_source_sheets(options) else []
+        config_distro = build_configuration_distro_map(source_wb)
+        experiment_info = build_experiment_info_map(source_wb, config_distro)
 
-    groups: list[ComparisonGroup] = []
-    chart_specs: list[ChartSpec] = []
+        groups: list[ComparisonGroup] = []
+        chart_specs: list[ChartSpec] = []
 
-    if options.include_comparison:
-        groups = build_comparison_groups(
-            experiment_info,
-            experiment_ids=(
-                list(options.experiment_ids) if options.experiment_ids is not None else None
-            ),
-            latest_pair_only=options.latest_pair_only,
-        )
-        logger.info("Comparable Poky/SUSE groups: %s", len(groups))
-        if groups:
-            buckets = extract_metric_buckets(source_wb, config_distro, groups)
-            logger.info("Metric buckets with data: %s", len(buckets))
-            chart_specs = build_chart_specs(buckets, groups, max_charts=options.max_charts)
-            logger.info("Charts built: %s", len(chart_specs))
+        if options.include_comparison:
+            groups = build_comparison_groups(
+                experiment_info,
+                experiment_ids=(
+                    list(options.experiment_ids) if options.experiment_ids is not None else None
+                ),
+                latest_pair_only=options.latest_pair_only,
+            )
+            logger.info("Comparable Poky/SUSE groups: %s", len(groups))
+            if groups:
+                buckets = extract_metric_buckets(source_wb, config_distro, groups)
+                logger.info("Metric buckets with data: %s", len(buckets))
+                chart_specs = build_chart_specs(buckets, groups, max_charts=options.max_charts)
+                logger.info("Charts built: %s", len(chart_specs))
+    finally:
+        source_wb.close()
 
     result_wb = Workbook()
     result_wb.remove(result_wb.active)
@@ -281,7 +290,7 @@ def export_distro_comparison_to_excel(
     )
 
 
-def read_source_sheets(workbook: Any) -> list[SheetRows]:
+def read_source_sheets(workbook: Workbook) -> list[SheetRows]:
     sheets: list[SheetRows] = []
     for worksheet in workbook.worksheets:
         if is_comparison_sheet(worksheet.title):
@@ -307,7 +316,6 @@ def extract_metric_buckets(
         groups,
         MetricExtractionOptions(column_selector=find_metric_columns),
     )
-
 
 def build_chart_specs(
     buckets: list[MetricBucket],
@@ -528,7 +536,7 @@ def write_comparison_selection(
                 ],
             )
     rows.append([])
-    rows.append(["charts_built", chart_count, None, None, None, None, None, None, None, None, None])
+    rows.append(["charts_built", chart_count] + [None] * 9)
     write_styled_table(ws, rows)
 
 
@@ -643,7 +651,7 @@ def chart_block_height(chart: ChartSpec) -> int:
     return max(row_count + 8, 24)
 
 
-def setup_chart_sheet(ws: Any) -> None:
+def setup_chart_sheet(ws: Worksheet) -> None:
     widths = {
         "A": 24,
         "B": 18,
@@ -660,7 +668,7 @@ def setup_chart_sheet(ws: Any) -> None:
         ws.column_dimensions[column].width = width
 
 
-def write_chart_block(ws: Any, start_row: int, chart: ChartSpec) -> None:
+def write_chart_block(ws: Worksheet, start_row: int, chart: ChartSpec) -> None:
     if chart.chart_kind == "candlestick":
         write_candlestick_chart_block(ws, start_row, chart)
         return
@@ -693,7 +701,7 @@ def write_chart_block(ws: Any, start_row: int, chart: ChartSpec) -> None:
     ws.add_chart(excel_chart, f"E{start_row}")
 
 
-def write_candlestick_chart_block(ws: Any, start_row: int, chart: ChartSpec) -> None:
+def write_candlestick_chart_block(ws: Worksheet, start_row: int, chart: ChartSpec) -> None:
     title = chart_title(chart)
     title_cell = ws.cell(row=start_row, column=1, value=title)
     title_cell.font = Font(bold=True, size=12)
@@ -789,12 +797,12 @@ def chart_title(chart: ChartSpec) -> str:
     return f"{test_type} ({test_name}): {metric_name}"
 
 
-def write_table_sheet(ws: Any, sheet: SheetRows) -> None:
+def write_table_sheet(ws: Worksheet, sheet: SheetRows) -> None:
     rows = [sheet.headers, *sheet.rows]
     write_styled_table(ws, rows)
 
 
-def write_styled_table(ws: Any, rows: list[list[Any]]) -> None:
+def write_styled_table(ws: Worksheet, rows: list[list[Any]]) -> None:
     write_matrix(ws, rows)
     if not rows or not rows[0]:
         return

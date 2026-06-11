@@ -14,6 +14,8 @@ from imgtests.database.models.experiment import ExperimentBase, ExperimentType
 from imgtests.database.models.util_run_result import UtilRunResult, UtilType
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from imgtests.sysrep import SystemInfo
     from imgtests.types import TestsCounts
 
@@ -26,7 +28,7 @@ class PostgresCreds(BaseSettings):
     password: str = Field(validation_alias="POSTGRES_PASSWORD")
     database_name: str = Field(validation_alias="POSTGRES_DB")
     host: str = Field(validation_alias="POSTGRES_HOST")
-    port: int = Field(validation_alias="POSTGRES_PORT")
+    port: int = Field(validation_alias="POSTGRES_PORT", ge=0, le=65535)
 
 
 class ImgtestsDatabase:
@@ -143,7 +145,7 @@ class ImgtestsDatabase:
         experiment_id: int,
         util_type: UtilType,
         command: str,
-        result: dict[str, Any],
+        result: dict[str, Any] | list[str],
         description: str,
         started_at: datetime | None = None,
         ended_at: datetime | None = None,
@@ -216,6 +218,16 @@ class ImgtestsDatabase:
                 logger.error("Table '%s' doesn't exist.", table_name)
 
             return session.query(models[table_name]).all()
+
+    def list_experiments(self) -> Sequence[ExperimentBase]:
+        self._check_session()
+        with self.session() as session:
+            return (
+                session.query(ExperimentBase)
+                .options(selectinload(ExperimentBase.configuration))
+                .order_by(ExperimentBase.experiment_id.desc())
+                .all()
+            )
 
     def get_experiment_with_details(self, experiment_id: int) -> ExperimentBase:
         """Gets a single experiment with all related entities.
