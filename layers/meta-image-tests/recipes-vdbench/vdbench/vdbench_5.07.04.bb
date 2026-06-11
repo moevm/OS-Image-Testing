@@ -11,9 +11,9 @@ S = "${WORKDIR}/vdbench"
 RDEPENDS:${PN} += "bash"
 
 do_install() {
-	install -d ${D}${bindir}/vdbench
+	install -d ${D}${sbindir}/vdbench
 
-	cp -r ${S}/* ${D}${bindir}/vdbench/
+	cp -r ${S}/* ${D}${sbindir}/vdbench/
 }
 
-FILES:${PN} = "${bindir}/vdbench"
+FILES:${PN} = "${sbindir}/vdbench"

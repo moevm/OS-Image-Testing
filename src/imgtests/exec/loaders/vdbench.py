@@ -6,7 +6,7 @@ from imgtests.exec.utils import create_opt
 
 logger = logging.getLogger(__name__)
 
-VDBENCH_DIR = "/usr/bin/vdbench"
+VDBENCH_DIR = "/usr/sbin/vdbench"
 CONFIG_FILE = "/root/vdbench-config"
 OUTPUT_DIR = "/root/vdbench-output"
 
