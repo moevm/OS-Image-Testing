@@ -40,7 +40,7 @@ make docker-compose-up
 
 After initializing both Docker image and volumes, starts the following containers:
 
-- Python container is used for sending test input and receiving test output from the Yocto and Suse containers through SSH. It starts after the building processes are complete and the image has been booted.
+- Python container (analyzer) is used for sending test input and receiving test output from the Yocto and Suse containers through SSH. It starts after the building processes are complete and the image has been booted.
 
 - Yocto container (port:SSH_QEMU_PORT) is used for running tests after building the Yocto image. Building the image requires a significant amount of time and resources.
 
@@ -51,6 +51,8 @@ After initializing both Docker image and volumes, starts the following container
 - Bencher-API container (port:BENCHER_API_PORT) is used as a bencher server. It contains the separate database and processes all requests, that can be seen in the container logs.
 
 - Bencher-console container (port:BENCHER_CLI_PORT) shows active bencher web sessions used for viewing graphics and stats on tested systems, as well as the test results.
+
+- Victoria Metrics container (port:VMETRICS_PORT) collects metrics from the Yocto and Suse-156 container provided by node exporters.
 
 Results can be obtained from the Python container logs after all the tests are finished:
 
