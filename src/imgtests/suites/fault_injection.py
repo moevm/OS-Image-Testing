@@ -4,7 +4,8 @@ from datetime import UTC, datetime
 from time import sleep
 from typing import TYPE_CHECKING
 
-from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
+from imgtests.exec.debugfs import change_fault_parameters
+from imgtests.exec.exec import ExecResult, SSHClient
 from imgtests.exec.loaders import Chaosblade, ChaosResponse, Kirk, Perf, StressNg
 from imgtests.exec.osinfo import get_os_release
 from imgtests.exec.user_commands import MkDir
@@ -18,7 +19,7 @@ if TYPE_CHECKING:
 
     from imgtests.exec.exec import ExecResult, SSHClient
 
-DEBUG_FS_PATH = "/sys/kernel/debug/"
+
 logger = logging.getLogger(__name__)
 
 
@@ -388,51 +389,3 @@ class FaultInjectionFioTest(AbstractRunnableTimeLimitedTest):
 def is_fault_injection_available(client: SSHClient | None) -> bool:
     os_id = get_os_release(client).id
     return not (os_id and os_id != Distro.POKY.value)
-
-
-def change_fault_parameters(
-    client: SSHClient,
-    fault_probability: int,
-    fault_interval: int,
-) -> ExecResult:
-    result = Kirk(client).ensure_debugfs()
-    if result.returncode:
-        return result
-
-    result = common_run_command(["ls", DEBUG_FS_PATH], ssh_client=client)
-    if result.returncode:
-        logger.error("Failed to list debugfs directory.")
-        return result
-
-    dirs = [
-        i
-        for i in result.stdout.splitlines()
-        if ("fail" in i or "fault" in i) and i != "fault_around_bytes"
-    ]
-    if not dirs:
-        logger.warning("No fault-injection debugfs entries found under %s", DEBUG_FS_PATH)
-        return result
-
-    times = -1 if fault_probability > 0 else 1
-    last_result = result
-    for directory in dirs:
-        dir_path = DEBUG_FS_PATH + directory
-        updates = (
-            ("interval", fault_interval),
-            ("space", 0),
-            ("times", times),
-            ("probability", fault_probability),
-        )
-
-        for parameter, value in updates:
-            write_cmd = ["echo", f"{value}", ">", f"{dir_path}/{parameter}"]
-            result = common_run_command(write_cmd, ssh_client=client)
-            last_result = result
-            if result.returncode:
-                logger.error(
-                    "Failed to update fault-injection parameter %s in %s",
-                    parameter,
-                    dir_path,
-                )
-                return result
-    return last_result
