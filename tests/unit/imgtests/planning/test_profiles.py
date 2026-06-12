@@ -166,7 +166,7 @@ class TestBuildStageTasks:
         tasks = build_stage_tasks(ProfilesTestKind.LOAD, subsystems, LoadPattern.BALANCED, 120)
 
         assert len(tasks) == 3  # noqa: PLR2004
-        # Tasks should be sorted by subsystem value
+        # Tasks should be sorted by subsystem name
         assert tasks[0].subsystem == Subsystem.MEMORY
         assert tasks[1].subsystem == Subsystem.NETWORK
         assert tasks[2].subsystem == Subsystem.SYSTEM
