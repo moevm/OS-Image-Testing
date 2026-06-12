@@ -46,7 +46,7 @@ class FaultInjectionEnduranceTest(AbstractRunnableTimeLimitedTest):
             return TestResult(status=TestStatus.SKIPPED)
 
         kirk = Kirk(client)
-        if not is_kirk_suites_available(kirk, self.kirk_suites):
+        if not kirk.is_suites_available(self.kirk_suites):
             self.logger.warning("Kirk suite not available for the image with LTP.")
             return TestResult(status=TestStatus.SKIPPED)
 
@@ -436,8 +436,3 @@ def change_fault_parameters(
                 )
                 return result
     return last_result
-
-
-def is_kirk_suites_available(kirk: Kirk, required_suites: tuple[str, ...]) -> bool:
-    available_suites = kirk.list_suites()
-    return all(suite in available_suites for suite in required_suites)

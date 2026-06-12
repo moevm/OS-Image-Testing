@@ -90,6 +90,10 @@ class Kirk(GenericUtil):
 
         return tuple(line.strip() for line in res.stdout.splitlines() if line.strip())
 
+    def is_suites_available(self, required_suites: tuple[str, ...]) -> bool:
+        available_suites = self.list_suites()
+        return all(suite in available_suites for suite in required_suites)
+
     @staticmethod
     def _validate_fault_probability(fault_prob: int) -> None:
         """Checks if fault injection probability is in between borders."""
