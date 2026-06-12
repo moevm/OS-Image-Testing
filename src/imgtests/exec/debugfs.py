@@ -3,7 +3,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
-from imgtests.exec.loaders import Kirk
 
 if TYPE_CHECKING:
     from imgtests.exec.exec import ExecResult, SSHClient
@@ -15,28 +14,28 @@ MAX_FAULT_PROBABILITY = 100
 logger = logging.getLogger(__name__)
 
 
-def ensure_debugfs(self) -> ExecResult:
+def ensure_debugfs(ssh_client: SSHClient) -> ExecResult:
     """Ensures that debugfs is created and mounted."""
     debugfs_path = str(DEBUGFS_MOUNTPOINT)
-    result = common_run_command(("sudo", "mkdir", "-p", debugfs_path), self.ssh_client)
+    result = common_run_command(("sudo", "mkdir", "-p", debugfs_path), ssh_client)
     if result.returncode:
         return result
     mount_pattern = f"[[:space:]]{debugfs_path}[[:space:]]debugfs[[:space:]]"
     result = common_run_command(
         ("sudo", "grep", "-qs", mount_pattern, "/proc/mounts"),
-        self.ssh_client,
+        ssh_client,
     )
     if result.returncode == 0 or result.returncode != 1:
         return result
     logger.info("Mounting debugfs to '%s'.", debugfs_path)
     result = common_run_command(
         ("sudo", "mount", "-t", "debugfs", "debugfs", debugfs_path),
-        self.ssh_client,
+        ssh_client,
     )
 
     if result.returncode:
         logger.info("Unmounting debugfs from '%s'.", debugfs_path)
-        common_run_command(("sudo", "umount", debugfs_path), self.ssh_client)
+        common_run_command(("sudo", "umount", debugfs_path), ssh_client)
     return result
 
 
@@ -52,7 +51,7 @@ def change_fault_parameters(
     fault_probability: int,
     fault_interval: int,
 ) -> ExecResult:
-    result = Kirk(client).ensure_debugfs()
+    result = ensure_debugfs(client)
     if result.returncode:
         return result
 

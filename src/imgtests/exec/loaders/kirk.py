@@ -126,7 +126,7 @@ class Kirk(GenericUtil):
         if fault_prob is not None:
             validate_fault_probability(fault_prob)
 
-            debugfs_res = ensure_debugfs()
+            debugfs_res = ensure_debugfs(self.ssh_client)
             if debugfs_res.returncode:
                 return debugfs_res, None
 
