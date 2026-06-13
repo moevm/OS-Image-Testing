@@ -16,9 +16,9 @@ from imgtests.exec.loaders.stress_ng import StressNg, stress_metrics_to_samples
 from imgtests.exec.observers.systemd_analyze import SystemdAnalyze
 from imgtests.exec.osinfo import get_os_release
 from imgtests.exec.user_commands import Nproc
+from imgtests.planning import BaseRunner
 from imgtests.planning.profiles import CPU_SCALE_ARG_PREFIX, FIO_SIZE_RATIO_ARG_PREFIX
 from imgtests.reporting.html_report import SUSE_JOB, YOCTO_JOB, ReportGenerator
-from imgtests.runner import BaseRunner
 from imgtests.sizing import parse_size_to_bytes, round_bytes_to_mib_str
 from imgtests.types import Distro, MetricSample, TestsCounts, TestStatus
 
@@ -500,7 +500,7 @@ class PlanExecutor(BaseRunner):
             return self._cpu_count_cache
 
         result = Nproc(self.client)()
-        if result.returncode != 0:
+        if result.returncode:
             err = "Cannot resolve CPU count for dynamic stress args: 'nproc' failed."
             raise ValueError(err)
 
@@ -630,9 +630,6 @@ def _parse_dynamic_float(raw_value: str, prefix: str) -> float:
 
 
 def _resolve_experiment_type(plan: TestPlan) -> ExperimentType:
-    test_kind = getattr(plan.test_kind, "value", str(plan.test_kind))
-
-    if test_kind == "stability":
+    if plan.test_kind.value == "stability":
         return "endurance"
-
     return "performance"
