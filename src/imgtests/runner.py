@@ -3,15 +3,14 @@ from __future__ import annotations
 import json
 import logging
 import sys
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from threading import Event, Thread
-from typing import TYPE_CHECKING, Any, ClassVar, Final, Literal
+from typing import TYPE_CHECKING, Any, Final, Literal
 
 import paramiko
 import paramiko.ssh_exception
-from pydantic import Field
-from pydantic_settings import BaseSettings
 
 from imgtests.constant import CONFIG_DIR, QEMU, REPORTS_DIR
 from imgtests.database.database import ImgtestsDatabase
@@ -22,6 +21,7 @@ from imgtests.planning import (
     AbstractRunnableManyTimesTest,
     AbstractRunnableTimeLimitedTest,
     BaseRunner,
+    LoadPattern,
     PlanExecutor,
     TestKind,
 )
@@ -97,47 +97,6 @@ class TestsRunnerConfig:
             self.test_duration = self.total_duration // time_limited_tests_cnt
         else:
             self.test_duration = 0
-
-
-class ProfiledPlanRunnerSettings(BaseSettings):
-    subsystems: str = Field(default="all", validation_alias="PLAN_SUBSYSTEMS")
-    results_dir: Path = Field(
-        default=Path(REPORTS_DIR / "profiled"),
-        validation_alias="PLAN_RESULTS_DIR",
-    )
-    pattern: str = Field(default="", validation_alias="PLAN_PATTERN")
-    run_matrix: bool = Field(default=False, validation_alias="PLAN_RUN_MATRIX")
-    profile: str = Field(default="load", validation_alias="PLAN_PROFILE")
-    duration_sec: int = Field(default=120, validation_alias="PLAN_DURATION_SEC")
-    matrix_profiles: str = Field(default="all", validation_alias="PLAN_MATRIX_PROFILES")
-    duration_load: int | None = Field(default=None, validation_alias="PLAN_DURATION_LOAD")
-    duration_stress: int | None = Field(default=None, validation_alias="PLAN_DURATION_STRESS")
-    duration_stability: int | None = Field(default=None, validation_alias="PLAN_DURATION_STABILITY")
-    duration_scalability: int | None = Field(
-        default=None,
-        validation_alias="PLAN_DURATION_SCALABILITY",
-    )
-    duration_volume: int | None = Field(default=None, validation_alias="PLAN_DURATION_VOLUME")
-    duration_isolated: int | None = Field(default=None, validation_alias="PLAN_DURATION_ISOLATED")
-    duration_spike: int | None = Field(default=None, validation_alias="PLAN_DURATION_SPIKE")
-    duration_diagnostic: int | None = Field(
-        default=None,
-        validation_alias="PLAN_DURATION_DIAGNOSTIC",
-    )
-
-    def duration_for(self, profile: TestKind) -> int:
-        durations = {
-            "load": self.duration_load,
-            "stress": self.duration_stress,
-            "stability": self.duration_stability,
-            "scalability": self.duration_scalability,
-            "volume": self.duration_volume,
-            "isolated": self.duration_isolated,
-            "spike": self.duration_spike,
-            "diagnostic": self.duration_diagnostic,
-        }
-        duration = durations[profile.value]
-        return self.duration_sec if duration is None else duration
 
 
 class TestsRunner(BaseRunner):
@@ -309,13 +268,42 @@ class TestsRunner(BaseRunner):
             self._executor.shutdown(cancel_futures=True)
 
 
-class ProfiledPlanRunner(BaseRunner):
-    _SUBSYSTEM_ALIASES: ClassVar[dict[str, Subsystem]] = {
-        "cpu": Subsystem.SYSTEM,
-        "disk": Subsystem.FILE,
-        "ipc": Subsystem.IPC,
-    }
+@dataclass(frozen=True)
+class Durations:
+    duration_sec: int = 120
+    duration_load: int | None = None
+    duration_stress: int | None = None
+    duration_stability: int | None = None
+    duration_scalability: int | None = None
+    duration_volume: int | None = None
+    duration_isolated: int | None = None
+    duration_spike: int | None = None
+    duration_diagnostic: int | None = None
 
+    def duration_for(self, profile: TestKind) -> int:
+        match profile:
+            case TestKind.LOAD:
+                duration = self.duration_load
+            case TestKind.STRESS:
+                duration = self.duration_stress
+            case TestKind.STABILITY:
+                duration = self.duration_stability
+            case TestKind.SCALABILITY:
+                duration = self.duration_scalability
+            case TestKind.VOLUME:
+                duration = self.duration_volume
+            case TestKind.ISOLATED:
+                duration = self.duration_isolated
+            case TestKind.SPIKE:
+                duration = self.duration_spike
+            case TestKind.DIAGNOSTIC:
+                duration = self.duration_diagnostic
+            case _:
+                return self.duration_sec
+        return duration or self.duration_sec
+
+
+class ProfiledPlanRunner(BaseRunner):
     def __init__(
         self,
         client: SSHClient | None,
@@ -324,48 +312,69 @@ class ProfiledPlanRunner(BaseRunner):
         self.executor = PlanExecutor(client=client, db=database)
         super().__init__("profiled_plan_runner", client, database)
 
-    def run_from_env(self) -> bool:
-        settings = ProfiledPlanRunnerSettings()
-        subsystems = self._parse_subsystems(settings.subsystems)
-        results_root = settings.results_dir
-        pattern = self._parse_pattern(settings.pattern)
+    def run(  # noqa: PLR0913
+        self,
+        subsystems: frozenset[Subsystem] | None = None,
+        results_dir: Path = REPORTS_DIR / "profiled",
+        pattern: LoadPattern | None = None,
+        run_matrix: bool = False,
+        profile: TestKind = TestKind.LOAD,
+        matrix_profiles: tuple[TestKind, ...] | None = None,
+        durations: Durations | None = None,
+    ) -> bool:
+        if subsystems is None:
+            subsystems = frozenset(Subsystem)
+        elif not subsystems:
+            msg = "No subsystems provided."
+            raise ValueError(msg)
+        if durations is None:
+            durations = Durations()
+        if matrix_profiles is None:
+            matrix_profiles = tuple(TestKind)
+
         config_id = self.resolve_config_id(self._client, self._database)
 
-        if settings.run_matrix:
+        if run_matrix:
             return self._run_matrix(
                 subsystems=subsystems,
-                results_root=results_root,
+                results_root=results_dir,
                 pattern=pattern,
+                matrix_profiles=matrix_profiles,
                 config_id=config_id,
-                settings=settings,
+                durations=durations,
             )
 
         failures = self._run_one(
-            profile=self._parse_profile(settings.profile),
-            duration_sec=settings.duration_sec,
+            profile=profile,
+            duration_sec=durations.duration_sec,
             subsystems=subsystems,
-            results_root=results_root,
+            results_root=results_dir,
             pattern=pattern,
             config_id=config_id,
         )
         return failures > 0
 
-    def _run_matrix(
+    def _run_matrix(  # noqa: PLR0913
         self,
         *,
         subsystems: frozenset[Subsystem],
         results_root: Path,
         pattern: LoadPattern | None,
+        matrix_profiles: tuple[TestKind, ...],
         config_id: int,
-        settings: ProfiledPlanRunnerSettings,
+        durations: Durations,
     ) -> bool:
+        if not matrix_profiles:
+            msg = "No profiles provided."
+            raise ValueError(msg)
+
         total_failures = 0
 
-        for index, profile in enumerate(self._parse_profiles(settings.matrix_profiles)):
+        for index, profile in enumerate(matrix_profiles):
             if index > 0 and isinstance(self._client, SSHClient):
                 self._client.reconnect()
 
-            duration_sec = settings.duration_for(profile)
+            duration_sec = durations.duration_for(profile)
             total_failures += self._run_one(
                 profile=profile,
                 duration_sec=duration_sec,
@@ -424,79 +433,6 @@ class ProfiledPlanRunner(BaseRunner):
             run_name += f"_{pattern.value}"
         return run_name
 
-    @classmethod
-    def _parse_subsystems(cls, raw: str) -> frozenset[Subsystem]:
-        value = raw.strip().lower()
-        if value == "all":
-            return frozenset(Subsystem)
-
-        subsystems: set[Subsystem] = set()
-        for part in [item.strip().lower() for item in value.split(",") if item.strip()]:
-            if part in cls._SUBSYSTEM_ALIASES:
-                subsystems.add(cls._SUBSYSTEM_ALIASES[part])
-                continue
-
-            try:
-                subsystems.add(Subsystem(part))
-            except ValueError as exc:
-                allowed = ", ".join(
-                    sorted(
-                        [subsystem.value for subsystem in Subsystem] + list(cls._SUBSYSTEM_ALIASES),
-                    ),
-                )
-                msg = f"Unknown subsystem '{part}'. Allowed: {allowed}"
-                raise ValueError(msg) from exc
-
-        if not subsystems:
-            msg = "No subsystems provided."
-            raise ValueError(msg)
-
-        return frozenset(subsystems)
-
-    @staticmethod
-    def _parse_profile(raw: str) -> TestKind:
-        try:
-            return TestKind(raw.strip().lower())
-        except ValueError as exc:
-            allowed = ", ".join(item.value for item in TestKind)
-            msg = f"Unknown profile '{raw}'. Allowed: {allowed}"
-            raise ValueError(msg) from exc
-
-    @classmethod
-    def _parse_profiles(cls, raw: str) -> tuple[TestKind, ...]:
-        value = raw.strip().lower()
-        if value in {"", "all"}:
-            return tuple(TestKind)
-
-        profiles: list[TestKind] = []
-        seen: set[TestKind] = set()
-        for part in [item.strip() for item in value.split(",") if item.strip()]:
-            profile = cls._parse_profile(part)
-            if profile not in seen:
-                profiles.append(profile)
-                seen.add(profile)
-
-        if not profiles:
-            msg = "No profiles provided."
-            raise ValueError(msg)
-
-        return tuple(profiles)
-
-    @staticmethod
-    def _parse_pattern(raw: str) -> LoadPattern | None:
-        from imgtests.planning import LoadPattern  # noqa: PLC0415
-
-        value = raw.strip().lower()
-        if value in {"", "auto"}:
-            return None
-
-        try:
-            return LoadPattern(value)
-        except ValueError as exc:
-            allowed = ", ".join(item.value for item in LoadPattern)
-            msg = f"Unknown pattern '{raw}'. Allowed: {allowed}"
-            raise ValueError(msg) from exc
-
 
 def load_test_config(distro: str) -> dict[str, Any]:
     config_file = CONFIG_DIR / f"{distro}_config.json"
@@ -553,7 +489,7 @@ def run_profiled(client: SSHClient, database: ImgtestsDatabase) -> None:
     ProfiledPlanRunner(
         client=client,
         database=database,
-    ).run_from_env()
+    ).run()
     client.close()
 
 
