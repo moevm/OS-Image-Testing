@@ -1,5 +1,4 @@
 import logging
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
@@ -7,8 +6,7 @@ from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
 if TYPE_CHECKING:
     from imgtests.exec.exec import ExecResult, SSHClient
 
-DEBUGFS_MOUNTPOINT = Path("/sys/kernel/debug")
-DEBUG_FS_PATH = "/sys/kernel/debug/"
+DEBUGFS_PATH = "/sys/kernel/debug"
 MAX_FAULT_PROBABILITY = 100
 
 logger = logging.getLogger(__name__)
@@ -16,26 +14,25 @@ logger = logging.getLogger(__name__)
 
 def ensure_debugfs(ssh_client: SSHClient) -> ExecResult:
     """Ensures that debugfs is created and mounted."""
-    debugfs_path = str(DEBUGFS_MOUNTPOINT)
-    result = common_run_command(("sudo", "mkdir", "-p", debugfs_path), ssh_client)
+    result = common_run_command(("sudo", "mkdir", "-p", DEBUGFS_PATH), ssh_client)
     if result.returncode:
         return result
-    mount_pattern = f"[[:space:]]{debugfs_path}[[:space:]]debugfs[[:space:]]"
+    mount_pattern = f"[[:space:]]{DEBUGFS_PATH}[[:space:]]debugfs[[:space:]]"
     result = common_run_command(
         ("sudo", "grep", "-qs", mount_pattern, "/proc/mounts"),
         ssh_client,
     )
     if result.returncode == 0 or result.returncode != 1:
         return result
-    logger.info("Mounting debugfs to '%s'.", debugfs_path)
+    logger.info("Mounting debugfs to '%s'.", DEBUGFS_PATH)
     result = common_run_command(
-        ("sudo", "mount", "-t", "debugfs", "debugfs", debugfs_path),
+        ("sudo", "mount", "-t", "debugfs", "debugfs", DEBUGFS_PATH),
         ssh_client,
     )
 
     if result.returncode:
-        logger.info("Unmounting debugfs from '%s'.", debugfs_path)
-        common_run_command(("sudo", "umount", debugfs_path), ssh_client)
+        logger.info("Unmounting debugfs from '%s'.", DEBUGFS_PATH)
+        common_run_command(("sudo", "umount", DEBUGFS_PATH), ssh_client)
     return result
 
 
@@ -55,24 +52,26 @@ def change_fault_parameters(
     if result.returncode:
         return result
 
-    result = common_run_command(["ls", DEBUG_FS_PATH], ssh_client=client)
+    result = common_run_command(["ls", DEBUGFS_PATH], ssh_client=client)
     if result.returncode:
         logger.error("Failed to list debugfs directory.")
         return result
 
     dirs = [
-        i
-        for i in result.stdout.splitlines()
-        if ("fail" in i or "fault" in i) and i != "fault_around_bytes"
+        dir_name
+        for dir_name in result.stdout.splitlines()
+        if ("fail" in dir_name or "fault" in dir_name) and dir_name != "fault_around_bytes"
     ]
     if not dirs:
-        logger.warning("No fault-injection debugfs entries found under %s", DEBUG_FS_PATH)
+        logger.warning("No fault-injection debugfs entries found under %s", DEBUGFS_PATH)
         return result
 
+    # When fault injection is enabled, times should be set to -1, so that it would run infinitely
+    # When fault injection is disabled, times set to default 1
     times = -1 if fault_probability > 0 else 1
     last_result = result
     for directory in dirs:
-        dir_path = DEBUG_FS_PATH + directory
+        dir_path = DEBUGFS_PATH + "/" + directory
         updates = (
             ("interval", fault_interval),
             ("space", 0),
