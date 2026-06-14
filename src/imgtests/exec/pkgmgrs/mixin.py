@@ -4,7 +4,6 @@ from imgtests.exec.debugfs import change_fault_parameters
 from imgtests.exec.exec import ExecResult, SSHClient
 from imgtests.exec.osinfo import get_os_release
 from imgtests.exec.pkgmgrs.zypper import Zypper
-from imgtests.planning.base import DefaultCleanupMixin
 
 if TYPE_CHECKING:
     import logging
@@ -43,8 +42,10 @@ class PkgMgrMixin:
         )
 
 
-class FaultCleanupMixin(DefaultCleanupMixin):
+class FaultCleanupMixin:
     def cleanup(self, client: SSHClient | None, logger: logging.Logger) -> None:
         change_fault_parameters(client, 0, 1)
         logger.info("Cleaned fault parameters.")
-        super().cleanup(client, logger)
+        default_cleanup = getattr(super(), "cleanup", None)
+        if default_cleanup:
+            default_cleanup(client, logger)
