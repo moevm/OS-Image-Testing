@@ -42,6 +42,8 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
     from pathlib import Path
 
+    from openpyxl.worksheet.worksheet import Worksheet
+
 logger = logging.getLogger(__name__)
 
 BASELINE_DISTRO: Final = "suse"
@@ -279,7 +281,6 @@ TECHNICAL_OR_ID_PATTERNS: Final = {
 class DistroComparisonStatusOptions:
     output_path: Path | None = None
     experiment_ids: Sequence[str] | None = None
-    latest_pair_only: bool = False
     epsilon_percent: float = DEFAULT_EPSILON_PERCENT
 
 
@@ -342,13 +343,17 @@ def export_distro_comparison_status_to_excel(
     options: DistroComparisonStatusOptions | None = None,
 ) -> Path:
     options = options or DistroComparisonStatusOptions()
+    if not options.experiment_ids:
+        msg = "Experiment IDs are required for comparison status export."
+        raise ValueError(msg)
+
     source_wb = load_workbook(input_path, read_only=True, data_only=True)
     config_distro = build_configuration_distro_map(source_wb)
     experiment_info = build_experiment_info_map(source_wb, config_distro)
     groups = build_comparison_groups(
         experiment_info,
-        experiment_ids=list(options.experiment_ids) if options.experiment_ids is not None else None,
-        latest_pair_only=options.latest_pair_only,
+        experiment_ids=list(options.experiment_ids),
+        latest_pair_only=False,
     )
     logger.info("Comparable Poky/SUSE groups: %s", len(groups))
 
@@ -1233,7 +1238,7 @@ def metric_status_row_values(row: MetricStatusRow) -> list[Any]:
     ]
 
 
-def style_status_table(ws: Any, row_count: int, col_count: int) -> None:
+def style_status_table(ws: Worksheet, row_count: int, col_count: int) -> None:
     style_table(ws, row_count, col_count)
     status_fills = {
         STATUS_OK: PatternFill("solid", fgColor="D9EAD3"),
@@ -1260,7 +1265,7 @@ def style_status_table(ws: Any, row_count: int, col_count: int) -> None:
             ws.cell(row=row_index, column=column_index_1based).number_format = "0.00"
 
 
-def worksheet_column_index(ws: Any, column_name: str) -> int | None:
+def worksheet_column_index(ws: Worksheet, column_name: str) -> int | None:
     for cell in ws[1]:
         if cell.value == column_name:
             return cell.column

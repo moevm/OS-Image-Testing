@@ -40,16 +40,6 @@ DEFAULT_OUTPUT_FILENAME: Final = "report.xlsx"
 DATABASE_COMMAND: Final = "database"
 DISTRO_COMPARISON_COMMAND: Final = "distro-comparison"
 DISTRO_COMPARISON_STATUS_COMMAND: Final = "comparison-status"
-EXPORT_COMMANDS: Final = frozenset(
-    {
-        DATABASE_COMMAND,
-        "db",
-        DISTRO_COMPARISON_COMMAND,
-        "comparison",
-        DISTRO_COMPARISON_STATUS_COMMAND,
-        "status",
-    },
-)
 
 JSON_COLUMNS: Final = {
     "util_run_result": {"result"},
@@ -108,20 +98,12 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     add_database_subparser(subparsers)
     add_distro_comparison_subparser(subparsers)
     add_distro_comparison_status_subparser(subparsers)
-    return parser.parse_args(add_default_database_command(raw_args))
-
-
-def add_default_database_command(args: list[str]) -> list[str]:
-    if args and args[0] not in EXPORT_COMMANDS and not args[0].startswith("-"):
-        return [DATABASE_COMMAND, *args]
-
-    return args
+    return parser.parse_args(raw_args)
 
 
 def add_database_subparser(subparsers: Any) -> None:
     parser = subparsers.add_parser(
         DATABASE_COMMAND,
-        aliases=["db"],
         help="export database tables to an XLSX workbook",
     )
     add_database_arguments(parser)
@@ -188,17 +170,10 @@ def add_comparison_report_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--experiment-ids",
         nargs="+",
+        required=True,
         help=(
             "Experiment IDs to compare. With two IDs, one Poky/SUSE group is created. "
             "With many IDs, comparable Poky/SUSE pairs are built inside the selected IDs."
-        ),
-    )
-    parser.add_argument(
-        "--latest-pair-only",
-        action="store_true",
-        help=(
-            "Compare only the latest comparable Poky/SUSE pair. "
-            "By default all comparable pairs are used."
         ),
     )
 
@@ -983,7 +958,6 @@ def export_distro_comparison_status_command(args: argparse.Namespace) -> None:
         options=DistroComparisonStatusOptions(
             output_path=args.output,
             experiment_ids=args.experiment_ids,
-            latest_pair_only=args.latest_pair_only,
             epsilon_percent=args.epsilon_percent,
         ),
     )
