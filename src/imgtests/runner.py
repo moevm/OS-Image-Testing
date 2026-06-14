@@ -23,7 +23,9 @@ from imgtests.planning import (
     BaseRunner,
     LoadPattern,
     PlanExecutor,
+    PlanRequest,
     TestKind,
+    build_plan,
 )
 from imgtests.snapshot import SnapshotManager
 from imgtests.suites.system import (
@@ -303,6 +305,43 @@ class Durations:
         return duration or self.duration_sec
 
 
+class ProfiledRunnerSettings:
+    __slots__ = (
+        "durations",
+        "matrix_profiles",
+        "pattern",
+        "profile",
+        "results_dir",
+        "run_matrix",
+        "subsystems",
+    )
+
+    def __init__(  # noqa: PLR0913
+        self,
+        subsystems: frozenset[Subsystem] | None = None,
+        results_dir: Path = REPORTS_DIR / "profiled",
+        pattern: LoadPattern | None = None,
+        run_matrix: bool = False,
+        profile: TestKind = TestKind.LOAD,
+        matrix_profiles: tuple[TestKind, ...] | None = None,
+        durations: Durations | None = None,
+    ) -> None:
+        if subsystems is None:
+            self.subsystems = frozenset(Subsystem)
+        elif not subsystems:
+            msg = "No subsystems provided."
+            raise ValueError(msg)
+        else:
+            self.subsystems = subsystems
+        self.durations = durations or Durations()
+        self.matrix_profiles = tuple(TestKind) if matrix_profiles is None else matrix_profiles
+
+        self.results_dir = results_dir
+        self.pattern = pattern
+        self.run_matrix = run_matrix
+        self.profile = profile
+
+
 class ProfiledPlanRunner(BaseRunner):
     def __init__(
         self,
@@ -312,44 +351,24 @@ class ProfiledPlanRunner(BaseRunner):
         self.executor = PlanExecutor(client=client, db=database)
         super().__init__("profiled_plan_runner", client, database)
 
-    def run(  # noqa: PLR0913
-        self,
-        subsystems: frozenset[Subsystem] | None = None,
-        results_dir: Path = REPORTS_DIR / "profiled",
-        pattern: LoadPattern | None = None,
-        run_matrix: bool = False,
-        profile: TestKind = TestKind.LOAD,
-        matrix_profiles: tuple[TestKind, ...] | None = None,
-        durations: Durations | None = None,
-    ) -> bool:
-        if subsystems is None:
-            subsystems = frozenset(Subsystem)
-        elif not subsystems:
-            msg = "No subsystems provided."
-            raise ValueError(msg)
-        if durations is None:
-            durations = Durations()
-        if matrix_profiles is None:
-            matrix_profiles = tuple(TestKind)
-
+    def run(self, profiled_settings: ProfiledRunnerSettings) -> bool:
         config_id = self.resolve_config_id(self._client, self._database)
-
-        if run_matrix:
+        if profiled_settings.run_matrix:
             return self._run_matrix(
-                subsystems=subsystems,
-                results_root=results_dir,
-                pattern=pattern,
-                matrix_profiles=matrix_profiles,
+                subsystems=profiled_settings.subsystems,
+                results_root=profiled_settings.results_dir,
+                pattern=profiled_settings.pattern,
+                matrix_profiles=profiled_settings.matrix_profiles,
                 config_id=config_id,
-                durations=durations,
+                durations=profiled_settings.durations,
             )
 
         failures = self._run_one(
-            profile=profile,
-            duration_sec=durations.duration_sec,
-            subsystems=subsystems,
-            results_root=results_dir,
-            pattern=pattern,
+            profile=profiled_settings.profile,
+            duration_sec=profiled_settings.durations.duration_sec,
+            subsystems=profiled_settings.subsystems,
+            results_root=profiled_settings.results_dir,
+            pattern=profiled_settings.pattern,
             config_id=config_id,
         )
         return failures > 0
@@ -396,8 +415,6 @@ class ProfiledPlanRunner(BaseRunner):
         pattern: LoadPattern | None,
         config_id: int,
     ) -> int:
-        from imgtests.planning import PlanRequest, build_plan  # noqa: PLC0415
-
         execution = self.executor.execute(
             build_plan(
                 PlanRequest(
@@ -484,15 +501,6 @@ def filter_tests_by_names(
     return filtered_tests
 
 
-def run_profiled(client: SSHClient, database: ImgtestsDatabase) -> None:
-    client.reconnect()
-    ProfiledPlanRunner(
-        client=client,
-        database=database,
-    ).run()
-    client.close()
-
-
 def _get_clients(distro: str) -> tuple[SSHClient | None, SSHClient | None]:
     suse_client = None
     poky_client = None
@@ -574,11 +582,13 @@ def _run_single(distro: Distro, mode: Runner, config: dict[str, Any]) -> None:  
                 runner.run()
                 runner.close()
     if mode == "profiled":
-        if poky_client:
-            run_profiled(poky_client, database)
-        if suse_client:
-            run_profiled(suse_client, database)
-
+        for client in filter(None, [poky_client, suse_client]):
+            client.reconnect()
+            ProfiledPlanRunner(
+                client=client,
+                database=database,
+            ).run(profiled_settings=ProfiledRunnerSettings())
+            client.close()
     database.session.close_all()
 
 
