@@ -1,20 +1,21 @@
 import logging
-from typing import TYPE_CHECKING
+from pathlib import Path
+from typing import TYPE_CHECKING, Final
 
 from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
 
 if TYPE_CHECKING:
     from imgtests.exec.exec import ExecResult, SSHClient
 
-DEBUGFS_PATH = "/sys/kernel/debug"
-MAX_FAULT_PROBABILITY = 100
+DEBUGFS_PATH: Final = Path("/sys/kernel/debug")
+MAX_FAULT_PROBABILITY: Final = 100
 
 logger = logging.getLogger(__name__)
 
 
 def ensure_debugfs(ssh_client: SSHClient | None) -> ExecResult:
     """Ensures that debugfs is created and mounted."""
-    result = common_run_command(("sudo", "mkdir", "-p", DEBUGFS_PATH), ssh_client)
+    result = common_run_command(("sudo", "mkdir", "-p", str(DEBUGFS_PATH)), ssh_client)
     if result.returncode:
         return result
     mount_pattern = f"[[:space:]]{DEBUGFS_PATH}[[:space:]]debugfs[[:space:]]"
@@ -24,15 +25,15 @@ def ensure_debugfs(ssh_client: SSHClient | None) -> ExecResult:
     )
     if result.returncode == 0 or result.returncode != 1:
         return result
-    logger.info("Mounting debugfs to '%s'.", DEBUGFS_PATH)
+    logger.info("Mounting debugfs to '%s'.", str(DEBUGFS_PATH))
     result = common_run_command(
-        ("sudo", "mount", "-t", "debugfs", "debugfs", DEBUGFS_PATH),
+        ("sudo", "mount", "-t", "debugfs", "debugfs", str(DEBUGFS_PATH)),
         ssh_client,
     )
 
     if result.returncode:
-        logger.info("Unmounting debugfs from '%s'.", DEBUGFS_PATH)
-        common_run_command(("sudo", "umount", DEBUGFS_PATH), ssh_client)
+        logger.info("Unmounting debugfs from '%s'.", str(DEBUGFS_PATH))
+        common_run_command(("sudo", "umount", str(DEBUGFS_PATH)), ssh_client)
     return result
 
 
@@ -52,7 +53,7 @@ def change_fault_parameters(
     if result.returncode:
         return result
 
-    result = common_run_command(["ls", DEBUGFS_PATH], ssh_client=client)
+    result = common_run_command(["ls", str(DEBUGFS_PATH)], ssh_client=client)
     if result.returncode:
         logger.error("Failed to list debugfs directory.")
         return result
@@ -63,7 +64,7 @@ def change_fault_parameters(
         if ("fail" in dir_name or "fault" in dir_name) and dir_name != "fault_around_bytes"
     ]
     if not dirs:
-        logger.warning("No fault-injection debugfs entries found under %s", DEBUGFS_PATH)
+        logger.warning("No fault-injection debugfs entries found under %s", str(DEBUGFS_PATH))
         return result
 
     # When fault injection is enabled, times should be set to -1, so that it would run infinitely
@@ -71,7 +72,7 @@ def change_fault_parameters(
     times = -1 if fault_probability > 0 else 1
     last_result = result
     for directory in dirs:
-        dir_path = DEBUGFS_PATH + "/" + directory
+        dir_path = DEBUGFS_PATH / directory
         updates = (
             ("interval", fault_interval),
             ("space", 0),
