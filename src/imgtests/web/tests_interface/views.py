@@ -1,19 +1,26 @@
 import json
-import os
+import logging
 import re
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from django.core.management import call_command
-from django.http import Http404, HttpRequest, JsonResponse
+from django.http import FileResponse, Http404, HttpRequest, JsonResponse
 from django.http.response import HttpResponse
 from django.shortcuts import get_object_or_404, render
 from django.tasks import TaskResultStatus
+from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
+from pydantic_core._pydantic_core import ValidationError
+from sqlalchemy import create_engine
 
-from imgtests.constant import CONFIG_DIR, REPORTS_DIR
-from imgtests.suites.map import ALL_SUITES, get_test_name
+from imgtests.constant import CONFIG_DIR, EXCEL_REPORTS_DIR, REPORTS_DIR
+from imgtests.database.database import ImgtestsDatabase, PostgresCreds
+from imgtests.reporting.excel_export import export_database_to_excel
+from imgtests.reporting.html_report import ReportGenerator
+from imgtests.runner import get_test_name
+from imgtests.suites.map import ALL_SUITES
 
 from .models import Distribution
 from .tasks import run_test_task
@@ -22,6 +29,7 @@ if TYPE_CHECKING:
     from django.tasks import TaskResult
 
 
+logger = logging.getLogger(__name__)
 test_runs = {}
 
 
@@ -118,31 +126,22 @@ def distro_page(request: HttpRequest, distro_id: int) -> HttpResponse:
 
 def report_list(request: HttpRequest) -> HttpResponse:
     reports: list[dict[str, str | float]] = []
-    if REPORTS_DIR.exists():
-        for report_dir in sorted(REPORTS_DIR.iterdir(), reverse=True):
-            if not report_dir.is_dir():
-                continue
-            html_files = list(report_dir.glob("*.html"))
-            for html_file in html_files:
-                created_time = html_file.stat().st_mtime
-
-                reports.append(
-                    {
-                        "name": f"{report_dir.name} / {html_file.name}",
-                        "report_dir": report_dir.name,
-                        "filename": html_file.name,
-                        "created": created_time,
-                        "size": html_file.stat().st_size,
-                        "dir_name": report_dir.name,
-                        "file_name": html_file.name,
-                    },
-                )
+    if not REPORTS_DIR.exists():
+        return render(request, "tests_interface/reports_list.html", {"reports": reports})
+    for report_dir in sorted(REPORTS_DIR.iterdir(), reverse=True):
+        reports.extend(__find_reports(report_dir))
+    profiled_dir = REPORTS_DIR / "profiled"
+    if not profiled_dir.exists():
+        return render(request, "tests_interface/reports_list.html", {"reports": reports})
+    for report_dir in sorted(profiled_dir.iterdir(), reverse=True):
+        reports.extend(__find_reports(report_dir))
 
     return render(request, "tests_interface/reports_list.html", {"reports": reports})
 
 
 def view_report(request: HttpRequest, report_dir: str, filename: str) -> HttpResponse:  # noqa: ARG001
-    report_file = REPORTS_DIR / report_dir / filename
+    report_path = __safe_relative_path(report_dir, filename)
+    report_file = REPORTS_DIR / report_path
 
     if not report_file.exists() or not report_file.is_file():
         e = f"Report not found: {report_dir}/{filename}"
@@ -154,7 +153,7 @@ def view_report(request: HttpRequest, report_dir: str, filename: str) -> HttpRes
 
         content_str = content_str.replace(
             'src="plots/',
-            f'src="/reports/static/{report_dir}/plots/',
+            f'src="/reports/static/{report_path.parent.as_posix()}/plots/',
         )
 
         content_bytes = content_str.encode("utf-8")
@@ -165,7 +164,8 @@ def view_report(request: HttpRequest, report_dir: str, filename: str) -> HttpRes
 
 
 def report_static_files(request: HttpRequest, report_dir: str, file_path: str) -> HttpResponse:  # noqa: ARG001
-    static_file = REPORTS_DIR / report_dir / file_path
+    static_path = __safe_relative_path(report_dir, file_path)
+    static_file = REPORTS_DIR / static_path
 
     if not static_file.exists() or not static_file.is_file():
         e = f"Static file not found: {report_dir}/{file_path}"
@@ -204,20 +204,21 @@ def run_tests(request: HttpRequest) -> JsonResponse:
         try:
             body = json.loads(request.body)
         except json.JSONDecodeError, AttributeError:
-            test_runs_count = 1
-        else:
-            test_runs_count = body.get("test_runs_count", 1)
-        env_req = {
-            "TESTED_DISTRO": distro.name,
-            "TEST_RUNS_COUNT": str(test_runs_count),
-        }
+            body = {}
+        test_runs_count = body.get("test_runs_count", 1)
     else:
-        env_req = {"TESTED_DISTRO": "None"}
+        return JsonResponse({"error": "Invalid referer"}, status=400)
 
-    env_vars = os.environ.copy()
-    env_vars.update(env_req)
+    try:
+        mode = body.get("TESTING_MODE", "default")
+    except AttributeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
 
-    result: TaskResult = run_test_task.enqueue(env_vars)
+    result: TaskResult = run_test_task.enqueue(
+        distro=distro.name,
+        mode=mode,
+        test_runs_count=test_runs_count,
+    )
 
     task_id = str(result.id)
     test_runs[task_id] = {
@@ -342,3 +343,159 @@ def api_get_distros(request: HttpRequest) -> JsonResponse:  # noqa: ARG001
         ),
     )
     return JsonResponse({"distributions": distributions})
+
+
+def __find_reports(reports_path: Path) -> list[dict[str, str | float]]:
+    if not reports_path.is_dir():
+        return []
+    html_files = list(reports_path.glob("*.html"))
+    report_dir = reports_path.relative_to(REPORTS_DIR).as_posix()
+    return [
+        {
+            "name": f"{report_dir} / {html_file.name}",
+            "report_dir": report_dir,
+            "filename": html_file.name,
+            "created": html_file.stat().st_mtime,
+            "size": html_file.stat().st_size,
+            "dir_name": report_dir,
+            "file_name": html_file.name,
+        }
+        for html_file in html_files
+    ]
+
+
+def __safe_relative_path(*parts: str) -> Path:
+    relative_path = Path(*parts)
+    if relative_path.is_absolute() or ".." in relative_path.parts:
+        e = "Invalid report path"
+        raise Http404(e)
+    return relative_path
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_export_excel(request: HttpRequest) -> JsonResponse:  # noqa: ARG001
+    timestamp = timezone.now().strftime("%Y%m%d_%H%M%S")
+    output_path = EXCEL_REPORTS_DIR / f"export_{timestamp}.xlsx"
+    try:
+        db_creds = PostgresCreds()
+    except ValidationError:
+        logger.exception("Failed to get database credentials from environment.")
+        return JsonResponse({"error": "Export failed."}, status=500)
+
+    db_url = (
+        f"postgresql+psycopg://{db_creds.user}:{db_creds.password}@"
+        f"{db_creds.host}:{db_creds.port}/{db_creds.database_name}"
+    )
+
+    try:
+        engine = create_engine(db_url)
+        export_database_to_excel(
+            engine=engine,
+            output_path=output_path,
+            configuration_ids={"poky": 1, "suse": 2},
+        )
+    except Exception as err:  # noqa: BLE001
+        return JsonResponse({"error": f"Export failed: {err}"}, status=500)
+
+    logger.info("Report '%s' successfully created.", str(output_path))
+    return JsonResponse(
+        {
+            "success": True,
+            "file_url": f"excel_reports/{output_path.name}",
+            "filename": output_path.name,
+            "created": timestamp,
+        },
+    )
+
+
+def excel_report_list(request: HttpRequest) -> HttpResponse:
+    reports: list[dict[str, str | float]] = []
+    if not EXCEL_REPORTS_DIR.exists():
+        return render(request, "tests_interface/excel_reports.html", {"reports": reports})
+
+    for file_path in sorted(EXCEL_REPORTS_DIR.glob("*.xlsx"), reverse=True):
+        stat = file_path.stat()
+        reports.append(
+            {
+                "name": file_path.name,
+                "size": stat.st_size,
+                "created": stat.st_mtime,
+            },
+        )
+
+    return render(request, "tests_interface/excel_reports.html", {"reports": reports})
+
+
+def download_excel_report(request: HttpRequest, filename: str) -> FileResponse:  # noqa: ARG001
+    file_path = EXCEL_REPORTS_DIR / filename
+
+    if not file_path.exists():
+        e = "File not found"
+        raise Http404(e)
+
+    return FileResponse(
+        Path.open(file_path, "rb"),
+        filename=filename,
+        as_attachment=True,
+    )
+
+
+def api_list_experiments(request: HttpRequest) -> JsonResponse:  # noqa: ARG001
+    try:
+        experiments = ImgtestsDatabase().list_experiments()
+    except Exception as e:  # noqa: BLE001
+        return JsonResponse({"error": str(e)}, status=500)
+
+    return JsonResponse(
+        {
+            "experiments": [
+                {
+                    "id": exp.experiment_id,
+                    "description": exp.description,
+                    "os": exp.configuration.os if exp.configuration else "unknown",
+                    "started_at": (exp.started_at.isoformat() if exp.started_at else None),
+                    "ended_at": exp.ended_at.isoformat() if exp.ended_at else None,
+                    "tests_total": exp.tests_total,
+                    "tests_passed": exp.tests_passed,
+                    "tests_failed": exp.tests_failed,
+                    "tests_broken": exp.tests_broken,
+                    "tests_skipped": exp.tests_skipped,
+                }
+                for exp in experiments
+            ],
+        },
+    )
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_generate_compare_report(request: HttpRequest) -> JsonResponse:
+    try:
+        body = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid request body"}, status=400)
+
+    try:
+        exp_id_1 = int(body.get("experiment_id_1"))
+        exp_id_2 = int(body.get("experiment_id_2"))
+    except TypeError, ValueError:
+        return JsonResponse({"error": "Invalid experiment id type"}, status=400)
+
+    try:
+        report_gen = ReportGenerator(ImgtestsDatabase())
+        report_path = report_gen.generate_compare_html_report(
+            sorted([exp_id_1, exp_id_2]),
+            out_dir=REPORTS_DIR,
+        )
+    except Exception as e:  # noqa: BLE001
+        return JsonResponse({"error": str(e)}, status=500)
+
+    if report_path is None:
+        return JsonResponse({"error": "Failed to generate report"}, status=500)
+    return JsonResponse(
+        {
+            "success": True,
+            "report_url": str(report_path.relative_to(REPORTS_DIR)),
+        },
+    )

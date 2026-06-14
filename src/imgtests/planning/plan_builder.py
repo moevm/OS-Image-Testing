@@ -1,6 +1,33 @@
+"""Plan builder module for image testing.
+
+This module provides functionality for building test plans based on various
+parameters such as test kind, load pattern, subsystems, and duration. It handles
+the allocation of time across different stages and subsystems according to
+specified profiles and patterns.
+
+Public functions:
+    - build_plan: Build a complete TestPlan from a PlanRequest.
+
+Example:
+    To build a test plan for a load test:
+
+    >>> from imgtests.planning.plan_builder import build_plan
+    >>> from imgtests.planning.models import PlanRequest, TestKind, LoadPattern
+    >>> from imgtests.types import Subsystem
+    >>> request = PlanRequest(
+    ...     duration_sec=300,
+    ...     subsystems=frozenset({Subsystem.MEMORY, Subsystem.NETWORK}),
+    ...     test_kind=TestKind.LOAD,
+    ...     pattern=LoadPattern.BALANCED,
+    ... )
+    >>> plan = build_plan(request)
+    >>> len(plan.stages)
+    3
+"""
+
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Final
 
 from imgtests.planning.models import (
     LoadPattern,
@@ -16,10 +43,22 @@ if TYPE_CHECKING:
 
     from imgtests.types import Subsystem
 
-_ALLOC_GUARD_LIMIT = 100_000
+_ALLOC_GUARD_LIMIT: Final = 10_000
 
 
 def build_plan(request: PlanRequest) -> TestPlan:
+    """Build a TestPlan from a PlanRequest.
+
+    Args:
+        request: The plan request containing duration, subsystems, test kind,
+            and optional load pattern.
+
+    Returns:
+        A complete TestPlan with stages and tasks.
+
+    Raises:
+        ValueError: If duration_sec is <= 0 or if no subsystems are provided.
+    """
     if request.duration_sec <= 0:
         err = f"duration_sec must be > 0, got {request.duration_sec}"
         raise ValueError(err)
@@ -32,7 +71,7 @@ def build_plan(request: PlanRequest) -> TestPlan:
     stages: list[PlanStage] = []
 
     if request.pattern is not None:
-        if request.test_kind == TestKind.ISOLATED:
+        if request.test_kind is TestKind.ISOLATED:
             stages = _build_isolated_stages(
                 request.duration_sec,
                 ordered_subsystems,
@@ -54,33 +93,33 @@ def build_plan(request: PlanRequest) -> TestPlan:
                     tasks=tasks,
                 ),
             ]
-    elif request.test_kind == TestKind.ISOLATED:
+    elif request.test_kind is TestKind.ISOLATED:
         stages = _build_isolated_stages(request.duration_sec, ordered_subsystems)
     else:
         templates = PROFILE_LAYOUTS[request.test_kind]
         durations = _allocate_durations(
             request.duration_sec,
-            [tpl.weight for tpl in templates],
+            [template.weight for template in templates],
         )
 
         offset = 0
-        for tpl, dur in zip(templates, durations, strict=True):
+        for template, duration in zip(templates, durations, strict=True):
             tasks = build_stage_tasks(
                 request.test_kind,
                 request.subsystems,
-                tpl.pattern,
-                dur,
+                template.pattern,
+                duration,
             )
             stages.append(
                 PlanStage(
-                    name=tpl.name,
+                    name=template.name,
                     start_offset_sec=offset,
-                    duration_sec=dur,
-                    pattern=tpl.pattern,
+                    duration_sec=duration,
+                    pattern=template.pattern,
                     tasks=tasks,
                 ),
             )
-            offset += dur
+            offset += duration
 
     return TestPlan.new(
         duration_sec=request.duration_sec,
@@ -95,6 +134,16 @@ def _build_isolated_stages(
     subsystems: Iterable[Subsystem],
     pattern: LoadPattern = LoadPattern.BALANCED,
 ) -> list[PlanStage]:
+    """Build isolated stages for each subsystem.
+
+    Args:
+        duration_sec: Total duration for all stages in seconds.
+        subsystems: Iterable of subsystems to create stages for.
+        pattern: Load pattern to use for all stages.
+
+    Returns:
+        A list of PlanStage objects, one for each subsystem.
+    """
     subsystems_list = list(subsystems)
     durations = _allocate_durations(duration_sec, [1.0] * len(subsystems_list))
     stages: list[PlanStage] = []
@@ -117,12 +166,24 @@ def _build_isolated_stages(
 
 
 def _allocate_durations(total_sec: int, weights: list[float]) -> list[int]:
+    """Allocate total duration across multiple stages based on weights.
+
+    Args:
+        total_sec: Total duration in seconds to allocate.
+        weights: List of weights for each stage.
+
+    Returns:
+        A list of integers representing allocated durations for each stage,
+        such that the sum equals total_sec.
+
+    Raises:
+        ValueError: If total_sec <= 0, weights is empty, or any element in weights <= 0.0.
+    """
     _validate_allocation_inputs(total_sec, weights)
 
     weight_sum = sum(weights)
-    raw = [total_sec * (w / weight_sum) for w in weights]
-    base = [int(x) for x in raw]
-    base = [max(1, value) for value in base]
+    raw = [total_sec * (weight / weight_sum) for weight in weights]
+    base = [max(1, int(seconds)) for seconds in raw]
 
     diff = total_sec - sum(base)
     if diff > 0:
@@ -132,11 +193,21 @@ def _allocate_durations(total_sec: int, weights: list[float]) -> list[int]:
 
     if sum(base) != total_sec:
         base[-1] += total_sec - sum(base)
+        base[-1] = max(1, base[-1])
 
     return base
 
 
 def _validate_allocation_inputs(total_sec: int, weights: list[float]) -> None:
+    """Validate inputs for duration allocation.
+
+    Args:
+        total_sec: Total duration in seconds.
+        weights: List of weights for allocation.
+
+    Raises:
+        ValueError: If total_sec <= 0, weights is empty, or any element in weights <= 0.0.
+    """
     if total_sec <= 0:
         msg = "total_sec must be > 0."
         raise ValueError(msg)
@@ -145,12 +216,20 @@ def _validate_allocation_inputs(total_sec: int, weights: list[float]) -> None:
         msg = "weights must not be empty."
         raise ValueError(msg)
 
-    if sum(weights) <= 0:
-        msg = "weights sum must be > 0."
-        raise ValueError(msg)
+    for weight in weights:
+        if weight <= 0.0:
+            msg = "all weights must be > 0."
+            raise ValueError(msg)
 
 
 def _distribute_positive_diff(raw: list[float], base: list[int], diff: int) -> None:
+    """Distribute positive difference by incrementing stages with highest fractions.
+
+    Args:
+        raw: List of raw float values before rounding.
+        base: List of base integer values after truncation.
+        diff: Positive difference to distribute.
+    """
     frac_idx = sorted(range(len(raw)), key=lambda i: raw[i] - int(raw[i]), reverse=True)
     idx = 0
     remaining = diff
@@ -162,6 +241,13 @@ def _distribute_positive_diff(raw: list[float], base: list[int], diff: int) -> N
 
 
 def _distribute_negative_diff(raw: list[float], base: list[int], diff: int) -> None:
+    """Distribute negative difference by decrementing stages with lowest fractions.
+
+    Args:
+        raw: List of raw float values before rounding.
+        base: List of base integer values after truncation.
+        diff: Negative difference to distribute.
+    """
     frac_idx = sorted(range(len(raw)), key=lambda i: raw[i] - int(raw[i]))
     idx = 0
     guard = 0
