@@ -1,4 +1,5 @@
 import logging
+from typing import Final
 
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
@@ -6,9 +7,9 @@ from imgtests.exec.utils import create_opt
 
 logger = logging.getLogger(__name__)
 
-VDBENCH_DIR = "/usr/sbin/vdbench"
-CONFIG_FILE = "/root/vdbench-config"
-OUTPUT_DIR = "/root/vdbench-output"
+VDBENCH_DIR: Final = "/usr/sbin/vdbench"
+CONFIG_FILE: Final = "/root/vdbench-config"
+OUTPUT_DIR: Final = "/root/vdbench-output"
 
 
 class Vdbench(GenericUtil):
