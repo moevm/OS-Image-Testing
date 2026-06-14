@@ -229,7 +229,11 @@ class FaultInjectionStressNgTest(FaultCleanupMixin, AbstractRunnableTimeLimitedT
             return TestResult(status=TestStatus.SKIPPED)
 
         stress_ng = StressNg(client)
-        timeout_suite = (timeout // (len(self.stress_ng_suites) * len(self.fault_probs))) + 1
+        timeout_suite = calc_subtest_timeout(
+            timeout,
+            len(self.stress_ng_suites) * len(self.fault_probs),
+            60,
+        )
         for fault_prob in self.fault_probs:
             self.logger.info("Run with %d fault_prob and %d timeout", fault_prob, timeout_suite)
             for stress_ng_suite in self.stress_ng_suites:
@@ -294,7 +298,11 @@ class FaultInjectionPerfTest(FaultCleanupMixin, AbstractRunnableTimeLimitedTest)
             return TestResult(status=TestStatus.SKIPPED)
 
         perf = Perf(client)
-        timeout_suite = (timeout // (len(self.perf_suites) * len(self.fault_probs))) + 1
+        timeout_suite = calc_subtest_timeout(
+            timeout,
+            len(self.perf_suites) * len(self.fault_probs),
+            60,
+        )
         for fault_prob in self.fault_probs:
             self.logger.info("Run with %d fault_prob and %d timeout", fault_prob, timeout_suite)
             for perf_suite in self.perf_suites:
@@ -358,7 +366,11 @@ class FaultInjectionFioTest(FaultCleanupMixin, AbstractRunnableTimeLimitedTest):
             self.logger.warning("Skipping test due to fault injection is supported on poky.")
             return TestResult(status=TestStatus.SKIPPED)
 
-        timeout_suite = (timeout // (len(self.fio_suites) * len(self.fault_probs))) + 1
+        timeout_suite = calc_subtest_timeout(
+            timeout,
+            len(self.fio_suites) * len(self.fault_probs),
+            60,
+        )
         for fault_prob in self.fault_probs:
             self.logger.info("Run with %d fault_prob and %d timeout", fault_prob, timeout_suite)
             for fio_suite in self.fio_suites:
