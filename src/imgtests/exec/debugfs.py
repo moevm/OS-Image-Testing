@@ -12,7 +12,7 @@ MAX_FAULT_PROBABILITY = 100
 logger = logging.getLogger(__name__)
 
 
-def ensure_debugfs(ssh_client: SSHClient) -> ExecResult:
+def ensure_debugfs(ssh_client: SSHClient | None) -> ExecResult:
     """Ensures that debugfs is created and mounted."""
     result = common_run_command(("sudo", "mkdir", "-p", DEBUGFS_PATH), ssh_client)
     if result.returncode:
@@ -44,7 +44,7 @@ def validate_fault_probability(fault_prob: int) -> None:
 
 
 def change_fault_parameters(
-    client: SSHClient,
+    client: SSHClient | None,
     fault_probability: int,
     fault_interval: int,
 ) -> ExecResult:

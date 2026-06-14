@@ -8,7 +8,6 @@ from imgtests.exec.debugfs import change_fault_parameters
 from imgtests.exec.exec import ExecResult, SSHClient
 from imgtests.exec.loaders import Chaosblade, ChaosResponse, Kirk, Perf, StressNg
 from imgtests.exec.osinfo import get_os_release
-from imgtests.exec.pkgmgrs.mixin import FaultCleanupMixin
 from imgtests.exec.user_commands import MkDir
 from imgtests.planning import AbstractRunnableTimeLimitedTest, calc_subtest_timeout
 from imgtests.suites.drive.fio import FIO_RESULTS_DIR, FioSuite, FioSuiteConfig, FioWorkload
@@ -22,6 +21,15 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
+
+
+class FaultCleanupMixin:
+    def cleanup(self, client: SSHClient | None, logger: logging.Logger) -> None:
+        change_fault_parameters(client, 0, 1)
+        logger.info("Cleaned fault parameters.")
+        default_cleanup = getattr(super(), "cleanup", None)
+        if default_cleanup:
+            default_cleanup(client, logger)
 
 
 class FaultInjectionEnduranceTest(AbstractRunnableTimeLimitedTest):
