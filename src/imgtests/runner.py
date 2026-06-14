@@ -172,20 +172,27 @@ class TestsRunner(BaseRunner):
                 test_instance = test_class
             else:
                 test_instance = test_class(timeout=self.__test_config.test_duration)
-            for result in test_instance(self._executor, self._client):
-                self._database.insert_util_run_result(
-                    experiment_id=experiment_id,
-                    # TODO: fill util_type with the correct value
-                    util_type="loader",
-                    # TODO: fill descriptions and adds into TestResult class
-                    description="",
-                    result=result.metrics,
-                    command=result.command,
-                    started_at=result.started_at,
-                    ended_at=result.ended_at,
+            try:
+                for result in test_instance(self._executor, self._client):
+                    self._database.insert_util_run_result(
+                        experiment_id=experiment_id,
+                        # TODO: fill util_type with the correct value
+                        util_type="loader",
+                        # TODO: fill descriptions and adds into TestResult class
+                        description="",
+                        result=result.metrics,
+                        command=result.command,
+                        started_at=result.started_at,
+                        ended_at=result.ended_at,
+                    )
+                    self.__tests_statuses[result.status] += 1
+                    self.__tests_cnt += 1
+            except Exception:
+                self._logger.exception(
+                    "Test '%s' failed with exception.",
+                    test_instance.description,
                 )
-                self.__tests_statuses[result.status] += 1
-                self.__tests_cnt += 1
+                self.__tests_statuses[TestStatus.BROKEN] += 1
             self._collect_system_errors(
                 experiment_id=experiment_id,
                 since=test_started_at,
