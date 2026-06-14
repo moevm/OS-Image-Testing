@@ -1,10 +1,13 @@
 from typing import TYPE_CHECKING
 
-from imgtests.exec.exec import ExecResult
+from imgtests.exec.debugfs import change_fault_parameters
+from imgtests.exec.exec import ExecResult, SSHClient
 from imgtests.exec.osinfo import get_os_release
 from imgtests.exec.pkgmgrs.zypper import Zypper
+from imgtests.planning.base import DefaultCleanupMixin
 
 if TYPE_CHECKING:
+    import logging
     from collections.abc import Iterable
 
 
@@ -38,3 +41,10 @@ class PkgMgrMixin:
             stderr=msg,
             returncode=1,
         )
+
+
+class FaultCleanupMixin(DefaultCleanupMixin):
+    def cleanup(self, client: SSHClient | None, logger: logging.Logger) -> None:
+        change_fault_parameters(client, 0, 1)
+        logger.info("Cleaned fault parameters.")
+        super().cleanup(client, logger)

@@ -8,6 +8,7 @@ from imgtests.exec.debugfs import change_fault_parameters
 from imgtests.exec.exec import ExecResult, SSHClient
 from imgtests.exec.loaders import Chaosblade, ChaosResponse, Kirk, Perf, StressNg
 from imgtests.exec.osinfo import get_os_release
+from imgtests.exec.pkgmgrs.mixin import FaultCleanupMixin
 from imgtests.exec.user_commands import MkDir
 from imgtests.planning import AbstractRunnableTimeLimitedTest, calc_subtest_timeout
 from imgtests.suites.drive.fio import FIO_RESULTS_DIR, FioSuite, FioSuiteConfig, FioWorkload
@@ -82,7 +83,7 @@ class FaultInjectionEnduranceTest(AbstractRunnableTimeLimitedTest):
                 )
 
 
-class FaultInjectionChaosbladeTest(AbstractRunnableTimeLimitedTest):
+class FaultInjectionChaosbladeTest(FaultCleanupMixin, AbstractRunnableTimeLimitedTest):
     def __init__(self, timeout: int) -> None:
         super().__init__(
             "Chaosblade test with fault injection.",
@@ -116,54 +117,51 @@ class FaultInjectionChaosbladeTest(AbstractRunnableTimeLimitedTest):
             60,
         )
         chaosblade = Chaosblade(client)
-        try:
-            for fault_prob in self.fault_probs:
-                self.logger.info("Run with %d fault_prob and %d timeout", fault_prob, timeout_suite)
-                for chaosblade_suite in self.chaosblade_suites:
-                    started_at = datetime.now(UTC)
-                    result = change_fault_parameters(client, fault_prob, 5)
-                    if result.returncode:
-                        yield TestResult(
-                            command=" ".join(result.cmd),
-                            started_at=started_at,
-                            status=TestStatus.FAILED,
-                        )
-                        return
-
-                    chaosblade_future = self._create_chaosblade_future(
-                        executor,
-                        chaosblade,
-                        chaosblade_suite,
-                        tmp_dir,
-                        timeout_suite,
-                    )
-                    result, chaosblade_result = chaosblade_future.result()
-                    status = TestStatus.PASSED
-
-                    if chaosblade_result.success and isinstance(chaosblade_result.result, str):
-                        future = executor.submit(
-                            chaosblade.await_exp_result,
-                            chaosblade_result.result,
-                        )
-                        while not future.done():
-                            _, chaosblade_status = chaosblade.get_exp_status(
-                                chaosblade_result.result,
-                            )
-                            if chaosblade_status.result["Status"] == "Error":
-                                status = TestStatus.FAILED
-                                break
-                            sleep(1)
-                        future.result()
-                    else:
-                        status = TestStatus.FAILED
+        for fault_prob in self.fault_probs:
+            self.logger.info("Run with %d fault_prob and %d timeout", fault_prob, timeout_suite)
+            for chaosblade_suite in self.chaosblade_suites:
+                started_at = datetime.now(UTC)
+                result = change_fault_parameters(client, fault_prob, 5)
+                if result.returncode:
                     yield TestResult(
-                        metrics=chaosblade_result,
                         command=" ".join(result.cmd),
                         started_at=started_at,
-                        status=status,
+                        status=TestStatus.FAILED,
                     )
-        finally:
-            change_fault_parameters(client, 0, 1)
+                    return
+
+                chaosblade_future = self._create_chaosblade_future(
+                    executor,
+                    chaosblade,
+                    chaosblade_suite,
+                    tmp_dir,
+                    timeout_suite,
+                )
+                result, chaosblade_result = chaosblade_future.result()
+                status = TestStatus.PASSED
+
+                if chaosblade_result.success and isinstance(chaosblade_result.result, str):
+                    future = executor.submit(
+                        chaosblade.await_exp_result,
+                        chaosblade_result.result,
+                    )
+                    while not future.done():
+                        _, chaosblade_status = chaosblade.get_exp_status(
+                            chaosblade_result.result,
+                        )
+                        if chaosblade_status.result["Status"] == "Error":
+                            status = TestStatus.FAILED
+                            break
+                        sleep(1)
+                    future.result()
+                else:
+                    status = TestStatus.FAILED
+                yield TestResult(
+                    metrics=chaosblade_result,
+                    command=" ".join(result.cmd),
+                    started_at=started_at,
+                    status=status,
+                )
 
     def _create_chaosblade_future(
         self,
@@ -193,7 +191,7 @@ class FaultInjectionChaosbladeTest(AbstractRunnableTimeLimitedTest):
                 raise ValueError(err_msg)
 
 
-class FaultInjectionStressNgTest(AbstractRunnableTimeLimitedTest):
+class FaultInjectionStressNgTest(FaultCleanupMixin, AbstractRunnableTimeLimitedTest):
     def __init__(self, timeout: int) -> None:
         super().__init__(
             "Stress-ng test with fault injection.",
@@ -224,47 +222,44 @@ class FaultInjectionStressNgTest(AbstractRunnableTimeLimitedTest):
 
         stress_ng = StressNg(client)
         timeout_suite = (timeout // (len(self.stress_ng_suites) * len(self.fault_probs))) + 1
-        try:
-            for fault_prob in self.fault_probs:
-                self.logger.info("Run with %d fault_prob and %d timeout", fault_prob, timeout_suite)
-                for stress_ng_suite in self.stress_ng_suites:
-                    started_at = datetime.now(UTC)
-                    result = change_fault_parameters(client, fault_prob, 5)
-                    if result.returncode:
-                        yield TestResult(
-                            command=" ".join(result.cmd),
-                            started_at=started_at,
-                            status=TestStatus.FAILED,
-                        )
-                        return
-
-                    stress_ng_future = executor.submit(
-                        stress_ng.run,
-                        timeout=timeout_suite,
-                        **stress_ng_suite,
-                    )
-                    result, metrics = stress_ng_future.result()
-
-                    if result.returncode == stress_ng.INCORRECT_OPT_OR_FATAL_ISSUE_CODE:
-                        self.logger.error("stress-ng test BROKEN")
-                        yield TestResult(status=TestStatus.BROKEN)
-                        return
-                    elif result.returncode:
-                        self.logger.error("stress-ng test FAILED")
-                        yield TestResult(status=TestStatus.FAILED)
-                        return
-
+        for fault_prob in self.fault_probs:
+            self.logger.info("Run with %d fault_prob and %d timeout", fault_prob, timeout_suite)
+            for stress_ng_suite in self.stress_ng_suites:
+                started_at = datetime.now(UTC)
+                result = change_fault_parameters(client, fault_prob, 5)
+                if result.returncode:
                     yield TestResult(
-                        metrics=stress_ng.metrics_to_json(metrics),
                         command=" ".join(result.cmd),
                         started_at=started_at,
-                        status=TestStatus.PASSED,
+                        status=TestStatus.FAILED,
                     )
-        finally:
-            change_fault_parameters(client, 0, 1)
+                    return
+
+                stress_ng_future = executor.submit(
+                    stress_ng.run,
+                    timeout=timeout_suite,
+                    **stress_ng_suite,
+                )
+                result, metrics = stress_ng_future.result()
+
+                if result.returncode == stress_ng.INCORRECT_OPT_OR_FATAL_ISSUE_CODE:
+                    self.logger.error("stress-ng test BROKEN")
+                    yield TestResult(status=TestStatus.BROKEN)
+                    return
+                elif result.returncode:
+                    self.logger.error("stress-ng test FAILED")
+                    yield TestResult(status=TestStatus.FAILED)
+                    return
+
+                yield TestResult(
+                    metrics=stress_ng.metrics_to_json(metrics),
+                    command=" ".join(result.cmd),
+                    started_at=started_at,
+                    status=TestStatus.PASSED,
+                )
 
 
-class FaultInjectionPerfTest(AbstractRunnableTimeLimitedTest):
+class FaultInjectionPerfTest(FaultCleanupMixin, AbstractRunnableTimeLimitedTest):
     def __init__(self, timeout: int) -> None:
         super().__init__(
             "Perf bench test with fault injection.",
@@ -292,44 +287,41 @@ class FaultInjectionPerfTest(AbstractRunnableTimeLimitedTest):
 
         perf = Perf(client)
         timeout_suite = (timeout // (len(self.perf_suites) * len(self.fault_probs))) + 1
-        try:
-            for fault_prob in self.fault_probs:
-                self.logger.info("Run with %d fault_prob and %d timeout", fault_prob, timeout_suite)
-                for perf_suite in self.perf_suites:
-                    started_at = datetime.now(UTC)
-                    result = change_fault_parameters(client, fault_prob, 5)
-                    if result.returncode:
-                        yield TestResult(
-                            command=" ".join(result.cmd),
-                            started_at=started_at,
-                            status=TestStatus.FAILED,
-                        )
-                        return
+        for fault_prob in self.fault_probs:
+            self.logger.info("Run with %d fault_prob and %d timeout", fault_prob, timeout_suite)
+            for perf_suite in self.perf_suites:
+                started_at = datetime.now(UTC)
+                result = change_fault_parameters(client, fault_prob, 5)
+                if result.returncode:
+                    yield TestResult(
+                        command=" ".join(result.cmd),
+                        started_at=started_at,
+                        status=TestStatus.FAILED,
+                    )
+                    return
 
-                    perf_future = executor.submit(
-                        perf.bench,
-                        collection=perf_suite,
+                perf_future = executor.submit(
+                    perf.bench,
+                    collection=perf_suite,
+                )
+
+                result, perf_metrics = perf_future.result()
+                if result.returncode:
+                    yield TestResult(
+                        command=" ".join(result.cmd),
+                        started_at=started_at,
+                        status=TestStatus.FAILED,
+                    )
+                elif perf_metrics:
+                    yield TestResult(
+                        command=" ".join(result.cmd),
+                        metrics=perf.metrics_to_json(perf_metrics),
+                        started_at=started_at,
+                        status=TestStatus.PASSED,
                     )
 
-                    result, perf_metrics = perf_future.result()
-                    if result.returncode:
-                        yield TestResult(
-                            command=" ".join(result.cmd),
-                            started_at=started_at,
-                            status=TestStatus.FAILED,
-                        )
-                    elif perf_metrics:
-                        yield TestResult(
-                            command=" ".join(result.cmd),
-                            metrics=perf.metrics_to_json(perf_metrics),
-                            started_at=started_at,
-                            status=TestStatus.PASSED,
-                        )
-        finally:
-            change_fault_parameters(client, 0, 1)
 
-
-class FaultInjectionFioTest(AbstractRunnableTimeLimitedTest):
+class FaultInjectionFioTest(FaultCleanupMixin, AbstractRunnableTimeLimitedTest):
     def __init__(self, timeout: int) -> None:
         super().__init__(
             "Fio test with fault injection.",
@@ -359,31 +351,28 @@ class FaultInjectionFioTest(AbstractRunnableTimeLimitedTest):
             return TestResult(status=TestStatus.SKIPPED)
 
         timeout_suite = (timeout // (len(self.fio_suites) * len(self.fault_probs))) + 1
-        try:
-            for fault_prob in self.fault_probs:
-                self.logger.info("Run with %d fault_prob and %d timeout", fault_prob, timeout_suite)
-                for fio_suite in self.fio_suites:
-                    started_at = datetime.now(UTC)
-                    result = change_fault_parameters(client, fault_prob, 5)
-                    if result.returncode:
-                        yield TestResult(
-                            command=" ".join(result.cmd),
-                            started_at=started_at,
-                            status=TestStatus.FAILED,
-                        )
-                        return
-
-                    fio_config = FioSuiteConfig(
-                        suite="fault_injection",
-                        duration_sec=timeout_suite,
-                        results_dir=FIO_RESULTS_DIR,
-                        workloads=(fio_suite,),
+        for fault_prob in self.fault_probs:
+            self.logger.info("Run with %d fault_prob and %d timeout", fault_prob, timeout_suite)
+            for fio_suite in self.fio_suites:
+                started_at = datetime.now(UTC)
+                result = change_fault_parameters(client, fault_prob, 5)
+                if result.returncode:
+                    yield TestResult(
+                        command=" ".join(result.cmd),
+                        started_at=started_at,
+                        status=TestStatus.FAILED,
                     )
+                    return
 
-                    fio = FioSuite(client, fio_config).run()
-                    yield from fio
-        finally:
-            change_fault_parameters(client, 0, 1)
+                fio_config = FioSuiteConfig(
+                    suite="fault_injection",
+                    duration_sec=timeout_suite,
+                    results_dir=FIO_RESULTS_DIR,
+                    workloads=(fio_suite,),
+                )
+
+                fio = FioSuite(client, fio_config).run()
+                yield from fio
 
 
 def is_fault_injection_available(client: SSHClient | None) -> bool:
