@@ -132,7 +132,6 @@ class ChartSpec:
 class DistroComparisonExportOptions:
     output_path: Path | None = None
     experiment_ids: Sequence[str] | None = None
-    latest_pair_only: bool = False
     max_charts: int = DEFAULT_MAX_CHARTS
     charts_per_sheet: int = DEFAULT_CHARTS_PER_SHEET
     copy_source_sheets: bool = False
@@ -229,7 +228,6 @@ def build_report(
                 experiment_ids=(
                     list(options.experiment_ids) if options.experiment_ids is not None else None
                 ),
-                latest_pair_only=options.latest_pair_only,
             )
             logger.info("Comparable Poky/SUSE groups: %s", len(groups))
             if groups:
@@ -853,7 +851,6 @@ def main() -> None:
         options=DistroComparisonExportOptions(
             output_path=args.output,
             experiment_ids=args.experiment_ids,
-            latest_pair_only=args.latest_pair_only,
             max_charts=args.max_charts,
             charts_per_sheet=args.charts_per_sheet,
             copy_source_sheets=args.copy_source_sheets,

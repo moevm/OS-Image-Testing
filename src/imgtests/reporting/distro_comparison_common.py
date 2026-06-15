@@ -15,6 +15,9 @@ from imgtests.database.models.experiment import ExperimentType
 if TYPE_CHECKING:
     from pathlib import Path
 
+    from openpyxl import Workbook
+    from openpyxl.worksheet.worksheet import Worksheet
+
 logger = logging.getLogger(__name__)
 
 DISTROS: Final = ("poky", "suse")
@@ -243,7 +246,7 @@ def is_comparison_sheet(sheet_name: str) -> bool:
     )
 
 
-def build_configuration_distro_map(workbook: Any) -> dict[str, str]:
+def build_configuration_distro_map(workbook: Workbook) -> dict[str, str]:
     if CONFIGURATION_SHEET not in workbook.sheetnames:
         return {}
     ws = workbook[CONFIGURATION_SHEET]
@@ -268,7 +271,7 @@ def build_configuration_distro_map(workbook: Any) -> dict[str, str]:
 
 
 def build_experiment_info_map(
-    workbook: Any,
+    workbook: Workbook,
     config_distro: dict[str, str],
 ) -> dict[int, ExperimentInfo]:
     if EXPERIMENT_SHEET not in workbook.sheetnames:
@@ -309,7 +312,6 @@ def build_comparison_groups(
     experiment_info: dict[int, ExperimentInfo],
     *,
     experiment_ids: list[str] | None,
-    latest_pair_only: bool,
 ) -> list[ComparisonGroup]:
     selected_ids = normalize_selected_ids(experiment_ids)
     if experiment_ids and not selected_ids:
@@ -375,15 +377,6 @@ def build_comparison_groups(
             groups.append(make_group(poky_info, suse_info, order=order))
             order += 1
 
-    if latest_pair_only and groups:
-        return [
-            max(
-                groups,
-                key=lambda group: max(
-                    experiment_sort_key(info) for info in group.experiments.values()
-                ),
-            ),
-        ]
     return groups
 
 
@@ -440,7 +433,7 @@ def build_group_by_experiment(groups: list[ComparisonGroup]) -> dict[str, Compar
 
 
 def extract_metric_buckets(
-    workbook: Any,
+    workbook: Workbook,
     config_distro: dict[str, str],
     groups: list[ComparisonGroup],
     options: MetricExtractionOptions,
@@ -466,7 +459,7 @@ def extract_metric_buckets(
 
 
 def metric_worksheet_context(
-    worksheet: Any,
+    worksheet: Worksheet,
     column_selector: MetricColumnSelector,
 ) -> MetricWorksheetContext | None:
     sheet_name = worksheet.title
@@ -755,12 +748,12 @@ def resolve_output_path(input_path: Path, output_path: Path | None, output_name:
     return output_path / f"{input_path.stem}_{output_name}.xlsx"
 
 
-def write_matrix(ws: Any, rows: list[list[Any]]) -> None:
+def write_matrix(ws: Worksheet, rows: list[list[Any]]) -> None:
     for row in rows:
         ws.append(list(row))
 
 
-def style_table(ws: Any, row_count: int, col_count: int) -> None:
+def style_table(ws: Worksheet, row_count: int, col_count: int) -> None:
     if row_count <= 0 or col_count <= 0:
         return
     header_fill = PatternFill("solid", fgColor="D9EAF7")

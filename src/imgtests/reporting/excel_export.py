@@ -805,7 +805,6 @@ def export_distro_comparison_command(args: argparse.Namespace) -> None:
         options=DistroComparisonExportOptions(
             output_path=args.output,
             experiment_ids=args.experiment_ids,
-            latest_pair_only=args.latest_pair_only,
             max_charts=args.max_charts,
             charts_per_sheet=args.charts_per_sheet,
             copy_source_sheets=args.copy_source_sheets,

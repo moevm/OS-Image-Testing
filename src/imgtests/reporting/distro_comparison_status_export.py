@@ -353,7 +353,6 @@ def export_distro_comparison_status_to_excel(
     groups = build_comparison_groups(
         experiment_info,
         experiment_ids=list(options.experiment_ids),
-        latest_pair_only=False,
     )
     logger.info("Comparable Poky/SUSE groups: %s", len(groups))
 
