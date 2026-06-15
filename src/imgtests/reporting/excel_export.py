@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import argparse
 import json
 import logging
 import shlex
@@ -17,22 +16,31 @@ from imgtests.constant import DISTRIBUTION_DESCRIPTIONS
 from imgtests.database.models.configuration import ConfigurationBase
 from imgtests.database.models.experiment import ExperimentBase
 from imgtests.database.models.util_run_result import UtilRunResult
+from imgtests.reporting.cli import (
+    DISTRO_COMPARISON_COMMAND,
+    DISTRO_COMPARISON_STATUS_COMMAND,
+    EXPORT_TABLES,
+    parse_args,
+)
 from imgtests.reporting.distro_comparison_export import (
     DistroComparisonExportOptions,
-    add_distro_comparison_arguments,
     export_distro_comparison_to_excel,
+)
+from imgtests.reporting.distro_comparison_status_export import (
+    DistroComparisonStatusOptions,
+    export_distro_comparison_status_to_excel,
 )
 from imgtests.types import Distro
 
 if TYPE_CHECKING:
+    import argparse
+
     from sqlalchemy.engine import Engine
 
-TABLES: Final = ("experiment", "util_run_result")
 logger = logging.getLogger(__name__)
+
 CONFIGURATION_SHEET: Final = "configuration"
 DEFAULT_OUTPUT_FILENAME: Final = "report.xlsx"
-DATABASE_COMMAND: Final = "database"
-DISTRO_COMPARISON_COMMAND: Final = "distro-comparison"
 
 JSON_COLUMNS: Final = {
     "util_run_result": {"result"},
@@ -81,71 +89,15 @@ COLUMN_PART_REPLACEMENTS: Final = {
 }
 
 
-def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Export imgtests database data and report comparisons to XLSX workbooks.",
-    )
-    subparsers = parser.add_subparsers(dest="command", required=True)
-
-    database_parser = subparsers.add_parser(
-        DATABASE_COMMAND,
-        help="export database tables to an XLSX workbook",
-    )
-    add_database_arguments(database_parser)
-    database_parser.set_defaults(command=DATABASE_COMMAND)
-
-    distro_comparison_parser = subparsers.add_parser(
-        DISTRO_COMPARISON_COMMAND,
-        help="build Poky/SUSE comparison tables and charts from an exported report.xlsx",
-    )
-    add_distro_comparison_arguments(distro_comparison_parser)
-    distro_comparison_parser.set_defaults(command=DISTRO_COMPARISON_COMMAND)
-
-    return parser.parse_args(argv)
-
-
-def add_database_arguments(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument(
-        "output",
-        type=Path,
-        help="Path to the output .xlsx file.",
-    )
-    parser.add_argument(
-        "--db-url",
-        required=True,
-        help=("SQLAlchemy database URL."),
-    )
-    parser.add_argument(
-        "--tables",
-        nargs="+",
-        choices=TABLES,
-        default=list(TABLES),
-        help="Tables to export. Defaults to all project result tables.",
-    )
-    parser.add_argument(
-        "--configuration-id",
-        dest="configuration_ids",
-        action="append",
-        required=True,
-        metavar="DISTRO=ID",
-        type=parse_configuration_id_override,
-        help=(
-            "Configuration id to write for a distribution. "
-            "Must be passed for each supported distribution, for example: "
-            "--configuration-id poky=10 --configuration-id suse=20."
-        ),
-    )
-
-
 def export_database_to_excel(
     engine: Engine,
     output_path: Path,
     configuration_ids: dict[str, int],
-    tables: Sequence[str] = tuple(TABLES),
+    tables: Sequence[str] = tuple(EXPORT_TABLES),
 ) -> Path:
     output_path = prepare_output_path(output_path)
     distributions = build_distribution_records(configuration_ids)
-    unsupported_tables = [table for table in tables if table not in TABLES]
+    unsupported_tables = [table for table in tables if table not in EXPORT_TABLES]
 
     if unsupported_tables:
         joined_tables = ", ".join(unsupported_tables)
@@ -330,34 +282,6 @@ def build_distribution_records(
         )
         for distribution_name, distribution_description in DISTRIBUTION_DESCRIPTIONS.items()
     }
-
-
-def parse_configuration_id_override(value: str) -> tuple[str, int]:
-    distribution_name, separator, raw_id = value.partition("=")
-
-    if not separator:
-        msg = "Expected configuration id in DISTRO=ID format."
-        raise argparse.ArgumentTypeError(msg)
-
-    distribution_name = distribution_name.strip().lower()
-    raw_id = raw_id.strip()
-
-    if distribution_name not in DISTRIBUTION_DESCRIPTIONS:
-        valid_names = ", ".join(DISTRIBUTION_DESCRIPTIONS)
-        msg = f"Unsupported distribution '{distribution_name}'. Available: {valid_names}."
-        raise argparse.ArgumentTypeError(msg)
-
-    try:
-        configuration_id = int(raw_id)
-    except ValueError as exc:
-        msg = f"Configuration id for '{distribution_name}' must be an integer."
-        raise argparse.ArgumentTypeError(msg) from exc
-
-    if configuration_id <= 0:
-        msg = f"Configuration id for '{distribution_name}' must be positive."
-        raise argparse.ArgumentTypeError(msg)
-
-    return distribution_name, configuration_id
 
 
 def distribution_name_from_os(os_name: Any) -> str:
@@ -856,6 +780,10 @@ def main() -> None:
         export_distro_comparison_command(args)
         return
 
+    if args.command == DISTRO_COMPARISON_STATUS_COMMAND:
+        export_distro_comparison_status_command(args)
+        return
+
     engine = create_engine(args.db_url)
 
     try:
@@ -877,7 +805,6 @@ def export_distro_comparison_command(args: argparse.Namespace) -> None:
         options=DistroComparisonExportOptions(
             output_path=args.output,
             experiment_ids=args.experiment_ids,
-            latest_pair_only=args.latest_pair_only,
             max_charts=args.max_charts,
             charts_per_sheet=args.charts_per_sheet,
             copy_source_sheets=args.copy_source_sheets,
@@ -885,6 +812,18 @@ def export_distro_comparison_command(args: argparse.Namespace) -> None:
         ),
     )
     logger.info("Exported comparison XLSX file: %s", output_path)
+
+
+def export_distro_comparison_status_command(args: argparse.Namespace) -> None:
+    output_path = export_distro_comparison_status_to_excel(
+        input_path=args.input,
+        options=DistroComparisonStatusOptions(
+            output_path=args.output,
+            experiment_ids=args.experiment_ids,
+            epsilon_percent=args.epsilon_percent,
+        ),
+    )
+    logger.info("Exported comparison status XLSX file: %s", output_path)
 
 
 if __name__ == "__main__":
