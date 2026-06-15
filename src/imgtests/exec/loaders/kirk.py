@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from imgtests.exec.base_util import GenericUtil
+from imgtests.exec.debugfs import ensure_debugfs, validate_fault_probability
 from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
 from imgtests.exec.osinfo import get_os_release
 from imgtests.exec.pkgmgrs.zypper import Zypper
@@ -19,8 +20,6 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 DEFAULT_LTP_RESULTS_DIR = Path("/var/tmp/ltp-results")  # noqa: S108
-DEBUGFS_MOUNTPOINT = Path("/sys/kernel/debug")
-MAX_FAULT_PROBABILITY = 100
 
 
 class Kirk(GenericUtil):
@@ -90,36 +89,9 @@ class Kirk(GenericUtil):
 
         return tuple(line.strip() for line in res.stdout.splitlines() if line.strip())
 
-    @staticmethod
-    def _validate_fault_probability(fault_prob: int) -> None:
-        """Checks if fault injection probability is in between borders."""
-        if not 0 <= fault_prob <= MAX_FAULT_PROBABILITY:
-            err_msg = f"fault_probability must be in range 0..{MAX_FAULT_PROBABILITY}."
-            raise ValueError(err_msg)
-
-    def _ensure_debugfs(self) -> ExecResult:
-        """Ensures that debugfs is created and mounted."""
-        debugfs_path = str(DEBUGFS_MOUNTPOINT)
-        result = common_run_command(("sudo", "mkdir", "-p", debugfs_path), self.ssh_client)
-        if result.returncode:
-            return result
-        mount_pattern = f"[[:space:]]{debugfs_path}[[:space:]]debugfs[[:space:]]"
-        result = common_run_command(
-            ("sudo", "grep", "-qs", mount_pattern, "/proc/mounts"),
-            self.ssh_client,
-        )
-        if result.returncode == 0 or result.returncode != 1:
-            return result
-        logger.info("Mounting debugfs to '%s'.", debugfs_path)
-        result = common_run_command(
-            ("sudo", "mount", "-t", "debugfs", "debugfs", debugfs_path),
-            self.ssh_client,
-        )
-
-        if result.returncode:
-            logger.info("Unmounting debugfs from '%s'.", debugfs_path)
-            common_run_command(("sudo", "umount", debugfs_path), self.ssh_client)
-        return result
+    def is_suites_available(self, required_suites: tuple[str, ...]) -> bool:
+        available_suites = self.list_suites()
+        return all(suite in available_suites for suite in required_suites)
 
     def run(  # noqa: PLR0911, PLR0913
         self,
@@ -152,9 +124,9 @@ class Kirk(GenericUtil):
             raise ValueError(scenarios_empty_msg)
 
         if fault_prob is not None:
-            self._validate_fault_probability(fault_prob)
+            validate_fault_probability(fault_prob)
 
-            debugfs_res = self._ensure_debugfs()
+            debugfs_res = ensure_debugfs(self.ssh_client)
             if debugfs_res.returncode:
                 return debugfs_res, None
 
