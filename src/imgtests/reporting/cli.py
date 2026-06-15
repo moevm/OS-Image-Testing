@@ -60,7 +60,7 @@ def add_database_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--db-url",
         required=True,
-        help=("SQLAlchemy database URL."),
+        help="SQLAlchemy database URL.",
     )
     parser.add_argument(
         "--tables",
