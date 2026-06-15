@@ -1,4 +1,4 @@
 -- Distinct subsystems for dropdowns
-SELECT DISTINCT subsystem
-FROM test_run
+SELECT DISTINCT description
+FROM experiment
 ORDER BY 1;

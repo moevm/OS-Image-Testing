@@ -2,7 +2,7 @@ SELECT
     (test_item->>'test_fqn') AS test_fqn,
     (test_item->'test'->>'duration')::float AS duration,
     'Experiment 1' AS experiment_label
-FROM loader AS l
+FROM util_run_result AS l
 JOIN experiment ON l.experiment_id = experiment.experiment_id
 JOIN "configuration" ON experiment.config_id = "configuration".config_id
 CROSS JOIN LATERAL jsonb_array_elements(
@@ -21,7 +21,7 @@ SELECT
     (test_item->>'test_fqn') AS test_fqn,
     (test_item->'test'->>'duration')::float AS duration,
     'Experiment 2' AS experiment_label
-FROM loader AS l
+FROM util_run_result AS l
 JOIN experiment ON l.experiment_id = experiment.experiment_id
 JOIN "configuration" ON experiment.config_id = "configuration".config_id
 CROSS JOIN LATERAL jsonb_array_elements(

@@ -14,7 +14,7 @@ FROM (
             ELSE '[]'::jsonb
         END
     ) AS item
-    FROM loader AS l
+    FROM util_run_result AS l
     JOIN experiment ON l.experiment_id = experiment.experiment_id
     JOIN "configuration" ON experiment.config_id = configuration.config_id
     WHERE l.command LIKE '%perf bench%'

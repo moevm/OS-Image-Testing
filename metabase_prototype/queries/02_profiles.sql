@@ -1,6 +1,4 @@
 -- Distinct profiles, optionally filtered by subsystem
-SELECT DISTINCT profile
-FROM test_run
-WHERE 1=1
-AND {{subsystem}}
+SELECT DISTINCT type
+FROM experiment
 ORDER BY 1;
