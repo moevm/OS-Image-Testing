@@ -14,8 +14,8 @@ CROSS JOIN LATERAL jsonb_array_elements(
 ) AS test_item
 WHERE l.command LIKE '%kirk%'
   AND test_item->'test'->>'duration' IS NOT NULL
-  [[ AND {{os}} ]]
-  [[ AND {{core_info}} ]]
-  [[ AND {{type}} ]]
-  [[ AND {{date_range}} ]]
+  [[ AND os = {{os}} ]]
+  [[ AND core_info = {{core_info}} ]]
+  [[ AND started_at BETWEEN {{start}} AND {{end}} ]]
+  [[ AND type = {{experiment_filter}} ]]
 ORDER BY test_fqn;

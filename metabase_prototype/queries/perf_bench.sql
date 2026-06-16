@@ -18,10 +18,10 @@ FROM (
     JOIN experiment ON l.experiment_id = experiment.experiment_id
     JOIN "configuration" ON experiment.config_id = configuration.config_id
     WHERE l.command LIKE '%perf bench%'
-      [[ AND {{os}} ]]
-      [[ AND {{core_info}} ]]
-      [[ AND {{type}} ]]
-      [[ AND {{date_range}} ]]
+      [[ AND os = {{os}} ]]
+      [[ AND core_info = {{core_info}} ]]
+      [[ AND started_at BETWEEN {{start}} AND {{end}} ]]
+      [[ AND type = {{experiment_filter}} ]]
       [[ AND l.command LIKE CONCAT('%', {{command}}, '%') ]]
 ) subquery
 WHERE item->>'benchmark' IS NOT NULL

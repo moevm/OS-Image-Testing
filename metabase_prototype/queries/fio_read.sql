@@ -15,7 +15,7 @@ FROM
       l.experiment_id,
       jsonb_array_elements(l.result::jsonb -> 'jobs') AS item
     FROM
-      loader AS l
+      util_run_result AS l
     WHERE
       l.command LIKE '%fio%'
   ) subquery
@@ -24,9 +24,9 @@ FROM
 WHERE
   1 = 1
   AND (item->>'jobname') LIKE '%read%'
-  [[ AND {{os}} ]]
-  [[ AND {{core_info}} ]]
-  [[ AND {{date_range}} ]]
-  [[ AND {{experiment_filter}} ]]
+  [[ AND os = {{os}} ]]
+  [[ AND core_info = {{core_info}} ]]
+  [[ AND started_at BETWEEN {{start}} AND {{end}} ]]
+  [[ AND type = {{experiment_filter}} ]]
 ORDER BY
   job_name;

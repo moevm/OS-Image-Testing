@@ -15,8 +15,8 @@ CROSS JOIN LATERAL jsonb_array_elements(
 ) AS interval_item
 WHERE l.command LIKE '%iperf3%'
   AND l.command NOT LIKE '%--udp%'
-  [[ AND {{os}} ]]
-  [[ AND {{core_info}} ]]
-  [[ AND {{type}} ]]
-  [[ AND {{date_range}} ]]
+  [[ AND os = {{os}} ]]
+  [[ AND core_info = {{core_info}} ]]
+  [[ AND started_at BETWEEN {{start}} AND {{end}} ]]
+  [[ AND type = {{experiment_filter}} ]]
 ORDER BY interval_start

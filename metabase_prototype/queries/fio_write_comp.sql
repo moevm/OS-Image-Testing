@@ -16,7 +16,7 @@ FROM (
   SELECT
     l.experiment_id,
     jsonb_array_elements(l.result::jsonb -> 'jobs') AS item
-  FROM loader AS l
+  FROM util_run_result AS l
   WHERE l.command LIKE '%fio%'
 ) sub
 JOIN experiment ON sub.experiment_id = experiment.experiment_id
@@ -47,7 +47,7 @@ FROM (
   SELECT
     l.experiment_id,
     jsonb_array_elements(l.result::jsonb -> 'jobs') AS item
-  FROM loader AS l
+  FROM util_run_result AS l
   WHERE l.command LIKE '%fio%'
 ) sub
 JOIN experiment ON sub.experiment_id = experiment.experiment_id
