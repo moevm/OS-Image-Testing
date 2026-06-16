@@ -1,0 +1,176 @@
+# Translation file
+# This file is distributed under the same license as the imgtests package.
+# Vadim Kazakov vadimdim308@gmail.com, 2026.
+#
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: imgtests 0.0.1\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-05-16 13:14+0000\n"
+"PO-Revision-Date: 2026-05-16 13:14+0000\n"
+"Last-Translator: Vadim Kazakov vadimdim308@gmail.com\n"
+"Language: ru\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=4; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<12 || n%100>14) ? 1 : n%10==0 || (n%10>=5 && n%10<=9) || "
+"(n%100>=11 && n%100<=14)? 2 : 3);\n"
+#: tests_interface/templates/tests_interface/base.html:7
+#: tests_interface/templates/tests_interface/index.html:4
+msgid "Test Dashboard"
+msgstr "Панель тестирования"
+
+#: tests_interface/templates/tests_interface/distro_page.html:4
+msgid "Tests"
+msgstr "Тесты"
+
+#: tests_interface/templates/tests_interface/distro_page.html:9
+#: tests_interface/templates/tests_interface/excel_reports.html:9
+#: tests_interface/templates/tests_interface/reports_list.html:9
+msgid "Back to Dashboard"
+msgstr "На главную страницу"
+
+#: tests_interface/templates/tests_interface/distro_page.html:11
+msgid "Tests page for"
+msgstr "Страница тестов для"
+
+#: tests_interface/templates/tests_interface/distro_page.html:24
+msgid "Test Configuration"
+msgstr "Конфигурация тестов"
+
+#: tests_interface/templates/tests_interface/distro_page.html:28
+msgid "Select runner:"
+msgstr "Выберите runner"
+
+#: tests_interface/templates/tests_interface/distro_page.html:30
+msgid "Basic"
+msgstr "Обычный"
+
+#: tests_interface/templates/tests_interface/distro_page.html:31
+msgid "Profiled"
+msgstr "С профилированием"
+
+#: tests_interface/templates/tests_interface/distro_page.html:40
+msgid "Use Default Configuration"
+msgstr "Использовать стандартную конфигурацию"
+
+#: tests_interface/templates/tests_interface/distro_page.html:43
+msgid "Custom Configuration"
+msgstr "Пользовательская конфигурация"
+
+#: tests_interface/templates/tests_interface/distro_page.html:49
+msgid "Number of test runs:"
+msgstr "Количество запусков тестов"
+
+#: tests_interface/templates/tests_interface/distro_page.html:62
+msgid "Select Test Suites and Configure Duration:"
+msgstr "Выберите наборы тестов и длительность"
+
+#: tests_interface/templates/tests_interface/distro_page.html:67
+msgid "Individual Tests (optional):"
+msgstr "Отдельные тесты (опционально):"
+
+#: tests_interface/templates/tests_interface/distro_page.html:73
+msgid "Save Configuration"
+msgstr "Сохранить конфигурацию"
+
+#: tests_interface/templates/tests_interface/distro_page.html:80
+#: tests_interface/templates/tests_interface/index.html:20
+msgid "Reset to Default"
+msgstr "Восстановить конфигурацию по умолчанию"
+
+#: tests_interface/templates/tests_interface/distro_page.html:88
+msgid "Run tests"
+msgstr "Запустить тесты"
+
+#: tests_interface/templates/tests_interface/excel_reports.html:4
+#: tests_interface/templates/tests_interface/excel_reports.html:11
+msgid "Excel Reports"
+msgstr "Отчеты Excel"
+
+#: tests_interface/templates/tests_interface/excel_reports.html:17
+msgid "Generate New Excel Report"
+msgstr "Сгенерировать новый Excel-отчет"
+
+#: tests_interface/templates/tests_interface/excel_reports.html:61
+#, python-format
+msgid "Size: %(report.size|filesizeformat)s"
+msgstr "Размер: %(report.size|filesizeformat)s"
+
+#: tests_interface/templates/tests_interface/excel_reports.html:65
+msgid "Download"
+msgstr "Скачать"
+
+#: tests_interface/templates/tests_interface/excel_reports.html:81
+#: tests_interface/templates/tests_interface/reports_list.html:153
+#, python-format
+msgid "Total: %(reports|length)s report(s)"
+msgstr "Всего: %(reports|length)s report(s)"
+
+#: tests_interface/templates/tests_interface/excel_reports.html:95
+msgid "No Excel Reports"
+msgstr "Нет Excel-отчетов"
+
+#: tests_interface/templates/tests_interface/excel_reports.html:98
+msgid "Click \"Generate New Excel Report\" to create one."
+msgstr "Нажмите \"Сгенерировать новый Excel-отчет\" чтобы создать его"
+
+#: tests_interface/templates/tests_interface/index.html:4
+msgid "Home"
+msgstr "Главная страница"
+
+#: tests_interface/templates/tests_interface/index.html:9
+msgid "Test Platform Dashboard"
+msgstr "Панель управления тестами"
+
+#: tests_interface/templates/tests_interface/index.html:11
+msgid "Select a platform to view test results and reports"
+msgstr "Выберите платформу для просмотров результатов тестов и отчетов"
+
+#: tests_interface/templates/tests_interface/index.html:17
+msgid "Add Distribution"
+msgstr "Добавить дистрибутив"
+
+#: tests_interface/templates/tests_interface/reports_list.html:4
+msgid "All Reports"
+msgstr "Все отчеты"
+
+#: tests_interface/templates/tests_interface/reports_list.html:11
+msgid "Test Reports"
+msgstr "Отчеты о тестировании"
+
+#: tests_interface/templates/tests_interface/reports_list.html:26
+msgid "Generate Comparison Report"
+msgstr "Создать сравнительный отчет"
+
+#: tests_interface/templates/tests_interface/reports_list.html:44
+msgid "Experiment 1"
+msgstr "Эксперимент 1"
+
+#: tests_interface/templates/tests_interface/reports_list.html:55
+#: tests_interface/templates/tests_interface/reports_list.html:77
+msgid "Select"
+msgstr "Выберите"
+
+#: tests_interface/templates/tests_interface/reports_list.html:66
+msgid "Experiment 2"
+msgstr "Эксперимент 2"
+
+#: tests_interface/templates/tests_interface/reports_list.html:87
+#: tests_interface/templates/tests_interface/reports_list.html:258
+msgid "Generate"
+msgstr "Сгенерировать"
+
+#: tests_interface/templates/tests_interface/reports_list.html:166
+msgid "No Reports Found"
+msgstr "Отчеты не найдены"
+
+#: tests_interface/templates/tests_interface/reports_list.html:168
+msgid "No reports available yet. Run some tests to generate reports."
+msgstr "Отчетов еще нет. Запустите тесты для их создания"
+
+#: tests_interface/templates/tests_interface/reports_list.html:174
+msgid "Run Tests"
+msgstr "Запустить тесты"
