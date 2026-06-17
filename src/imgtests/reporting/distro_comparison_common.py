@@ -352,6 +352,10 @@ def build_comparison_groups(
 
     groups: list[ComparisonGroup] = []
     order = 1
+
+    def experiment_sort_key(info: ExperimentInfo) -> tuple[str, int]:
+        return info.started_at, info.experiment_id
+
     for key in sorted(grouped, key=lambda item: (item[0], item[1])):
         by_distro = grouped[key]
         if not all(distro in by_distro for distro in DISTROS):
@@ -418,10 +422,6 @@ def normalize_selected_ids(experiment_ids: list[str] | None) -> set[int]:
     if invalid_ids:
         logger.warning("Experiment IDs must be integers and were ignored: %s", invalid_ids)
     return selected_ids
-
-
-def experiment_sort_key(info: ExperimentInfo) -> tuple[str, int]:
-    return info.started_at, info.experiment_id
 
 
 def build_group_by_experiment(groups: list[ComparisonGroup]) -> dict[str, ComparisonGroup]:
@@ -623,10 +623,10 @@ def normalize_header(value: Any) -> str:
 
 
 def column_index(headers: list[str], name: str) -> int | None:
-    for index, header in enumerate(headers):
-        if header == name:
-            return index
-    return None
+    try:
+        return headers.index(name)
+    except ValueError:
+        return None
 
 
 def cell_value(row: tuple[Any, ...] | list[Any], index: int | None) -> Any:
@@ -736,7 +736,7 @@ def is_nonzero_number(value: float | None) -> bool:
     return value is not None and abs(value) > NONZERO_EPSILON
 
 
-def is_invalid_metric_value(value: float) -> bool:
+def is_invalid_metric_value(value: Any) -> bool:
     return value in INVALID_NUMERIC_SENTINELS
 
 
@@ -769,8 +769,8 @@ def style_table(ws: Worksheet, row_count: int, col_count: int) -> None:
                 cell.number_format = "0.000"
 
 
-def unique_sheet_name(name: str, used_names: set[str]) -> str:
-    cleaned = sanitize_sheet_name(name)
+def unique_sheet_name(sheet_name: str, used_names: set[str]) -> str:
+    cleaned = sanitize_sheet_name(sheet_name)
     original = cleaned
     suffix = 1
     while cleaned in used_names:
