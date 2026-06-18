@@ -268,10 +268,16 @@ class TestParseArgs:
     def test_comparison_status_command(self) -> None:
         argv = [
             DISTRO_COMPARISON_STATUS_COMMAND,
+            "report.xlsx",
             "--epsilon-percent",
             "100",
+            "--experiment-ids",
+            "10",
+            "20",
         ]
         args = parse_args(argv)
 
         assert args.command == DISTRO_COMPARISON_STATUS_COMMAND
+        assert args.input == Path("report.xlsx")
         assert args.epsilon_percent == 100  # noqa: PLR2004
+        assert args.experiment_ids == ["10", "20"]
