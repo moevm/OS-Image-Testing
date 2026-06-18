@@ -46,6 +46,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         DISTRO_COMPARISON_STATUS_COMMAND,
         help="build Poky/SUSE PASS/FAIL status tables from an exported report.xlsx",
     )
+    add_distro_comparison_status_arguments(status_parser)
     status_parser.set_defaults(command=DISTRO_COMPARISON_STATUS_COMMAND)
 
     return root_parser.parse_args(raw_args)
