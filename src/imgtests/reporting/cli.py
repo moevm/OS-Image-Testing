@@ -23,32 +23,32 @@ DISTRO_COMPARISON_STATUS_COMMAND: Final = "comparison-status"
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     raw_args = list(sys.argv[1:] if argv is None else argv)
 
-    parser = argparse.ArgumentParser(
+    root_parser = argparse.ArgumentParser(
         description="Export imgtests database data and report comparisons to XLSX workbooks.",
     )
-    subparsers = parser.add_subparsers(dest="command", required=True)
+    subparsers = root_parser.add_subparsers(dest="command", required=True)
 
-    parser = subparsers.add_parser(
+    database_parser = subparsers.add_parser(
         DATABASE_COMMAND,
         help="export database tables to an XLSX workbook",
     )
-    add_database_arguments(parser)
-    parser.set_defaults(command=DATABASE_COMMAND)
+    add_database_arguments(database_parser)
+    database_parser.set_defaults(command=DATABASE_COMMAND)
 
-    parser = subparsers.add_parser(
+    comparison_parser = subparsers.add_parser(
         DISTRO_COMPARISON_COMMAND,
         help="build Poky/SUSE comparison tables and charts from an exported report.xlsx",
     )
-    add_distro_comparison_arguments(parser)
-    parser.set_defaults(command=DISTRO_COMPARISON_COMMAND)
+    add_distro_comparison_arguments(comparison_parser)
+    comparison_parser.set_defaults(command=DISTRO_COMPARISON_COMMAND)
 
-    parser = subparsers.add_parser(
+    status_parser = subparsers.add_parser(
         DISTRO_COMPARISON_STATUS_COMMAND,
         help="build Poky/SUSE PASS/FAIL status tables from an exported report.xlsx",
     )
-    parser.set_defaults(command=DISTRO_COMPARISON_STATUS_COMMAND)
+    status_parser.set_defaults(command=DISTRO_COMPARISON_STATUS_COMMAND)
 
-    return parser.parse_args(raw_args)
+    return root_parser.parse_args(raw_args)
 
 
 def add_database_arguments(parser: argparse.ArgumentParser) -> None:
