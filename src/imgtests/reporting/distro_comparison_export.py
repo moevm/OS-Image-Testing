@@ -36,7 +36,7 @@ from imgtests.reporting.distro_comparison_common import (
     build_comparison_groups,
     build_configuration_distro_map,
     build_experiment_info_map,
-    find_metric_columns,
+    find_comparison_metric_columns,
     is_comparison_sheet,
     is_ignored_metric_name,
     is_nonzero_number,
@@ -408,7 +408,7 @@ def extract_metric_buckets(
         workbook,
         config_distro,
         groups,
-        MetricExtractionOptions(column_selector=find_metric_columns),
+        MetricExtractionOptions(column_selector=find_comparison_metric_columns),
     )
 
 

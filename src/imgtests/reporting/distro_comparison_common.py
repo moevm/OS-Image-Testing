@@ -646,6 +646,17 @@ def find_metric_columns(headers: list[str]) -> list[int]:
         normalized_header = normalize_metric_text(header)
         if not normalized_header:
             continue
+        tokens = set(normalized_header.split("_"))
+        if tokens & TECHNICAL_TOKENS:
+            continue
+        metric_indexes.append(index)
+    return metric_indexes
+
+
+def find_comparison_metric_columns(headers: list[str]) -> list[int]:
+    metric_indexes: list[int] = []
+    for index in find_metric_columns(headers):
+        normalized_header = normalize_metric_text(headers[index])
         if is_ignored_metric_name(normalized_header):
             continue
         tokens = set(normalized_header.split("_"))
