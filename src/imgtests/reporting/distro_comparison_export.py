@@ -20,11 +20,15 @@ from imgtests.reporting.distro_comparison_common import (
     COMPARISON_DATA_SHEET,
     COMPARISON_INDEX_SHEET,
     COMPARISON_SELECTION_SHEET,
+    COUNT_PATTERNS,
     DISTROS,
-    ID_COLUMN_SUFFIX,
-    LABEL_COLUMNS,
+    IPERF_PATTERNS,
     MAX_SHEET_NAME_LENGTH,
-    TECHNICAL_TOKENS,
+    MEMORY_PATTERNS,
+    PERCENT_PATTERNS,
+    STRESS_NG_PATTERNS,
+    THROUGHPUT_PATTERNS,
+    TIME_PATTERNS,
     ComparisonGroup,
     MetricBucket,
     MetricExtractionOptions,
@@ -32,7 +36,9 @@ from imgtests.reporting.distro_comparison_common import (
     build_comparison_groups,
     build_configuration_distro_map,
     build_experiment_info_map,
+    find_metric_columns,
     is_comparison_sheet,
+    is_ignored_metric_name,
     is_nonzero_number,
     metric_has_any_pattern,
     metric_matches,
@@ -69,132 +75,8 @@ DEFAULT_CHARTS_PER_SHEET: Final = 30
 MIN_TREND_POINTS: Final = 3
 FIRST_DATA_ROW: Final = 2
 DUPLICATE_METRIC_SUFFIX_RE: Final = re.compile(r"^(?P<base>.+)_(?P<index>[2-9]|[1-9]\d+)$")
-GENERATED_RESULTS_METRIC_RE: Final = re.compile(
-    r"^results_[0-9a-f]{7,64}_results(?:_|$)",
-)
 UNSPECIFIED_UNIT: Final = "not specified"
-CONFIGURATION_METRIC_NAMES: Final = {
-    "target_bitrate",
-    "target_bitrate_bps",
-    "target_bitrate_bits_per_second",
-    "test_duration",
-    "test_duration_sec",
-    "test_duration_secs",
-    "test_duration_seconds",
-    "timeout",
-    "timeout_sec",
-    "timeout_secs",
-    "timeout_seconds",
-}
-SUFFIX_CONFIGURATION_METRIC_NAMES: Final = CONFIGURATION_METRIC_NAMES | {
-    "bitrate_bps",
-    "datagram_size_bytes",
-    "jobs_count",
-    "profiles_count",
-    "start_offset_sec",
-}
-EXACT_CONFIGURATION_METRIC_NAMES: Final = SUFFIX_CONFIGURATION_METRIC_NAMES | {
-    "iterations",
-    "latency_depth",
-    "latency_percentile",
-    "latency_target",
-    "latency_window",
-    "pps",
-    "total_iterations",
-}
-GENERIC_METRIC_NAMES: Final = {"value"}
-RAW_OUTPUT_METRIC_PREFIXES: Final = ("stdout_",)
 VARIABILITY_METRIC_SUFFIXES: Final = ("_dev", "_stddev")
-
-METRIC_TECHNICAL_TOKENS: Final = TECHNICAL_TOKENS | {
-    "arg",
-    "args",
-    "argument",
-    "arguments",
-    "flag",
-    "flags",
-    "option",
-    "options",
-    "param",
-    "parameter",
-    "parameters",
-    "config",
-    "configuration",
-    "compiler",
-}
-
-TIME_PATTERNS: Final = {
-    "systemd",
-    "systemd_analyze",
-    "delay",
-    "duration",
-    "elapsed",
-    "response",
-    "response_time",
-    "runtime",
-    "sec",
-    "seconds",
-    "secs",
-    "time",
-    "latency",
-    "lat",
-    "clat",
-    "slat",
-    "rtt",
-    "microseconds",
-    "usec",
-    "usecs",
-    "usec_per_op",
-    "usecs_per_op",
-    "wait",
-}
-
-THROUGHPUT_PATTERNS: Final = {
-    "bps",
-    "bits_per_second",
-    "bitrate",
-    "bandwidth",
-    "bw",
-    "gb_per_sec",
-    "mb_per_sec",
-    "kb_per_sec",
-    "iops",
-    "ops_per_sec",
-    "ops_s",
-    "bogo_ops_per_sec",
-    "bogo_ops_s",
-    "per_sec",
-    "pps",
-    "requests_per_second",
-    "records_per_second",
-    "speed",
-}
-
-PERCENT_PATTERNS: Final = {
-    "percent",
-    "percentage",
-    "pct",
-    "ratio",
-    "rate",
-    "util",
-    "usage",
-    "cpu_used",
-}
-
-COUNT_PATTERNS: Final = {
-    "count",
-    "total",
-    "num",
-    "number",
-    "items",
-    "requests",
-    "retransmit",
-    "failed",
-    "errors",
-    "oom",
-    "broken",
-    "skipped",
-}
 
 ISSUE_COUNT_PATTERNS: Final = {
     "broken",
@@ -213,16 +95,6 @@ ISSUE_COUNT_PATTERNS: Final = {
     "untrustworthy",
 }
 
-MEMORY_PATTERNS: Final = {
-    "disk_usage",
-    "rss",
-    "memory",
-    "mem",
-    "ram",
-    "kb",
-    "mb",
-}
-
 CONTEXT_DEPENDENT_PATTERNS: Final = {
     "cpu",
     "cpu_used",
@@ -237,17 +109,8 @@ CONTEXT_DEPENDENT_PATTERNS: Final = {
     "util",
 }
 
-IPERF_PATTERNS: Final = {
-    "iperf",
-    "network_loopback",
-}
-
 FIO_PATTERNS: Final = {
     "fio",
-}
-
-STRESS_NG_PATTERNS: Final = {
-    "stress_ng",
 }
 
 NETWORK_VOLUME_PATTERNS: Final = {
@@ -500,6 +363,27 @@ def export_distro_comparison_to_excel(
     )
 
 
+def collect_metric_definitions(
+    input_path: Path,
+    *,
+    experiment_ids: Sequence[str] | None = None,
+) -> list[MetricDefinition]:
+    source_wb = load_workbook(input_path, read_only=True, data_only=True)
+    try:
+        config_distro = build_configuration_distro_map(source_wb)
+        experiment_info = build_experiment_info_map(source_wb, config_distro)
+        groups = build_comparison_groups(
+            experiment_info,
+            experiment_ids=list(experiment_ids) if experiment_ids is not None else None,
+        )
+        if not groups:
+            return []
+        buckets = extract_metric_buckets(source_wb, config_distro, groups)
+        return build_metric_definitions(buckets)
+    finally:
+        source_wb.close()
+
+
 def read_source_sheets(workbook: Workbook) -> list[SheetRows]:
     sheets: list[SheetRows] = []
     for worksheet in workbook.worksheets:
@@ -526,57 +410,6 @@ def extract_metric_buckets(
         groups,
         MetricExtractionOptions(column_selector=find_metric_columns),
     )
-
-
-def find_metric_columns(headers: list[str]) -> list[int]:
-    metric_indexes: list[int] = []
-    for index, header in enumerate(headers):
-        if not header or header in LABEL_COLUMNS or header.endswith(ID_COLUMN_SUFFIX):
-            continue
-        normalized_header = normalize_metric_text(header)
-        if not normalized_header:
-            continue
-        if is_ignored_metric_name(normalized_header):
-            continue
-        tokens = set(normalized_header.split("_"))
-        if tokens & METRIC_TECHNICAL_TOKENS:
-            continue
-        metric_indexes.append(index)
-    return metric_indexes
-
-
-def is_ignored_metric_name(metric_name: str) -> bool:
-    return (
-        is_generated_results_metric_name(metric_name)
-        or is_sample_count_metric_name(metric_name)
-        or is_configuration_metric_name(metric_name)
-        or is_raw_output_metric_name(metric_name)
-        or is_generic_metric_name(metric_name)
-    )
-
-
-def is_generated_results_metric_name(metric_name: str) -> bool:
-    return GENERATED_RESULTS_METRIC_RE.match(normalize_metric_text(metric_name)) is not None
-
-
-def is_sample_count_metric_name(metric_name: str) -> bool:
-    normalized = normalize_metric_text(metric_name)
-    return normalized in {"n", "samples"} or normalized.endswith(("_n", "_samples"))
-
-
-def is_configuration_metric_name(metric_name: str) -> bool:
-    normalized = normalize_metric_text(metric_name)
-    return normalized in EXACT_CONFIGURATION_METRIC_NAMES or any(
-        normalized.endswith(f"_{name}") for name in SUFFIX_CONFIGURATION_METRIC_NAMES
-    )
-
-
-def is_raw_output_metric_name(metric_name: str) -> bool:
-    return normalize_metric_text(metric_name).startswith(RAW_OUTPUT_METRIC_PREFIXES)
-
-
-def is_generic_metric_name(metric_name: str) -> bool:
-    return normalize_metric_text(metric_name) in GENERIC_METRIC_NAMES
 
 
 def build_metric_definitions(buckets: list[MetricBucket]) -> list[MetricDefinition]:
@@ -986,24 +819,25 @@ def metric_direction_for(
     metric_text: str,
     metric_tokens: set[str],
 ) -> tuple[MetricDirection, bool | None]:
-    rules: tuple[tuple[bool, MetricDirection, bool | None], ...] = (
-        (metric_kind == "variation" or is_variability_metric(metric_text), "lower", False),
-        (metric_kind == "interval_time", "context_dependent", None),
-        (metric_has_any_pattern(metric_text, metric_tokens, ISSUE_COUNT_PATTERNS), "lower", False),
-        (
-            metric_has_any_pattern(metric_text, metric_tokens, CONTEXT_DEPENDENT_PATTERNS),
-            "context_dependent",
-            None,
-        ),
-        (metric_has_any_pattern(metric_text, metric_tokens, THROUGHPUT_PATTERNS), "higher", True),
-        (metric_has_any_pattern(metric_text, metric_tokens, TIME_PATTERNS), "lower", False),
-        (metric_kind == "work_count", "higher", True),
-        (metric_kind == "reliability_count", "lower", False),
-    )
-    for applies, direction, higher_is_better in rules:
-        if applies:
-            return direction, higher_is_better
-    return "context_dependent", None
+    if metric_kind == "variation" or is_variability_metric(metric_text):
+        result: tuple[MetricDirection, bool | None] = ("lower", False)
+    elif metric_kind == "interval_time":
+        result = ("context_dependent", None)
+    elif metric_has_any_pattern(metric_text, metric_tokens, ISSUE_COUNT_PATTERNS):
+        result = ("lower", False)
+    elif metric_has_any_pattern(metric_text, metric_tokens, CONTEXT_DEPENDENT_PATTERNS):
+        result = ("context_dependent", None)
+    elif metric_has_any_pattern(metric_text, metric_tokens, THROUGHPUT_PATTERNS):
+        result = ("higher", True)
+    elif metric_has_any_pattern(metric_text, metric_tokens, TIME_PATTERNS):
+        result = ("lower", False)
+    elif metric_kind == "work_count":
+        result = ("higher", True)
+    elif metric_kind == "reliability_count":
+        result = ("lower", False)
+    else:
+        result = ("context_dependent", None)
+    return result
 
 
 def build_chart_specs(
@@ -1143,25 +977,24 @@ def trend_chart_style(points_count: int, y_axis_title: str, reason: str) -> tupl
 
 
 def y_axis_title_for(text: str, tokens: set[str]) -> str:
-    rules = (
-        (
-            metric_has_any_pattern(text, tokens, IPERF_PATTERNS)
-            and is_interval_time_text(text, tokens),
-            "Mean time",
-        ),
-        (metric_has_any_pattern(text, tokens, PERCENT_PATTERNS), "Mean, % / ratio"),
-        (
-            metric_has_any_pattern(text, tokens, THROUGHPUT_PATTERNS),
-            "Mean throughput; higher is better",
-        ),
-        (metric_has_any_pattern(text, tokens, TIME_PATTERNS), "Mean time; lower is better"),
-        (metric_has_any_pattern(text, tokens, MEMORY_PATTERNS), "Mean memory/size"),
-        (metric_has_any_pattern(text, tokens, COUNT_PATTERNS), "Mean count"),
-    )
-    for applies, title in rules:
-        if applies:
-            return title
-    return "Mean"
+    if metric_has_any_pattern(text, tokens, IPERF_PATTERNS) and is_interval_time_text(
+        text,
+        tokens,
+    ):
+        title = "Mean time"
+    elif metric_has_any_pattern(text, tokens, PERCENT_PATTERNS):
+        title = "Mean, % / ratio"
+    elif metric_has_any_pattern(text, tokens, THROUGHPUT_PATTERNS):
+        title = "Mean throughput; higher is better"
+    elif metric_has_any_pattern(text, tokens, TIME_PATTERNS):
+        title = "Mean time; lower is better"
+    elif metric_has_any_pattern(text, tokens, MEMORY_PATTERNS):
+        title = "Mean memory/size"
+    elif metric_has_any_pattern(text, tokens, COUNT_PATTERNS):
+        title = "Mean count"
+    else:
+        title = "Mean"
+    return title
 
 
 def chart_score(bucket: MetricBucket, points_count: int) -> int:
@@ -1289,6 +1122,12 @@ def write_comparison_metrics(
 
 
 def style_comparison_metrics_sheet(ws: Worksheet, row_count: int) -> None:
+    """Make the metrics dictionary sheet readable in Excel.
+
+    The shared table style keeps columns compact, while this sheet contains long
+    metric descriptions. Wider semantic columns and wrapped description cells keep
+    the generated dictionary scannable without hiding text behind Excel defaults.
+    """
     widths = {
         "A": 34,
         "B": 34,

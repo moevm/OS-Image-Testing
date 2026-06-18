@@ -103,12 +103,68 @@ TECHNICAL_TOKENS: Final = {
     "tos",
 }
 
+GENERATED_RESULTS_METRIC_RE: Final = re.compile(
+    r"^results_[0-9a-f]{7,64}_results(?:_|$)",
+)
+CONFIGURATION_METRIC_NAMES: Final = {
+    "target_bitrate",
+    "target_bitrate_bps",
+    "target_bitrate_bits_per_second",
+    "test_duration",
+    "test_duration_sec",
+    "test_duration_secs",
+    "test_duration_seconds",
+    "timeout",
+    "timeout_sec",
+    "timeout_secs",
+    "timeout_seconds",
+}
+SUFFIX_CONFIGURATION_METRIC_NAMES: Final = CONFIGURATION_METRIC_NAMES | {
+    "bitrate_bps",
+    "datagram_size_bytes",
+    "jobs_count",
+    "profiles_count",
+    "start_offset_sec",
+}
+EXACT_CONFIGURATION_METRIC_NAMES: Final = SUFFIX_CONFIGURATION_METRIC_NAMES | {
+    "iterations",
+    "latency_depth",
+    "latency_percentile",
+    "latency_target",
+    "latency_window",
+    "pps",
+    "total_iterations",
+}
+GENERIC_METRIC_NAMES: Final = {"value"}
+RAW_OUTPUT_METRIC_PREFIXES: Final = ("stdout_",)
+
+METRIC_TECHNICAL_TOKENS: Final = TECHNICAL_TOKENS | {
+    "arg",
+    "args",
+    "argument",
+    "arguments",
+    "flag",
+    "flags",
+    "option",
+    "options",
+    "param",
+    "parameter",
+    "parameters",
+    "config",
+    "configuration",
+    "compiler",
+}
+
 TIME_PATTERNS: Final = {
     "systemd",
     "systemd_analyze",
+    "delay",
     "duration",
     "elapsed",
+    "response",
+    "response_time",
     "runtime",
+    "sec",
     "seconds",
     "secs",
     "time",
@@ -117,6 +173,11 @@ TIME_PATTERNS: Final = {
     "clat",
     "slat",
     "rtt",
+    "microseconds",
+    "usec",
+    "usecs",
+    "usec_per_op",
+    "usecs_per_op",
     "wait",
 }
 
@@ -126,12 +187,19 @@ THROUGHPUT_PATTERNS: Final = {
     "bitrate",
     "bandwidth",
     "bw",
+    "gb_per_sec",
+    "mb_per_sec",
+    "kb_per_sec",
     "iops",
     "ops_per_sec",
     "ops_s",
+    "bogo_ops_per_sec",
     "bogo_ops_s",
+    "per_sec",
     "pps",
     "requests_per_second",
+    "records_per_second",
+    "speed",
 }
 
 PERCENT_PATTERNS: Final = {
@@ -161,9 +229,11 @@ COUNT_PATTERNS: Final = {
 }
 
 MEMORY_PATTERNS: Final = {
+    "disk_usage",
     "rss",
     "memory",
     "mem",
+    "ram",
     "kb",
     "mb",
     "bytes",
@@ -576,11 +646,47 @@ def find_metric_columns(headers: list[str]) -> list[int]:
         normalized_header = normalize_metric_text(header)
         if not normalized_header:
             continue
+        if is_ignored_metric_name(normalized_header):
+            continue
         tokens = set(normalized_header.split("_"))
-        if tokens & TECHNICAL_TOKENS:
+        if tokens & METRIC_TECHNICAL_TOKENS:
             continue
         metric_indexes.append(index)
     return metric_indexes
+
+
+def is_ignored_metric_name(metric_name: str) -> bool:
+    return (
+        is_generated_results_metric_name(metric_name)
+        or is_sample_count_metric_name(metric_name)
+        or is_configuration_metric_name(metric_name)
+        or is_raw_output_metric_name(metric_name)
+        or is_generic_metric_name(metric_name)
+    )
+
+
+def is_generated_results_metric_name(metric_name: str) -> bool:
+    return GENERATED_RESULTS_METRIC_RE.match(normalize_metric_text(metric_name)) is not None
+
+
+def is_sample_count_metric_name(metric_name: str) -> bool:
+    normalized = normalize_metric_text(metric_name)
+    return normalized in {"n", "samples"} or normalized.endswith(("_n", "_samples"))
+
+
+def is_configuration_metric_name(metric_name: str) -> bool:
+    normalized = normalize_metric_text(metric_name)
+    return normalized in EXACT_CONFIGURATION_METRIC_NAMES or any(
+        normalized.endswith(f"_{name}") for name in SUFFIX_CONFIGURATION_METRIC_NAMES
+    )
+
+
+def is_raw_output_metric_name(metric_name: str) -> bool:
+    return normalize_metric_text(metric_name).startswith(RAW_OUTPUT_METRIC_PREFIXES)
+
+
+def is_generic_metric_name(metric_name: str) -> bool:
+    return normalize_metric_text(metric_name) in GENERIC_METRIC_NAMES
 
 
 def row_distro(

@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import shlex
+import sys
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from datetime import date, datetime
 from pathlib import Path
@@ -18,12 +19,15 @@ from imgtests.database.models.experiment import ExperimentBase
 from imgtests.database.models.util_run_result import UtilRunResult
 from imgtests.reporting.cli import (
     DISTRO_COMPARISON_COMMAND,
+    DISTRO_COMPARISON_METRICS_COMMAND,
     DISTRO_COMPARISON_STATUS_COMMAND,
     EXPORT_TABLES,
+    format_metric_definitions_table,
     parse_args,
 )
 from imgtests.reporting.distro_comparison_export import (
     DistroComparisonExportOptions,
+    collect_metric_definitions,
     export_distro_comparison_to_excel,
 )
 from imgtests.reporting.distro_comparison_status_export import (
@@ -780,6 +784,10 @@ def main() -> None:
         export_distro_comparison_command(args)
         return
 
+    if args.command == DISTRO_COMPARISON_METRICS_COMMAND:
+        print_distro_comparison_metrics_command(args)
+        return
+
     if args.command == DISTRO_COMPARISON_STATUS_COMMAND:
         export_distro_comparison_status_command(args)
         return
@@ -812,6 +820,14 @@ def export_distro_comparison_command(args: argparse.Namespace) -> None:
         ),
     )
     logger.info("Exported comparison XLSX file: %s", output_path)
+
+
+def print_distro_comparison_metrics_command(args: argparse.Namespace) -> None:
+    metric_definitions = collect_metric_definitions(
+        input_path=args.input,
+        experiment_ids=args.experiment_ids,
+    )
+    sys.stdout.write(f"{format_metric_definitions_table(metric_definitions)}\n")
 
 
 def export_distro_comparison_status_command(args: argparse.Namespace) -> None:
