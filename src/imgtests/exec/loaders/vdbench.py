@@ -1,30 +1,33 @@
 import logging
+from pathlib import Path
 from typing import Final
 
+from imgtests.constant import LIB_DATA_DIR
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
 from imgtests.exec.utils import create_opt
 
 logger = logging.getLogger(__name__)
 
-VDBENCH_DIR: Final = "/usr/sbin/vdbench"
-CONFIG_FILE: Final = "/root/vdbench-config"
-OUTPUT_DIR: Final = "/root/vdbench-output"
+VDBENCH_DIR: Final = Path("/usr/sbin/vdbench")
+CONFIG_FILE: Final = LIB_DATA_DIR / "vdbench-config"
+OUTPUT_DIR: Final = LIB_DATA_DIR / "vdbench-output"
 
 
 class Vdbench(GenericUtil):
     def __init__(self, ssh_client: SSHClient | None = None) -> None:
         super().__init__("vdbench", ssh_client)
-        self.path = VDBENCH_DIR + "/vdbench"
+        self.path = VDBENCH_DIR / "vdbench"
 
-    def validate_setup(self) -> None:
-        result = common_run_command(
-            ["ls", VDBENCH_DIR],
-            self.ssh_client,
-        )
+    def validate_setup(self) -> ExecResult:
+        result = common_run_command(["ls", str(self.path)], self.ssh_client)
         if result.returncode:
-            err_msg = f"Tool is not found in {VDBENCH_DIR}"
-            raise FileNotFoundError(err_msg)
+            return ExecResult(
+                cmd=result.cmd,
+                stderr=f"Failed to locate '{self.name}'.",
+                returncode=1,
+            )
+        return result
 
     def configure_params(
         self,
@@ -43,7 +46,7 @@ class Vdbench(GenericUtil):
             "-e",
             f"'{configuration}'",
             ">",
-            CONFIG_FILE,
+            str(CONFIG_FILE),
         ]
 
         return common_run_command(cmd, self.ssh_client)
@@ -54,7 +57,7 @@ class Vdbench(GenericUtil):
         block_size: int = 4096,
         read_percentage: int = 70,
         iorate: int = 1000,
-    ) -> tuple[ExecResult, str]:
+    ) -> tuple[ExecResult, Path | None]:
         """Runs the vdbench.
 
         Args:
@@ -63,7 +66,9 @@ class Vdbench(GenericUtil):
             read_percentage (int): Percentage of read operations.
             iorate (int): IO operations per second.
         """
-        self.validate_setup()
+        result = self.validate_setup()
+        if result.returncode:
+            return result, None
         self.configure_params(
             timeout_sec=timeout_sec,
             block_size=block_size,
