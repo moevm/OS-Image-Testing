@@ -33,3 +33,7 @@
 	path = layers/meta-cloud-services
 	url = https://github.com/ni/meta-cloud-services
 	branch = nilrt/master/next
+[submodule "layers/meta-openjdk-temurin"]
+	path = layers/meta-openjdk-temurin
+	url = https://github.com/lucimber/meta-openjdk-temurin.git
+	branch = scarthgap
