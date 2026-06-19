@@ -7,3 +7,6 @@ uv.lock
 .coverage
 pytest-coverage.xml
 imgtests.egg-info
+
+# External
+vdbench.tar.gz

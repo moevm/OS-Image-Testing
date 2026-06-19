@@ -43,16 +43,22 @@ class Vdbench(GenericUtil):
             f"rd=run1,wd=wd1,iorate={iorate},elapsed={timeout_sec},interval=1"
         )
         if not CONFIG_FILE.parent.exists():
-            CONFIG_FILE.parent.mkdir(parents=True)
-        cmd = [
-            "echo",
-            "-e",
-            f"'{configuration}'",
-            ">",
-            str(CONFIG_FILE),
-        ]
-
-        return common_run_command(cmd, self.ssh_client)
+            result = common_run_command(
+                ["mkdir", "--parents", str(CONFIG_FILE.parent)],
+                self.ssh_client,
+            )
+            if result.returncode:
+                return result
+        return common_run_command(
+            [
+                "echo",
+                "-e",
+                f"'{configuration}'",
+                ">",
+                str(CONFIG_FILE),
+            ],
+            self.ssh_client,
+        )
 
     def run(
         self,
