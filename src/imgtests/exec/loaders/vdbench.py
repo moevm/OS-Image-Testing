@@ -9,15 +9,16 @@ from imgtests.exec.utils import create_opt
 
 logger = logging.getLogger(__name__)
 
-VDBENCH_DIR: Final = Path("/usr/sbin/vdbench")
-CONFIG_FILE: Final = LIB_DATA_DIR / "vdbench-config"
-OUTPUT_DIR: Final = LIB_DATA_DIR / "vdbench-output"
+VDBENCH_NAME: Final = "vdbench"
+VDBENCH_DIR: Final = Path("/usr/sbin") / VDBENCH_NAME
+CONFIG_FILE: Final = LIB_DATA_DIR / VDBENCH_NAME / f"{VDBENCH_NAME}-config"
+OUTPUT_DIR: Final = LIB_DATA_DIR / VDBENCH_NAME / f"{VDBENCH_NAME}-output"
 
 
 class Vdbench(GenericUtil):
     def __init__(self, ssh_client: SSHClient | None = None) -> None:
-        super().__init__("vdbench", ssh_client)
-        self.path = VDBENCH_DIR / "vdbench"
+        super().__init__(VDBENCH_NAME, ssh_client)
+        self.path = VDBENCH_DIR / VDBENCH_NAME
 
     def validate_setup(self) -> ExecResult:
         result = common_run_command(["ls", str(self.path)], self.ssh_client)
@@ -41,6 +42,8 @@ class Vdbench(GenericUtil):
             f"wd=wd1,sd=sd1,xfersize={block_size},readpct={read_percentage},seekpct=100\n"
             f"rd=run1,wd=wd1,iorate={iorate},elapsed={timeout_sec},interval=1"
         )
+        if not CONFIG_FILE.parent.exists():
+            CONFIG_FILE.parent.mkdir(parents=True)
         cmd = [
             "echo",
             "-e",
@@ -76,6 +79,8 @@ class Vdbench(GenericUtil):
             iorate=iorate,
         )
 
+        if not OUTPUT_DIR.exists():
+            OUTPUT_DIR.mkdir(parents=True)
         opts = [
             *create_opt("f", CONFIG_FILE, use_one_dash=True),
             *create_opt("o", OUTPUT_DIR, use_one_dash=True),
