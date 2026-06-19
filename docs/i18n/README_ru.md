@@ -54,6 +54,10 @@ make docker-compose-up
 
 - Контейнер Victoria Metrics (порт:VMETRICS_PORT) собирает метрики из контейнеров Yocto и Suse-156, предоставляемых экспортерами узлов.
 
+- Контейнер Metabase: (порт:METABASE_PORT) используется для создания запросов и панелей мониторинга с собранными метриками
+
+- Контейнер Metabase мета данных: (порт:METABASE_META_DB_PORT) необходим Metabase для сохранения настроек: запросов, панелей мониторинга, информации о подключении
+
 Результаты могут быть получены из журналов контейнера Python после завершения всех тестов:
 
 ```bash
@@ -71,3 +75,58 @@ docker logs os-image-testing-imgtests-analyzer-1
 * Параметры виртуальных машин (пути Yocto и Suse, Yocto образ)
 * Параметры QEMU (размер RAM)
 * Сетевые параметры (IP адреса, порты, включая SSH порты для виртуальных машин)
+
+### 4. Просмотр результатов тестирования с помощью Metabase
+#### 4.1 Запуск Metabase
+
+```bash
+make docker-init-volumes
+```
+
+Запускает QEMU в собранном образе Docker.
+
+```bash
+make docker-run-image
+```
+
+Чтобы добавить новую утилиту, необходимо обновить local.conf и написать соответствующий рецепт, затем добавить пути к рецепту и зависимым файлам для всех вызываемых контейнеров в `Makefile`.
+
+Запускает контейнеры PostgreSQL с тестовыми данными, метаданными Metabase и самим сервисом Metabase:
+```bash
+make docker-run-metabase
+```
+
+После запуска Metabase будет доступен по адресу `localhost:3000`
+
+#### 4.2 Импорт панели мониторинга Metabase
+
+Чтобы просмотреть результаты тестирования, необходимо импортировать панель мониторинга Metabase или создать её с нуля.
+
+Чтобы импортировать дашборд Metabase из файла `.dump`:
+
+- Запустите все контейнеры Metabase:
+```bash
+make docker-run-metabase
+```
+
+- Остановите контейнер Metabase с помощью:
+```bash
+docker stop os-image-testing-imgtests-metabase-1
+```
+
+- Очистите метаданные Metabase:
+```bash
+docker exec -i os-image-testing-imgtests-metabase-meta-db-1 psql -U metabase -d postgres -c "DROP DATABASE metabase;"
+
+docker exec -i os-image-testing-imgtests-metabase-meta-db-1 psql -U metabase -d postgres -c "CREATE DATABASE metabase;"
+```
+
+- Импорт данных из файла `.dump`:
+```bash
+docker exec -i os-image-testing-imgtests-metabase-meta-db-1 pg_restore -U metabase -d metabase < your_dump_file.dump
+```
+
+- Запуск Metabase:
+```bash
+docker start os-image-testing-imgtests-metabase-1
+```

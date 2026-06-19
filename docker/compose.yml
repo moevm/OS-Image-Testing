@@ -170,11 +170,13 @@ services:
       POSTGRES_DB: ${METABASE_META_DB_NAME}
       POSTGRES_USER: ${METABASE_META_USER}
       POSTGRES_PASSWORD: ${METABASE_META_PASS}
+      PGPORT: ${METABASE_META_DB_PORT}
     volumes:
       - ${METABASE_META_VOLUME}:/var/lib/postgresql/data
     networks:
       yocto-network:
         ipv4_address: ${METABASE_META_DB_ADDRESS}
+    command: -p ${METABASE_META_DB_PORT}
     restart: unless-stopped
 
   imgtests-metabase:
@@ -185,7 +187,7 @@ services:
     environment:
       MB_DB_TYPE: postgres
       MB_DB_DBNAME: ${METABASE_META_DB_NAME}
-      MB_DB_PORT: 5432
+      MB_DB_PORT: ${METABASE_META_DB_PORT}
       MB_DB_USER: ${METABASE_META_USER}
       MB_DB_PASS: ${METABASE_META_PASS}
       MB_DB_HOST: imgtests-metabase-meta-db
