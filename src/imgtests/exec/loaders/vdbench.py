@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 from typing import Final
 
-from imgtests.constant import LIB_DATA_DIR
+from imgtests.constant import LIB_NAME
 from imgtests.exec.base_util import GenericUtil
 from imgtests.exec.exec import ExecResult, SSHClient, common_run_command
 from imgtests.exec.utils import create_opt
@@ -11,8 +11,6 @@ logger = logging.getLogger(__name__)
 
 VDBENCH_NAME: Final = "vdbench"
 VDBENCH_DIR: Final = Path("/usr/sbin") / VDBENCH_NAME
-CONFIG_FILE: Final = LIB_DATA_DIR / VDBENCH_NAME / f"{VDBENCH_NAME}-config"
-OUTPUT_DIR: Final = LIB_DATA_DIR / VDBENCH_NAME / f"{VDBENCH_NAME}-output"
 
 
 class Vdbench(GenericUtil):
@@ -32,6 +30,7 @@ class Vdbench(GenericUtil):
 
     def configure_params(
         self,
+        config_file: Path,
         timeout_sec: int = 60,
         block_size: int = 4096,
         read_percentage: int = 70,
@@ -42,20 +41,16 @@ class Vdbench(GenericUtil):
             f"wd=wd1,sd=sd1,xfersize={block_size},readpct={read_percentage},seekpct=100\n"
             f"rd=run1,wd=wd1,iorate={iorate},elapsed={timeout_sec},interval=1"
         )
-        if common_run_command(["test", "-d", str(CONFIG_FILE.parent)], self.ssh_client).returncode:
-            result = common_run_command(
-                ["mkdir", "--parents", str(CONFIG_FILE.parent)],
-                self.ssh_client,
-            )
-            if result.returncode:
-                return result
+        result = self.__provide_folder(config_file.parent)
+        if result.returncode:
+            return result
         return common_run_command(
             [
                 "echo",
                 "-e",
                 f"'{configuration}'",
                 ">",
-                str(CONFIG_FILE),
+                str(config_file),
             ],
             self.ssh_client,
         )
@@ -78,23 +73,33 @@ class Vdbench(GenericUtil):
         result = self.validate_setup()
         if result.returncode:
             return result, None
+        result = common_run_command(["echo", "$HOME"], self.ssh_client)
+        home_dir = result.stdout.strip()
+        if result.returncode or not home_dir:
+            return result, None
+
+        config_file: Final = Path(home_dir) / LIB_NAME / VDBENCH_NAME / f"{VDBENCH_NAME}-config"
         self.configure_params(
+            config_file=config_file,
             timeout_sec=timeout_sec,
             block_size=block_size,
             read_percentage=read_percentage,
             iorate=iorate,
         )
 
-        if common_run_command(["test", "-d", str(OUTPUT_DIR)], self.ssh_client).returncode:
-            result = common_run_command(
-                ["mkdir", "--parents", str(OUTPUT_DIR)],
-                self.ssh_client,
-            )
-            if result.returncode:
-                return result, None
+        output_dir = Path(home_dir) / LIB_NAME / VDBENCH_NAME / f"{VDBENCH_NAME}-output"
+        result = self.__provide_folder(output_dir)
+        if result.returncode:
+            return result, None
         opts = [
-            *create_opt("f", CONFIG_FILE, use_one_dash=True),
-            *create_opt("o", OUTPUT_DIR, use_one_dash=True),
+            *create_opt("f", config_file, use_one_dash=True),
+            *create_opt("o", output_dir, use_one_dash=True),
         ]
         result = self(opts)
-        return result, OUTPUT_DIR
+        return result, output_dir
+
+    def __provide_folder(self, folder: Path) -> ExecResult:
+        result = common_run_command(["test", "-d", str(folder)], self.ssh_client)
+        if result.returncode:
+            return common_run_command(["mkdir", "--parents", str(folder)], self.ssh_client)
+        return result
