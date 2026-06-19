@@ -1,42 +1,64 @@
 from __future__ import annotations
 
+import json
 import logging
-from concurrent.futures import ThreadPoolExecutor
+import sys
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from threading import Event, Thread
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, Any, Final, Literal
 
 import paramiko
 import paramiko.ssh_exception
-from pydantic import Field
-from pydantic_settings import BaseSettings
 
-from imgtests.constant import LIB_NAME, QEMU, REPORTS_DIR
-from imgtests.exec.exec import SSHClient, Verbosity, common_run_command
-from imgtests.exec.observers.journalctl import Journalctl
-from imgtests.exec.observers.systemctl import Systemctl
+from imgtests.constant import CONFIG_DIR, QEMU, REPORTS_DIR
+from imgtests.database.database import ImgtestsDatabase
+from imgtests.exec.exec import SSHClient, common_run_command, wait_remote
 from imgtests.exec.observers.systemd_detect_virt import SystemdDetectVirt
+from imgtests.exec.user_commands import Touch
 from imgtests.planning import (
     AbstractRunnableManyTimesTest,
     AbstractRunnableTimeLimitedTest,
+    BaseRunner,
+    LoadPattern,
+    PlanExecutor,
+    PlanRequest,
     TestKind,
+    build_plan,
 )
 from imgtests.snapshot import SnapshotManager
 from imgtests.suites.system import (
     SystemLoadTimeTest,
     SystemSlowServicesTest,
 )
-from imgtests.sysrep import get_system_info
-from imgtests.types import MetricSample, Subsystem, TestsCounts, TestStatus
+from imgtests.types import Subsystem, TestsCounts, TestStatus
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
 
-    from imgtests.database.database import ImgtestsDatabase
-    from imgtests.database.models.experiment import ExperimentBase, ExperimentType
+    from imgtests.database.models.experiment import ExperimentType
     from imgtests.exec.base_util import BaseTestUtil
     from imgtests.planning import LoadPattern
+
+
+Runner = Literal["default", "profiled"]
+Distro = Literal["all", "yocto", "opensuse"]
+
+YOCTO_CONF: Final = (
+    "SSH_YOCTO_ADDR",
+    "SSH_YOCTO_USER",
+    "SSH_YOCTO_PASS",
+    "SSH_YOCTO_PORT",
+)
+SUSE_156_CONF: Final = (
+    "SSH_SUSE_ADDR_156",
+    "SSH_SUSE_USER",
+    "SSH_SUSE_PASS",
+    "SSH_SUSE_PORT_156",
+)
+
+logger = logging.getLogger()
 
 
 # Subsystems, stages (plan, risk analysis, run, cleanup, results, etc), etc
@@ -77,184 +99,6 @@ class TestsRunnerConfig:
             self.test_duration = self.total_duration // time_limited_tests_cnt
         else:
             self.test_duration = 0
-
-
-class ProfiledPlanRunnerSettings(BaseSettings):
-    subsystems: str = Field(default="all", validation_alias="PLAN_SUBSYSTEMS")
-    results_dir: Path = Field(
-        default=Path(REPORTS_DIR / "profiled"),
-        validation_alias="PLAN_RESULTS_DIR",
-    )
-    pattern: str = Field(default="", validation_alias="PLAN_PATTERN")
-    run_matrix: bool = Field(default=False, validation_alias="PLAN_RUN_MATRIX")
-    profile: str = Field(default="load", validation_alias="PLAN_PROFILE")
-    duration_sec: int = Field(default=120, validation_alias="PLAN_DURATION_SEC")
-    matrix_profiles: str = Field(default="all", validation_alias="PLAN_MATRIX_PROFILES")
-    duration_load: int | None = Field(default=None, validation_alias="PLAN_DURATION_LOAD")
-    duration_stress: int | None = Field(default=None, validation_alias="PLAN_DURATION_STRESS")
-    duration_stability: int | None = Field(default=None, validation_alias="PLAN_DURATION_STABILITY")
-    duration_scalability: int | None = Field(
-        default=None,
-        validation_alias="PLAN_DURATION_SCALABILITY",
-    )
-    duration_volume: int | None = Field(default=None, validation_alias="PLAN_DURATION_VOLUME")
-    duration_isolated: int | None = Field(default=None, validation_alias="PLAN_DURATION_ISOLATED")
-    duration_spike: int | None = Field(default=None, validation_alias="PLAN_DURATION_SPIKE")
-    duration_diagnostic: int | None = Field(
-        default=None,
-        validation_alias="PLAN_DURATION_DIAGNOSTIC",
-    )
-
-    def duration_for(self, profile: TestKind) -> int:
-        durations = {
-            "load": self.duration_load,
-            "stress": self.duration_stress,
-            "stability": self.duration_stability,
-            "scalability": self.duration_scalability,
-            "volume": self.duration_volume,
-            "isolated": self.duration_isolated,
-            "spike": self.duration_spike,
-            "diagnostic": self.duration_diagnostic,
-        }
-        duration = durations[profile.value]
-        return self.duration_sec if duration is None else duration
-
-
-class BaseRunner:
-    def __init__(self, name: str, client: SSHClient | None, database: ImgtestsDatabase) -> None:
-        self._executor = ThreadPoolExecutor()
-        self._client = client
-        self._database = database
-        self._logger = logging.getLogger(f"{LIB_NAME}.{name}")
-
-    @staticmethod
-    def resolve_config_id(
-        client: SSHClient | None,
-        database: ImgtestsDatabase,
-        config_id: int | None = None,
-    ) -> int:
-        if config_id is not None:
-            return int(config_id)
-
-        result = get_system_info(client)
-        configuration_record = database.insert_from_system_info(result)
-        return int(configuration_record.config_id)
-
-    @classmethod
-    def start_experiment(  # noqa: PLR0913
-        cls,
-        *,
-        client: SSHClient | None,
-        database: ImgtestsDatabase,
-        description: str,
-        experiment_type: ExperimentType,
-        config_id: int | None = None,
-        started_at: datetime | None = None,
-        ended_at: datetime | None = None,
-    ) -> ExperimentBase:
-        return database.insert_experiment(
-            config_id=cls.resolve_config_id(client, database, config_id),
-            description=description,
-            experiment_type=experiment_type,
-            started_at=started_at,
-            ended_at=ended_at,
-        )
-
-    def _collect_system_errors(
-        self,
-        experiment_id: int,
-        since: datetime,
-        until: datetime,
-    ) -> list[MetricSample]:
-        systemctl = Systemctl(self._client)
-        journalctl = Journalctl(self._client, use_sudo=True)
-        collected_metrics: list[MetricSample] = []
-
-        # failed services
-        fs_r, fs_m = systemctl.get_failed_services()
-        self._logger.info("Failed services: %s", fs_m)
-        collected_metrics.append(
-            MetricSample(
-                stage_name="system-errors",
-                subsystem="system",
-                metric_name="failed systemd services",
-                value=float(len(fs_m)),
-                label="failed systemd services",
-            ),
-        )
-
-        self._database.insert_util_run_result(
-            experiment_id=experiment_id,
-            util_type="observer",
-            command=" ".join(fs_r.cmd),
-            result=systemctl.metrics_to_json(fs_m),
-            description="failed systemd services",
-        )
-
-        # OOM
-        oom_r = journalctl.oom_records(
-            since=since.strftime(journalctl.DATE_FORMAT),
-            until=until.strftime(journalctl.DATE_FORMAT),
-            verbosity=Verbosity(0),
-        )
-        oom_m = journalctl.calc_records_cnt(oom_r.stdout)
-        self._logger.info("OOM records %d", oom_m)
-        collected_metrics.append(
-            MetricSample(
-                stage_name="system-errors",
-                subsystem="system",
-                metric_name="OOM records",
-                value=float(oom_m),
-                label="OOM records",
-            ),
-        )
-
-        self._database.insert_util_run_result(
-            experiment_id=experiment_id,
-            util_type="observer",
-            command=" ".join(oom_r.cmd),
-            result=journalctl.metrics_to_json(oom_m),
-            description="OOM records",
-            started_at=since,
-            ended_at=until,
-        )
-
-        # systemd errors
-        sstmd_err_r = journalctl.systemd_only_records(
-            since=since.strftime(journalctl.DATE_FORMAT),
-            until=until.strftime(journalctl.DATE_FORMAT),
-            priority="err",
-            verbosity=Verbosity(0),
-        )
-        sstmd_err_m = journalctl.calc_records_cnt(sstmd_err_r.stdout)
-        self._logger.info(
-            "systemd errors records %d",
-            sstmd_err_m,
-        )
-        collected_metrics.append(
-            MetricSample(
-                stage_name="system-errors",
-                subsystem="system",
-                metric_name="systemd errors records",
-                value=float(sstmd_err_m),
-                label="systemd errors records",
-            ),
-        )
-
-        self._database.insert_util_run_result(
-            experiment_id=experiment_id,
-            util_type="observer",
-            command=" ".join(sstmd_err_r.cmd),
-            description="systemd errors records",
-            started_at=since,
-            ended_at=until,
-            result=journalctl.metrics_to_json(sstmd_err_m),
-        )
-
-        return collected_metrics
-
-    def close(self) -> None:
-        self._executor.shutdown(wait=False)
 
 
 class TestsRunner(BaseRunner):
@@ -327,21 +171,28 @@ class TestsRunner(BaseRunner):
             if isinstance(test_class, AbstractRunnableManyTimesTest):
                 test_instance = test_class
             else:
-                test_instance = test_class(self.__test_config.test_duration)
-            for result in test_instance(self._executor, self._client):
-                self._database.insert_util_run_result(
-                    experiment_id=experiment_id,
-                    # TODO: fill util_type with the correct value
-                    util_type="loader",
-                    # TODO: fill descriptions and adds into TestResult class
-                    description="",
-                    result=result.metrics,
-                    command=result.command,
-                    started_at=result.started_at,
-                    ended_at=result.ended_at,
+                test_instance = test_class(timeout=self.__test_config.test_duration)
+            try:
+                for result in test_instance(self._executor, self._client):
+                    self._database.insert_util_run_result(
+                        experiment_id=experiment_id,
+                        # TODO: fill util_type with the correct value
+                        util_type="loader",
+                        # TODO: fill descriptions and adds into TestResult class
+                        description="",
+                        result=result.metrics,
+                        command=result.command,
+                        started_at=result.started_at,
+                        ended_at=result.ended_at,
+                    )
+                    self.__tests_statuses[result.status] += 1
+                    self.__tests_cnt += 1
+            except Exception:
+                self._logger.exception(
+                    "Test '%s' failed with exception.",
+                    test_instance.description,
                 )
-                self.__tests_statuses[result.status] += 1
-                self.__tests_cnt += 1
+                self.__tests_statuses[TestStatus.BROKEN] += 1
             self._collect_system_errors(
                 experiment_id=experiment_id,
                 since=test_started_at,
@@ -426,65 +277,130 @@ class TestsRunner(BaseRunner):
             self._executor.shutdown(cancel_futures=True)
 
 
-class ProfiledPlanRunner(BaseRunner):
-    _SUBSYSTEM_ALIASES: ClassVar[dict[str, Subsystem]] = {
-        "cpu": Subsystem.SYSTEM,
-        "disk": Subsystem.FILE,
-        "ipc": Subsystem.IPC,
-    }
+@dataclass(frozen=True)
+class Durations:
+    duration_sec: int = 120
+    duration_load: int | None = None
+    duration_stress: int | None = None
+    duration_stability: int | None = None
+    duration_scalability: int | None = None
+    duration_volume: int | None = None
+    duration_isolated: int | None = None
+    duration_spike: int | None = None
+    duration_diagnostic: int | None = None
 
+    def duration_for(self, profile: TestKind) -> int:
+        match profile:
+            case TestKind.LOAD:
+                duration = self.duration_load
+            case TestKind.STRESS:
+                duration = self.duration_stress
+            case TestKind.STABILITY:
+                duration = self.duration_stability
+            case TestKind.SCALABILITY:
+                duration = self.duration_scalability
+            case TestKind.VOLUME:
+                duration = self.duration_volume
+            case TestKind.ISOLATED:
+                duration = self.duration_isolated
+            case TestKind.SPIKE:
+                duration = self.duration_spike
+            case TestKind.DIAGNOSTIC:
+                duration = self.duration_diagnostic
+            case _:
+                return self.duration_sec
+        return duration or self.duration_sec
+
+
+class ProfiledRunnerSettings:
+    __slots__ = (
+        "durations",
+        "matrix_profiles",
+        "pattern",
+        "profile",
+        "results_dir",
+        "run_matrix",
+        "subsystems",
+    )
+
+    def __init__(  # noqa: PLR0913
+        self,
+        subsystems: frozenset[Subsystem] | None = None,
+        results_dir: Path = REPORTS_DIR / "profiled",
+        pattern: LoadPattern | None = None,
+        run_matrix: bool = False,
+        profile: TestKind = TestKind.LOAD,
+        matrix_profiles: tuple[TestKind, ...] | None = None,
+        durations: Durations | None = None,
+    ) -> None:
+        if subsystems is None:
+            self.subsystems = frozenset(Subsystem)
+        elif not subsystems:
+            msg = "No subsystems provided."
+            raise ValueError(msg)
+        else:
+            self.subsystems = subsystems
+        self.durations = durations or Durations()
+        self.matrix_profiles = tuple(TestKind) if matrix_profiles is None else matrix_profiles
+
+        self.results_dir = results_dir
+        self.pattern = pattern
+        self.run_matrix = run_matrix
+        self.profile = profile
+
+
+class ProfiledPlanRunner(BaseRunner):
     def __init__(
         self,
         client: SSHClient | None,
         database: ImgtestsDatabase,
     ) -> None:
-        from imgtests.planning.executor import PlanExecutor  # noqa: PLC0415
-
         self.executor = PlanExecutor(client=client, db=database)
         super().__init__("profiled_plan_runner", client, database)
 
-    def run_from_env(self) -> bool:
-        settings = ProfiledPlanRunnerSettings()
-        subsystems = self._parse_subsystems(settings.subsystems)
-        results_root = settings.results_dir
-        pattern = self._parse_pattern(settings.pattern)
+    def run(self, profiled_settings: ProfiledRunnerSettings) -> bool:
         config_id = self.resolve_config_id(self._client, self._database)
-
-        if settings.run_matrix:
+        if profiled_settings.run_matrix:
             return self._run_matrix(
-                subsystems=subsystems,
-                results_root=results_root,
-                pattern=pattern,
+                subsystems=profiled_settings.subsystems,
+                results_root=profiled_settings.results_dir,
+                pattern=profiled_settings.pattern,
+                matrix_profiles=profiled_settings.matrix_profiles,
                 config_id=config_id,
-                settings=settings,
+                durations=profiled_settings.durations,
             )
 
         failures = self._run_one(
-            profile=self._parse_profile(settings.profile),
-            duration_sec=settings.duration_sec,
-            subsystems=subsystems,
-            results_root=results_root,
-            pattern=pattern,
+            profile=profiled_settings.profile,
+            duration_sec=profiled_settings.durations.duration_sec,
+            subsystems=profiled_settings.subsystems,
+            results_root=profiled_settings.results_dir,
+            pattern=profiled_settings.pattern,
             config_id=config_id,
         )
         return failures > 0
 
-    def _run_matrix(
+    def _run_matrix(  # noqa: PLR0913
         self,
         *,
         subsystems: frozenset[Subsystem],
         results_root: Path,
         pattern: LoadPattern | None,
+        matrix_profiles: tuple[TestKind, ...],
         config_id: int,
-        settings: ProfiledPlanRunnerSettings,
+        durations: Durations,
     ) -> bool:
+        if not matrix_profiles:
+            msg = "No profiles provided."
+            raise ValueError(msg)
+
         total_failures = 0
 
-        for index, profile in enumerate(self._parse_profiles(settings.matrix_profiles)):
+        for index, profile in enumerate(matrix_profiles):
             if index > 0 and isinstance(self._client, SSHClient):
                 self._client.reconnect()
 
-            duration_sec = settings.duration_for(profile)
+            duration_sec = durations.duration_for(profile)
             total_failures += self._run_one(
                 profile=profile,
                 duration_sec=duration_sec,
@@ -506,8 +422,6 @@ class ProfiledPlanRunner(BaseRunner):
         pattern: LoadPattern | None,
         config_id: int,
     ) -> int:
-        from imgtests.planning import PlanRequest, build_plan  # noqa: PLC0415
-
         execution = self.executor.execute(
             build_plan(
                 PlanRequest(
@@ -543,75 +457,167 @@ class ProfiledPlanRunner(BaseRunner):
             run_name += f"_{pattern.value}"
         return run_name
 
-    @classmethod
-    def _parse_subsystems(cls, raw: str) -> frozenset[Subsystem]:
-        value = raw.strip().lower()
-        if value == "all":
-            return frozenset(Subsystem)
 
-        subsystems: set[Subsystem] = set()
-        for part in [item.strip().lower() for item in value.split(",") if item.strip()]:
-            if part in cls._SUBSYSTEM_ALIASES:
-                subsystems.add(cls._SUBSYSTEM_ALIASES[part])
-                continue
+def load_test_config(distro: str) -> dict[str, Any]:
+    config_file = CONFIG_DIR / f"{distro}_config.json"
+    if config_file.exists():
+        try:
+            with Path.open(config_file, "r") as f:
+                config = json.load(f)
+        except Exception as e:  # noqa: BLE001
+            logger.warning("Failed to load config: %s, using default", e)
+        else:
+            logger.info("Loaded custom config for %s", distro)
+            return config
 
-            try:
-                subsystems.add(Subsystem(part))
-            except ValueError as exc:
-                allowed = ", ".join(
-                    sorted(
-                        [subsystem.value for subsystem in Subsystem] + list(cls._SUBSYSTEM_ALIASES),
-                    ),
+    return {
+        "suites": [
+            "FILE_SUITE",
+            "MEMORY_SUITE",
+            "SYSCALLS_SUITE",
+            "IPC_SUITE",
+            "NETWORK_SUITE",
+        ],
+        "suite_durations": {},
+        "selected_tests": {},
+    }
+
+
+def filter_tests_by_names(
+    suite: TestsRunnerConfig,
+    selected_test_names: list[str],
+) -> Iterable[AbstractRunnableManyTimesTest | type[AbstractRunnableTimeLimitedTest]]:
+    if not selected_test_names:
+        return suite.tests
+
+    original_tests = suite.tests
+    filtered_tests: list[AbstractRunnableManyTimesTest | type[AbstractRunnableTimeLimitedTest]] = []
+
+    for test in original_tests:
+        test_name = get_test_name(test)
+
+        if test_name in selected_test_names:
+            filtered_tests.append(test)
+
+    filtered_count = len(filtered_tests)
+
+    if filtered_count == 0:
+        logger.warning("No tests matched for %s, using all tests", suite.description)
+        return original_tests
+
+    return filtered_tests
+
+
+def _get_clients(distro: str) -> tuple[SSHClient | None, SSHClient | None]:
+    suse_client = None
+    poky_client = None
+    if distro in ("yocto", "all"):
+        poky_client = wait_remote(*YOCTO_CONF) or sys.exit(1)
+    if distro in ("opensuse", "all"):
+        suse_client = wait_remote(*SUSE_156_CONF) or sys.exit(1)
+        Touch(suse_client, use_sudo=True)(["/etc/cloud/cloud-init.disabled"])
+    return suse_client, poky_client
+
+
+def _run_single(distro: Distro, mode: Runner, config: dict[str, Any]) -> None:  # noqa: PLR0912, C901
+    from imgtests.suites.map import (  # noqa: PLC0415
+        ALL_SUBSYSTEMS_SUITE,
+        ALL_SUITES,
+    )
+
+    logger.info("Running tests for %s", distro)
+    logger.info("Using suites: %s", config.get("suites", []))
+    suites_to_run = []
+    for suite_name in config.get("suites", []):
+        if suite_name in ALL_SUITES:
+            suite = ALL_SUITES[suite_name]
+            suite_durations = config.get("suite_durations", {})
+            if suite_name in suite_durations:
+                original_duration = suite.total_duration
+                suite.total_duration = suite_durations[suite_name]
+                logger.info(
+                    "Overriding %s duration: %d -> %ds",
+                    suite_name,
+                    original_duration,
+                    suite.total_duration,
                 )
-                msg = f"Unknown subsystem '{part}'. Allowed: {allowed}"
-                raise ValueError(msg) from exc
 
-        if not subsystems:
-            msg = "No subsystems provided."
-            raise ValueError(msg)
+            selected_tests = config.get("selected_tests", {}).get(suite_name)
+            if selected_tests and len(selected_tests) > 0:
+                original_tests = suite.tests
+                filtered_tests = []
+                for test in original_tests:
+                    test_name = get_test_name(test)
+                    if test_name in selected_tests:
+                        filtered_tests.append(test)
 
-        return frozenset(subsystems)
+                if filtered_tests:
+                    suite.tests = tuple(filtered_tests)
+                    logger.info(
+                        "Filtered %s: %d -> %d tests",
+                        suite_name,
+                        len(original_tests),
+                        len(filtered_tests),
+                    )
+                    logger.info("Selected tests: %s", selected_tests)
+                else:
+                    logger.warning("No matching tests found for %s, using all tests", suite_name)
 
-    @staticmethod
-    def _parse_profile(raw: str) -> TestKind:
-        try:
-            return TestKind(raw.strip().lower())
-        except ValueError as exc:
-            allowed = ", ".join(item.value for item in TestKind)
-            msg = f"Unknown profile '{raw}'. Allowed: {allowed}"
-            raise ValueError(msg) from exc
+            suites_to_run.append(suite)
+        else:
+            logger.warning("Suite %s not found, skipping", suite_name)
 
-    @classmethod
-    def _parse_profiles(cls, raw: str) -> tuple[TestKind, ...]:
-        value = raw.strip().lower()
-        if value in {"", "all"}:
-            return tuple(TestKind)
+    if not suites_to_run:
+        logger.warning("No suites configured, running default ALL_SUBSYSTEMS_SUITE")
+        suites_to_run = [ALL_SUBSYSTEMS_SUITE]
 
-        profiles: list[TestKind] = []
-        seen: set[TestKind] = set()
-        for part in [item.strip() for item in value.split(",") if item.strip()]:
-            profile = cls._parse_profile(part)
-            if profile not in seen:
-                profiles.append(profile)
-                seen.add(profile)
+    suse_client, poky_client = _get_clients(distro)
+    distros_to_test: list[SSHClient] = []
+    if suse_client:
+        distros_to_test.append(suse_client)
+    if poky_client:
+        distros_to_test.append(poky_client)
 
-        if not profiles:
-            msg = "No profiles provided."
-            raise ValueError(msg)
+    database = ImgtestsDatabase()
+    logger.info("Current testing mode is %s", mode)
+    if mode == "default":
+        for suite in suites_to_run:
+            logger.info("Running suite %s", suite.description)
+            for client in distros_to_test:
+                client.reconnect()
+                runner = TestsRunner(client, database, suite)
+                runner.run()
+                runner.close()
+    if mode == "profiled":
+        for client in filter(None, [poky_client, suse_client]):
+            client.reconnect()
+            ProfiledPlanRunner(
+                client=client,
+                database=database,
+            ).run(profiled_settings=ProfiledRunnerSettings())
+            client.close()
+    database.session.close_all()
 
-        return tuple(profiles)
 
-    @staticmethod
-    def _parse_pattern(raw: str) -> LoadPattern | None:
-        from imgtests.planning import LoadPattern  # noqa: PLC0415
+def run_tests(
+    distro: Distro = "all",
+    mode: Runner = "default",
+    test_runs_count: int = 1,
+    config: dict[str, Any] | None = None,
+) -> None:
+    if config is None:
+        config = load_test_config(distro)
+    for i in range(test_runs_count):
+        logger.info("Starting test run %d of %d", i + 1, test_runs_count)
+        _run_single(distro, mode, config)
+        logger.info("Completed test run %d of %d", i + 1, test_runs_count)
 
-        value = raw.strip().lower()
-        if value in {"", "auto"}:
-            return None
 
-        try:
-            return LoadPattern(value)
-        except ValueError as exc:
-            allowed = ", ".join(item.value for item in LoadPattern)
-            msg = f"Unknown pattern '{raw}'. Allowed: {allowed}"
-            raise ValueError(msg) from exc
+def get_test_name(
+    test: AbstractRunnableManyTimesTest | type[AbstractRunnableTimeLimitedTest],
+) -> str:
+    if hasattr(test, "__name__"):
+        return test.__name__
+    if hasattr(test, "__class__"):
+        return test.__class__.__name__
+    return str(test)

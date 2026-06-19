@@ -1,8 +1,11 @@
+import logging
 import random
 from datetime import UTC, datetime
 from time import sleep
 from typing import TYPE_CHECKING
 
+from imgtests.exec.debugfs import change_fault_parameters
+from imgtests.exec.exec import ExecResult, SSHClient
 from imgtests.exec.loaders import Chaosblade, ChaosResponse, Kirk, Perf, StressNg
 from imgtests.exec.osinfo import get_os_release
 from imgtests.exec.user_commands import MkDir
@@ -15,6 +18,18 @@ if TYPE_CHECKING:
     from concurrent.futures import Future, ThreadPoolExecutor
 
     from imgtests.exec.exec import ExecResult, SSHClient
+
+
+logger = logging.getLogger(__name__)
+
+
+class FaultCleanupMixin:
+    def cleanup(self, client: SSHClient | None, logger: logging.Logger) -> None:
+        change_fault_parameters(client, 0, 1)
+        logger.info("Cleaned fault parameters.")
+        default_cleanup = getattr(super(), "cleanup", None)
+        if default_cleanup:
+            default_cleanup(client, logger)
 
 
 class FaultInjectionEnduranceTest(AbstractRunnableTimeLimitedTest):
@@ -41,7 +56,7 @@ class FaultInjectionEnduranceTest(AbstractRunnableTimeLimitedTest):
             return TestResult(status=TestStatus.SKIPPED)
 
         kirk = Kirk(client)
-        if not is_kirk_suites_available(kirk, self.kirk_suites):
+        if not kirk.is_suites_available(self.kirk_suites):
             self.logger.warning("Kirk suite not available for the image with LTP.")
             return TestResult(status=TestStatus.SKIPPED)
 
@@ -76,17 +91,13 @@ class FaultInjectionEnduranceTest(AbstractRunnableTimeLimitedTest):
                 )
 
 
-class FaultInjectionChaosbladeTest(AbstractRunnableTimeLimitedTest):
+class FaultInjectionChaosbladeTest(FaultCleanupMixin, AbstractRunnableTimeLimitedTest):
     def __init__(self, timeout: int) -> None:
         super().__init__(
             "Chaosblade test with fault injection.",
             frozenset({Subsystem.FILE, Subsystem.SYSTEM}),
             timeout,
         )
-
-    @property
-    def kirk_suites(self) -> tuple[str, str]:
-        return ("dio", "sched")
 
     @property
     def chaosblade_suites(self) -> tuple[str, str]:
@@ -110,30 +121,22 @@ class FaultInjectionChaosbladeTest(AbstractRunnableTimeLimitedTest):
         mkdir([tmp_dir])
         timeout_suite = calc_subtest_timeout(
             timeout,
-            len(self.kirk_suites) * len(self.fault_probs),
+            len(self.chaosblade_suites) * len(self.fault_probs),
             60,
         )
         chaosblade = Chaosblade(client)
-        kirk = Kirk(client)
-        if not is_kirk_suites_available(kirk, self.kirk_suites):
-            self.logger.warning("Kirk suite not available for the image with LTP.")
-            return TestResult(status=TestStatus.SKIPPED)
         for fault_prob in self.fault_probs:
             self.logger.info("Run with %d fault_prob and %d timeout", fault_prob, timeout_suite)
-            for kirk_suite, chaosblade_suite in zip(
-                self.kirk_suites,
-                self.chaosblade_suites,
-                strict=True,
-            ):
+            for chaosblade_suite in self.chaosblade_suites:
                 started_at = datetime.now(UTC)
-                kirk_future = executor.submit(
-                    kirk.run,
-                    scenarios=[kirk_suite],
-                    timeout=timeout_suite,
-                    fault_prob=fault_prob,
-                    fault_interval=5,
-                )
-                sleep(1)
+                result = change_fault_parameters(client, fault_prob, 5)
+                if result.returncode:
+                    yield TestResult(
+                        command=" ".join(result.cmd),
+                        started_at=started_at,
+                        status=TestStatus.FAILED,
+                    )
+                    return
 
                 chaosblade_future = self._create_chaosblade_future(
                     executor,
@@ -151,7 +154,9 @@ class FaultInjectionChaosbladeTest(AbstractRunnableTimeLimitedTest):
                         chaosblade_result.result,
                     )
                     while not future.done():
-                        _, chaosblade_status = chaosblade.get_exp_status(chaosblade_result.result)
+                        _, chaosblade_status = chaosblade.get_exp_status(
+                            chaosblade_result.result,
+                        )
                         if chaosblade_status.result["Status"] == "Error":
                             status = TestStatus.FAILED
                             break
@@ -165,21 +170,6 @@ class FaultInjectionChaosbladeTest(AbstractRunnableTimeLimitedTest):
                     started_at=started_at,
                     status=status,
                 )
-
-                result, metrics_path = kirk_future.result()
-                if metrics_path:
-                    yield TestResult(
-                        command=" ".join(result.cmd),
-                        metrics=kirk.metrics_to_json(metrics_path),
-                        started_at=started_at,
-                        status=TestStatus.PASSED,
-                    )
-                else:
-                    yield TestResult(
-                        command=" ".join(result.cmd),
-                        started_at=started_at,
-                        status=TestStatus.FAILED,
-                    )
 
     def _create_chaosblade_future(
         self,
@@ -209,17 +199,13 @@ class FaultInjectionChaosbladeTest(AbstractRunnableTimeLimitedTest):
                 raise ValueError(err_msg)
 
 
-class FaultInjectionStressNgTest(AbstractRunnableTimeLimitedTest):
+class FaultInjectionStressNgTest(FaultCleanupMixin, AbstractRunnableTimeLimitedTest):
     def __init__(self, timeout: int) -> None:
         super().__init__(
             "Stress-ng test with fault injection.",
             frozenset({Subsystem.MEMORY, Subsystem.SYSTEM}),
             timeout,
         )
-
-    @property
-    def kirk_suites(self) -> tuple[str, str]:
-        return ("dio", "syscalls")
 
     @property
     def stress_ng_suites(self) -> tuple[dict[str, str | int], dict[str, str | int]]:
@@ -242,34 +228,24 @@ class FaultInjectionStressNgTest(AbstractRunnableTimeLimitedTest):
             self.logger.warning("Skipping test due to fault injection is supported on poky.")
             return TestResult(status=TestStatus.SKIPPED)
 
-        kirk = Kirk(client)
-        if not is_kirk_suites_available(kirk, self.kirk_suites):
-            self.logger.warning("Kirk suite not available for the image with LTP.")
-            return TestResult(status=TestStatus.SKIPPED)
-
         stress_ng = StressNg(client)
         timeout_suite = calc_subtest_timeout(
             timeout,
-            len(self.kirk_suites) * len(self.fault_probs),
+            len(self.stress_ng_suites) * len(self.fault_probs),
             60,
         )
-
         for fault_prob in self.fault_probs:
             self.logger.info("Run with %d fault_prob and %d timeout", fault_prob, timeout_suite)
-            for kirk_suite, stress_ng_suite in zip(
-                self.kirk_suites,
-                self.stress_ng_suites,
-                strict=True,
-            ):
+            for stress_ng_suite in self.stress_ng_suites:
                 started_at = datetime.now(UTC)
-                kirk_future = executor.submit(
-                    kirk.run,
-                    scenarios=[kirk_suite],
-                    timeout=timeout_suite,
-                    fault_prob=fault_prob,
-                    fault_interval=5,
-                )
-                sleep(1)
+                result = change_fault_parameters(client, fault_prob, 5)
+                if result.returncode:
+                    yield TestResult(
+                        command=" ".join(result.cmd),
+                        started_at=started_at,
+                        status=TestStatus.FAILED,
+                    )
+                    return
 
                 stress_ng_future = executor.submit(
                     stress_ng.run,
@@ -294,33 +270,14 @@ class FaultInjectionStressNgTest(AbstractRunnableTimeLimitedTest):
                     status=TestStatus.PASSED,
                 )
 
-                result, metrics_path = kirk_future.result()
-                if metrics_path:
-                    yield TestResult(
-                        command=" ".join(result.cmd),
-                        metrics=kirk.metrics_to_json(metrics_path),
-                        started_at=started_at,
-                        status=TestStatus.PASSED,
-                    )
-                else:
-                    yield TestResult(
-                        command=" ".join(result.cmd),
-                        started_at=started_at,
-                        status=TestStatus.FAILED,
-                    )
 
-
-class FaultInjectionPerfTest(AbstractRunnableTimeLimitedTest):
+class FaultInjectionPerfTest(FaultCleanupMixin, AbstractRunnableTimeLimitedTest):
     def __init__(self, timeout: int) -> None:
         super().__init__(
             "Perf bench test with fault injection.",
             frozenset({Subsystem.SYSCALLS, Subsystem.IPC}),
             timeout,
         )
-
-    @property
-    def kirk_suites(self) -> tuple[str, str]:
-        return ("dio", "syscalls")
 
     @property
     def perf_suites(self) -> tuple[str, str]:
@@ -340,34 +297,24 @@ class FaultInjectionPerfTest(AbstractRunnableTimeLimitedTest):
             self.logger.warning("Skipping test due to fault injection is supported on poky.")
             return TestResult(status=TestStatus.SKIPPED)
 
-        kirk = Kirk(client)
-        if not is_kirk_suites_available(kirk, self.kirk_suites):
-            self.logger.warning("Kirk suite not available for the image with LTP.")
-            return TestResult(status=TestStatus.SKIPPED)
-
         perf = Perf(client)
         timeout_suite = calc_subtest_timeout(
             timeout,
-            len(self.kirk_suites) * len(self.fault_probs),
+            len(self.perf_suites) * len(self.fault_probs),
             60,
         )
-
         for fault_prob in self.fault_probs:
             self.logger.info("Run with %d fault_prob and %d timeout", fault_prob, timeout_suite)
-            for kirk_suite, perf_suite in zip(
-                self.kirk_suites,
-                self.perf_suites,
-                strict=True,
-            ):
+            for perf_suite in self.perf_suites:
                 started_at = datetime.now(UTC)
-                kirk_future = executor.submit(
-                    kirk.run,
-                    scenarios=[kirk_suite],
-                    timeout=timeout_suite,
-                    fault_prob=fault_prob,
-                    fault_interval=5,
-                )
-                sleep(1)
+                result = change_fault_parameters(client, fault_prob, 5)
+                if result.returncode:
+                    yield TestResult(
+                        command=" ".join(result.cmd),
+                        started_at=started_at,
+                        status=TestStatus.FAILED,
+                    )
+                    return
 
                 perf_future = executor.submit(
                     perf.bench,
@@ -389,33 +336,14 @@ class FaultInjectionPerfTest(AbstractRunnableTimeLimitedTest):
                         status=TestStatus.PASSED,
                     )
 
-                result, metrics_path = kirk_future.result()
-                if metrics_path:
-                    yield TestResult(
-                        command=" ".join(result.cmd),
-                        metrics=kirk.metrics_to_json(metrics_path),
-                        started_at=started_at,
-                        status=TestStatus.PASSED,
-                    )
-                else:
-                    yield TestResult(
-                        command=" ".join(result.cmd),
-                        started_at=started_at,
-                        status=TestStatus.FAILED,
-                    )
 
-
-class FaultInjectionFioTest(AbstractRunnableTimeLimitedTest):
+class FaultInjectionFioTest(FaultCleanupMixin, AbstractRunnableTimeLimitedTest):
     def __init__(self, timeout: int) -> None:
         super().__init__(
             "Fio test with fault injection.",
             frozenset({Subsystem.FILE}),
             timeout,
         )
-
-    @property
-    def kirk_suites(self) -> tuple[str, str]:
-        return ("dio", "syscalls")
 
     @property
     def fio_suites(self) -> tuple[FioWorkload, ...]:
@@ -430,7 +358,7 @@ class FaultInjectionFioTest(AbstractRunnableTimeLimitedTest):
 
     def _run(
         self,
-        executor: ThreadPoolExecutor,
+        executor: ThreadPoolExecutor,  # noqa: ARG002
         client: SSHClient | None,
         timeout: int,
     ) -> Iterable[TestResult]:
@@ -438,33 +366,23 @@ class FaultInjectionFioTest(AbstractRunnableTimeLimitedTest):
             self.logger.warning("Skipping test due to fault injection is supported on poky.")
             return TestResult(status=TestStatus.SKIPPED)
 
-        kirk = Kirk(client)
-        if not is_kirk_suites_available(kirk, self.kirk_suites):
-            self.logger.warning("Kirk suite not available for the image with LTP.")
-            return TestResult(status=TestStatus.SKIPPED)
-
         timeout_suite = calc_subtest_timeout(
             timeout,
-            len(self.kirk_suites) * len(self.fault_probs),
+            len(self.fio_suites) * len(self.fault_probs),
             60,
         )
-
         for fault_prob in self.fault_probs:
             self.logger.info("Run with %d fault_prob and %d timeout", fault_prob, timeout_suite)
-            for kirk_suite, fio_suite in zip(
-                self.kirk_suites,
-                self.fio_suites,
-                strict=True,
-            ):
+            for fio_suite in self.fio_suites:
                 started_at = datetime.now(UTC)
-                kirk_future = executor.submit(
-                    kirk.run,
-                    scenarios=[kirk_suite],
-                    timeout=timeout_suite,
-                    fault_prob=fault_prob,
-                    fault_interval=5,
-                )
-                sleep(1)
+                result = change_fault_parameters(client, fault_prob, 5)
+                if result.returncode:
+                    yield TestResult(
+                        command=" ".join(result.cmd),
+                        started_at=started_at,
+                        status=TestStatus.FAILED,
+                    )
+                    return
 
                 fio_config = FioSuiteConfig(
                     suite="fault_injection",
@@ -476,27 +394,7 @@ class FaultInjectionFioTest(AbstractRunnableTimeLimitedTest):
                 fio = FioSuite(client, fio_config).run()
                 yield from fio
 
-                result, metrics_path = kirk_future.result()
-                if metrics_path:
-                    yield TestResult(
-                        command=" ".join(result.cmd),
-                        metrics=kirk.metrics_to_json(metrics_path),
-                        started_at=started_at,
-                        status=TestStatus.PASSED,
-                    )
-                else:
-                    yield TestResult(
-                        command=" ".join(result.cmd),
-                        started_at=started_at,
-                        status=TestStatus.FAILED,
-                    )
-
 
 def is_fault_injection_available(client: SSHClient | None) -> bool:
     os_id = get_os_release(client).id
     return not (os_id and os_id != Distro.POKY.value)
-
-
-def is_kirk_suites_available(kirk: Kirk, required_suites: tuple[str, ...]) -> bool:
-    available_suites = kirk.list_suites()
-    return all(suite in available_suites for suite in required_suites)

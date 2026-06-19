@@ -19,7 +19,7 @@ class UtilRunResult(Base):
     experiment_id: Mapped[int] = mapped_column(ForeignKey("experiment.experiment_id"))
     util_type: Mapped[UtilType] = mapped_column(String(20))
     command: Mapped[str] = mapped_column(String())
-    result: Mapped[dict[str, Any]] = mapped_column(JSON)
+    result: Mapped[dict[str, Any] | list[str]] = mapped_column(JSON)
     description: Mapped[str] = mapped_column(String(100))
     started_at: Mapped[datetime | None] = mapped_column(DateTime)
     ended_at: Mapped[datetime | None] = mapped_column(DateTime)

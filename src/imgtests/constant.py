@@ -12,6 +12,12 @@ LOG_PATH: Final = LIB_DATA_DIR / "processing.log"
 CONFIG_DIR: Final = LIB_DATA_DIR / "test_configs"
 CONFIG_FILE: Final = LIB_DATA_DIR / "user_distros.json"
 REPORTS_DIR: Final = LIB_DATA_DIR / "results"
+EXCEL_REPORTS_DIR: Final = LIB_DATA_DIR / "excel_reports"
+
+DISTRIBUTION_DESCRIPTIONS: Final[dict[str, str]] = {
+    "poky": "Poky Linux distribution",
+    "suse": "SUSE Linux distribution",
+}
 
 SSH_CLIENT_MISSING_RESULT: Final = TestResult(
     status=TestStatus.BROKEN,
