@@ -42,7 +42,7 @@ class Vdbench(GenericUtil):
             f"wd=wd1,sd=sd1,xfersize={block_size},readpct={read_percentage},seekpct=100\n"
             f"rd=run1,wd=wd1,iorate={iorate},elapsed={timeout_sec},interval=1"
         )
-        if not CONFIG_FILE.parent.exists():
+        if common_run_command(["test", "-d", str(CONFIG_FILE.parent)], self.ssh_client).returncode:
             result = common_run_command(
                 ["mkdir", "--parents", str(CONFIG_FILE.parent)],
                 self.ssh_client,
@@ -85,8 +85,13 @@ class Vdbench(GenericUtil):
             iorate=iorate,
         )
 
-        if not OUTPUT_DIR.exists():
-            OUTPUT_DIR.mkdir(parents=True)
+        if common_run_command(["test", "-d", str(OUTPUT_DIR)], self.ssh_client).returncode:
+            result = common_run_command(
+                ["mkdir", "--parents", str(OUTPUT_DIR)],
+                self.ssh_client,
+            )
+            if result.returncode:
+                return result, None
         opts = [
             *create_opt("f", CONFIG_FILE, use_one_dash=True),
             *create_opt("o", OUTPUT_DIR, use_one_dash=True),
