@@ -16,7 +16,16 @@ Repository structure:
 | [src](src)        | Source code and core development files   |
 | [tests](tests)    | Unit tests and other                     |
 
-## Building and testing Yocto image via Docker Compose
+## Building and testing Yocto and Suse image via Docker Compose
+
+### 0. Required dependencies
+
+Before proceeding, make sure you have the following tools installed on your system:
+- Git — required to clone the project repository and manage version control;
+- GNU Make — required to run build and test commands via make;
+- Docker — needed to run the build environment in containers;
+- Docker Compose — used to orchestrate multi‑containers;
+- Python 3.11+ — required for running auxiliary scripts and tools included in the project.
 
 ### 1. Clone the repository
 
