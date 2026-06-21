@@ -512,7 +512,7 @@ def build_profiled_settings(config: dict[str, Any] | None) -> ProfiledRunnerSett
         return ProfiledRunnerSettings()
 
     durations = Durations(
-        duration_sec=config.get("durations", {}).get("duration_sec"),
+        duration_sec=config.get("durations", {}).get("duration_sec", 120),
         duration_load=config.get("durations", {}).get("duration_load"),
         duration_stress=config.get("durations", {}).get("duration_stress"),
         duration_stability=config.get("durations", {}).get("duration_stability"),
