@@ -67,7 +67,7 @@ document.getElementById("runTestsBtn").addEventListener("click", function () {
 
     let config = null;
     if (testing_mode === "profiled") {
-        const conf_mode = document.getElementById("profiledCustomPanel");
+        const conf_mode = document.querySelector('input[name="profiledConfigMode"]:checked').value;
         if (conf_mode === "custom") {
             const runMode = document.querySelector('input[name="profiledRunMode"]:checked').value;
             config = runMode === "single" ? collectSingleConfig() : collectMatrixConfig();
