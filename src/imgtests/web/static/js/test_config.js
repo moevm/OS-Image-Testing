@@ -91,7 +91,35 @@ class TestConfigManager {
                     }
                 }
             });
+        document.querySelectorAll('input[name="profiledConfigMode"]').forEach(radio => {
+            radio.addEventListener("change", e => {
+                const panel = document.getElementById("profiledCustomPanel");
+                if (e.target.value === "custom") {
+                    panel.style.display = "block";
+                    this.renderProfilesAndDurationsUI();
+                    this.renderPatternUI();
+                    this.renderSubsystemsUI();
+                } else {
+                    panel.style.display = "none";
+                }
+            });
         });
+        document.querySelectorAll('input[name="profiledRunMode"]').forEach(radio => {
+            radio.addEventListener("change", e => {
+                const singlePanel = document.getElementById("singleRunPanel");
+                const matrixPanel = document.getElementById("matrixRunPanel");
+                if (e.target.value === "single") {
+                    singlePanel.style.display = "block";
+                    matrixPanel.style.display = "none";
+                } else {
+                    singlePanel.style.display = "none";
+                    matrixPanel.style.display = "block";
+                }
+                this.renderProfilesAndDurationsUI();
+            });
+        });
+    });
+
 
         const saveBtn = document.getElementById("saveConfigBtn");
         if (saveBtn) {
@@ -463,6 +491,87 @@ class TestConfigManager {
                 }
             }, 3000);
         }
+    }
+
+    renderProfilesAndDurationsUI() {
+        const profiles = ["load","stress","stability","scalability","volume","isolated","spike","diagnostic"];
+
+        // Single run render
+        const singleProfileContainer = document.getElementById("singleProfileContainer");
+        const singleDurationContainer = document.getElementById("singleDurationContainer");
+        singleProfileContainer.innerHTML = "";
+        singleDurationContainer.innerHTML = "";
+        const select = document.createElement("select");
+        select.id = "profileSelect";
+        profiles.forEach(p => {
+            const opt = document.createElement("option");
+            opt.value = p;
+            opt.textContent = p.charAt(0).toUpperCase() + p.slice(1);
+            select.appendChild(opt);
+        });
+        singleProfileContainer.appendChild(select);
+        const input = document.createElement("input");
+        input.type = "number";
+        input.id = "duration_sec";
+        input.value = 120;
+        input.min = 10;
+        input.step = 10;
+        singleDurationContainer.appendChild(input);
+
+        // Matrix run render
+        const matrixContainer = document.getElementById("profilesCheckboxes");
+        matrixContainer.innerHTML = "";
+        profiles.forEach(profile => {
+            const div = document.createElement("div");
+            div.style.margin = "10px 0";
+            div.style.padding = "8px";
+            div.style.border = "1px solid #e0e0e0";
+            div.style.borderRadius = "5px";
+            div.innerHTML = `
+                <label>
+                    <input type="checkbox" name="profiles" value="${profile}">
+                    <strong>${profile}</strong>
+                </label>
+                <input type="number" id="duration_${profile}" placeholder="Duration (sec)" min="10" step="10" style="margin-left:10px; width:100px;" disabled>
+            `;
+            const checkbox = div.querySelector('input[type="checkbox"]');
+            const durationInput = div.querySelector('input[type="number"]');
+            checkbox.addEventListener("change", e => {
+                durationInput.disabled = !e.target.checked;
+            });
+            matrixContainer.appendChild(div);
+        });
+    }
+
+    renderPatternUI() {
+        const container = document.getElementById("patternContainer");
+        container.innerHTML = "";
+        const select = document.createElement("select");
+        select.id = "profiledPatternSelect";
+        ["soft","balanced","intense","extreme","spike"].forEach(p => {
+            const opt = document.createElement("option");
+            opt.value = p;
+            opt.textContent = p.charAt(0).toUpperCase() + p.slice(1);
+            select.appendChild(opt);
+        });
+        container.appendChild(select);
+    }
+
+    renderSubsystemsUI() {
+        const subsystems = ["file","IPC","memory","network","syscalls","system"];
+        const container = document.getElementById("subsystemsCheckboxes");
+        container.innerHTML = "";
+        subsystems.forEach(subsystem => {
+            const div = document.createElement("div");
+            div.style.margin = "5px 0";
+            div.innerHTML = `
+                <label>
+                    <input type="checkbox" name="subsystems" value="${subsystem}" checked>
+                    ${subsystem}
+                </label>
+            `;
+            container.appendChild(div);
+        });
     }
 }
 

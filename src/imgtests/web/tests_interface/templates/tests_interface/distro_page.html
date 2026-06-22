@@ -32,6 +32,19 @@
             </label>
         </div>
 
+        <div style="margin-top: 15px; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+            <label style="margin-right: 20px;">
+                Number of test runs:
+                <input type="number"
+                       id="testRunsCount"
+                        name="test_runs_count"
+                       min="1"
+                       max="100"
+                       value="1"
+                       style="width: 80px; padding: 5px; margin-left: 10px;">
+            </label>
+        </div>
+
         <div id="basicTestConfig">
             <div class="config-controls" style="margin-top: 10px">
                 <label style="margin-right: 20px">
@@ -41,19 +54,6 @@
                 <label style="margin-right: 20px">
                     <input type="radio" name="configMode" value="custom" /> Custom
                     Configuration
-                </label>
-            </div>
-
-            <div style="margin-top: 15px; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
-                <label style="margin-right: 20px;">
-                    Number of test runs:
-                    <input type="number"
-                           id="testRunsCount"
-                           name="test_runs_count"
-                           min="1"
-                           max="100"
-                           value="1"
-                           style="width: 80px; padding: 5px; margin-left: 10px;">
                 </label>
             </div>
 
@@ -79,6 +79,53 @@
                     >
                         Reset to Default
                     </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="profiledTestConfig" style="display: none; margin-top: 15px;">
+            <div class="config-controls" style="margin-top: 10px">
+                <label style="margin-right: 20px">
+                    <input type="radio" name="profiledConfigMode" value="default" checked />
+                    Use Default Profiled Configuration
+                </label>
+                <label style="margin-right: 20px">
+                    <input type="radio" name="profiledConfigMode" value="custom" />
+                    Custom Profiled Configuration
+                </label>
+            </div>
+
+            <div id="profiledCustomPanel" style="display:none; margin-top:15px; padding:10px; border:1px solid #ddd; border-radius:5px;">
+                <label>
+                <input type="radio" name="profiledRunMode" value="single" checked>
+                Single run
+                </label>
+                <label style="margin-left:20px;">
+                <input type="radio" name="profiledRunMode" value="matrix">
+                Matrix run
+                </label>
+
+                <div id="singleRunPanel" style="margin-top:15px;">
+                    <h4>Duration</h4>
+                    <div id="singleDurationContainer" style="padding:15px;"></div>
+
+                    <h4>Profile</h4>
+                    <div id="singleProfileContainer" style="padding:15px;"></div>
+                </div>
+
+                <div id="matrixRunPanel" style="display:none; margin-top:15px;">
+                    <h4>Profiles and durations</h4>
+                    <div id="profilesCheckboxes" style="padding:15px;"></div>
+                </div>
+
+                <div style="margin-top:15px;">
+                    <h4>Pattern</h4>
+                    <div id="patternContainer" style="padding:15px;"></div>
+                </div>
+
+                <div style="margin-top:15px;">
+                    <h4>Subsystems</h4>
+                    <div id="subsystemsCheckboxes" style="padding:15px;"></div>
                 </div>
             </div>
         </div>
@@ -110,7 +157,15 @@
     document.getElementById("configTestingMode").addEventListener("change", function() {
         const basicConfig = document.getElementById("basicTestConfig");
         basicConfig.style.display = this.value === "profiled" ? "none" : "block";
+        const profiledConfig = document.getElementById("profiledTestConfig");
+        profiledConfig.style.display = this.value === "profiled" ? "block" : "none";
     });
+    document.querySelectorAll('input[name="profiledConfigMode"]').forEach(radio => {
+    radio.addEventListener("change", e => {
+        const panel = document.getElementById("profiledCustomPanel");
+        panel.style.display = e.target.value === "custom" ? "block" : "none";
+    });
+});
 </script>
 <script src="{% static 'js/launch_test.js' %}"></script>
 <script src="{% static 'js/test_config.js' %}"></script>
