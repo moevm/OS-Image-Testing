@@ -34,7 +34,7 @@ class Fwts(GenericUtil):
         return result, parsed
 
     @staticmethod
-    def parse_metrics(raw_output: str) -> FwtsResult:
+    def parse_metrics(raw_output: str) -> FwtsResult:  # noqa: PLR0912, C901
         statuses: dict[str, int] = {"passed": 0, "failed": 0, "skipped": 0, "aborted": 0}
         tests: list[dict[str, Any]] = []
 
@@ -46,24 +46,37 @@ class Fwts(GenericUtil):
             subtotal: dict[str, int] = {"passed": 0, "failed": 0, "skipped": 0, "aborted": 0}
 
             for line in lines[1:]:
-                stripped = line.strip()
+                stripped = line.strip().lower()
 
-                if stripped in ("Test aborted", "Test aborted."):
+                if stripped in ("test aborted", "test aborted."):
                     subtotal["aborted"] += 1
-                elif stripped in ("Test skipped", "Test skipped."):
+                elif stripped in ("test skipped", "test skipped."):
                     subtotal["skipped"] += 1
                 else:
                     for match in re.finditer(
-                        r"(\d+)\s+(passed|failed|skipped|aborted|info only)",
+                        r"(\d+)?\s+(passed|failed|skipped|aborted|info only)",
                         stripped.lower(),
                     ):
-                        count = int(match.group(1))
-                        status = match.group(2)
-                        if status == "info only":
-                            statuses["passed"] += count
-                            subtotal["passed"] += count
-                        elif status in subtotal:
-                            subtotal[status] += count
+                        if match.group(1) is not None:
+                            count = int(match.group(1))
+                            status = match.group(2)
+                            if status == "info only":
+                                """
+                                Info only tests are tests that just check some system info, e.g.
+                                Gather kernel system information.                       1 info only
+                                count as passed
+                                """
+                                statuses["passed"] += count
+                                subtotal["passed"] += count
+                            elif status in subtotal:
+                                subtotal[status] += count
+                        else:
+                            status = match.group(2)
+                            if status == "info only":
+                                statuses["passed"] += 1
+                                subtotal["passed"] += 1
+                            elif status in subtotal:
+                                subtotal[status] += 1
 
             if all(v == 0 for v in subtotal.values()):
                 subtotal["skipped"] += 1

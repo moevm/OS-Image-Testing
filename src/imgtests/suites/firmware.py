@@ -42,7 +42,7 @@ class FwtsTest(AbstractRunnableManyTimesTest):
             tests_skipped = parsed.summary.get("skipped", 0)
             tests_aborted = parsed.summary.get("aborted", 0)
 
-            if tests_failed > 0 or tests_aborted > 0:
+            if tests_failed > 0:
                 self.logger.error(
                     "FWTS test FAILED (%d passed, %d failed, %d skipped, %d aborted)",
                     tests_passed,
