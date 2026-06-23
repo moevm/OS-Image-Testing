@@ -59,10 +59,6 @@ docker: ensure-python-dependencies init-submodule
 		--build-arg POKY_DIR="${POKY_DIR}" \
 		--file docker/image_builder.dockerfile .
 
-.PHONY: docker-run-metabase
-docker-run-metabase: ensure-volumes
-	docker compose --file docker/compose.yml --project-directory ./ up --detach imgtests-postgres imgtests-metabase-meta-db imgtests-metabase
-
 .PHONY: docker-compose-up
 docker-compose-up: ensure-python-dependencies ensure-volumes
 	docker compose --file docker/compose.yml --project-directory ./ up --detach --build
@@ -73,7 +69,7 @@ docker-compose-down:
 
 .PHONY: ensure-volumes
 ensure-volumes: docker
-	@for volume in ${DOCKER_OPENSUSE_VOLUME} ${BENCHER_API_CONF_VOLUME} ${BENCHER_API_DB_VOLUME} ${METABASE_META_VOLUME} ${METABASE_APP_VOLUME}; do \
+	@for volume in ${DOCKER_OPENSUSE_VOLUME} ${BENCHER_API_CONF_VOLUME} ${BENCHER_API_DB_VOLUME} ${METABASE_META_VOLUME} ${METABASE_APP_VOLUME} \
 	                ${BENCHER_API_LOGS_VOLUME} ${VMETRICS_DATA_VOLUME} ${DOCKER_POSTGRES_VOLUME}; do \
 		if ! docker volume inspect $$volume > /dev/null 2>&1; then \
 			docker volume create $$volume; \

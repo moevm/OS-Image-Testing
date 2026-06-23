@@ -6,15 +6,16 @@ Performance and Endurance Testing of OS images.
 
 Repository structure:
 
-| Folder            | Description                              |
-|-------------------|------------------------------------------|
-| [conf](conf)      | Configuration files                      |
-| [docker](docker)  | Essential Docker-related files           |
-| [docs](docs)      | Markdown documentation of the repository |
-| [layers](layers)  | Layers content (for Poky)                |
-| [scripts](scripts)| Shell scripts                            |
-| [src](src)        | Source code and core development files   |
-| [tests](tests)    | Unit tests and other                     |
+| Folder                                      | Description                                |
+|---------------------------------------------|--------------------------------------------|
+| [conf](conf)                                | Configuration files                        |
+| [docker](docker)                            | Essential Docker-related files             |
+| [docs](docs)                                | Markdown documentation of the repository   |
+| [layers](layers)                            | Layers content (for Poky)                  |
+| [metabase_prototype](metabase_prototype)    | Metabase files: queries and synthetic data |
+| [scripts](scripts)                          | Shell scripts                              |
+| [src](src)                                  | Source code and core development files     |
+| [tests](tests)                              | Unit tests and other                       |
 
 ## Building and testing Yocto image via Docker Compose
 
@@ -68,7 +69,7 @@ Note: To create an image with all the packages specified in [packages.conf](conf
 
 To add a new utility, you need to update the [packages.conf](conf/packages.conf), [local.conf](conf/local.conf) and write the appropriate [recipe](layers/meta-image-tests/).
 
-### 3. Enviroment configuration
+### 3. Environment configuration
 
 [.env.dist](.env.dist) is used to store env variables, which is included by Makefile. It describes the parameters:
 * Common variables (users, passwords)
@@ -77,37 +78,15 @@ To add a new utility, you need to update the [packages.conf](conf/packages.conf)
 * Network parameters (IP addresses, ports, including SSH ports for VMs)
 
 ### 4. View test results with Metabase
-#### 4.1 Start Metabase
-
-```bash
-make docker-init-volumes
-```
-
-Runs QEMU in an assembled docker image.
-
-```bash
-make docker-run-image
-```
-
-To add a new utility, you need to update the local.conf and write the appropriate recipe, then add the paths to the recipe and dependent files for all called containers in the `Makefile`.
-
-
-Runs PosgreSQL containers with test data, Metabase metadata and Metabase service itself:
-```bash
-make docker-run-metabase
-```
-
-After start, Metabase will be accessible at `localhost:3000`
-
-#### 4.2 Import Metabase dashboard
+#### 4.1 Import Metabase dashboard
 
 To view test results, you need to import Metabase dashboard or make it from scratch.
 
 To import Metabase dashboard from `.dump` file:
 
-- Start all Metabase containers:
+- Start all containers:
 ```bash
-make docker-run-metabase
+make docker-compose up
 ```
 
 - Stop Metabase container with:
@@ -131,3 +110,16 @@ docker exec -i os-image-testing-imgtests-metabase-meta-db-1 pg_restore -U metaba
 ```bash
 docker start os-image-testing-imgtests-metabase-1
 ```
+
+#### 4.2 Start Metabase demonstration
+
+Use metabase to check dashboards examples on a synthetic data
+
+Move to metabase directory and launch metabase via docker compose
+```bash
+cd metabase_prototype
+
+docker compose up -d
+```
+
+Environment configuration for metabase demo can be viewed and configured at `metabase_prototype/.env`

@@ -244,3 +244,48 @@ SELECT
     stddev_samp(value) AS stddev_value
 FROM v_scalar_metabase
 GROUP BY 1,2,3,4,5,6,7,8,9,10;
+
+/* Synthetic performance and endurance data */
+
+CREATE TABLE IF NOT EXISTS experiment (
+    experiment_id integer NOT NULL,
+    config_id integer NOT NULL,
+    description character varying(100) NOT NULL,
+    type character varying(20),
+    started_at timestamp without time zone,
+    ended_at timestamp without time zone,
+    tests_total integer DEFAULT 0 NOT NULL,
+    tests_passed integer DEFAULT 0 NOT NULL,
+    tests_failed integer DEFAULT 0 NOT NULL,
+    tests_broken integer DEFAULT 0 NOT NULL,
+    tests_skipped integer DEFAULT 0 NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS configuration (
+    config_id integer NOT NULL,
+    os character varying(100) NOT NULL,
+    packages json NOT NULL,
+    core_info character varying(300) NOT NULL,
+    core_config json NOT NULL,
+    hardware json NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS loader (
+    id integer NOT NULL,
+    experiment_id integer NOT NULL,
+    command character varying NOT NULL,
+    result json NOT NULL,
+    description character varying(100) NOT NULL,
+    started_at timestamp without time zone,
+    ended_at timestamp without time zone
+);
+
+CREATE TABLE IF NOT EXISTS observer (
+    id integer NOT NULL,
+    experiment_id integer NOT NULL,
+    command character varying(300) NOT NULL,
+    result json NOT NULL,
+    description character varying(100) NOT NULL,
+    started_at timestamp without time zone,
+    ended_at timestamp without time zone
+);
