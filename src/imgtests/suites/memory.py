@@ -1,7 +1,7 @@
 import logging
 import random
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Final
 
 from imgtests.exec.loaders import StressNg
 from imgtests.exec.observers import Sar
@@ -19,9 +19,9 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-HUGE_PAGE_SIZE_KIB = 2048
-STRESSORS_LIMIT = 1024
-RAM_LOAD = 0.7
+HUGE_PAGE_SIZE_KIB: Final = 2048
+STRESSORS_LIMIT: Final = 1024
+RAM_LOAD: Final = 0.7
 
 tests: list[dict[str, Any]] = [
     # General memory stress test with mmap() callings

@@ -2,10 +2,9 @@ from itertools import combinations
 from typing import TYPE_CHECKING, Any
 
 from imgtests.exec.loaders import StressNg
-from imgtests.exec.user_commands import Nproc
 from imgtests.planning.base import calc_subtest_timeout
 from imgtests.suites.general.stress_ng import StressNgTest
-from imgtests.types import Subsystem, TestResult, TestStatus
+from imgtests.types import Subsystem, TestResult
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -159,55 +158,3 @@ class StressNgParallelLoadTest(StressNgTest):
             timeout=timeout,
             **test_params,
         )
-
-
-class StressNgIterTestIPC(StressNgTest):
-    """Runs stress-ng IPC subsystem tests with iterational increment of stressors amount.
-
-    Iteration begins with 1 and goes up to nprocs.
-
-    IPC subsystem class consists:
-    dekker, fifo, futex, mq, msg, peterson, pipe, pipeherd,
-    sem, sem-sysv, shm, shm-sysv, sigq, sock.
-    """
-
-    def __init__(self, timeout: int) -> None:
-        super().__init__(
-            "Test stress-ng iterational IPC subsystem test.",
-            frozenset({Subsystem.IPC}),
-            timeout,
-        )
-
-    def _run(
-        self,
-        executor: ThreadPoolExecutor,
-        client: SSHClient | None,
-        timeout: int,
-    ) -> Iterable[TestResult]:
-        stress_ng = StressNg(client)
-
-        result = Nproc(client)()
-        if result.returncode:
-            yield TestResult(status=TestStatus.BROKEN)
-            return
-        ipc_max = int(result.stdout)
-        subtest_timeout = calc_subtest_timeout(timeout, ipc_max)
-        for param in range(1, ipc_max + 1):
-            yield from self.run_test(
-                stress_ng=stress_ng,
-                executor=executor,
-                timeout=subtest_timeout,
-                dekker=param,
-                fifo=param,
-                futex=param,
-                mq=param,
-                peterson=param,
-                pipe=param,
-                pipeherd=param,
-                sem=param,
-                sem_sysv=param,
-                shm=param,
-                shm_sysv=param,
-                sigq=param,
-                sock=param,
-            )

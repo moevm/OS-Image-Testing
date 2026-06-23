@@ -218,6 +218,7 @@ def run_tests(request: HttpRequest) -> JsonResponse:
         distro=distro.name,
         mode=mode,
         test_runs_count=test_runs_count,
+        config=body.get("config") if mode == "profiled" else None,
     )
 
     task_id = str(result.id)
