@@ -112,7 +112,6 @@ help:
 	@echo "  docker                             Builds a docker image;"
 	@echo "  docker-compose-up                  Run tests stand with analysis container and target containers;"
 	@echo "  docker-compose-down                Stop all containers;"
-	@echo "  docker-run-metabase				Run Postgres database with Metabase containers"
 	@echo -n "  ${PACKAGE_MGR}"
 	@echo     "                                 Updates the project's Python environment with the '${PACKAGE_MGR}';"
 	@echo "  ensure-volumes                     Creates volumes if missing and changes ownership;"
