@@ -126,7 +126,7 @@ from imgtests.exec.loaders.fwts import Fwts, FwtsResult
                         "subtests": {"passed": 3, "failed": 0, "skipped": 0, "aborted": 0},
                     },
                 ],
-                summary={"passed": 3, "failed": 0, "skipped": 0, "aborted": 0},
+                summary={"passed": 6, "failed": 0, "skipped": 0, "aborted": 0},
             ),
         ),
         (
@@ -142,7 +142,7 @@ from imgtests.exec.loaders.fwts import Fwts, FwtsResult
                         "subtests": {"passed": 3, "failed": 0, "skipped": 0, "aborted": 0},
                     },
                 ],
-                summary={"passed": 3, "failed": 0, "skipped": 0, "aborted": 0},
+                summary={"passed": 4, "failed": 0, "skipped": 0, "aborted": 0},
             ),
         ),
         (
@@ -212,7 +212,7 @@ from imgtests.exec.loaders.fwts import Fwts, FwtsResult
                         "subtests": {"passed": 3, "failed": 0, "skipped": 0, "aborted": 0},
                     },
                 ],
-                summary={"passed": 6, "failed": 1, "skipped": 1, "aborted": 1},
+                summary={"passed": 9, "failed": 1, "skipped": 1, "aborted": 1},
             ),
         ),
     ],
@@ -233,5 +233,4 @@ from imgtests.exec.loaders.fwts import Fwts, FwtsResult
     ],
 )
 def test_parse_metrics(raw_output: str, expected: FwtsResult) -> None:
-    result = Fwts.parse_metrics(raw_output)
-    assert result == expected
+    assert Fwts.parse_metrics(raw_output) == expected
