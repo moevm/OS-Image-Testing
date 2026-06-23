@@ -31,6 +31,7 @@ dependencies = [
     "openpyxl~=3.1.5",
     "django~=6.0.4",
     "django-tasks-db~=0.12.0",
+    "prettytable~=3.17.0",
 ]
 
 [project.scripts]
@@ -99,7 +100,7 @@ precision = 2
 output = "tests/pytest-coverage.xml"
 
 [tool.pytest.ini_options]
-addopts = "-v --cov=src/ --cov-report xml --cov-report term"
+addopts = "-vv --cov=src/ --cov-report xml --cov-report term"
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]

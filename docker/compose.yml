@@ -24,6 +24,7 @@ services:
       POKY_DIR: ${POKY_DIR}
       OS_IMAGE: ${OS_IMAGE}
       VM_RAM: ${QEMU_VM_RAM}
+      CPUS: ${CPUS}
       USER: ${USER}
       GROUP: ${GROUP}
       YOCTO_NE_PORT: ${YOCTO_NE_PORT}
@@ -51,6 +52,7 @@ services:
       S_USER: ${S_USER}
       PASSWORD: ${PASSWORD}
       VM_RAM: ${QEMU_VM_RAM}
+      CPUS: ${CPUS}
       SSH_QEMU_PORT: ${SSH_TO_QEMU_PORT}
       SSH_SUSE_PORT: ${SSH_SUSE_PORT_156}
       SUSE_NE_PORT: ${SUSE_156_NE_PORT}

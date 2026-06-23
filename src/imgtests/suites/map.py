@@ -22,10 +22,9 @@ from imgtests.suites.general.std_utils import POSIXUtilsTest
 from imgtests.suites.general.stress_ng_general import (
     StressNgCombineLoadTest,
     StressNgConsecutiveLoadTest,
-    StressNgIterTestIPC,
     StressNgParallelLoadTest,
 )
-from imgtests.suites.ipc import LTPSyscallsIPCTest, SchedPerformanceTest
+from imgtests.suites.ipc import LTPSyscallsIPCTest, SchedPerformanceTest, StressNgIterTestIPC
 from imgtests.suites.memory import (
     SarWithStressNgTest,
     StressNgEnduranceMemoryTest,

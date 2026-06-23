@@ -27,8 +27,8 @@ logger = logging.getLogger(__name__)
 
 FIO_RESULTS_DIR: Final = LIB_DATA_DIR / "fio"
 
-_DIFF_GUARD_MAX = 1_000_000
-_DEFAULT_TMP_ROOT = Path(tempfile.gettempdir()) / "imgtests-fio"
+_DIFF_GUARD_MAX: Final = 1_000_000
+_DEFAULT_TMP_ROOT: Final = Path(tempfile.gettempdir()) / "imgtests-fio"
 
 
 @dataclass(frozen=True)

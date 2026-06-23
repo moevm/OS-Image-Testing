@@ -15,6 +15,44 @@ function getCookie(name) {
     return cookieValue;
 }
 
+function getSelectedSubsystems() {
+    return Array.from(document.querySelectorAll('#subsystemsCheckboxes input[type="checkbox"]:checked'))
+                .map(cb => cb.value);
+}
+
+function collectSingleConfig() {
+    return {
+        durations: { duration_sec: parseInt(document.getElementById("duration_sec").value, 10) },
+        profile: document.getElementById("profileSelect").value,
+        pattern: document.getElementById("profiledPatternSelect").value,
+        subsystems: getSelectedSubsystems(),
+        run_matrix: false
+    };
+}
+
+function collectMatrixConfig() {
+    const durations = {};
+    const matrixProfiles = [];
+
+    document.querySelectorAll('#profilesCheckboxes input[type="checkbox"]').forEach(cb => {
+        if (cb.checked) {
+            matrixProfiles.push(cb.value);
+            const durInput = document.getElementById(`duration_${cb.value}`);
+            if (durInput) {
+                durations[`duration_${cb.value}`] = parseInt(durInput.value, 10);
+            }
+        }
+    });
+
+    return {
+        durations: durations,
+        matrix_profiles: matrixProfiles,
+        pattern: document.getElementById("profiledPatternSelect").value,
+        subsystems: getSelectedSubsystems(),
+        run_matrix: true
+    };
+}
+
 const csrfToken = getCookie("csrftoken");
 
 document.getElementById("runTestsBtn").addEventListener("click", function () {
@@ -26,6 +64,15 @@ document.getElementById("runTestsBtn").addEventListener("click", function () {
     const testRunsCount = testRunsCountInput
         ? parseInt(testRunsCountInput.value, 10)
         : 1;
+
+    let config = null;
+    if (testing_mode === "profiled") {
+        const conf_mode = document.querySelector('input[name="profiledConfigMode"]:checked').value;
+        if (conf_mode === "custom") {
+            const runMode = document.querySelector('input[name="profiledRunMode"]:checked').value;
+            config = runMode === "single" ? collectSingleConfig() : collectMatrixConfig();
+        }
+    }
 
     btn.disabled = true;
     btn.textContent = "Running...";
@@ -40,6 +87,7 @@ document.getElementById("runTestsBtn").addEventListener("click", function () {
         body: JSON.stringify({
             test_runs_count: testRunsCount,
             TESTING_MODE: testing_mode,
+            config: config,
         }),
     })
         .then((response) => response.json())
