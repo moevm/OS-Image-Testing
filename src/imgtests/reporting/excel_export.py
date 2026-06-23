@@ -823,10 +823,7 @@ def export_distro_comparison_command(args: argparse.Namespace) -> None:
 
 
 def print_distro_comparison_metrics_command(args: argparse.Namespace) -> None:
-    metric_definitions = collect_metric_definitions(
-        input_path=args.input,
-        experiment_ids=args.experiment_ids,
-    )
+    metric_definitions = collect_metric_definitions(input_path=args.input)
     sys.stdout.write(f"{format_metric_definitions_table(metric_definitions)}\n")
 
 
