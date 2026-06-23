@@ -10,11 +10,12 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from functools import lru_cache
 from pathlib import Path
-from typing import TYPE_CHECKING, Final, NamedTuple
+from typing import TYPE_CHECKING, Any, Final, NamedTuple
 
 from jinja2 import Environment, FileSystemLoader, StrictUndefined, select_autoescape
 from matplotlib import cm
 from matplotlib.backends.backend_agg import FigureCanvasAgg
+from matplotlib.colors import to_rgba
 from matplotlib.figure import Figure
 from pydantic import Field
 from pydantic_settings import BaseSettings
@@ -47,6 +48,15 @@ SYSTEM_ERROR_DESCRIPTIONS: Final = {
 
 YOCTO_JOB: Final = "yocto-node"
 SUSE_JOB: Final = "suse-156-node"
+
+BOXPLOT_DISTRIBUTION_COLORS: Final = {
+    "poky": "#2E7D32",
+    "yocto": "#2E7D32",
+    "opensuse": "#1565C0",
+    "suse": "#1565C0",
+}
+BOXPLOT_COMMON_COLOR: Final = "#4D4D4D"
+BOXPLOT_FACE_ALPHA: Final = 0.18
 
 
 class VMetricsCreds(BaseSettings):
@@ -633,6 +643,7 @@ def _build_boxplots(
     for metric_name in sorted(metric_to_subsystems):
         labels: list[str] = []
         values: list[list[float]] = []
+        distros: list[str] = []
 
         for subsystem in sorted(metric_to_subsystems[metric_name]):
             exp_groups = metric_to_subsystems[metric_name][subsystem]
@@ -641,6 +652,7 @@ def _build_boxplots(
                     label = subsystem if exp_prefix == "common" else f"{subsystem} ({exp_prefix})"
                     labels.append(textwrap.fill(label, 15))
                     values.append(vals)
+                    distros.append(exp_prefix)
 
         if not values:
             continue
@@ -648,7 +660,8 @@ def _build_boxplots(
         fig = Figure(figsize=(10, 4))
         FigureCanvasAgg(fig)
         ax = fig.add_subplot(1, 1, 1)
-        ax.boxplot(values, labels=labels, showmeans=True)
+        boxplot = ax.boxplot(values, labels=labels, showmeans=True, patch_artist=True)
+        _style_boxplot_by_distro(boxplot, distros)
         ax.set_title(metric_name)
         ax.set_xlabel("Subsystem")
         ax.set_ylabel("Value")
@@ -670,6 +683,48 @@ def _build_boxplots(
         )
 
     return plot_assets
+
+
+def _style_boxplot_by_distro(boxplot: dict[str, list[Any]], distros: list[str]) -> None:
+    colors = [_boxplot_color(distro) for distro in distros]
+
+    for box, color in zip(boxplot["boxes"], colors, strict=True):
+        box.set_facecolor(to_rgba(color, BOXPLOT_FACE_ALPHA))
+        box.set_edgecolor(color)
+        box.set_linewidth(1.4)
+
+    for median, color in zip(boxplot["medians"], colors, strict=True):
+        median.set_color(color)
+        median.set_linewidth(1.4)
+
+    for mean, color in zip(boxplot["means"], colors, strict=True):
+        mean.set_markerfacecolor(color)
+        mean.set_markeredgecolor(color)
+
+    for line_type in ("whiskers", "caps"):
+        for index, line in enumerate(boxplot[line_type]):
+            color = colors[index // 2]
+            line.set_color(color)
+            line.set_linewidth(1.2)
+
+    for flier, color in zip(boxplot["fliers"], colors, strict=True):
+        flier.set_markeredgecolor(color)
+        flier.set_alpha(0.6)
+
+
+def _boxplot_color(distro: str) -> str:
+    normalized = _normalize_distro_name(distro)
+    if normalized == "common":
+        return BOXPLOT_COMMON_COLOR
+    for known_distro, color in BOXPLOT_DISTRIBUTION_COLORS.items():
+        if known_distro in normalized:
+            return color
+    msg = f"Unknown distribution for boxplot color: {distro}"
+    raise ValueError(msg)
+
+
+def _normalize_distro_name(distro: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", distro.casefold()).strip("-")
 
 
 def _build_piechart(
