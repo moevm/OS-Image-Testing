@@ -435,33 +435,39 @@ def metric_definition_score(definition: MetricDefinition) -> tuple[int, int, int
     )
 
 
-def metric_kind_for(
+def metric_kind_for(  # noqa: C901, PLR0911, PLR0912
     bucket: MetricBucket,
     metric_text: str,
     metric_tokens: set[str],
 ) -> str:
-    rules = (
-        (is_variability_metric(metric_text), "variation"),
-        (is_transfer_volume_metric(metric_text, metric_tokens), "data_volume"),
-        (metric_has_any_pattern(metric_text, metric_tokens, THROUGHPUT_PATTERNS), "throughput"),
-        (is_iperf_interval_time_metric(bucket, metric_text, metric_tokens), "interval_time"),
-        (metric_has_any_pattern(metric_text, metric_tokens, TIME_PATTERNS), "time"),
-        (is_reliability_percent_metric(metric_text, metric_tokens), "reliability_percent"),
-        (
-            metric_has_any_pattern(metric_text, metric_tokens, ISSUE_COUNT_PATTERNS),
-            "reliability_count",
-        ),
-        (is_network_volume_metric(bucket, metric_text, metric_tokens), "network_volume"),
-        (is_io_volume_metric(bucket, metric_text, metric_tokens), "io_volume"),
-        (metric_has_any_pattern(metric_text, metric_tokens, MEMORY_PATTERNS), "memory"),
-        (metric_has_any_pattern(metric_text, metric_tokens, PERCENT_PATTERNS), "utilization"),
-        (metric_has_any_pattern(metric_text, metric_tokens, WORK_COUNT_PATTERNS), "work_count"),
-        (metric_has_any_pattern(metric_text, metric_tokens, COUNT_PATTERNS), "count"),
-        (metric_has_any_pattern(metric_text, metric_tokens, DATA_VOLUME_PATTERNS), "data_volume"),
-    )
-    for applies, metric_kind in rules:
-        if applies:
-            return metric_kind
+    if is_variability_metric(metric_text):
+        return "variation"
+    if is_transfer_volume_metric(metric_text, metric_tokens):
+        return "data_volume"
+    if metric_has_any_pattern(metric_text, metric_tokens, THROUGHPUT_PATTERNS):
+        return "throughput"
+    if is_iperf_interval_time_metric(bucket, metric_text, metric_tokens):
+        return "interval_time"
+    if metric_has_any_pattern(metric_text, metric_tokens, TIME_PATTERNS):
+        return "time"
+    if is_reliability_percent_metric(metric_text, metric_tokens):
+        return "reliability_percent"
+    if metric_has_any_pattern(metric_text, metric_tokens, ISSUE_COUNT_PATTERNS):
+        return "reliability_count"
+    if is_network_volume_metric(bucket, metric_text, metric_tokens):
+        return "network_volume"
+    if is_io_volume_metric(bucket, metric_text, metric_tokens):
+        return "io_volume"
+    if metric_has_any_pattern(metric_text, metric_tokens, MEMORY_PATTERNS):
+        return "memory"
+    if metric_has_any_pattern(metric_text, metric_tokens, PERCENT_PATTERNS):
+        return "utilization"
+    if metric_has_any_pattern(metric_text, metric_tokens, WORK_COUNT_PATTERNS):
+        return "work_count"
+    if metric_has_any_pattern(metric_text, metric_tokens, COUNT_PATTERNS):
+        return "count"
+    if metric_has_any_pattern(metric_text, metric_tokens, DATA_VOLUME_PATTERNS):
+        return "data_volume"
     return "generic"
 
 
