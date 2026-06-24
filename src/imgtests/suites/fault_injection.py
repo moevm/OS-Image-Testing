@@ -454,7 +454,7 @@ class FaultInjectionIperf3Test(FaultCleanupMixin, AbstractRunnableTimeLimitedTes
                     executor=executor,
                     ssh_client=client,
                     iperf3=Iperf3Bundle(server=client),
-                    timeout=timeout,
+                    timeout=timeout_suite,
                 )
                 server_future = context.iperf3.start_server(context.executor)
 
