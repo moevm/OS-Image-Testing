@@ -86,7 +86,7 @@ document.getElementById("runTestsBtn").addEventListener("click", function () {
         },
         body: JSON.stringify({
             test_runs_count: testRunsCount,
-            TESTING_MODE: testing_mode,
+            testing_mode: testing_mode,
             config: config,
         }),
     })
