@@ -106,6 +106,15 @@ docker exec -i os-image-testing-imgtests-metabase-meta-db-1 psql -U metabase -d 
 docker exec -i os-image-testing-imgtests-metabase-meta-db-1 pg_restore -U metabase -d metabase < your_dump_file.dump
 ```
 
+> [!Environment]
+> Be careful with environment data, changes would not applay to metabase, e.g. changing postgres host, address or port would make database unaccesable and you would need to change this variables mannualy in Metabase's admin panel.
+
+Default dump file with basic dashboards and queries can be found at [metabase_prototype/metabase_backup_26_06_2026.dump](metabase_prototype/metabase_backup_26_06_2026.dump)
+
+* Metabase default dump registaration data:<br>
+    * email: `admin@gmail.com`
+    * password `123admin`
+
 - Start Metabase:
 ```bash
 docker start os-image-testing-imgtests-metabase-1
@@ -118,8 +127,7 @@ Use metabase to check dashboards examples on a synthetic data
 Move to metabase directory and launch metabase via docker compose
 ```bash
 cd metabase_prototype
-
 docker compose up -d
 ```
 
-Environment configuration for metabase demo can be viewed and configured at `metabase_prototype/.env`
+Environment configuration for metabase demo can be viewed and configured at [metabase_prototype/.env](metabase_prototype/.env)

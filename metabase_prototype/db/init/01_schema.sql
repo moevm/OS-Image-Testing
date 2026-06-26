@@ -270,20 +270,11 @@ CREATE TABLE IF NOT EXISTS configuration (
     hardware json NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS loader (
+CREATE TABLE IF NOT EXISTS util_run_result (
     id integer NOT NULL,
     experiment_id integer NOT NULL,
+    util_type character varying(20) NOT NULL,
     command character varying NOT NULL,
-    result json NOT NULL,
-    description character varying(100) NOT NULL,
-    started_at timestamp without time zone,
-    ended_at timestamp without time zone
-);
-
-CREATE TABLE IF NOT EXISTS observer (
-    id integer NOT NULL,
-    experiment_id integer NOT NULL,
-    command character varying(300) NOT NULL,
     result json NOT NULL,
     description character varying(100) NOT NULL,
     started_at timestamp without time zone,

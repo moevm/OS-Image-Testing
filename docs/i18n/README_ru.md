@@ -105,6 +105,14 @@ docker exec -i os-image-testing-imgtests-metabase-meta-db-1 psql -U metabase -d 
 ```bash
 docker exec -i os-image-testing-imgtests-metabase-meta-db-1 pg_restore -U metabase -d metabase < your_dump_file.dump
 ```
+> [!Параметры среды]
+> Будьте осторожны с данными среды, изменения не будут применяться к Metabase, например, изменение хоста, адреса или порта PostgreSQL сделает базу данных недоступной, и вам потребуется изменить эти переменные вручную в панели администратора Metabase.
+
+Файл дампа по умолчанию с базовыми панелями мониторинга и запросами можно найти по адресу [metabase_prototype/metabase_backup_26_06_2026.dump](metabase_prototype/metabase_backup_26_06_2026.dump)
+
+* Данные регистрации для дампа Metabase по умолчанию:
+    * email: `admin@gmail.com`
+    * password `123admin`
 
 - Запуск Metabase:
 ```bash
@@ -118,8 +126,7 @@ docker start os-image-testing-imgtests-metabase-1
 Перейдите в каталог metabase и запустите Metabase с помощью docker compose
 ```bash
 cd metabase_prototype
-
 docker compose up -d
 ```
 
-Конфигурацию среды для демонстрации Metabase можно просмотреть и настроить в `metabase_prototype/.env`
+Конфигурацию среды для демонстрации Metabase можно просмотреть и настроить в [metabase_prototype/.env](metabase_prototype/.env)
