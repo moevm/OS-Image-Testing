@@ -142,7 +142,7 @@ http://localhost:8000
 На главной странице отображаются Yocto Project и OpenSUSE. Кнопка Reset to Default восстанавливает стандартный список платформ — Yocto Project и OpenSUSE, удаляя добавленные пользователем дистрибутивы.
 
 <p align="center">
-  <img src="./images/01-dashboard.png" alt="Стартовая страница веб-интерфейса" width="800">
+  <img src="../images/01-dashboard.png" alt="Стартовая страница веб-интерфейса" width="800">
 </p>
 
 <p align="center"><em>Рисунок 1 — Стартовая страница веб-интерфейса</em></p>
@@ -159,7 +159,7 @@ http://localhost:8000
 Раннер **Basic** последовательно запускает выбранные наборы готовых тестов и сохраняет результаты каждой утилиты в PostgreSQL.
 
 <p align="center">
-  <img src="./images/02-basic-default.png" alt="Basic runner со значениями по умолчанию" width="800">
+  <img src="../images/02-basic-default.png" alt="Basic runner со значениями по умолчанию" width="800">
 </p>
 
 <p align="center"><em>Рисунок 2 — Basic runner со значениями по умолчанию</em></p>
@@ -171,13 +171,13 @@ http://localhost:8000
 - **Custom Configuration** — можно выбрать наборы тестов, изменить их длительность и при необходимости оставить только отдельные тесты внутри набора. Конфигурацию можно сохранить отдельно для каждого дистрибутива.
 
 <p align="center">
-  <img src="./images/03-basic-custom.png" alt="Basic runner с выбором наборов и длительности тестов" width="800">
+  <img src="../images/03-basic-custom.png" alt="Basic runner с выбором наборов и длительности тестов" width="800">
 </p>
 
 <p align="center"><em>Рисунок 3 — Basic runner с выбором наборов и длительности тестов</em></p>
 
 <p align="center">
-  <img src="./images/04-basic-running.png" alt="Basic runner с выбранными тестами после сохранения конфигурации и запуска" width="800">
+  <img src="../images/04-basic-running.png" alt="Basic runner с выбранными тестами после сохранения конфигурации и запуска" width="800">
 </p>
 
 <p align="center"><em>Рисунок 4 — Basic runner с выбранными тестами после сохранения конфигурации и запуска</em></p>
@@ -188,7 +188,7 @@ http://localhost:8000
 Раннер **Profiled** строит план нагрузки из стадий и запускает задачи для выбранных подсистем. Доступны профили `load`, `stress`, `stability`, `scalability`, `volume`, `isolated`, `spike` и `diagnostic`.
 
 <p align="center">
-  <img src="./images/05-profiled-default.png" alt="Profiled runner со значениями по умолчанию" width="800">
+  <img src="../images/05-profiled-default.png" alt="Profiled runner со значениями по умолчанию" width="800">
 </p>
 
 <p align="center"><em>Рисунок 5 — Profiled runner со значениями по умолчанию</em></p>
@@ -201,7 +201,7 @@ http://localhost:8000
 Доступные паттерны нагрузки: `soft`, `balanced`, `intense`, `extreme`, `spike`. Доступные подсистемы: `file`, `IPC`, `memory`, `network`, `syscalls`, `system`.
 
 <p align="center">
-  <img src="./images/06-profiled-custom.png" alt="Profiled runner с настройкой профиля, паттерна и подсистем" width="800">
+  <img src="../images/06-profiled-custom.png" alt="Profiled runner с настройкой профиля, паттерна и подсистем" width="800">
 </p>
 
 <p align="center"><em>Рисунок 6 — Profiled runner с настройкой профиля, паттерна и подсистем</em></p>
@@ -220,7 +220,7 @@ http://localhost:8000/reports/
 ```
 
 <p align="center">
-  <img src="./images/07-html-reports.png" alt="Страница HTML-отчётов" width="800">
+  <img src="../images/07-html-reports.png" alt="Страница HTML-отчётов" width="800">
 </p>
 
 <p align="center"><em>Рисунок 7 — Страница HTML-отчётов</em></p>
@@ -245,7 +245,7 @@ http://localhost:8000/excel-reports/
 ```
 
 <p align="center">
-  <img src="./images/08-excel-reports.png" alt="Страница Excel-отчётов" width="800">
+  <img src="../images/08-excel-reports.png" alt="Страница Excel-отчётов" width="800">
 </p>
 
 <p align="center"><em>Рисунок 8 — Страница Excel-отчётов</em></p>
