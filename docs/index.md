@@ -6,6 +6,7 @@
 
 - [Сборка минимального образа Yocto и его запуск в QEMU](./guides/yocto-qemu-minimal-image-guide.md)
 - [Тестирование образа Yocto](./guides/yocto-testing-guide.md)
+- [Сборка образов, запуск тестов и просмотр результатов](./guides/testing-guide.md)
 
 ## 2. Методологии
 

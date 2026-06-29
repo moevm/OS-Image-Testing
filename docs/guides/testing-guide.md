@@ -15,7 +15,7 @@ make docker-compose-up
 3. Собирает Docker-образ `imgtests-yocto-builder`.
 4. Создаёт отсутствующие Docker volumes для сборки Yocto, загрузок, `sstate-cache`, OpenSUSE, PostgreSQL, Bencher и VictoriaMetrics. Для томов Yocto также настраивается владелец файлов.
 5. Выполняет `docker compose up --detach --build`: собирает остальные Docker-образы и запускает сервисы в фоновом режиме.
-6. В сервисе `imgtests-yocto` запускается `bitbake`, после чего собранный образ загружается в QEMU. В сервисе `imgtests-suse-156` подготавливается и запускается OpenSUSE в QEMU.
+6. В сервисе `imgtests-yocto` запускается `bitbake`, после чего собранный образ загружается в QEMU. В сервисе `imgtests-suse-156` с официального сайта загружается образ OpenSUSE с помощью скрипта `scripts/opensuse/download_images.py`, после чего система подготавливается и запускается в QEMU.
 7. В сервисе `imgtests-analyzer` выполняются миграции базы данных, запускаются веб-интерфейс и фоновые обработчики задач.
 
 Для остановки стенда необходимо выполнить:
@@ -150,7 +150,7 @@ http://localhost:8000
 
 1. Выбрать тестируемый дистрибутив.
 2. Указать число повторов в поле **Number of test runs**.
-3. Выберить раннер **Basic** или **Profiled**.
+3. Выбрать раннер **Basic** или **Profiled**.
 4. Настроить параметры и нажать **Run tests**.
 5. Статус фоновой задачи отображается под кнопкой. Дополнительный вывод доступен в логах `imgtests-analyzer`.
 
@@ -268,38 +268,3 @@ http://localhost:8000/excel-reports/
 ```
 
 База PostgreSQL хранится в отдельном Docker volume. Каталоги HTML- и Excel-отчётов в текущем `compose.yml` не подключены к отдельному тому, поэтому перед удалением или пересозданием контейнера важные файлы следует скачать через UI или скопировать на хост.
-
-### Просмотр данных в Metabase
-
-Metabase не входит в текущий `docker/compose.yml` и не запускается командой `make docker-compose-up`. Его можно запустить отдельно:
-
-```bash
-docker run --detach \
-  --name imgtests-metabase \
-  --add-host=host.docker.internal:host-gateway \
-  --publish 3001:3000 \
-  metabase/metabase
-```
-
-После запуска необходимо открыть:
-
-```text
-http://localhost:3001
-```
-
-При добавлении PostgreSQL надо указать параметры из `.env.dist`:
-
-| Параметр Metabase | Значение по умолчанию |
-|-------------------|------------------------|
-| Database type     | PostgreSQL             |
-| Host              | `host.docker.internal` |
-| Port              | `5432`                 |
-| Database name     | `os-testing-db`        |
-| Username          | `user`                 |
-| Password          | `password`             |
-
-Основные таблицы для анализа:
-
-- `configuration` — ОС, ядро, пакеты и сведения об аппаратной конфигурации;
-- `experiment` — описание и тип эксперимента, время начала и окончания, количество тестов по статусам;
-- `util_run_result` — выполненная команда, тип утилиты, JSON с метриками и время выполнения.
