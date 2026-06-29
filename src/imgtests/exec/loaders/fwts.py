@@ -66,14 +66,12 @@ class Fwts(GenericUtil):
                                 Gather kernel system information.                       1 info only
                                 count as passed
                                 """
-                                statuses["passed"] += count
                                 subtotal["passed"] += count
                             elif status in subtotal:
                                 subtotal[status] += count
                         else:
                             status = match.group(2)
                             if status == "info only":
-                                statuses["passed"] += 1
                                 subtotal["passed"] += 1
                             elif status in subtotal:
                                 subtotal[status] += 1
