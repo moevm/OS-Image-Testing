@@ -256,7 +256,7 @@ class Kirk(GenericUtil):
         return result
 
     @staticmethod
-    def metrics_to_json(metrics: Path) -> dict[str, Any]:
+    def metrics_to_json(metrics: Path) -> AdapterResult:
         raw_metrics = json.loads(metrics.read_text())
         return Kirk.split_result(raw_metrics=raw_metrics)
 
