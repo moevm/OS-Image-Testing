@@ -86,8 +86,8 @@ class Fwts(GenericUtil):
         return FwtsResult(tests=tests, summary=statuses)
 
     @staticmethod
-    def metrics_to_json(metrics: FwtsResult) -> dict[str, Any]:
-        raw = {"fwts_tests": metrics.tests, "fwts_summary": metrics.summary}
+    def metrics_to_json(metrics: FwtsResult) -> AdapterResult:
+        raw: dict[str, Any] = {"fwts_tests": metrics.tests, "fwts_summary": metrics.summary}
         return Fwts.split_result(raw_metrics=raw)
 
     @staticmethod
