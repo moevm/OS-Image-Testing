@@ -2,23 +2,21 @@ from typing import TYPE_CHECKING
 
 from imgtests.exec.loaders import Fwts
 from imgtests.planning import AbstractRunnableManyTimesTest
-from imgtests.types import TestResult, TestStatus
+from imgtests.types import Subsystem, TestResult, TestStatus
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
     from concurrent.futures import ThreadPoolExecutor
 
     from imgtests.exec.exec import SSHClient
-    from imgtests.types import Subsystem
 
 
 class FwtsTest(AbstractRunnableManyTimesTest):
     def __init__(
         self,
-        subsystems: frozenset[Subsystem],
         iterations: int = 1,
     ) -> None:
-        super().__init__("FWTS firmware tests.", subsystems, iterations)
+        super().__init__("FWTS firmware tests.", frozenset({Subsystem.SYSTEM}), iterations)
 
     def _run(
         self,
