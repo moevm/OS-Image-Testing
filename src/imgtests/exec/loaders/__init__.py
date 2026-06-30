@@ -3,6 +3,7 @@ from .chaosblade import ChaosResponse as ChaosResponse
 from .fio import Fio as Fio
 from .fio import FioPlot as FioPlot
 from .fwts import Fwts as Fwts
+from .fwts import FwtsResult as FwtsResult
 from .iperf3 import Iperf3 as Iperf3
 from .iperf3 import Iperf3Bundle as Iperf3Bundle
 from .kirk import Kirk as Kirk

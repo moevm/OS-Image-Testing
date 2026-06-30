@@ -630,8 +630,8 @@ class StressNg(PkgMgrMixin, GenericUtil):
         return result
 
     @staticmethod
-    def metrics_to_json(metrics: StressNGResult) -> dict[str, Any]:
-        raw_metrics = {
+    def metrics_to_json(metrics: StressNGResult) -> AdapterResult:
+        raw_metrics: dict[str, Any] = {
             "stress_ng_metrics": [metric._asdict() for metric in metrics.metrics],
             "stress_ng_summary": metrics.summary._asdict() if metrics.summary else None,
         }
