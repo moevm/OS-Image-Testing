@@ -4,6 +4,28 @@
 
 Тестирование производительности и стабильности образов ОС.
 
+
+## Документация
+
+- [Сборка образов, запуск тестов и просмотр результатов](../guides/testing-guide.md)
+
+### Методологии
+
+- [Chaos Engineering](../methodology/ChaosEngineering.md)
+- [Тестирование производительности](../methodology/performance-methodology.md)
+- [Сравнительная матрица](../methodology/matrix.md)
+- [Метод инструментов](../methodology/instrumental-method.md)
+- [Метод USE](../methodology/use-method.md)
+- [Метод определения характеристик потребления памяти](../methodology/memory-consumption-characteristics.md)
+- [Метод оценки размера рабочего набора](../methodology/working-set-size-estimation-method.md)
+- [Мониторинг производительности](../methodology/perfomance-monitoring.md)
+- [Метод выявления утечек](../methodology/leak-detection-method.md)
+- [Статическая настройка производительности](../methodology/static-performance-tuning.md)
+- [Управление ресурсами](../methodology/resource-management.md)
+- [Микробенчмаркинг](../methodology/microbenchmarking.md)
+- [Анализ тактов](../methodology/cycle-analysis.md)
+- [Эмуляция сбоев](../methodology/failure_emulation.md)
+
 Структура репозитория:
 
 | Папка                   | Описание                                 |
@@ -80,3 +102,8 @@ docker logs os-image-testing-imgtests-analyzer-1
 * Параметры виртуальных машин (пути Yocto и Suse, Yocto образ)
 * Параметры QEMU (размер RAM)
 * Сетевые параметры (IP адреса, порты, включая SSH порты для виртуальных машин)
+
+## Полная документация
+
+Вся документация по проекту доступна в [../index.md](../index.md).
+

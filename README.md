@@ -4,6 +4,28 @@
 
 Performance and Endurance Testing of OS images.
 
+
+## Documentation
+
+- [Building images, running tests, and viewing results](docs/guides/testing-guide.md)
+
+### Methodologies
+
+- [Chaos Engineering](docs/methodology/ChaosEngineering.md)
+- [Performance testing](docs/methodology/performance-methodology.md)
+- [Comparison matrix](docs/methodology/matrix.md)
+- [Tool-based method](docs/methodology/instrumental-method.md)
+- [USE method](docs/methodology/use-method.md)
+- [Determining memory consumption characteristics](docs/methodology/memory-consumption-characteristics.md)
+- [Working set size estimation method](docs/methodology/working-set-size-estimation-method.md)
+- [Performance monitoring](docs/methodology/perfomance-monitoring.md)
+- [Leak detection method](docs/methodology/leak-detection-method.md)
+- [Static performance tuning](docs/methodology/static-performance-tuning.md)
+- [Resource management](docs/methodology/resource-management.md)
+- [Microbenchmarking](docs/methodology/microbenchmarking.md)
+- [Cycle analysis](docs/methodology/cycle-analysis.md)
+- [Failure emulation](docs/methodology/failure_emulation.md)
+
 Repository structure:
 
 | Folder            | Description                              |
@@ -80,3 +102,8 @@ To add a new utility, you need to update the [packages.conf](conf/packages.conf)
 * VMs parameters (Yocto and Suse paths, Yocto image)
 * QEMU parameters (RAM size)
 * Network parameters (IP addresses, ports, including SSH ports for VMs)
+
+## Complete documentation
+
+All project documentation is available in the [docs/index.md](docs/index.md).
+
