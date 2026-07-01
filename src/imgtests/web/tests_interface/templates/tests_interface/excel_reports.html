@@ -1,20 +1,20 @@
 {% extends 'tests_interface/base.html' %}
 {% load i18n %}
 
-{% block title %}{% trans "Excel Reports" %}{%endblock %}
+{% block title %}{% translate "Excel Reports" %}{%endblock %}
 
 {% block content %}
 <div class="card">
     <div class="header-with-back">
-        <a href="{% url 'index' %}" class="back-button">← {% trans "Back to Dashboard" %}</a>
+        <a href="{% url 'index' %}" class="back-button">← {% translate "Back to Dashboard" %}</a>
         <div class="page-title">
-            <h1>{% trans "Excel Reports" %}</h1>
+            <h1>{% translate "Excel Reports" %}</h1>
         </div>
     </div>
 
     <div class="controls" style="margin-bottom: 20px">
         <button id="exportBtn" class="btn btn-success">
-            {% trans "Generate New Excel Report" %}
+            {% translate "Generate New Excel Report" %}
         </button>
         <span id="exportStatus" style="margin-left: 15px"></span>
     </div>
@@ -62,7 +62,7 @@
                             </div>
                         </div>
                         <div style="color: #ff9800; font-size: 1.2rem">
-                            {% trans "Download" %}
+                            {% translate "Download" %}
                         </div>
                     </div>
                 </a>
@@ -92,10 +92,10 @@
         >
             <div style="font-size: 4rem; margin-bottom: 20px">📊</div>
             <h3 style="color: #5d4037; margin-bottom: 10px">
-                {% trans "No Excel Reports" %}
+                {% translate "No Excel Reports" %}
             </h3>
             <p style="color: #8d6e63; margin-bottom: 20px">
-                {% trans 'Click "Generate New Excel Report" to create one.' %}
+                {% translate 'Click "Generate New Excel Report" to create one.' %}
             </p>
         </div>
         {% endif %}

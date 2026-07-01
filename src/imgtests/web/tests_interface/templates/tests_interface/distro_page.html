@@ -1,14 +1,14 @@
 {% extends 'tests_interface/base.html' %}
 {% load i18n %}
 
-{% block title %}{{distro.display_name}} {% trans "Tests" %}{% endblock %}
+{% block title %}{{distro.display_name}} {% translate "Tests" %}{% endblock %}
 
 {% block content %}
 <div class="card">
     <div class="header-with-back">
-        <a href="{% url 'index' %}" class="back-button">{% trans "Back to Dashboard" %}</a>
+        <a href="{% url 'index' %}" class="back-button">{% translate "Back to Dashboard" %}</a>
         <div class="page-title">
-            <h1>{% trans "Tests page for" %} {{ distro.display_name }}</h1>
+            <h1>{% translate "Tests page for" %} {{ distro.display_name }}</h1>
         </div>
     </div>
 
@@ -21,14 +21,14 @@
             border-radius: 5px;
         "
     >
-        <h3>{% trans "Test Configuration" %}</h3>
+        <h3>{% translate "Test Configuration" %}</h3>
         <div id="configStatus" style="color: green; margin-bottom: 10px"></div>
 
         <div class="config-controls">
-            <label>{% trans "Select runner:" %}
+            <label>{% translate "Select runner:" %}
                 <select name="RunnerSelect" id="configTestingMode">
-                    <option value="default">{% trans "Basic" %}</option>
-                    <option value="profiled">{% trans "Profiled" %}</option>
+                    <option value="default">{% translate "Basic" %}</option>
+                    <option value="profiled">{% translate "Profiled" %}</option>
                 </select>
             </label>
         </div>
@@ -37,16 +37,16 @@
             <div class="config-controls" style="margin-top: 10px">
                 <label style="margin-right: 20px">
                     <input type="radio" name="configMode" value="default" checked />
-                    {% trans "Use Default Configuration" %}
+                    {% translate "Use Default Configuration" %}
                 </label>
                 <label style="margin-right: 20px">
-                    <input type="radio" name="configMode" value="custom" /> {% trans "Custom Configuration" %}
+                    <input type="radio" name="configMode" value="custom" /> {% translate "Custom Configuration" %}
                 </label>
             </div>
 
             <div style="margin-top: 15px; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
                 <label style="margin-right: 20px;">
-                    {% trans "Number of test runs:" %}
+                    {% translate "Number of test runs:" %}
                     <input type="number"
                            id="testRunsCount"
                            name="test_runs_count"
@@ -59,25 +59,25 @@
 
             <div id="customConfigPanel" style="display: none; margin-top: 15px">
                 <div class="suites-selection">
-                    <h4>{% trans "Select Test Suites and Configure Duration:" %}</h4>
+                    <h4>{% translate "Select Test Suites and Configure Duration:" %}</h4>
                     <div id="suitesCheckboxes"></div>
                 </div>
 
                 <div class="tests-selection" style="margin-top: 15px">
-                    <h4>{% trans "Individual Tests (optional):" %}</h4>
+                    <h4>{% translate "Individual Tests (optional):" %}</h4>
                     <div id="testsSelection"></div>
                 </div>
 
                 <div style="margin-top: 15px">
                     <button id="saveConfigBtn" class="btn">
-                        {% trans "Save Configuration" %}
+                        {% translate "Save Configuration" %}
                     </button>
                     <button
                         id="resetConfigBtn"
                         class="btn"
                         style="margin-left: 10px"
                     >
-                        {% trans "Reset to Default" %}
+                        {% translate "Reset to Default" %}
                     </button>
                 </div>
             </div>
@@ -132,7 +132,7 @@
     </div>
 
     <div class="placeholder">
-        <button id="runTestsBtn" class="btn">{% trans "Run tests" %}</button>
+        <button id="runTestsBtn" class="btn">{% translate "Run tests" %}</button>
         <div
             id="outputContainer"
             style="

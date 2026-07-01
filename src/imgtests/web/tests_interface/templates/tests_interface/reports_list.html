@@ -1,16 +1,16 @@
 {% extends 'tests_interface/base.html' %}
 {% load i18n %}
 
-{% block title %}{% trans "All Reports" %}{%endblock%}
+{% block title %}{% translate "All Reports" %}{%endblock%}
 
 {% block content %}
 <div class="card">
     <div class="header-with-back">
         <a href="{% url 'index' %}" class="back-button"
-            >← {% trans "Back to Dashboard" %}</a
+            >← {% translate "Back to Dashboard" %}</a
         >
         <div class="page-title">
-            <h1>{% trans "Test Reports" %}</h1>
+            <h1>{% translate "Test Reports" %}</h1>
         </div>
     </div>
 
@@ -25,7 +25,7 @@
         "
     >
         <h3 style="margin: 0 0 12px; color: #000000">
-            {% trans "Generate Comparison Report" %}
+            {% translate "Generate Comparison Report" %}
         </h3>
         <div
             style="
@@ -43,7 +43,7 @@
                         font-size: 0.85rem;
                         color: #795548;
                     "
-                    >{% trans "Experiment 1" %}</label
+                    >{% translate "Experiment 1" %}</label
                 >
                 <select
                     id="exp-select-1"
@@ -54,7 +54,7 @@
                         border-radius: 6px;
                     "
                 >
-                    <option value="">{% trans "Select" %}</option>
+                    <option value="">{% translate "Select" %}</option>
                 </select>
             </div>
             <div style="flex: 1; min-width: 200px">
@@ -65,7 +65,7 @@
                         font-size: 0.85rem;
                         color: #795548;
                     "
-                    >{% trans "Experiment 2" %}</label
+                    >{% translate "Experiment 2" %}</label
                 >
                 <select
                     id="exp-select-2"
@@ -76,7 +76,7 @@
                         border-radius: 6px;
                     "
                 >
-                    <option value="">{% trans "Select" %}</option>
+                    <option value="">{% translate "Select" %}</option>
                 </select>
             </div>
             <div>
@@ -86,7 +86,7 @@
                     style="padding: 8px 20px"
                     disabled
                 >
-                    {% trans "Generate" %}
+                    {% translate "Generate" %}
                 </button>
             </div>
         </div>
@@ -166,16 +166,16 @@
     >
         <div style="font-size: 4rem; margin-bottom: 20px">📊</div>
         <h3 style="color: #5d4037; margin-bottom: 10px">
-            {% trans "No Reports Found" %}
+            {% translate "No Reports Found" %}
         </h3>
         <p style="color: #8d6e63; margin-bottom: 20px">
-            {% trans "No reports available yet. Run some tests to generate reports." %}
+            {% translate "No reports available yet. Run some tests to generate reports." %}
         </p>
         <a
             href="{% url 'index' %}"
             class="btn"
             style="text-decoration: none; display: inline-block"
-            >{% trans "Run Tests" %}</a
+            >{% translate "Run Tests" %}</a
         >
     </div>
     {% endif %}
