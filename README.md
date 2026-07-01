@@ -7,7 +7,19 @@ Performance and Endurance Testing of OS images.
 
 ## Documentation
 
-- [Building images, running tests, and viewing results](docs/guides/testing-guide.md)
+[Building images, running tests, and viewing results](docs/guides/testing-guide.md).
+
+### Repository structure
+
+| Folder            | Description                              |
+|-------------------|------------------------------------------|
+| [conf](conf)      | Configuration files                      |
+| [docker](docker)  | Essential Docker-related files           |
+| [docs](docs)      | Markdown documentation of the repository |
+| [layers](layers)  | Layers content (for Poky)                |
+| [scripts](scripts)| Shell scripts                            |
+| [src](src)        | Source code and core development files   |
+| [tests](tests)    | Unit tests and other                     |
 
 ### Methodologies
 
@@ -25,18 +37,6 @@ Performance and Endurance Testing of OS images.
 - [Microbenchmarking](docs/methodology/microbenchmarking.md)
 - [Cycle analysis](docs/methodology/cycle-analysis.md)
 - [Failure emulation](docs/methodology/failure_emulation.md)
-
-Repository structure:
-
-| Folder            | Description                              |
-|-------------------|------------------------------------------|
-| [conf](conf)      | Configuration files                      |
-| [docker](docker)  | Essential Docker-related files           |
-| [docs](docs)      | Markdown documentation of the repository |
-| [layers](layers)  | Layers content (for Poky)                |
-| [scripts](scripts)| Shell scripts                            |
-| [src](src)        | Source code and core development files   |
-| [tests](tests)    | Unit tests and other                     |
 
 ## Building and testing Yocto and Suse image via Docker Compose
 
@@ -106,4 +106,3 @@ To add a new utility, you need to update the [packages.conf](conf/packages.conf)
 ## Complete documentation
 
 All project documentation is available in the [docs/index.md](docs/index.md).
-
