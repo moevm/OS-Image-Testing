@@ -29,6 +29,8 @@ LAYERS=(
     "meta-openjdk-temurin"
 )
 
+rm -rf /home/user/poky/meta-openjdk-temurin/recipes-java/helloworld-java
+
 for layer in "${LAYERS[@]}"; do
     layer="${layer#./}"
     layer_path="/home/user/poky/${layer}"
@@ -40,5 +42,3 @@ for layer in "${LAYERS[@]}"; do
         echo "Warning: Layer $layer not found!"
     fi
 done
-
-rm -rf /home/user/poky/meta-openjdk-temurin/recipes-java/helloworld-java
