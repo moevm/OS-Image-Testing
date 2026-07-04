@@ -23,19 +23,16 @@ class Fwts(GenericUtil):
 
     def run(self) -> tuple[ExecResult, FwtsResult]:
         result = self()
-        parsed = (
-            self.parse_metrics(result.stdout)
-            if result.stdout
-            else FwtsResult(
-                tests=[],
-                summary={"passed": 0, "failed": 0, "skipped": 0, "aborted": 0},
-            )
+        if result.stderr and re.search(r"^Test: ", result.stderr, flags=re.MULTILINE):
+            return result, self.parse_metrics(result.stderr)
+        return result, FwtsResult(
+            tests=[],
+            summary={"passed": 0, "failed": 0, "skipped": 0, "aborted": 0},
         )
-        return result, parsed
 
     @staticmethod
-    def parse_metrics(raw_output: str) -> FwtsResult:  # noqa: PLR0912, C901
-        statuses: dict[str, int] = {"passed": 0, "failed": 0, "skipped": 0, "aborted": 0}
+    def parse_metrics(raw_output: str) -> FwtsResult:  # noqa: PLR0912
+        statuses: dict[str, int] = {"passed": 0, "failed": 0, "skipped": 0, "aborted": 0, "info": 0}
         tests: list[dict[str, Any]] = []
 
         sections = re.split(r"^Test: ", raw_output, flags=re.MULTILINE)
@@ -43,7 +40,13 @@ class Fwts(GenericUtil):
         for section in sections[1:]:
             lines = section.splitlines()
             test_name = lines[0].strip().rstrip(".")
-            subtotal: dict[str, int] = {"passed": 0, "failed": 0, "skipped": 0, "aborted": 0}
+            subtotal: dict[str, int] = {
+                "passed": 0,
+                "failed": 0,
+                "skipped": 0,
+                "aborted": 0,
+                "info": 0,
+            }
 
             for line in lines[1:]:
                 stripped = line.strip().lower()
@@ -66,18 +69,15 @@ class Fwts(GenericUtil):
                                 Gather kernel system information.                       1 info only
                                 count as passed
                                 """
-                                subtotal["passed"] += count
+                                subtotal["info"] += count
                             elif status in subtotal:
                                 subtotal[status] += count
                         else:
                             status = match.group(2)
                             if status == "info only":
-                                subtotal["passed"] += 1
+                                subtotal["info"] += 1
                             elif status in subtotal:
                                 subtotal[status] += 1
-
-            if all(v == 0 for v in subtotal.values()):
-                subtotal["skipped"] += 1
 
             for key, value in subtotal.items():
                 statuses[key] += value
