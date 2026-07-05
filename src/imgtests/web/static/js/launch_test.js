@@ -22,11 +22,16 @@ function getSelectedSubsystems() {
 
 function collectSingleConfig() {
     return {
-        durations: { duration_sec: parseInt(document.getElementById("duration_sec").value, 10) },
+        durations: {
+            duration_sec: DurationInput.toSeconds(
+                "profiled_single_duration",
+                "Profile duration",
+            ),
+        },
         profile: document.getElementById("profileSelect").value,
         pattern: document.getElementById("profiledPatternSelect").value,
         subsystems: getSelectedSubsystems(),
-        run_matrix: false
+        run_matrix: false,
     };
 }
 
@@ -37,10 +42,13 @@ function collectMatrixConfig() {
     document.querySelectorAll('#profilesCheckboxes input[type="checkbox"]').forEach(cb => {
         if (cb.checked) {
             matrixProfiles.push(cb.value);
-            const durInput = document.getElementById(`duration_${cb.value}`);
-            if (durInput) {
-                durations[`duration_${cb.value}`] = parseInt(durInput.value, 10);
-            }
+            const durationPrefix =
+                cb.dataset.durationPrefix ||
+                `profiled_${cb.value}_duration`;
+            durations[`duration_${cb.value}`] = DurationInput.toSeconds(
+                durationPrefix,
+                `${cb.value} profile duration`,
+            );
         }
     });
 
@@ -66,12 +74,24 @@ document.getElementById("runTestsBtn").addEventListener("click", function () {
         : 1;
 
     let config = null;
-    if (testing_mode === "profiled") {
-        const conf_mode = document.querySelector('input[name="profiledConfigMode"]:checked').value;
-        if (conf_mode === "custom") {
-            const runMode = document.querySelector('input[name="profiledRunMode"]:checked').value;
-            config = runMode === "single" ? collectSingleConfig() : collectMatrixConfig();
+    try {
+        if (testing_mode === "profiled") {
+            const conf_mode = document.querySelector(
+                'input[name="profiledConfigMode"]:checked',
+            ).value;
+            if (conf_mode === "custom") {
+                const runMode = document.querySelector(
+                    'input[name="profiledRunMode"]:checked',
+                ).value;
+                config =
+                    runMode === "single"
+                        ? collectSingleConfig()
+                        : collectMatrixConfig();
+            }
         }
+    } catch (error) {
+        outputContainer.textContent = "Error: " + error.message;
+        return;
     }
 
     btn.disabled = true;
