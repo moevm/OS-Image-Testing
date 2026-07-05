@@ -193,8 +193,8 @@ class SyscallsFullLoadTest(AbstractRunnableTimeLimitedTest):
 
 
 class LTPSyscallsTest(AbstractRunnableTimeLimitedTest):
-    def __init__(self, iterations: int = 1) -> None:
-        super().__init__("Test syscalls with LTP.", frozenset({Subsystem.SYSCALLS}), iterations)
+    def __init__(self, timeout: int) -> None:
+        super().__init__("Test syscalls with LTP.", frozenset({Subsystem.SYSCALLS}), timeout)
 
     def _run(
         self,
