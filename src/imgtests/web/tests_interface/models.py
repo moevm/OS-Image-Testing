@@ -7,6 +7,7 @@ class Distribution(models.Model):
     description = models.TextField(blank=True)
     order = models.PositiveSmallIntegerField(default=0)
     is_active = models.BooleanField(default=True)
+    current_task_id = models.UUIDField(null=True, db_index=True)
 
     class Meta:
         """Metadata options for Distribution model."""

@@ -1,9 +1,9 @@
 import json
 import logging
-import re
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Final
 
+import paramiko
 from django.core.management import call_command
 from django.http import FileResponse, Http404, HttpRequest, JsonResponse
 from django.http.response import HttpResponse
@@ -17,6 +17,7 @@ from sqlalchemy import create_engine
 
 from imgtests.constant import CONFIG_DIR, EXCEL_REPORTS_DIR, REPORTS_DIR
 from imgtests.database.database import ImgtestsDatabase, PostgresCreds
+from imgtests.environment import env_var_to_type
 from imgtests.reporting.excel_export import export_database_to_excel
 from imgtests.reporting.html_report import ReportGenerator
 from imgtests.runner import get_test_name
@@ -194,34 +195,83 @@ def report_static_files(request: HttpRequest, report_dir: str, file_path: str) -
         raise Http404(error_message) from e
 
 
-def run_tests(request: HttpRequest) -> JsonResponse:
-    referer = request.META.get("HTTP_REFERER", "")
+DISTRO_SSH_MAP: Final = {
+    "yocto": ("SSH_YOCTO_ADDR", "SSH_YOCTO_USER", "SSH_YOCTO_PASS", "SSH_YOCTO_PORT"),
+    "opensuse": ("SSH_SUSE_ADDR_156", "SSH_SUSE_USER", "SSH_SUSE_PASS", "SSH_SUSE_PORT_156"),
+}
 
-    match = re.search(r"/([^/]+)/$", referer)
-    if match:
-        distro_id = match.group(1)
-        distro = get_object_or_404(Distribution, id=distro_id, is_active=True)
-        try:
-            body = json.loads(request.body)
-        except json.JSONDecodeError, AttributeError:
-            body = {}
-        test_runs_count = body.get("test_runs_count", 1)
-    else:
-        return JsonResponse({"error": "Invalid referer"}, status=400)
+
+def check_ssh(distro_name: str) -> tuple[bool, str]:
+    conf = DISTRO_SSH_MAP.get(distro_name)
+    if not conf:
+        return False, "Error! No such distro."
 
     try:
-        mode = body.get("testing_mode", "default")
-    except AttributeError:
-        return JsonResponse({"error": "Invalid JSON"}, status=400)
+        host = env_var_to_type(conf[0], str)
+        user = env_var_to_type(conf[1], str)
+        password = env_var_to_type(conf[2], str)
+        port = env_var_to_type(conf[3], int)
+    except ValueError as e:
+        return False, str(e)
+
+    try:
+        client = paramiko.SSHClient()
+        client.set_missing_host_key_policy(paramiko.WarningPolicy())  # noqa: S507
+        client.connect(host, port=port, username=user, password=password, timeout=10)
+        client.close()
+    except (paramiko.SSHException, OSError) as e:
+        return False, str(e)
+    else:
+        return True, ""
+
+
+def run_tests(request: HttpRequest) -> JsonResponse:
+    try:
+        body = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON body"}, status=400)
+
+    distro_id = body.get("distro_id")
+    if not distro_id:
+        return JsonResponse({"error": "distro_id is required"}, status=400)
+
+    distro = get_object_or_404(Distribution, id=distro_id, is_active=True)
+    mode = body.get("testing_mode", "default")
+    test_runs_count = body.get("test_runs_count", 1)
+    config = body.get("config") if mode == "profiled" else None
+
+    if distro.current_task_id:
+        task_id = str(distro.current_task_id)
+        task_data = test_runs.get(task_id)
+        if task_data:
+            result = task_data["result"]
+            result.refresh()
+            if not result.is_finished:
+                return JsonResponse(
+                    {"error": "Tests are already running for this distribution"},
+                    status=409,
+                )
+        distro.current_task_id = None
+        distro.save(update_fields=["current_task_id"])
+
+    ssh_ok, ssh_error = check_ssh(distro.name)
+    if not ssh_ok:
+        return JsonResponse(
+            {"error": f"Cannot connect to {distro.name}: {ssh_error}"},
+            status=503,
+        )
 
     result: TaskResult = run_test_task.enqueue(
         distro=distro.name,
         mode=mode,
         test_runs_count=test_runs_count,
-        config=body.get("config") if mode == "profiled" else None,
+        config=config,
     )
 
     task_id = str(result.id)
+    distro.current_task_id = result.id
+    distro.save(update_fields=["current_task_id"])
+
     test_runs[task_id] = {
         "status": "running",
         "result": result,
@@ -239,6 +289,9 @@ def get_test_status(request: HttpRequest, task_id: str) -> JsonResponse:  # noqa
     result = task_data["result"]
 
     result.refresh()
+
+    if result.is_finished:
+        Distribution.objects.filter(current_task_id=task_id).update(current_task_id=None)
 
     if not result.is_finished:
         return JsonResponse(
