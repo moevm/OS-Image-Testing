@@ -23,6 +23,8 @@ HOST_LAYERS_PATH           := ${CURDIR}/layers
 HOST_CONF_PATH             := ${CURDIR}/conf
 HOST_SCRIPTS_PATH          := ${CURDIR}/scripts
 TESTS_DIR                  := ${CURDIR}/tests
+METABASE_BACKUP_SCRIPT	   := ${CURDIR}/metabase_prototype/db/init/backup_init.sh
+METABASE_DEFAULT_DUMP	   := ${CURDIR}/metabase_prototype/metabase_backup.dump
 
 # Python
 define get_python_required_libs
