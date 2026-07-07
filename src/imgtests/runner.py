@@ -39,7 +39,6 @@ if TYPE_CHECKING:
 
     from imgtests.database.models.experiment import ExperimentType
     from imgtests.exec.base_util import BaseTestUtil
-    from imgtests.planning import LoadPattern
 
 
 Runner = Literal["default", "profiled"]
@@ -508,6 +507,37 @@ def filter_tests_by_names(
     return filtered_tests
 
 
+def build_profiled_settings(config: dict[str, Any] | None) -> ProfiledRunnerSettings:
+    if not config:
+        return ProfiledRunnerSettings()
+
+    durations = Durations(
+        duration_sec=config.get("durations", {}).get("duration_sec", 120),
+        duration_load=config.get("durations", {}).get("duration_load"),
+        duration_stress=config.get("durations", {}).get("duration_stress"),
+        duration_stability=config.get("durations", {}).get("duration_stability"),
+        duration_scalability=config.get("durations", {}).get("duration_scalability"),
+        duration_volume=config.get("durations", {}).get("duration_volume"),
+        duration_isolated=config.get("durations", {}).get("duration_isolated"),
+        duration_spike=config.get("durations", {}).get("duration_spike"),
+        duration_diagnostic=config.get("durations", {}).get("duration_diagnostic"),
+    )
+
+    return ProfiledRunnerSettings(
+        subsystems=frozenset(
+            Subsystem(s) if isinstance(s, str) else s for s in config.get("subsystems", [])
+        )
+        or None,
+        pattern=LoadPattern(config["pattern"]) if config.get("pattern") else None,
+        run_matrix=config.get("run_matrix"),
+        profile=TestKind(config["profile"]) if config.get("profile") else None,
+        matrix_profiles=tuple(TestKind(p) for p in config.get("matrix_profiles", []))
+        if config.get("matrix_profiles")
+        else None,
+        durations=durations,
+    )
+
+
 def _get_clients(distro: str) -> tuple[SSHClient | None, SSHClient | None]:
     suse_client = None
     poky_client = None
@@ -526,50 +556,7 @@ def _run_single(distro: Distro, mode: Runner, config: dict[str, Any]) -> None:  
     )
 
     logger.info("Running tests for %s", distro)
-    logger.info("Using suites: %s", config.get("suites", []))
-    suites_to_run = []
-    for suite_name in config.get("suites", []):
-        if suite_name in ALL_SUITES:
-            suite = ALL_SUITES[suite_name]
-            suite_durations = config.get("suite_durations", {})
-            if suite_name in suite_durations:
-                original_duration = suite.total_duration
-                suite.total_duration = suite_durations[suite_name]
-                logger.info(
-                    "Overriding %s duration: %d -> %ds",
-                    suite_name,
-                    original_duration,
-                    suite.total_duration,
-                )
-
-            selected_tests = config.get("selected_tests", {}).get(suite_name)
-            if selected_tests and len(selected_tests) > 0:
-                original_tests = suite.tests
-                filtered_tests = []
-                for test in original_tests:
-                    test_name = get_test_name(test)
-                    if test_name in selected_tests:
-                        filtered_tests.append(test)
-
-                if filtered_tests:
-                    suite.tests = tuple(filtered_tests)
-                    logger.info(
-                        "Filtered %s: %d -> %d tests",
-                        suite_name,
-                        len(original_tests),
-                        len(filtered_tests),
-                    )
-                    logger.info("Selected tests: %s", selected_tests)
-                else:
-                    logger.warning("No matching tests found for %s, using all tests", suite_name)
-
-            suites_to_run.append(suite)
-        else:
-            logger.warning("Suite %s not found, skipping", suite_name)
-
-    if not suites_to_run:
-        logger.warning("No suites configured, running default ALL_SUBSYSTEMS_SUITE")
-        suites_to_run = [ALL_SUBSYSTEMS_SUITE]
+    logger.info("Current testing mode is %s", mode)
 
     suse_client, poky_client = _get_clients(distro)
     distros_to_test: list[SSHClient] = []
@@ -577,10 +564,58 @@ def _run_single(distro: Distro, mode: Runner, config: dict[str, Any]) -> None:  
         distros_to_test.append(suse_client)
     if poky_client:
         distros_to_test.append(poky_client)
-
     database = ImgtestsDatabase()
-    logger.info("Current testing mode is %s", mode)
+
     if mode == "default":
+        logger.info("Using suites: %s", config.get("suites", []))
+        suites_to_run = []
+        for suite_name in config.get("suites", []):
+            if suite_name in ALL_SUITES:
+                suite = ALL_SUITES[suite_name]
+                suite_durations = config.get("suite_durations", {})
+                if (
+                    suite_name in suite_durations
+                    and suite.total_duration != suite_durations[suite_name]
+                ):
+                    original_duration = suite.total_duration
+                    suite.total_duration = suite_durations[suite_name]
+                    logger.info(
+                        "Overriding %s duration: %d -> %ds",
+                        suite_name,
+                        original_duration,
+                        suite.total_duration,
+                    )
+
+                selected_tests = config.get("selected_tests", {}).get(suite_name)
+                if selected_tests and len(selected_tests) > 0:
+                    original_tests = suite.tests
+                    filtered_tests = []
+                    for test in original_tests:
+                        test_name = get_test_name(test)
+                        if test_name in selected_tests:
+                            filtered_tests.append(test)
+
+                    if filtered_tests:
+                        suite.tests = tuple(filtered_tests)
+                        logger.info(
+                            "Filtered %s: %d -> %d tests",
+                            suite_name,
+                            len(original_tests),
+                            len(filtered_tests),
+                        )
+                        logger.info("Selected tests: %s", selected_tests)
+                    else:
+                        logger.warning(
+                            "No matching tests found for %s, using all tests",
+                            suite_name,
+                        )
+                suites_to_run.append(suite)
+            else:
+                logger.warning("Suite %s not found, skipping", suite_name)
+
+        if not suites_to_run:
+            logger.warning("No suites configured, running default ALL_SUBSYSTEMS_SUITE")
+            suites_to_run = [ALL_SUBSYSTEMS_SUITE]
         for suite in suites_to_run:
             logger.info("Running suite %s", suite.description)
             for client in distros_to_test:
@@ -588,13 +623,13 @@ def _run_single(distro: Distro, mode: Runner, config: dict[str, Any]) -> None:  
                 runner = TestsRunner(client, database, suite)
                 runner.run()
                 runner.close()
-    if mode == "profiled":
+    elif mode == "profiled":
         for client in filter(None, [poky_client, suse_client]):
             client.reconnect()
             ProfiledPlanRunner(
                 client=client,
                 database=database,
-            ).run(profiled_settings=ProfiledRunnerSettings())
+            ).run(profiled_settings=build_profiled_settings(config=config))
             client.close()
     database.session.close_all()
 
@@ -605,7 +640,7 @@ def run_tests(
     test_runs_count: int = 1,
     config: dict[str, Any] | None = None,
 ) -> None:
-    if config is None:
+    if mode == "default" and config is None:
         config = load_test_config(distro)
     for i in range(test_runs_count):
         logger.info("Starting test run %d of %d", i + 1, test_runs_count)

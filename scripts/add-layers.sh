@@ -26,7 +26,10 @@ LAYERS=(
     "meta-security"
     "meta-virtualization"
     "meta-cloud-services"
+    "meta-openjdk-temurin"
 )
+
+rm -rf /home/user/poky/meta-openjdk-temurin/recipes-java/helloworld-java
 
 for layer in "${LAYERS[@]}"; do
     layer="${layer#./}"

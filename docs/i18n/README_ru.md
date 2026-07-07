@@ -4,7 +4,12 @@
 
 Тестирование производительности и стабильности образов ОС.
 
-Структура репозитория:
+
+## Документация
+
+[Сборка образов, запуск тестов и просмотр результатов](../guides/testing-guide.md).
+
+### Структура репозитория
 
 | Папка                                          | Описание                                       |
 |------------------------------------------------|------------------------------------------------|
@@ -17,9 +22,35 @@
 | [src](../../src)                               | Исходный код и основные файлы разработки       |
 | [tests](../../tests)                           | Юнит тесты и другие                            |
 
-## Создание и тестирование образа Yocto с помощью Docker Compose
+### Методологии
 
-### 1. Склонируйте репозиторий
+- [Chaos Engineering](../methodology/ChaosEngineering.md)
+- [Тестирование производительности](../methodology/performance-methodology.md)
+- [Сравнительная матрица](../methodology/matrix.md)
+- [Метод инструментов](../methodology/instrumental-method.md)
+- [Метод USE](../methodology/use-method.md)
+- [Метод определения характеристик потребления памяти](../methodology/memory-consumption-characteristics.md)
+- [Метод оценки размера рабочего набора](../methodology/working-set-size-estimation-method.md)
+- [Мониторинг производительности](../methodology/perfomance-monitoring.md)
+- [Метод выявления утечек](../methodology/leak-detection-method.md)
+- [Статическая настройка производительности](../methodology/static-performance-tuning.md)
+- [Управление ресурсами](../methodology/resource-management.md)
+- [Микробенчмаркинг](../methodology/microbenchmarking.md)
+- [Анализ тактов](../methodology/cycle-analysis.md)
+- [Эмуляция сбоев](../methodology/failure_emulation.md)
+
+## Создание и тестирование образа Yocto и Suse с помощью Docker Compose
+
+### 0. Требуемые зависимости
+
+Прежде чем продолжить, убедитесь, что в вашей системе установлены следующие инструменты:
+- Git — требуется для клонирования репозитория проекта и управления контролем версий;
+- GNU Make — требуется для запуска команд сборки и тестирования с помощью make;
+- Docker — необходим для запуска среды сборки в контейнерах;
+- Docker Compose — используется для управления контейнерами Docker;
+- Python 3.11+ — требуется для запуска вспомогательных скриптов и инструментов, включенных в проект.
+
+### 1. Клонируйте репозиторий
 
 ```bash
 git clone https://github.com/moevm/OS-Image-Testing.git
@@ -77,56 +108,6 @@ docker logs os-image-testing-imgtests-analyzer-1
 * Параметры QEMU (размер RAM)
 * Сетевые параметры (IP адреса, порты, включая SSH порты для виртуальных машин)
 
-### 4. Просмотр результатов тестирования с помощью Metabase
-#### 4.1 Импорт панели мониторинга Metabase
+## Полная документация
 
-Для просмотра результатов тестирования необходимо импортировать панель мониторинга Metabase или создать её с нуля.
-
-Для импорта панели мониторинга Metabase из файла `.dump`:
-
-- Запустите все контейнеры:
-```bash
-make docker-compose up
-```
-
-- Остановите контейнер Metabase с помощью:
-```bash
-docker stop os-image-testing-imgtests-metabase-1
-```
-
-- Очистите метаданные Metabase:
-```bash
-docker exec -i os-image-testing-imgtests-metabase-meta-db-1 psql -U metabase -d postgres -c "DROP DATABASE metabase;"
-
-docker exec -i os-image-testing-imgtests-metabase-meta-db-1 psql -U metabase -d postgres -c "CREATE DATABASE metabase;"
-```
-
-- Импорт данных из файла `.dump`:
-```bash
-docker exec -i os-image-testing-imgtests-metabase-meta-db-1 pg_restore -U metabase -d metabase < your_dump_file.dump
-```
-> [!Параметры среды]
-> Будьте осторожны с данными среды, изменения не будут применяться к Metabase, например, изменение хоста, адреса или порта PostgreSQL сделает базу данных недоступной, и вам потребуется изменить эти переменные вручную в панели администратора Metabase.
-
-Файл дампа по умолчанию с базовыми панелями мониторинга и запросами можно найти по адресу [metabase_prototype/metabase_backup_26_06_2026.dump](metabase_prototype/metabase_backup_26_06_2026.dump)
-
-* Данные регистрации для дампа Metabase по умолчанию:
-    * email: `admin@gmail.com`
-    * password `123admin`
-
-- Запуск Metabase:
-```bash
-docker start os-image-testing-imgtests-metabase-1
-```
-
-#### 4.2 Запуск демонстрации Metabase
-
-Используйте Metabase для проверки примеров дашбордов на синтетических данных
-
-Перейдите в каталог metabase и запустите Metabase с помощью docker compose
-```bash
-cd metabase_prototype
-docker compose up -d
-```
-
-Конфигурацию среды для демонстрации Metabase можно просмотреть и настроить в [metabase_prototype/.env](metabase_prototype/.env)
+Вся документация по проекту доступна в [docs/index.md](../index.md).

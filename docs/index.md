@@ -9,6 +9,7 @@
 - [Работа с metabase: формат данных](./guides/metabase_specs.md)
 - [Работа с metabase: backup](./guides/metabase-backup-guide.md)
 - [Работа с metabase: создание dashboard-ов](./guides/metabase-dashboard-creating-guide.md)
+- [Сборка образов, запуск тестов и просмотр результатов](./guides/testing-guide.md)
 
 ## 2. Методологии
 

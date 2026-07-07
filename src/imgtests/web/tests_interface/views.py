@@ -210,7 +210,7 @@ def run_tests(request: HttpRequest) -> JsonResponse:
         return JsonResponse({"error": "Invalid referer"}, status=400)
 
     try:
-        mode = body.get("TESTING_MODE", "default")
+        mode = body.get("testing_mode", "default")
     except AttributeError:
         return JsonResponse({"error": "Invalid JSON"}, status=400)
 
@@ -218,6 +218,7 @@ def run_tests(request: HttpRequest) -> JsonResponse:
         distro=distro.name,
         mode=mode,
         test_runs_count=test_runs_count,
+        config=body.get("config") if mode == "profiled" else None,
     )
 
     task_id = str(result.id)

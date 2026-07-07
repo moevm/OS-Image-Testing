@@ -4,7 +4,12 @@
 
 Performance and Endurance Testing of OS images.
 
-Repository structure:
+
+## Documentation
+
+[Building images, running tests, and viewing results](docs/guides/testing-guide.md).
+
+### Repository structure
 
 | Folder                                      | Description                                |
 |---------------------------------------------|--------------------------------------------|
@@ -17,7 +22,33 @@ Repository structure:
 | [src](src)                                  | Source code and core development files     |
 | [tests](tests)                              | Unit tests and other                       |
 
-## Building and testing Yocto image via Docker Compose
+### Methodologies
+
+- [Chaos Engineering](docs/methodology/ChaosEngineering.md)
+- [Performance testing](docs/methodology/performance-methodology.md)
+- [Comparison matrix](docs/methodology/matrix.md)
+- [Tool-based method](docs/methodology/instrumental-method.md)
+- [USE method](docs/methodology/use-method.md)
+- [Determining memory consumption characteristics](docs/methodology/memory-consumption-characteristics.md)
+- [Working set size estimation method](docs/methodology/working-set-size-estimation-method.md)
+- [Performance monitoring](docs/methodology/perfomance-monitoring.md)
+- [Leak detection method](docs/methodology/leak-detection-method.md)
+- [Static performance tuning](docs/methodology/static-performance-tuning.md)
+- [Resource management](docs/methodology/resource-management.md)
+- [Microbenchmarking](docs/methodology/microbenchmarking.md)
+- [Cycle analysis](docs/methodology/cycle-analysis.md)
+- [Failure emulation](docs/methodology/failure_emulation.md)
+
+## Building and testing Yocto and Suse image via Docker Compose
+
+### 0. Required dependencies
+
+Before proceeding, make sure you have the following tools installed on your system:
+- Git — required to clone the project repository and manage version control;
+- GNU Make — required to run build and test commands via make;
+- Docker — needed to run the build environment in containers;
+- Docker Compose — used to orchestrate multi‑containers;
+- Python 3.11+ — required for running auxiliary scripts and tools included in the project.
 
 ### 1. Clone the repository
 
@@ -77,57 +108,6 @@ To add a new utility, you need to update the [packages.conf](conf/packages.conf)
 * QEMU parameters (RAM size)
 * Network parameters (IP addresses, ports, including SSH ports for VMs)
 
-### 4. View test results with Metabase
-#### 4.1 Import Metabase dashboard
+## Complete documentation
 
-To view test results, you need to import Metabase dashboard or make it from scratch.
-
-To import Metabase dashboard from `.dump` file:
-
-- Start all containers:
-```bash
-make docker-compose up
-```
-
-- Stop Metabase container with:
-```bash
-docker stop os-image-testing-imgtests-metabase-1
-```
-
-- Clear Metabase metadata:
-```bash
-docker exec -i os-image-testing-imgtests-metabase-meta-db-1 psql -U metabase -d postgres -c "DROP DATABASE metabase;"
-
-docker exec -i os-image-testing-imgtests-metabase-meta-db-1 psql -U metabase -d postgres -c "CREATE DATABASE metabase;"
-```
-
-- Import data from `.dump` file:
-```bash
-docker exec -i os-image-testing-imgtests-metabase-meta-db-1 pg_restore -U metabase -d metabase < your_dump_file.dump
-```
-
-> [!Environment]
-> Be careful with environment data, changes would not applay to metabase, e.g. changing postgres host, address or port would make database unaccesable and you would need to change this variables mannualy in Metabase's admin panel.
-
-Default dump file with basic dashboards and queries can be found at [metabase_prototype/metabase_backup_26_06_2026.dump](metabase_prototype/metabase_backup_26_06_2026.dump)
-
-* Metabase default dump registaration data:<br>
-    * email: `admin@gmail.com`
-    * password `123admin`
-
-- Start Metabase:
-```bash
-docker start os-image-testing-imgtests-metabase-1
-```
-
-#### 4.2 Start Metabase demonstration
-
-Use metabase to check dashboards examples on a synthetic data
-
-Move to metabase directory and launch metabase via docker compose
-```bash
-cd metabase_prototype
-docker compose up -d
-```
-
-Environment configuration for metabase demo can be viewed and configured at [metabase_prototype/.env](metabase_prototype/.env)
+All project documentation is available in the [docs/index.md](docs/index.md).
