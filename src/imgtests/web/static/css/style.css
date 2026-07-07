@@ -403,3 +403,84 @@ h1 i {
     color: rgba(255, 255, 255, 0.9);
     margin: 0;
 }
+
+.progress-card {
+    background: white;
+    margin-bottom: 20px;
+    padding: 30px;
+    width: 100%;
+    border-radius: 12px;
+    border: 1px solid #ddd;
+}
+
+.progress-group {
+    margin-bottom: 20px;
+}
+
+.progress-label {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #7f8c8d;
+}
+
+.progress-bg {
+    background-color: #e0e0e0;
+    border-radius: 8px;
+    overflow: hidden;
+    height: 16px;
+    width: 100%;
+}
+
+.progress-bar {
+    background-color: #2ecc71;
+    height: 100%;
+    width: 0%;
+    transition: width 0.4s ease-out;
+}
+
+#runs-bar {
+    background-color: #3498db;
+}
+
+@keyframes pulse-animation {
+    0% { opacity: 1; }
+    50% { opacity: 0.4; }
+    100% { opacity: 1; }
+}
+
+.pulse {
+    animation: pulse-animation 1.5s infinite ease-in-out;
+    background-image: linear-gradient(45deg, rgba(255,255,255,.15) 25%, transparent 25%, transparent 50%, rgba(255,255,255,.15) 50%, rgba(255,255,255,.15) 75%, transparent 75%, transparent);
+    background-size: 1rem 1rem;
+}
+
+.info-section {
+    margin-top: 25px;
+    border-top: 1px solid #ecf0f1;
+    padding-top: 15px;
+}
+
+.info-item {
+    margin-bottom: 10px;
+    font-size: 14px;
+}
+
+.info-item strong {
+    color: #34495e;
+}
+
+.info-item span {
+    color: #16a085;
+    font-weight: 500;
+}
+
+.status-error {
+    color: #e74c3c;
+    text-align: center;
+    font-size: 12px;
+    margin-top: 10px;
+    display: none;
+}

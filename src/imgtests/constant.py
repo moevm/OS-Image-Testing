@@ -9,6 +9,7 @@ LIB_NAME: Final = "imgtests"
 # Paths
 LIB_DATA_DIR: Final = Path.home() / LIB_NAME
 LOG_PATH: Final = LIB_DATA_DIR / "processing.log"
+PROG_LOG_PATH: Final = LIB_DATA_DIR / "test_progress.log"
 CONFIG_DIR: Final = LIB_DATA_DIR / "test_configs"
 CONFIG_FILE: Final = LIB_DATA_DIR / "user_distros.json"
 REPORTS_DIR: Final = LIB_DATA_DIR / "results"

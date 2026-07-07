@@ -637,8 +637,29 @@ def run_tests(
     test_runs_count: int = 1,
     config: dict[str, Any] | None = None,
 ) -> None:
+    from imgtests.suites.map import ALL_SUITES  # noqa: PLC0415
+
     if mode == "default" and config is None:
         config = load_test_config(distro)
+
+    # log tests amount for web ui progress card
+    total_tests_amount = 0
+    if mode == "default" and config:
+        for suite in config["suites"]:
+            if suite in config["selected_tests"]:
+                total_tests_amount += len(config["selected_tests"][suite])
+            else:
+                total_tests_amount += len(ALL_SUITES[suite].tests)
+            # default runner runs 2 system tests for each suite (runner.py: 616 -> 621 -> 149)
+            total_tests_amount += 2
+    if mode == "profiled":
+        tmp_config = build_profiled_settings(config=config)
+        total_tests_amount = len(tmp_config.subsystems)
+        if tmp_config.run_matrix:
+            total_tests_amount *= len(tmp_config.matrix_profiles)
+    logger.info("Total amount of tests per run: %d", total_tests_amount)
+
+    # start test runs
     for i in range(test_runs_count):
         logger.info("Starting test run %d of %d", i + 1, test_runs_count)
         _run_single(distro, mode, config)

@@ -78,6 +78,8 @@ document.getElementById("runTestsBtn").addEventListener("click", function () {
     btn.textContent = "Running...";
     outputContainer.textContent = "Tests Running...";
 
+    // flush progress handler the run tests
+    fetch("/flush-progress/").then(() => {
     fetch("/run-tests/", {
         method: "POST",
         headers: {
@@ -89,25 +91,37 @@ document.getElementById("runTestsBtn").addEventListener("click", function () {
             testing_mode: testing_mode,
             config: config,
         }),
-    })
-        .then((response) => response.json())
+    }).then((response) => response.json())
         .then((data) => {
             if (data.success && data.task_id) {
                 outputContainer.textContent =
                     "Tests running... (Task ID: " + data.task_id + ")";
                 pollStatus(data.task_id);
+                // add progress display
+                document.getElementById("progress-card").style.display = "block";
+                // hide suite | profile depending on selected mode
+                if (testing_mode === "profiled") {
+                    document.getElementById("current-suite-div").style.display = "none";
+                    document.getElementById("last-profile-div").style.display = "inline";
+                } else {
+                    document.getElementById("current-suite-div").style.display = "inline";
+                    document.getElementById("last-profile-div").style.display = "none";
+                }
             } else {
                 outputContainer.textContent =
                     "Error: " + (data.error || "Failed to start tests");
                 btn.disabled = false;
                 btn.textContent = "Run tests";
+                document.getElementById("progress-card").style.display = "none";
             }
         })
         .catch((error) => {
             outputContainer.textContent = "Error: " + error;
             btn.disabled = false;
             btn.textContent = "Run tests";
+            document.getElementById("progress-card").style.display = "none";
         });
+    });
 });
 
 function pollStatus(taskId) {
@@ -127,6 +141,7 @@ function pollStatus(taskId) {
                         data.output || "Tests completed successfully.";
                     btn.disabled = false;
                     btn.textContent = "Run tests";
+                    document.getElementById("progress-card").style.display = "none";
                 } else if (data.status === "failed") {
                     let errorMsg = data.error || "Test failed";
                     if (data.stderr) {
@@ -138,18 +153,72 @@ function pollStatus(taskId) {
                     outputContainer.textContent = errorMsg;
                     btn.disabled = false;
                     btn.textContent = "Run tests";
+                    document.getElementById("progress-card").style.display = "none";
                 } else {
                     outputContainer.textContent = "Unknown status";
                     btn.disabled = false;
                     btn.textContent = "Run tests";
+                    document.getElementById("progress-card").style.display = "none";
                 }
             })
             .catch((error) => {
                 outputContainer.textContent = "Error checking status: " + error;
                 btn.disabled = false;
                 btn.textContent = "Run tests";
+                document.getElementById("progress-card").style.display = "none";
             });
     };
 
     checkStatus();
 }
+
+const PRGORESS_POLLING_INTERVAL = 3000;
+
+function updateDashboard() {
+    fetch("/current-progress/", { cache: "no-store" })
+        .then(response => {
+            if (!response.ok) throw new Error('Ошибка загрузки файла');
+            return response.json();
+        })
+        .then(data => {
+            document.getElementById('error-msg').style.display = 'none';
+
+            const totalTests = data.total_test_count || 0;
+            const currentTests = data.test_count || 0;
+            const testsPercent = totalTests > 0 ? Math.min(Math.round((currentTests / totalTests) * 100), 100) : 0;
+
+            document.getElementById('tests-text').textContent = `${currentTests} / ${totalTests} (${testsPercent}%)`;
+            document.getElementById('tests-bar').style.width = `${testsPercent}%`;
+
+
+            const totalRuns = data.total_run_count || 0;
+            const currentRun = data.current_test_run || 0;
+            const runsPercent = totalRuns > 0 ? Math.min(Math.round((currentRun / totalRuns) * 100), 100) : 0;
+
+            const runsBar = document.getElementById('runs-bar');
+            const runsText = document.getElementById('runs-text');
+
+            runsBar.style.width = `${runsPercent}%`;
+
+            if (currentRun > 0 && currentRun <= totalRuns) {
+                runsBar.classList.add('pulse');
+                runsText.textContent = `Run ${currentRun} out of ${totalRuns} is in progress (${runsPercent}%)`;
+                runsText.style.color = '#3498db';
+            } else {
+                runsBar.classList.remove('pulse');
+                runsText.textContent = `${currentRun} / ${totalRuns} (${runsPercent}%)`;
+                runsText.style.color = '#7f8c8d';
+            }
+
+            document.getElementById('current-suite').textContent = data.current_suite;
+            document.getElementById('current-test').textContent = data.current_test;
+            document.getElementById('last-profile').textContent = data.last_profile_done;
+        })
+        .catch(error => {
+            console.error('JSON processing error:', error);
+            document.getElementById('error-msg').style.display = 'block';
+        });
+}
+
+updateDashboard();
+let interval = setInterval(updateDashboard, PRGORESS_POLLING_INTERVAL);

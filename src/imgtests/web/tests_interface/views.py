@@ -15,7 +15,7 @@ from django.views.decorators.http import require_http_methods
 from pydantic_core._pydantic_core import ValidationError
 from sqlalchemy import create_engine
 
-from imgtests.constant import CONFIG_DIR, EXCEL_REPORTS_DIR, REPORTS_DIR
+from imgtests.constant import CONFIG_DIR, EXCEL_REPORTS_DIR, PROG_LOG_PATH, REPORTS_DIR
 from imgtests.database.database import ImgtestsDatabase, PostgresCreds
 from imgtests.reporting.excel_export import export_database_to_excel
 from imgtests.reporting.html_report import ReportGenerator
@@ -229,6 +229,26 @@ def run_tests(request: HttpRequest) -> JsonResponse:
     }
 
     return JsonResponse({"success": True, "task_id": task_id, "status": "running"})
+
+
+def get_run_progress(request: HttpRequest) -> JsonResponse:  # noqa: ARG001
+    progress_file = Path(PROG_LOG_PATH)
+    if progress_file.exists():
+        try:
+            with Path.open(PROG_LOG_PATH, encoding="utf-8") as file:
+                data = json.load(file)
+            return JsonResponse(data)
+        except json.decoder.JSONDecodeError:
+            return JsonResponse({})
+    return JsonResponse({})
+
+
+def flush_progress_handle(request: HttpRequest) -> JsonResponse:  # noqa: ARG001
+    for handle in logging.getLogger().handlers:
+        if handle.name == "progress_handler":
+            handle.flush()
+            return JsonResponse({"status": "success"})
+    return JsonResponse({"status": "failure"})
 
 
 def get_test_status(request: HttpRequest, task_id: str) -> JsonResponse:  # noqa: ARG001

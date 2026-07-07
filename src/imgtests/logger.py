@@ -1,12 +1,13 @@
+import json
 import logging
+import re
 import sys
-from typing import TYPE_CHECKING, Literal, Self, TextIO
+from pathlib import Path
+from typing import Literal, Self, TextIO
 
 from pythonjsonlogger.json import JsonFormatter
 
-if TYPE_CHECKING:
-    from pathlib import Path
-
+from imgtests.constant import PROG_LOG_PATH
 
 LogLevel = Literal["debug", "info", "warning", "error", "critical"]
 
@@ -21,6 +22,91 @@ class StreamFormatter(logging.Formatter):
         self._style._fmt = self._level_fmt + self._log_fmt  # noqa: SLF001
 
         return super().format(record)
+
+
+class ProgressHandle(logging.Handler):
+    tests_count_pattern = r"Total amount of tests per run: (\d+)"
+    test_runs_pattern = r"Starting test run (\d+) of (\d+)"
+    default_test_start_pattern = r"Starting '(.*\.)'.*"
+    default_test_finish_pattern = r"'(.*\.)' test finished."
+    suite_start_pattern = r"Running suite (.*)\."
+    profiled_test_start_pattern = r"\[PLAN\] run stage=([\w-]+) tool=([\w-]+) subsystem=([\w-]+).*"
+    profiled_test_finish_pattern = r"\[PLAN\] done .*"
+    profile_done_pattern = r"\[PROFILED\] DONE profile=(\w+) pattern=(\w+) .*"
+
+    def __init__(self, level: logging._Level = logging.DEBUG):
+        super().__init__(level)
+        self.progress_data = {}
+        self.flush()
+
+    def flush(self):
+        self.progress_data = {
+            "total_test_count": 0,
+            "test_count": 0,
+            "total_run_count": 0,
+            "current_test_run": 0,
+            "current_suite": "Not starter yet",
+            "last_profile_done": "Not done yet",
+            "current_test": "Not starter yet",
+        }
+
+    def get_progress_data(self):
+        return self.progress_data
+
+    def emit(self, record: logging.LogRecord):
+        msg = self.format(record)
+
+        match = re.search(self.tests_count_pattern, msg)
+        if match:
+            total = int(match.group(1))
+            self.progress_data["total_test_count"] = total
+
+        match = re.search(self.test_runs_pattern, msg)
+        if match:
+            # set current run
+            cur = int(match.group(1))
+            total = int(match.group(2))
+            self.progress_data["current_test_run"] = cur
+            self.progress_data["total_run_count"] = total
+            # reset tests count
+            self.progress_data["test_count"] = 0
+
+        # default runner matches
+        match = re.search(self.suite_start_pattern, msg)
+        if match:
+            suite = match.group(1)
+            self.progress_data["current_suite"] = suite
+
+        match = re.search(self.default_test_start_pattern, msg)
+        if match:
+            test = match.group(1)
+            self.progress_data["current_test"] = test
+
+        match = re.search(self.default_test_finish_pattern, msg)
+        if match:
+            self.progress_data["test_count"] += 1
+            self.progress_data["current_test"] = "Not started yet"
+
+        # profiled runner matches
+        match = re.search(self.profile_done_pattern, msg)
+        if match:
+            profile = "-".join([match.group(1), match.group(2)])
+            self.progress_data["last_profile_done"] = profile
+
+        match = re.search(self.profiled_test_start_pattern, msg)
+        if match:
+            subsystem = match.group(3)
+            profile = match.group(1)
+            tool = match.group(2)
+            self.progress_data["current_test"] = f"{subsystem}-{profile} via {tool}"
+
+        match = re.search(self.profiled_test_finish_pattern, msg)
+        if match:
+            self.progress_data["test_count"] += 1
+            self.progress_data["current_test"] = "Not started yet"
+
+        with Path.open(PROG_LOG_PATH, "w", encoding="utf-8") as file:
+            json.dump(self.progress_data, file, indent=4)
 
 
 def set_handlers(
@@ -45,6 +131,7 @@ def set_handlers(
     """
     levelno = getattr(logging, log_level.upper())
     logger.setLevel(levelno)
+    logger.addHandler(__get_progress_handler())
     logger.addHandler(__get_file_handler(filename))
     if levelno in [logging.INFO, logging.DEBUG]:
         logger.addHandler(__get_stdout_handler())
@@ -82,3 +169,12 @@ def __get_stdout_handler() -> logging.StreamHandler[TextIO]:
     stdout_handler.setFormatter(StreamFormatter())
 
     return stdout_handler
+
+
+def __get_progress_handler() -> ProgressHandle:
+    progress_handle = ProgressHandle()
+    progress_handle.setLevel(logging.DEBUG)
+    progress_handle.setFormatter(StreamFormatter())
+    progress_handle.set_name("progress_handler")
+
+    return progress_handle
