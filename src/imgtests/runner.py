@@ -573,7 +573,10 @@ def _run_single(distro: Distro, mode: Runner, config: dict[str, Any]) -> None:  
             if suite_name in ALL_SUITES:
                 suite = ALL_SUITES[suite_name]
                 suite_durations = config.get("suite_durations", {})
-                if suite_name in suite_durations:
+                if (
+                    suite_name in suite_durations
+                    and suite.total_duration != suite_durations[suite_name]
+                ):
                     original_duration = suite.total_duration
                     suite.total_duration = suite_durations[suite_name]
                     logger.info(
