@@ -80,46 +80,54 @@ class TestConfigManager {
         console.log("Found radio buttons:", radioButtons.length);
 
         radioButtons.forEach((radio) => {
-            radio.addEventListener("change", (e) => {
-                console.log("Config mode changed to:", e.target.value);
+            radio.addEventListener("change", (event) => {
+                console.log("Config mode changed to:", event.target.value);
                 const panel = document.getElementById("customConfigPanel");
                 if (panel) {
                     panel.style.display =
-                        e.target.value === "custom" ? "block" : "none";
-                    if (e.target.value === "custom" && this.availableSuites) {
+                        event.target.value === "custom" ? "block" : "none";
+                    if (
+                        event.target.value === "custom" &&
+                        this.availableSuites
+                    ) {
                         this.renderConfigUI();
                     }
                 }
             });
-        document.querySelectorAll('input[name="profiledConfigMode"]').forEach(radio => {
-            radio.addEventListener("change", e => {
-                const panel = document.getElementById("profiledCustomPanel");
-                if (e.target.value === "custom") {
-                    panel.style.display = "block";
-                    this.renderProfilesAndDurationsUI();
-                    this.renderPatternUI();
-                    this.renderSubsystemsUI();
-                } else {
-                    panel.style.display = "none";
-                }
-            });
         });
-        document.querySelectorAll('input[name="profiledRunMode"]').forEach(radio => {
-            radio.addEventListener("change", e => {
-                const singlePanel = document.getElementById("singleRunPanel");
-                const matrixPanel = document.getElementById("matrixRunPanel");
-                if (e.target.value === "single") {
-                    singlePanel.style.display = "block";
-                    matrixPanel.style.display = "none";
-                } else {
-                    singlePanel.style.display = "none";
-                    matrixPanel.style.display = "block";
-                }
-                this.renderProfilesAndDurationsUI();
-            });
-        });
-    });
 
+        document
+            .querySelectorAll('input[name="profiledConfigMode"]')
+            .forEach((radio) => {
+                radio.addEventListener("change", (event) => {
+                    const panel =
+                        document.getElementById("profiledCustomPanel");
+                    if (event.target.value === "custom") {
+                        panel.style.display = "block";
+                        this.renderProfilesAndDurationsUI();
+                        this.renderPatternUI();
+                        this.renderSubsystemsUI();
+                    } else {
+                        panel.style.display = "none";
+                    }
+                });
+            });
+
+        document
+            .querySelectorAll('input[name="profiledRunMode"]')
+            .forEach((radio) => {
+                radio.addEventListener("change", (event) => {
+                    const singlePanel =
+                        document.getElementById("singleRunPanel");
+                    const matrixPanel =
+                        document.getElementById("matrixRunPanel");
+                    const isSingle = event.target.value === "single";
+
+                    singlePanel.style.display = isSingle ? "block" : "none";
+                    matrixPanel.style.display = isSingle ? "none" : "block";
+                    this.renderProfilesAndDurationsUI();
+                });
+            });
 
         const saveBtn = document.getElementById("saveConfigBtn");
         if (saveBtn) {
@@ -180,8 +188,10 @@ class TestConfigManager {
                 this.currentConfig.suite_durations?.[suiteName] ||
                 suiteInfo.default_duration ||
                 300;
+            const durationPrefix = `basic_${suiteName}_duration`;
 
             const div = document.createElement("div");
+            div.className = "suite-config-card";
             div.style.margin = "15px 0";
             div.style.padding = "10px";
             div.style.border = "1px solid #e0e0e0";
@@ -193,6 +203,7 @@ class TestConfigManager {
                     <input type="checkbox"
                            value="${suiteName}"
                            data-suite="${suiteName}"
+                           data-duration-prefix="${durationPrefix}"
                            ${isChecked ? "checked" : ""}
                            style="margin-top: 3px;">
                     <div style="flex: 1;">
@@ -203,22 +214,20 @@ class TestConfigManager {
                             </span>
                         </div>
                         <div style="margin-top: 8px; color: #999; font-size: 0.9em;">
-                            Default duration: ${suiteInfo.default_duration}s |
+                            Default duration:
+                            ${DurationInput.format(suiteInfo.default_duration)} |
                             Tests: ${suiteInfo.test_count || 0}
                         </div>
-                        <div style="margin-top: 10px; ${!isChecked ? "opacity: 0.5;" : ""}">
-                            <label style="font-size: 0.9em;">
-                                Custom duration (seconds):
-                                <input type="number"
-                                       id="duration_${suiteName}"
-                                       value="${currentDuration}"
-                                       min="10"
-                                       step="10"
-                                       style="width: 100px; margin-left: 10px; padding: 4px;"
-                                       ${!isChecked ? "disabled" : ""}>
-                            </label>
+                        <div class="suite-options"
+                             style="margin-top: 10px; ${!isChecked ? "opacity: 0.5;" : ""}">
+                            <div style="font-size: 0.9em;">Custom duration:</div>
+                            ${DurationInput.render(
+                                durationPrefix,
+                                currentDuration,
+                                !isChecked,
+                            )}
                             <button class="btn-small"
-                                    style="margin-left: 10px;"
+                                    style="margin-top: 10px;"
                                     onclick="testConfigManager.showTestsForSuite('${suiteName}')"
                                     ${!isChecked ? "disabled" : ""}>
                                 Select Individual Tests
@@ -240,26 +249,29 @@ class TestConfigManager {
 
         document
             .querySelectorAll('#suitesCheckboxes input[type="checkbox"]')
-            .forEach((cb) => {
-                cb.addEventListener("change", (e) => {
-                    const suiteDiv = e.target.closest("div");
-                    const optionsDiv = suiteDiv.querySelector("div:last-child");
-                    const durationInput = suiteDiv.querySelector(
-                        `input[id^="duration_"]`,
+            .forEach((checkbox) => {
+                checkbox.addEventListener("change", (event) => {
+                    const suiteCard = event.target.closest(
+                        ".suite-config-card",
                     );
-                    const selectBtn = suiteDiv.querySelector(".btn-small");
+                    const optionsDiv =
+                        suiteCard.querySelector(".suite-options");
+                    const selectBtn = suiteCard.querySelector(".btn-small");
+                    const disabled = !event.target.checked;
 
-                    if (e.target.checked) {
-                        suiteDiv.style.backgroundColor = "#f9f9f9";
-                        if (optionsDiv) optionsDiv.style.opacity = "1";
-                        if (durationInput) durationInput.disabled = false;
-                        if (selectBtn) selectBtn.disabled = false;
-                    } else {
-                        suiteDiv.style.backgroundColor = "#fff";
-                        if (optionsDiv) optionsDiv.style.opacity = "0.5";
-                        if (durationInput) durationInput.disabled = true;
-                        if (selectBtn) selectBtn.disabled = true;
+                    suiteCard.style.backgroundColor = disabled
+                        ? "#fff"
+                        : "#f9f9f9";
+                    if (optionsDiv) {
+                        optionsDiv.style.opacity = disabled ? "0.5" : "1";
                     }
+                    if (selectBtn) {
+                        selectBtn.disabled = disabled;
+                    }
+                    DurationInput.setDisabled(
+                        event.target.dataset.durationPrefix,
+                        disabled,
+                    );
                 });
             });
 
@@ -380,14 +392,13 @@ class TestConfigManager {
                         const suiteName = cb.value;
                         selectedSuites.push(suiteName);
 
-                        const durationInput = document.getElementById(
-                            `duration_${suiteName}`,
+                        const durationPrefix =
+                            cb.dataset.durationPrefix ||
+                            `basic_${suiteName}_duration`;
+                        suiteDurations[suiteName] = DurationInput.toSeconds(
+                            durationPrefix,
+                            `${suiteName} duration`,
                         );
-                        if (durationInput) {
-                            suiteDurations[suiteName] = parseInt(
-                                durationInput.value,
-                            );
-                        }
                     }
                 });
             const testRunsCount = parseInt(
@@ -494,34 +505,46 @@ class TestConfigManager {
     }
 
     renderProfilesAndDurationsUI() {
-        const profiles = ["load","stress","stability","scalability","volume","isolated","spike","diagnostic"];
+        const profiles = [
+            "load",
+            "stress",
+            "stability",
+            "scalability",
+            "volume",
+            "isolated",
+            "spike",
+            "diagnostic",
+        ];
 
-        // Single run render
-        const singleProfileContainer = document.getElementById("singleProfileContainer");
-        const singleDurationContainer = document.getElementById("singleDurationContainer");
+        const singleProfileContainer = document.getElementById(
+            "singleProfileContainer",
+        );
+        const singleDurationContainer = document.getElementById(
+            "singleDurationContainer",
+        );
         singleProfileContainer.innerHTML = "";
         singleDurationContainer.innerHTML = "";
+
         const select = document.createElement("select");
         select.id = "profileSelect";
-        profiles.forEach(p => {
-            const opt = document.createElement("option");
-            opt.value = p;
-            opt.textContent = p.charAt(0).toUpperCase() + p.slice(1);
-            select.appendChild(opt);
+        profiles.forEach((profile) => {
+            const option = document.createElement("option");
+            option.value = profile;
+            option.textContent =
+                profile.charAt(0).toUpperCase() + profile.slice(1);
+            select.appendChild(option);
         });
         singleProfileContainer.appendChild(select);
-        const input = document.createElement("input");
-        input.type = "number";
-        input.id = "duration_sec";
-        input.value = 120;
-        input.min = 10;
-        input.step = 10;
-        singleDurationContainer.appendChild(input);
+        singleDurationContainer.innerHTML = DurationInput.render(
+            "profiled_single_duration",
+            120,
+        );
 
-        // Matrix run render
-        const matrixContainer = document.getElementById("profilesCheckboxes");
+        const matrixContainer =
+            document.getElementById("profilesCheckboxes");
         matrixContainer.innerHTML = "";
-        profiles.forEach(profile => {
+        profiles.forEach((profile) => {
+            const durationPrefix = `profiled_${profile}_duration`;
             const div = document.createElement("div");
             div.style.margin = "10px 0";
             div.style.padding = "8px";
@@ -529,15 +552,25 @@ class TestConfigManager {
             div.style.borderRadius = "5px";
             div.innerHTML = `
                 <label>
-                    <input type="checkbox" name="profiles" value="${profile}">
+                    <input
+                        type="checkbox"
+                        name="profiles"
+                        value="${profile}"
+                        data-duration-prefix="${durationPrefix}"
+                    >
                     <strong>${profile}</strong>
                 </label>
-                <input type="number" id="duration_${profile}" placeholder="Duration (sec)" min="10" step="10" style="margin-left:10px; width:100px;" disabled>
+                ${DurationInput.render(durationPrefix, 120, true)}
             `;
-            const checkbox = div.querySelector('input[type="checkbox"]');
-            const durationInput = div.querySelector('input[type="number"]');
-            checkbox.addEventListener("change", e => {
-                durationInput.disabled = !e.target.checked;
+
+            const checkbox = div.querySelector(
+                'input[type="checkbox"]',
+            );
+            checkbox.addEventListener("change", (event) => {
+                DurationInput.setDisabled(
+                    event.target.dataset.durationPrefix,
+                    !event.target.checked,
+                );
             });
             matrixContainer.appendChild(div);
         });

@@ -403,3 +403,32 @@ h1 i {
     color: rgba(255, 255, 255, 0.9);
     margin: 0;
 }
+
+.duration-input-group {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+.duration-input-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    color: #666;
+    font-size: 0.85em;
+}
+
+.duration-input-field input {
+    width: 78px;
+    padding: 4px;
+}
+
+.duration-input-field:first-child input {
+    width: 92px;
+}
+
+.duration-input-error {
+    border: 2px solid #c62828;
+}
