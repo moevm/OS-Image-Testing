@@ -153,6 +153,7 @@
 {% load static %}
 <script>
     window.csrfToken = "{{ csrf_token }}";
+    window.distroId = {{ distro.id }};
     window.distroName = "{{ distro.name }}";
     document.getElementById("configTestingMode").addEventListener("change", function() {
         const basicConfig = document.getElementById("basicTestConfig");

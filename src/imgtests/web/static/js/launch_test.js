@@ -85,12 +85,25 @@ document.getElementById("runTestsBtn").addEventListener("click", function () {
             "Content-Type": "application/json",
         },
         body: JSON.stringify({
+            distro_id: window.distroId,
             test_runs_count: testRunsCount,
             testing_mode: testing_mode,
             config: config,
         }),
     })
-        .then((response) => response.json())
+        .then((response) => {
+            if (response.status === 409 || response.status === 503) {
+                return response.json().then((data) => {
+                    throw new Error(data.error);
+                });
+            }
+            if (!response.ok) {
+                return response.json().then((data) => {
+                    throw new Error(data.error || "Failed to start tests");
+                });
+            }
+            return response.json();
+        })
         .then((data) => {
             if (data.success && data.task_id) {
                 outputContainer.textContent =
@@ -104,7 +117,7 @@ document.getElementById("runTestsBtn").addEventListener("click", function () {
             }
         })
         .catch((error) => {
-            outputContainer.textContent = "Error: " + error;
+            outputContainer.textContent = "Error: " + error.message;
             btn.disabled = false;
             btn.textContent = "Run tests";
         });
