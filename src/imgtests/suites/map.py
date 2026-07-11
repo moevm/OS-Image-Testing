@@ -14,6 +14,7 @@ from imgtests.suites.fault_injection import (
     FaultInjectionChaosbladeTest,
     FaultInjectionEnduranceTest,
     FaultInjectionFioTest,
+    FaultInjectionIperf3Test,
     FaultInjectionPerfTest,
     FaultInjectionStressNgTest,
 )
@@ -84,6 +85,7 @@ ALL_SUBSYSTEMS_SUITE: Final = TestsRunnerConfig(
         FaultInjectionStressNgTest,
         FaultInjectionPerfTest,
         FaultInjectionFioTest,
+        FaultInjectionIperf3Test,
     ),
     experiment_type="performance",
     duration=1200,
