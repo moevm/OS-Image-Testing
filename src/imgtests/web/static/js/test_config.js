@@ -333,26 +333,30 @@ class TestConfigManager {
                         ),
                     ).map((cb) => cb.value);
 
-                    if (!this.currentConfig.selected_tests) {
-                        this.currentConfig.selected_tests = {};
-                    }
+                    const selectedTests = {
+                        ...(this.currentConfig.selected_tests ?? {}),
+                    };
 
                     if (selected.length > 0) {
-                        this.currentConfig.selected_tests[suiteName] = selected;
+                        selectedTests[suiteName] = selected;
                         this.showStatus(
                             `Selected ${selected.length} tests for ${suiteName}`,
                             "success",
                         );
                     } else {
-                        delete this.currentConfig.selected_tests[suiteName];
+                        delete selectedTests[suiteName];
                         this.showStatus(
                             `Will run all tests for ${suiteName}`,
                             "success",
                         );
                     }
 
+                    this.currentConfig = {
+                        ...this.currentConfig,
+                        selected_tests: selectedTests,
+                    };
+
                     modal.remove();
-                    this.renderConfigUI();
                 });
 
             document
@@ -424,6 +428,7 @@ class TestConfigManager {
                 const error = await response.text();
                 throw new Error(`HTTP ${response.status}: ${error}`);
             }
+            this.renderConfigUI();
         } catch (error) {
             console.error("Save failed:", error);
             this.showStatus(
