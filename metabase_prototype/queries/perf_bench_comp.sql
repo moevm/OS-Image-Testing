@@ -1,12 +1,15 @@
 SELECT
 	-- Add here another metrics as columns if needed
     (item->>'benchmark') AS benchmark,
-    (item->>'total_time')::float AS total_time,
+      (CASE
+      WHEN (item->>'duration_sec') IS NOT NULL THEN (item->>'duration_sec')::float
+      ELSE (item->>'total_time')::float
+    END) AS total_time,
     (item->>'usecs_per_op')::float AS usecs_per_op,
     (item->>'ops_per_sec')::bigint AS ops_per_sec,
     (item->>'gb_per_sec_default')::float AS gb_per_sec_default,
     (item->>'gb_per_sec_unrolled')::float AS gb_per_sec_unrolled, experiment.experiment_id, os, core_info,
-    'Experiment 1' AS experiment_label
+	'Experiment 1' AS experiment_label
 FROM (
     SELECT jsonb_array_elements(CASE
 		WHEN jsonb_typeof(l.result::jsonb) = 'array' THEN l.result::jsonb
@@ -25,19 +28,21 @@ FROM (
       [[ AND l.command LIKE CONCAT('%', {{command}}, '%') ]]
 ) AS subquery
 JOIN experiment ON subquery.experiment_id = experiment.experiment_id
-WHERE item->>'benchmark' IS NOT NULL AND ((item->>'total_time')::float IS NOT NULL OR (item->>'usecs_per_op')::float IS NOT NULL OR (item->>'ops_per_sec')::float IS NOT NULL OR (item->>'gb_per_sec_default')::float IS NOT NULL OR (item->>'gb_per_sec_unrolled')::float IS NOT NULL)
 
 UNION ALL
 
 SELECT
 	-- Add here another metrics as columns if needed
     (item->>'benchmark') AS benchmark,
-    (item->>'total_time')::float AS total_time,
+      (CASE
+      WHEN (item->>'duration_sec') IS NOT NULL THEN (item->>'duration_sec')::float
+      ELSE (item->>'total_time')::float
+    END) AS total_time,
     (item->>'usecs_per_op')::float AS usecs_per_op,
     (item->>'ops_per_sec')::bigint AS ops_per_sec,
     (item->>'gb_per_sec_default')::float AS gb_per_sec_default,
     (item->>'gb_per_sec_unrolled')::float AS gb_per_sec_unrolled, experiment.experiment_id, os, core_info,
-    'Experiment 2' AS experiment_label
+	'Experiment 2' AS experiment_label
 FROM (
     SELECT jsonb_array_elements(CASE
 		WHEN jsonb_typeof(l.result::jsonb) = 'array' THEN l.result::jsonb
@@ -56,6 +61,5 @@ FROM (
       [[ AND l.command LIKE CONCAT('%', {{command}}, '%') ]]
 ) AS subquery
 JOIN experiment ON subquery.experiment_id = experiment.experiment_id
-WHERE item->>'benchmark' IS NOT NULL AND ((item->>'total_time')::float IS NOT NULL OR (item->>'usecs_per_op')::float IS NOT NULL OR (item->>'ops_per_sec')::float IS NOT NULL OR (item->>'gb_per_sec_default')::float IS NOT NULL OR (item->>'gb_per_sec_unrolled')::float IS NOT NULL)
 
 ORDER BY benchmark;
