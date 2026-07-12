@@ -1,6 +1,6 @@
-SELECT os, 
-AVG(total_time) AS avg_total, 
-AVG(userspace_time) AS avg_userspace, 
+SELECT os,
+AVG(total_time) AS avg_total,
+AVG(userspace_time) AS avg_userspace,
 AVG(kernel_time) AS avg_kernel
 FROM (
 	SELECT
