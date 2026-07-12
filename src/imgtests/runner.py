@@ -600,7 +600,7 @@ def _run_single(distro: Distro, mode: Runner, config: dict[str, Any]) -> None:  
                         suite.test_duration = (
                             suite.total_duration // len(filtered_tests)
                             if len(filtered_tests) > 0
-                            else 0
+                            else suite.test_duration
                         )
                         logger.info(
                             "Filtered %s: %d -> %d tests",
