@@ -78,8 +78,6 @@ document.getElementById("runTestsBtn").addEventListener("click", function () {
     btn.textContent = "Running...";
     outputContainer.textContent = "Tests Running...";
 
-    // flush progress handler the run tests
-    fetch("/flush-progress/").then(() => {
     fetch("/run-tests/", {
         method: "POST",
         headers: {
@@ -100,7 +98,7 @@ document.getElementById("runTestsBtn").addEventListener("click", function () {
                 // add progress display
                 document.getElementById("progress-card").style.display = "block";
                 // hide suite | profile depending on selected mode
-                if (testing_mode === "profiled") {
+                if (runner === "profiled") {
                     document.getElementById("current-suite-div").style.display = "none";
                     document.getElementById("last-profile-div").style.display = "inline";
                 } else {
@@ -120,7 +118,6 @@ document.getElementById("runTestsBtn").addEventListener("click", function () {
             btn.disabled = false;
             btn.textContent = "Run tests";
             document.getElementById("progress-card").style.display = "none";
-        });
     });
 });
 
@@ -136,6 +133,7 @@ function pollStatus(taskId) {
                     outputContainer.textContent =
                         "Tests running... Please wait.";
                     setTimeout(checkStatus, 2000);
+                    updateDashboard(taskId);
                 } else if (data.status === "completed") {
                     outputContainer.textContent =
                         data.output || "Tests completed successfully.";
@@ -174,10 +172,10 @@ function pollStatus(taskId) {
 
 const PRGORESS_POLLING_INTERVAL = 3000;
 
-function updateDashboard() {
-    fetch("/current-progress/", { cache: "no-store" })
+function updateDashboard(taskId) {
+    fetch("/current-progress/" + taskId + "/", { cache: "no-store" })
         .then(response => {
-            if (!response.ok) throw new Error('Ошибка загрузки файла');
+            if (!response.ok) throw new Error('Data load error');
             return response.json();
         })
         .then(data => {
@@ -219,6 +217,3 @@ function updateDashboard() {
             document.getElementById('error-msg').style.display = 'block';
         });
 }
-
-updateDashboard();
-let interval = setInterval(updateDashboard, PRGORESS_POLLING_INTERVAL);

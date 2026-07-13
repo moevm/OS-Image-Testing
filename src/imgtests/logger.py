@@ -7,7 +7,7 @@ from typing import Literal, Self, TextIO
 
 from pythonjsonlogger.json import JsonFormatter
 
-from imgtests.constant import PROG_LOG_PATH
+from imgtests.constant import LIB_DATA_DIR
 
 LogLevel = Literal["debug", "info", "warning", "error", "critical"]
 
@@ -25,6 +25,8 @@ class StreamFormatter(logging.Formatter):
 
 
 class ProgressHandle(logging.Handler):
+    task_state_started = "RUNNING"
+    task_started_pattern = r"Task id=([\w-]+) path=[\w|\.]+ state=(\w+)"
     tests_count_pattern = r"Total amount of tests per run: (\d+)"
     test_runs_pattern = r"Starting test run (\d+) of (\d+)"
     default_test_start_pattern = r"Starting '(.*\.)'.*"
@@ -33,80 +35,96 @@ class ProgressHandle(logging.Handler):
     profiled_test_start_pattern = r"\[PLAN\] run stage=([\w-]+) tool=([\w-]+) subsystem=([\w-]+).*"
     profiled_test_finish_pattern = r"\[PLAN\] done .*"
     profile_done_pattern = r"\[PROFILED\] DONE profile=(\w+) pattern=(\w+) .*"
+    progress_template = {  # noqa: RUF012
+        "total_test_count": 0,
+        "test_count": 0,
+        "total_run_count": 0,
+        "current_test_run": 0,
+        "current_suite": "Not starter yet",
+        "last_profile_done": "Not done yet",
+        "current_test": "Not starter yet",
+    }
 
     def __init__(self, level: logging._Level = logging.DEBUG):
         super().__init__(level)
         self.progress_data = {}
-        self.flush()
+        self.proc_to_task = {}
 
-    def flush(self):
-        self.progress_data = {
-            "total_test_count": 0,
-            "test_count": 0,
-            "total_run_count": 0,
-            "current_test_run": 0,
-            "current_suite": "Not starter yet",
-            "last_profile_done": "Not done yet",
-            "current_test": "Not starter yet",
-        }
-
-    def get_progress_data(self):
-        return self.progress_data
-
-    def emit(self, record: logging.LogRecord):
+    def emit(self, record: logging.LogRecord):  # noqa: PLR0915
+        proc = str(record.process)
         msg = self.format(record)
 
-        match = re.search(self.tests_count_pattern, msg)
+        # detect task starterd or finished
+        match = re.search(self.task_started_pattern, msg)
         if match:
+            task_id = match.group(1)
+            status = match.group(2)
+            # task started
+            if status == self.task_state_started:
+                self.proc_to_task[proc] = task_id
+            # task finished or broke
+            else:
+                self.proc_to_task[proc] = None
+            # flush progress_data for process
+            self.progress_data[proc] = self.progress_template.copy()
+
+        match = re.search(self.tests_count_pattern, msg)
+        if match and self.progress_data[proc]:
             total = int(match.group(1))
-            self.progress_data["total_test_count"] = total
+            self.progress_data[proc]["total_test_count"] = total
 
         match = re.search(self.test_runs_pattern, msg)
-        if match:
+        if match and self.progress_data[proc]:
             # set current run
             cur = int(match.group(1))
             total = int(match.group(2))
-            self.progress_data["current_test_run"] = cur
-            self.progress_data["total_run_count"] = total
+            self.progress_data[proc]["current_test_run"] = cur
+            self.progress_data[proc]["total_run_count"] = total
             # reset tests count
-            self.progress_data["test_count"] = 0
+            self.progress_data[proc]["test_count"] = 0
 
         # default runner matches
         match = re.search(self.suite_start_pattern, msg)
-        if match:
+        if match and self.progress_data[proc]:
             suite = match.group(1)
-            self.progress_data["current_suite"] = suite
+            self.progress_data[proc]["current_suite"] = suite
 
         match = re.search(self.default_test_start_pattern, msg)
-        if match:
+        if match and self.progress_data[proc]:
             test = match.group(1)
-            self.progress_data["current_test"] = test
+            self.progress_data[proc]["current_test"] = test
 
         match = re.search(self.default_test_finish_pattern, msg)
-        if match:
-            self.progress_data["test_count"] += 1
-            self.progress_data["current_test"] = "Not started yet"
+        if match and self.progress_data[proc]:
+            self.progress_data[proc]["test_count"] += 1
+            self.progress_data[proc]["current_test"] = "Not started yet"
 
         # profiled runner matches
         match = re.search(self.profile_done_pattern, msg)
-        if match:
+        if match and self.progress_data[proc]:
             profile = "-".join([match.group(1), match.group(2)])
-            self.progress_data["last_profile_done"] = profile
+            self.progress_data[proc]["last_profile_done"] = profile
 
         match = re.search(self.profiled_test_start_pattern, msg)
-        if match:
+        if match and self.progress_data[proc]:
             subsystem = match.group(3)
             profile = match.group(1)
             tool = match.group(2)
-            self.progress_data["current_test"] = f"{subsystem}-{profile} via {tool}"
+            self.progress_data[proc]["current_test"] = f"{subsystem}-{profile} via {tool}"
 
         match = re.search(self.profiled_test_finish_pattern, msg)
-        if match:
-            self.progress_data["test_count"] += 1
-            self.progress_data["current_test"] = "Not started yet"
+        if match and self.progress_data[proc]:
+            self.progress_data[proc]["test_count"] += 1
+            self.progress_data[proc]["current_test"] = "Not started yet"
 
-        with Path.open(PROG_LOG_PATH, "w", encoding="utf-8") as file:
-            json.dump(self.progress_data, file, indent=4)
+        if proc in self.proc_to_task and self.proc_to_task[proc] is not None:
+            task_id = self.proc_to_task[proc]
+            with Path.open(
+                LIB_DATA_DIR / (task_id + "_progress.log"),
+                "w",
+                encoding="utf-8",
+            ) as file:
+                json.dump(self.progress_data[proc], file, indent=4)
 
 
 def set_handlers(
