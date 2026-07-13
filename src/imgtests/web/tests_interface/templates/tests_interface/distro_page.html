@@ -25,7 +25,7 @@
 
         <div class="config-controls">
             <label>Select runner:
-                <select name="RunnerSelect" id="configTestingMode">
+                <select name="RunnerSelect" id="configRunner">
                     <option value="default">Basic</option>
                     <option value="profiled">Profiled</option>
                 </select>
@@ -187,7 +187,7 @@
 <script>
     window.csrfToken = "{{ csrf_token }}";
     window.distroName = "{{ distro.name }}";
-    document.getElementById("configTestingMode").addEventListener("change", function() {
+    document.getElementById("configRunner").addEventListener("change", function() {
         const basicConfig = document.getElementById("basicTestConfig");
         basicConfig.style.display = this.value === "profiled" ? "none" : "block";
         const profiledConfig = document.getElementById("profiledTestConfig");

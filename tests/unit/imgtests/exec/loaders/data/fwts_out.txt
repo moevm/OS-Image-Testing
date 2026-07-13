@@ -1,0 +1,1641 @@
+Test: Gather kernel system information.
+                                                                     :   0.0% /
+  Gather kernel signature.                                           :   0.0% -
+  Gather kernel signature.                                           :   0.2% \
+
+  Gather kernel signature.                                1 skipped
+  Gather kernel system information.                                  :   0.2% |
+  Gather kernel system information.                                  :   0.4% /
+
+  Gather kernel system information.                       1 info only
+  Gather kernel boot command line.                                   :   0.4% -
+  Gather kernel boot command line.                                   :   0.6% \
+
+  Gather kernel boot command line.                        1 info only
+  Gather ACPI driver version.                                        :   0.6% |
+  Gather ACPI driver version.                                        :   0.8% /
+
+  Gather ACPI driver version.                             1 info only
+Test: Gather BIOS DMI information.
+                                                                     :   0.8% -
+  Gather BIOS DMI information                                        :   0.8% \
+  Gather BIOS DMI information                                        :   1.7% |
+
+  Gather BIOS DMI information                             1 info only
+Test: OPAL Processor Power Management DT Validation Tests
+                                                                     :   1.7% /
+
+  Test skipped, missing features: devicetree
+Test: OPAL Reserved memory DT Validation Test
+                                                                     :   2.5% -
+
+  Test skipped, missing features: devicetree
+Test: OPAL Processor Recovery Diagnostics Info
+                                                                     :   3.3% \
+
+  Test skipped, missing features: devicetree
+Test: Scan kernel log for Oopses.
+                                                                     :   4.1% |
+  Kernel log oops check.                                             :   4.1% /
+  Kernel log oops check.                                             :   5.0% -
+
+  Kernel log oops check.                                  2 passed
+Test: Run OLOG scan and analysis checks.
+                                                                     :   5.0% \
+
+ Test skipped.
+Test: Scan kernel log for errors and warnings.
+                                                                     :   5.8% |
+  Kernel log error check.                                            :   5.8% /
+  Kernel log error check.                                            :   5.8% -
+  Kernel log error check.                                            :   5.8% \
+  Kernel log error check.                                            :   5.8% |
+  Kernel log error check.                                            :   5.8% /
+  Kernel log error check.                                            :   5.9% -
+  Kernel log error check.                                            :   5.9% \
+  Kernel log error check.                                            :   5.9% |
+  Kernel log error check.                                            :   5.9% /
+  Kernel log error check.                                            :   5.9% -
+  Kernel log error check.                                            :   5.9% \
+  Kernel log error check.                                            :   6.0% |
+  Kernel log error check.                                            :   6.0% /
+  Kernel log error check.                                            :   6.0% -
+  Kernel log error check.                                            :   6.0% \
+  Kernel log error check.                                            :   6.0% |
+  Kernel log error check.                                            :   6.1% /
+  Kernel log error check.                                            :   6.1% -
+  Kernel log error check.                                            :   6.1% \
+  Kernel log error check.                                            :   6.1% |
+  Kernel log error check.                                            :   6.1% /
+  Kernel log error check.                                            :   6.1% -
+  Kernel log error check.                                            :   6.2% \
+  Kernel log error check.                                            :   6.2% |
+  Kernel log error check.                                            :   5.8% /
+  Kernel log error check.                                            :   5.8% -
+  Kernel log error check.                                            :   5.8% \
+  Kernel log error check.                                            :   5.8% |
+  Kernel log error check.                                            :   5.9% /
+  Kernel log error check.                                            :   5.9% -
+  Kernel log error check.                                            :   5.9% \
+  Kernel log error check.                                            :   5.9% |
+  Kernel log error check.                                            :   5.9% /
+  Kernel log error check.                                            :   6.0% -
+  Kernel log error check.                                            :   6.0% \
+  Kernel log error check.                                            :   6.0% |
+  Kernel log error check.                                            :   6.0% /
+  Kernel log error check.                                            :   6.0% -
+  Kernel log error check.                                            :   6.0% \
+  Kernel log error check.                                            :   6.1% |
+  Kernel log error check.                                            :   6.1% /
+  Kernel log error check.                                            :   6.1% -
+  Kernel log error check.                                            :   6.1% \
+  Kernel log error check.                                            :   6.1% |
+  Kernel log error check.                                            :   6.1% /
+  Kernel log error check.                                            :   6.2% -
+  Kernel log error check.                                            :   6.2% \
+  Kernel log error check.                                            :   6.6% |
+  Kernel log error check.                                            :   6.6% /
+
+  Kernel log error check.                                 3 failed
+Test: BMC Info
+                                                                     :   6.6% -
+
+  Test skipped, missing features: IPMI
+Test: Scan coreboot log for errors and warnings.
+                                                                     :   7.4% \
+
+ Test skipped.
+Test: MTRR tests.
+                                                                     :   8.3% |
+  Validate MTRR default enabled.                                     :   8.3% /
+  Validate MTRR default enabled.                                     :   8.5% -
+
+  Validate MTRR default enabled.                          2 passed
+  Validate the kernel MTRR IOMEM setup.                              :   8.5% \
+  Validate the kernel MTRR IOMEM setup.                              :   8.7% |
+
+  Validate the kernel MTRR IOMEM setup.                   1 passed
+  Validate the MTRR setup across all processors.                     :   8.7% /
+  Validate the MTRR setup across all processors.                     :   8.9% -
+
+  Validate the MTRR setup across all processors.          1 failed
+  Test for AMD MtrrFixDramModEn being cleared by the BIOS.           :   8.9% \
+  Test for AMD MtrrFixDramModEn being cleared by the BIOS.           :   9.1% |
+
+  Test for AMD MtrrFixDramModEn being cleared by the B..  1 skipped
+Test: General ACPI information test.
+                                                                     :   9.1% /
+  Determine Kernel ACPI version.                                     :   9.1% -
+  Determine Kernel ACPI version.                                     :   9.4% \
+
+  Determine Kernel ACPI version.                          1 info only
+  Determine machine's ACPI version.                                  :   9.4% |
+  Determine machine's ACPI version.                                  :   9.6% /
+
+  Determine machine's ACPI version.                       1 info only
+  Determine AML compiler.                                            :   9.6% -
+  Determine AML compiler.                                            :   9.9% \
+
+  Determine AML compiler.                                 1 info only
+Test: Base device tree validity check
+                                                                     :   9.9% |
+
+  Test skipped, missing features: devicetree
+Test: OPAL CPU Info
+                                                                     :  10.7% /
+
+  Test skipped, missing features: devicetree
+Test: OPAL MEM Info
+                                                                     :  11.6% -
+
+  Test skipped, missing features: devicetree
+Test: Sanity check for UEFI Boot Path Boot####.
+                                                                     :  12.4% \
+
+ Test aborted.
+Test: UEFI Compatibility Support Module test.
+                                                                     :  13.2% |
+  UEFI Compatibility Support Module test.                            :  13.2% /
+  UEFI Compatibility Support Module test.                            :  14.0% -
+
+  UEFI Compatibility Support Module test.                 1 info only
+Test: Sanity check TPM event log.
+                                                                     :  14.0% \
+  Sanity check TPM event log.                                        :  14.0% |
+Test: Test firmware has set PCI Express MaxReadReq to a higher value on n..
+                                                                     :  14.9% /
+  Test firmware settings MaxReadReq for PCI Express devices.         :  14.9% -
+  Test firmware settings MaxReadReq for PCI Express devices.         :  15.7% \
+
+  Test firmware settings MaxReadReq for PCI Express de..  1 passed
+Test: Test PCI host bridge configuration using _CRS.
+                                                                     :  15.7% |
+  Test PCI host bridge configuration using _CRS.                     :  15.7% /
+  Test PCI host bridge configuration using _CRS.                     :  16.5% -
+
+  Test PCI host bridge configuration using _CRS.          1 passed
+Test: PCIe ASPM test.
+                                                                     :  16.5% \
+  PCIe ASPM ACPI test.                                               :  16.5% |
+  PCIe ASPM ACPI test.                                               :  16.9% /
+
+  PCIe ASPM ACPI test.
+  PCIe ASPM registers test.                                          :  16.9% -
+  PCIe ASPM registers test.                                          :  17.4% \
+
+  PCIe ASPM registers test.
+Test: OPAL MTD Info
+                                                                     :  17.4% |
+
+  Test skipped, missing features: devicetree
+Test: DMI/SMBIOS table tests.
+                                                                     :  18.2% /
+  Find and test SMBIOS Table Entry Points.                           :  18.2% -
+  Find and test SMBIOS Table Entry Points.                           :  18.4% \
+
+  Find and test SMBIOS Table Entry Points.                6 passed
+  Test DMI/SMBIOS tables for errors.                                 :  18.4% |
+  Test DMI/SMBIOS tables for errors.                                 :  18.6% /
+
+  Test DMI/SMBIOS tables for errors.                      10 passed
+  Test DMI/SMBIOS3 tables for errors.                                :  18.6% -
+  Test DMI/SMBIOS3 tables for errors.                                :  18.8% \
+
+  Test DMI/SMBIOS3 tables for errors.                     1 skipped
+  Test ARM SBBR SMBIOS structure requirements.                       :  18.8% |
+  Test ARM SBBR SMBIOS structure requirements.                       :  19.0% /
+
+  Test ARM SBBR SMBIOS structure requirements.
+Test: Test if system is using latest microcode.
+                                                                     :  19.0% -
+  Test for most recent microcode being loaded.                       :  19.0% \
+  Test for most recent microcode being loaded.                       :  19.8% |
+
+  Test for most recent microcode being loaded.            1 skipped
+Test: MSR register tests.
+                                                                     :  19.8% /
+  Test CPU generic MSRs.                                             :  19.8% -
+  Test CPU generic MSRs.                                             :  20.0% \
+
+  Test CPU generic MSRs.                                  107 passed
+  Test CPU specific model MSRs.                                      :  20.0% |
+  Test CPU specific model MSRs.                                      :  20.2% /
+
+  Test CPU specific model MSRs.                           7 passed
+  Test all P State Ratios.                                           :  20.2% -
+  Test all P State Ratios.                                           :  20.3% \
+
+  Test all P State Ratios.                                2 passed
+  Test C1 and C3 autodemotion.                                       :  20.3% |
+  Test C1 and C3 autodemotion.                                       :  20.5% /
+
+  Test C1 and C3 autodemotion.                            1 passed
+  Test SMRR MSR registers.                                           :  20.5% -
+  Test SMRR MSR registers.                                           :  20.7% \
+
+  Test SMRR MSR registers.
+Test: Test if CPU NX is disabled by the BIOS.
+                                                                     :  20.7% |
+  Test CPU NX capability.                                            :  20.7% /
+  Test CPU NX capability.                                            :  20.9% -
+
+  Test CPU NX capability.                                 1 passed
+  Test all CPUs have same BIOS set NX flag.                          :  20.9% \
+  Test all CPUs have same BIOS set NX flag.                          :  21.2% |
+
+  Test all CPUs have same BIOS set NX flag.               1 passed
+  Test all CPUs have same msr setting in MSR 0x1a0.                  :  21.2% /
+  Test all CPUs have same msr setting in MSR 0x1a0.                  :  21.5% -
+
+  Test all CPUs have same msr setting in MSR 0x1a0.       1 passed
+Test: CPU frequency scaling tests.
+                                                                     :  21.5% \
+
+ Test aborted.
+Test: Test max CPU frequencies against max scaling frequency.
+                                                                     :  22.3% |
+  Maximum CPU frequency test.                                        :  22.3% /
+  Maximum CPU frequency test.                                        :  23.1% -
+
+  Maximum CPU frequency test.                             1 skipped
+Test: CPU Virtualisation Configuration test.
+                                                                     :  23.1% \
+  CPU Virtualisation Configuration test.                             :  23.1% |
+  CPU Virtualisation Configuration test.                             :  24.0% /
+
+  CPU Virtualisation Configuration test.                  1 skipped
+Test: SMM tests.
+                                                                     :  24.0% -
+  Validate the System management mode (SMM) locks.                   :  24.0% \
+  Validate the System management mode (SMM) locks.                   :  24.8% |
+
+  Validate the System management mode (SMM) locks.        3 failed
+Test: BIOS Support Installation structure test.
+                                                                     :  24.8% /
+  PnP BIOS Support Installation structure test.                      :  24.8% -
+  PnP BIOS Support Installation structure test.                      :  25.6% \
+
+  PnP BIOS Support Installation structure test.           2 passed
+Test: PCI IRQ Routing Table test.
+                                                                     :  25.6% |
+  PCI IRQ Routing Table test.                                        :  25.6% /
+  PCI IRQ Routing Table test.                                        :  26.4% -
+
+  PCI IRQ Routing Table test.                             4 passed
+Test: MultiProcessor Tables tests.
+                                                                     :  26.4% \
+  Test MP header.                                                    :  26.4% |
+  Test MP header.                                                    :  26.5% /
+
+  Test MP header.                                         1 passed
+  Test MP CPU entries.                                               :  26.5% -
+  Test MP CPU entries.                                               :  26.6% \
+
+  Test MP CPU entries.                                    1 passed
+  Test MP Bus entries.                                               :  26.6% |
+  Test MP Bus entries.                                               :  26.7% /
+
+  Test MP Bus entries.                                    1 passed
+  Test MP IO APIC entries.                                           :  26.7% -
+  Test MP IO APIC entries.                                           :  26.8% \
+
+  Test MP IO APIC entries.                                1 passed
+  Test MP IO Interrupt entries.                                      :  26.8% |
+  Test MP IO Interrupt entries.                                      :  26.9% /
+
+  Test MP IO Interrupt entries.                           1 passed
+  Test MP Local Interrupt entries.                                   :  26.9% -
+  Test MP Local Interrupt entries.                                   :  27.0% \
+
+  Test MP Local Interrupt entries.                        1 passed
+  Test MP System Address entries.                                    :  27.0% |
+  Test MP System Address entries.                                    :  27.1% /
+
+  Test MP System Address entries.                         1 passed
+  Test MP Bus Hierarchy entries.                                     :  27.1% -
+  Test MP Bus Hierarchy entries.                                     :  27.2% \
+
+  Test MP Bus Hierarchy entries.                          1 passed
+  Test MP Compatible Bus Address Space entries.                      :  27.2% |
+  Test MP Compatible Bus Address Space entries.                      :  27.3% /
+
+  Test MP Compatible Bus Address Space entries.           1 passed
+Test: Interrupt tests.
+                                                                     :  27.3% -
+  Check whether ACPI SCI is triggered excessively.                   :  27.3% \
+  Check whether ACPI SCI is triggered excessively.                   :  28.1% |
+
+  Check whether ACPI SCI is triggered excessively.        1 passed
+Test: HDA Audio Pin Configuration test.
+                                                                     :  28.1% /
+  HDA Audio Pin Configuration test.                                  :  28.1% -
+  HDA Audio Pin Configuration test.                                  :  28.9% \
+
+  HDA Audio Pin Configuration test.                       1 skipped
+Test: Test EBDA region is mapped and reserved in memory map table.
+                                                                     :  28.9% |
+  Test EBDA is reserved in E820 table.                               :  28.9% /
+  Test EBDA is reserved in E820 table.                               :  29.8% -
+
+  Test EBDA is reserved in E820 table.                    1 passed
+Test: BIOS32 Service Directory test.
+                                                                     :  29.8% \
+  BIOS32 Service Directory test.                                     :  29.8% |
+  BIOS32 Service Directory test.                                     :  30.6% /
+
+  BIOS32 Service Directory test.                          4 passed
+Test: APIC edge/level test.
+                                                                     :  30.6% -
+  Legacy and PCI Interrupt Edge/Level trigger tests.                 :  30.6% \
+  Legacy and PCI Interrupt Edge/Level trigger tests.                 :  31.4% |
+
+  Legacy and PCI Interrupt Edge/Level trigger tests.      1 passed
+Test: XENV Xen Environment Table tests.
+                                                                     :  31.4% /
+
+ Test skipped.
+Test: XSDT Extended System Description Table test.
+                                                                     :  32.2% -
+  XSDT Extended System Description Table test.                       :  32.2% \
+  XSDT Extended System Description Table test.                       :  33.1% |
+
+  XSDT Extended System Description Table test.            1 passed
+Test: WSMT Windows SMM Security Mitigations Table test.
+                                                                     :  33.1% /
+
+ Test skipped.
+Test: WPBT Windows Platform Binary Table test.
+                                                                     :  33.9% -
+
+ Test skipped.
+Test: Extract and analyse Windows Management Instrumentation (WMI).
+                                                                     :  34.7% \
+  Windows Management Instrumentation test.                           :  34.7% |
+  Windows Management Instrumentation test.                           :  35.5% /
+
+  Windows Management Instrumentation test.
+Test: WDAT Microsoft Hardware Watchdog Action Table test.
+                                                                     :  35.5% -
+
+ Test skipped.
+Test: ACPI Wakealarm tests.
+                                                                     :  36.4% \
+  Test existence of RTC with alarm interface.                        :  36.4% |
+  Test existence of RTC with alarm interface.                        :  36.5% /
+
+  Test existence of RTC with alarm interface.             1 passed
+  Trigger wakealarm for 1 seconds in the future.                     :  36.5% -
+  Trigger wakealarm for 1 seconds in the future.                     :  36.7% \
+
+  Trigger wakealarm for 1 seconds in the future.          1 passed
+  Test if wakealarm is fired.                                        :  36.7% |
+  Test if wakealarm is fired.                                        :  36.9% /
+
+  Test if wakealarm is fired.                             1 passed
+  Multiple wakealarm firing tests.                                   :  36.9% -
+  Multiple wakealarm firing tests.                                   :  36.9% \
+  Multiple wakealarm firing tests.                                   :  36.9% |
+  Multiple wakealarm firing tests.                                   :  37.0% /
+  Multiple wakealarm firing tests.                                   :  37.0% -
+  Multiple wakealarm firing tests.                                   :  37.0% \
+
+  Multiple wakealarm firing tests.                        1 passed
+  Reset wakealarm time.                                              :  37.0% |
+  Reset wakealarm time.                                              :  37.2% /
+
+  Reset wakealarm time.                                   2 passed
+Test: WAET Windows ACPI Emulated Devices Table test.
+                                                                     :  37.2% -
+  Windows ACPI Emulated Devices Table test.                          :  37.2% \
+  Windows ACPI Emulated Devices Table test.                          :  38.0% |
+
+  Windows ACPI Emulated Devices Table test.               1 passed
+Test: ACPI Unique IDs test.
+                                                                     :  38.0% /
+  ACPI _HID unique ID test.                                          :  38.0% -
+  ACPI _HID unique ID test.                                          :  38.4% \
+
+  ACPI _HID unique ID test.                               24 passed
+  ACPI _CID unique ID test.                                          :  38.4% |
+  ACPI _CID unique ID test.                                          :  38.8% /
+
+  ACPI _CID unique ID test.                               1 passed
+Test: UEFI Data Table test.
+                                                                     :  38.8% -
+
+ Test skipped.
+Test: TPM2 Trusted Platform Module 2 test.
+                                                                     :  39.7% \
+
+ Test skipped.
+Test: TCPA Trusted Computing Platform Alliance Capabilities Table test.
+                                                                     :  40.5% |
+
+ Test skipped.
+Test: SVKL Storage Volume Key Data table test.
+                                                                     :  41.3% /
+
+ Test skipped.
+Test: STAO Status Override Table test.
+                                                                     :  42.1% -
+
+ Test skipped.
+Test: SRAT System Resource Affinity Table test.
+                                                                     :  43.0% \
+
+ Test skipped.
+Test: SPMI Service Processor Management Interface Description Table test.
+                                                                     :  43.8% |
+
+ Test skipped.
+Test: SPCR Serial Port Console Redirection Table test.
+                                                                     :  44.6% /
+
+ Test skipped.
+Test: SLIT System Locality Distance Information test.
+                                                                     :  45.5% -
+
+ Test skipped.
+Test: SLIC Software Licensing Description Table test.
+                                                                     :  46.3% \
+
+ Test skipped.
+Test: SDEV Secure Devices Table test
+                                                                     :  47.1% |
+
+ Test skipped.
+Test: SDEI Software Delegated Exception Interface Table test
+                                                                     :  47.9% /
+
+ Test skipped.
+Test: SBST Smart Battery Specification Table test.
+                                                                     :  48.8% -
+
+ Test skipped.
+Test: RSDT Root System Description Table test.
+                                                                     :  49.6% \
+  RSDT Root System Description Table test.                           :  49.6% |
+  RSDT Root System Description Table test.                           :  50.4% /
+
+  RSDT Root System Description Table test.                1 passed
+Test: RSDP Root System Description Pointer test.
+                                                                     :  50.4% -
+  RSDP Root System Description Pointer test.                         :  50.4% \
+  RSDP Root System Description Pointer test.                         :  51.2% |
+
+  RSDP Root System Description Pointer test.              8 passed
+Test: RGRT Regulatory Graphics Resource Table test
+                                                                     :  51.2% /
+
+ Test skipped.
+Test: RASF RAS Feature Table test
+                                                                     :  52.1% -
+
+ Test skipped.
+Test: PPTT Processor Properties Topology Table test.
+                                                                     :  52.9% \
+
+ Test skipped.
+Test: PMTT Memory Topology Table test.
+                                                                     :  53.7% |
+
+ Test skipped.
+Test: PHAT Platform Health Assessment Table test.
+                                                                     :  54.5% /
+
+ Test skipped.
+Test: PDTT Platform Debug Trigger Table test.
+                                                                     :  55.4% -
+
+ Test skipped.
+Test: PCCT Platform Communications Channel test.
+                                                                     :  56.2% \
+
+ Test skipped.
+Test: Processor Clocking Control (PCC) test.
+                                                                     :  57.0% |
+  Processor Clocking Control (PCC) test.                             :  57.0% /
+  Processor Clocking Control (PCC) test.                             :  57.9% -
+
+  Processor Clocking Control (PCC) test.                  1 info only
+Test: Disassemble DSDT to check for _OSI("Linux").
+                                                                     :  57.9% \
+  Disassemble DSDT to check for _OSI("Linux").                       :  57.9% |
+  Disassemble DSDT to check for _OSI("Linux").                       :  58.7% /
+
+  Disassemble DSDT to check for _OSI("Linux").            1 passed
+Test: NFIT NVDIMM Firmware Interface Table test.
+                                                                     :  58.7% -
+
+ Test skipped.
+Test: ACPI DSDT Method Semantic tests.
+                                                                     :  59.5% \
+  Test Method Names.                                                 :  59.5% |
+  Test Method Names.                                                 :  59.5% /
+
+  Test Method Names.                                      1 passed
+  Test _AEI.                                                         :  59.5% -
+  Test _AEI.                                                         :  59.5% \
+
+  Test _AEI.                                              1 skipped
+  Test _EVT (Event Method).                                          :  59.5% |
+  Test _EVT (Event Method).                                          :  59.5% /
+
+  Test _EVT (Event Method).                               1 skipped
+  Test _DLM (Device Lock Mutex).                                     :  59.5% -
+  Test _DLM (Device Lock Mutex).                                     :  59.5% \
+
+  Test _DLM (Device Lock Mutex).                          1 skipped
+  Test _PIC (Inform AML of Interrupt Model).                         :  59.5% |
+  Test _PIC (Inform AML of Interrupt Model).                         :  59.5% /
+
+  Test _PIC (Inform AML of Interrupt Model).              3 passed
+  Test _CID (Compatible ID).                                         :  59.5% -
+  Test _CID (Compatible ID).                                         :  59.5% \
+
+  Test _CID (Compatible ID).                              2 passed
+  Test _CLS (Class Code).                                            :  59.5% |
+  Test _CLS (Class Code).                                            :  59.5% /
+
+  Test _CLS (Class Code).                                 1 skipped
+  Test _DDN (DOS Device Name).                                       :  59.5% -
+  Test _DDN (DOS Device Name).                                       :  59.5% \
+
+  Test _DDN (DOS Device Name).                            1 skipped
+  Test _HID (Hardware ID).                                           :  59.5% |
+  Test _HID (Hardware ID).                                           :  59.5% /
+
+  Test _HID (Hardware ID).                                29 passed
+  Test _HRV (Hardware Revision Number).                              :  59.5% -
+  Test _HRV (Hardware Revision Number).                              :  59.5% \
+
+  Test _HRV (Hardware Revision Number).                   1 skipped
+  Test _MLS (Multiple Language String).                              :  59.5% |
+  Test _MLS (Multiple Language String).                              :  59.5% /
+
+  Test _MLS (Multiple Language String).                   1 skipped
+  Test _PLD (Physical Device Location).                              :  59.5% -
+  Test _PLD (Physical Device Location).                              :  59.6% \
+
+  Test _PLD (Physical Device Location).                   1 skipped
+  Test _SUB (Subsystem ID).                                          :  59.6% |
+  Test _SUB (Subsystem ID).                                          :  59.6% /
+
+  Test _SUB (Subsystem ID).                               1 skipped
+  Test _SUN (Slot User Number).                                      :  59.6% -
+  Test _SUN (Slot User Number).                                      :  59.6% \
+
+  Test _SUN (Slot User Number).                           1 skipped
+  Test _STR (String).                                                :  59.6% |
+  Test _STR (String).                                                :  59.6% /
+
+  Test _STR (String).                                     1 skipped
+  Test _UID (Unique ID).                                             :  59.6% -
+  Test _UID (Unique ID).                                             :  59.6% \
+
+  Test _UID (Unique ID).                                  24 passed
+  Test _CDM (Clock Domain).                                          :  59.6% |
+  Test _CDM (Clock Domain).                                          :  59.6% /
+
+  Test _CDM (Clock Domain).                               1 skipped
+  Test _CRS (Current Resource Settings).                             :  59.6% -
+  Test _CRS (Current Resource Settings).                             :  59.6% \
+
+  Test _CRS (Current Resource Settings).                  27 passed
+  Test _DSD (Device Specific Data).                                  :  59.6% |
+  Test _DSD (Device Specific Data).                                  :  59.6% /
+
+  Test _DSD (Device Specific Data).                       1 skipped
+  Test _DIS (Disable).                                               :  59.6% -
+  Test _DIS (Disable).                                               :  59.6% \
+
+  Test _DIS (Disable).                                    16 passed
+  Test _DMA (Direct Memory Access).                                  :  59.6% |
+  Test _DMA (Direct Memory Access).                                  :  59.6% /
+
+  Test _DMA (Direct Memory Access).                       1 skipped
+  Test _FIX (Fixed Register Resource Provider).                      :  59.6% -
+  Test _FIX (Fixed Register Resource Provider).                      :  59.6% \
+
+  Test _FIX (Fixed Register Resource Provider).           1 skipped
+  Test _GSB (Global System Interrupt Base).                          :  59.6% |
+  Test _GSB (Global System Interrupt Base).                          :  59.6% /
+
+  Test _GSB (Global System Interrupt Base).               1 skipped
+  Test _HPP (Hot Plug Parameters).                                   :  59.6% -
+  Test _HPP (Hot Plug Parameters).                                   :  59.6% \
+
+  Test _HPP (Hot Plug Parameters).                        1 skipped
+  Test _MAT (Multiple APIC Table Entry).                             :  59.6% |
+  Test _MAT (Multiple APIC Table Entry).                             :  59.6% /
+
+  Test _MAT (Multiple APIC Table Entry).                  4 passed
+  Test _PRS (Possible Resource Settings).                            :  59.6% -
+  Test _PRS (Possible Resource Settings).                            :  59.6% \
+
+  Test _PRS (Possible Resource Settings).                 16 passed
+  Test _PRT (PCI Routing Table).                                     :  59.6% |
+  Test _PRT (PCI Routing Table).                                     :  59.6% /
+
+  Test _PRT (PCI Routing Table).                          1 passed
+  Test _PXM (Proximity).                                             :  59.6% -
+  Test _PXM (Proximity).                                             :  59.6% \
+
+  Test _PXM (Proximity).                                  1 skipped
+  Test _SLI (System Locality Information).                           :  59.6% |
+  Test _SLI (System Locality Information).                           :  59.6% /
+
+  Test _SLI (System Locality Information).                1 skipped
+  Test _CCA (Cache Coherency Attribute).                             :  59.6% -
+  Test _CCA (Cache Coherency Attribute).                             :  59.6% \
+
+  Test _CCA (Cache Coherency Attribute).                  1 skipped
+  Test _EDL (Eject Device List).                                     :  59.6% |
+  Test _EDL (Eject Device List).                                     :  59.6% /
+
+  Test _EDL (Eject Device List).                          1 skipped
+  Test _EJD (Ejection Dependent Device).                             :  59.6% -
+  Test _EJD (Ejection Dependent Device).                             :  59.6% \
+
+  Test _EJD (Ejection Dependent Device).                  1 skipped
+  Test _EJ0 (Eject).                                                 :  59.6% |
+  Test _EJ0 (Eject).                                                 :  59.6% /
+
+  Test _EJ0 (Eject).                                      3 passed
+  Test _EJ1 (Eject).                                                 :  59.6% -
+  Test _EJ1 (Eject).                                                 :  59.6% \
+
+  Test _EJ1 (Eject).                                      1 skipped
+  Test _EJ2 (Eject).                                                 :  59.6% |
+  Test _EJ2 (Eject).                                                 :  59.6% /
+
+  Test _EJ2 (Eject).                                      1 skipped
+  Test _EJ3 (Eject).                                                 :  59.6% -
+  Test _EJ3 (Eject).                                                 :  59.6% \
+
+  Test _EJ3 (Eject).                                      1 skipped
+  Test _EJ4 (Eject).                                                 :  59.6% |
+  Test _EJ4 (Eject).                                                 :  59.7% /
+
+  Test _EJ4 (Eject).                                      1 skipped
+  Test _LCK (Lock).                                                  :  59.7% -
+  Test _LCK (Lock).                                                  :  59.7% \
+
+  Test _LCK (Lock).                                       1 skipped
+  Test _RMV (Remove).                                                :  59.7% |
+  Test _RMV (Remove).                                                :  59.7% /
+
+  Test _RMV (Remove).                                     1 skipped
+  Test _STA (Status).                                                :  59.7% -
+  Test _STA (Status).                                                :  59.7% \
+
+  Test _STA (Status).                                     19 passed
+  Test _DEP (Operational Region Dependencies).                       :  59.7% |
+  Test _DEP (Operational Region Dependencies).                       :  59.7% /
+
+  Test _DEP (Operational Region Dependencies).            1 skipped
+  Test _FIT (Firmware Interface Table).                              :  59.7% -
+  Test _FIT (Firmware Interface Table).                              :  59.7% \
+
+  Test _FIT (Firmware Interface Table).                   1 skipped
+  Test _BDN (BIOS Dock Name).                                        :  59.7% |
+  Test _BDN (BIOS Dock Name).                                        :  59.7% /
+
+  Test _BDN (BIOS Dock Name).                             1 skipped
+  Test _BBN (Base Bus Number).                                       :  59.7% -
+  Test _BBN (Base Bus Number).                                       :  59.7% \
+
+  Test _BBN (Base Bus Number).                            1 skipped
+  Test _DCK (Dock).                                                  :  59.7% |
+  Test _DCK (Dock).                                                  :  59.7% /
+
+  Test _DCK (Dock).                                       1 skipped
+  Test _INI (Initialize).                                            :  59.7% -
+  Test _INI (Initialize).                                            :  59.7% \
+
+  Test _INI (Initialize).                                 1 passed
+  Test _GLK (Global Lock).                                           :  59.7% |
+  Test _GLK (Global Lock).                                           :  59.7% /
+
+  Test _GLK (Global Lock).                                1 skipped
+  Test _SEG (Segment).                                               :  59.7% -
+  Test _SEG (Segment).                                               :  59.7% \
+
+  Test _SEG (Segment).                                    1 skipped
+  Test _LSI (Label Storage Information).                             :  59.7% |
+  Test _LSI (Label Storage Information).                             :  59.7% /
+
+  Test _LSI (Label Storage Information).                  1 skipped
+  Test _CBR (CXL Host Bridge Register).                              :  59.7% -
+  Test _CBR (CXL Host Bridge Register).                              :  59.7% \
+
+  Test _CBR (CXL Host Bridge Register).                   1 skipped
+  Test _OFF (Set resource off).                                      :  59.7% |
+  Test _OFF (Set resource off).                                      :  59.7% /
+
+  Test _OFF (Set resource off).                           1 skipped
+  Test _ON_ (Set resource on).                                       :  59.7% -
+  Test _ON_ (Set resource on).                                       :  59.7% \
+
+  Test _ON_ (Set resource on).                            1 skipped
+  Test _DSW (Device Sleep Wake).                                     :  59.7% |
+  Test _DSW (Device Sleep Wake).                                     :  59.7% /
+
+  Test _DSW (Device Sleep Wake).                          1 skipped
+  Test _IRC (In Rush Current).                                       :  59.7% -
+  Test _IRC (In Rush Current).                                       :  59.7% \
+
+  Test _IRC (In Rush Current).                            1 skipped
+  Test _PRE (Power Resources for Enumeration).                       :  59.7% |
+  Test _PRE (Power Resources for Enumeration).                       :  59.7% /
+
+  Test _PRE (Power Resources for Enumeration).            1 skipped
+  Test _PR0 (Power Resources for D0).                                :  59.7% -
+  Test _PR0 (Power Resources for D0).                                :  59.7% \
+
+  Test _PR0 (Power Resources for D0).                     1 skipped
+  Test _PR1 (Power Resources for D1).                                :  59.7% |
+  Test _PR1 (Power Resources for D1).                                :  59.7% /
+
+  Test _PR1 (Power Resources for D1).                     1 skipped
+  Test _PR2 (Power Resources for D2).                                :  59.7% -
+  Test _PR2 (Power Resources for D2).                                :  59.7% \
+
+  Test _PR2 (Power Resources for D2).                     1 skipped
+  Test _PR3 (Power Resources for D3).                                :  59.7% |
+  Test _PR3 (Power Resources for D3).                                :  59.7% /
+
+  Test _PR3 (Power Resources for D3).                     1 skipped
+  Test _PRW (Power Resources for Wake).                              :  59.7% -
+  Test _PRW (Power Resources for Wake).                              :  59.7% \
+
+  Test _PRW (Power Resources for Wake).                   1 skipped
+  Test _PS0 (Power State 0).                                         :  59.7% |
+  Test _PS0 (Power State 0).                                         :  59.7% /
+
+  Test _PS0 (Power State 0).                              1 skipped
+  Test _PS1 (Power State 1).                                         :  59.7% -
+  Test _PS1 (Power State 1).                                         :  59.8% \
+
+  Test _PS1 (Power State 1).                              1 skipped
+  Test _PS2 (Power State 2).                                         :  59.8% |
+  Test _PS2 (Power State 2).                                         :  59.8% /
+
+  Test _PS2 (Power State 2).                              1 skipped
+  Test _PS3 (Power State 3).                                         :  59.8% -
+  Test _PS3 (Power State 3).                                         :  59.8% \
+
+  Test _PS3 (Power State 3).                              1 skipped
+  Test _PSC (Power State Current).                                   :  59.8% |
+  Test _PSC (Power State Current).                                   :  59.8% /
+
+  Test _PSC (Power State Current).                        1 skipped
+  Test _PSE (Power State for Enumeration).                           :  59.8% -
+  Test _PSE (Power State for Enumeration).                           :  59.8% \
+
+  Test _PSE (Power State for Enumeration).                1 skipped
+  Test _PSW (Power State Wake).                                      :  59.8% |
+  Test _PSW (Power State Wake).                                      :  59.8% /
+
+  Test _PSW (Power State Wake).                           1 skipped
+  Test _S1D (S1 Device State).                                       :  59.8% -
+  Test _S1D (S1 Device State).                                       :  59.8% \
+
+  Test _S1D (S1 Device State).                            1 passed
+  Test _S2D (S2 Device State).                                       :  59.8% |
+  Test _S2D (S2 Device State).                                       :  59.8% /
+
+  Test _S2D (S2 Device State).                            1 passed
+  Test _S3D (S3 Device State).                                       :  59.8% -
+  Test _S3D (S3 Device State).                                       :  59.8% \
+
+  Test _S3D (S3 Device State).                            1 passed
+  Test _S4D (S4 Device State).                                       :  59.8% |
+  Test _S4D (S4 Device State).                                       :  59.8% /
+
+  Test _S4D (S4 Device State).                            1 skipped
+  Test _S0W (S0 Device Wake State).                                  :  59.8% -
+  Test _S0W (S0 Device Wake State).                                  :  59.8% \
+
+  Test _S0W (S0 Device Wake State).                       1 skipped
+  Test _S1W (S1 Device Wake State).                                  :  59.8% |
+  Test _S1W (S1 Device Wake State).                                  :  59.8% /
+
+  Test _S1W (S1 Device Wake State).                       1 skipped
+  Test _S2W (S2 Device Wake State).                                  :  59.8% -
+  Test _S2W (S2 Device Wake State).                                  :  59.8% \
+
+  Test _S2W (S2 Device Wake State).                       1 skipped
+  Test _S3W (S3 Device Wake State).                                  :  59.8% |
+  Test _S3W (S3 Device Wake State).                                  :  59.8% /
+
+  Test _S3W (S3 Device Wake State).                       1 skipped
+  Test _S4W (S4 Device Wake State).                                  :  59.8% -
+  Test _S4W (S4 Device Wake State).                                  :  59.8% \
+
+  Test _S4W (S4 Device Wake State).                       1 skipped
+  Test _RST (Device Reset).                                          :  59.8% |
+  Test _RST (Device Reset).                                          :  59.8% /
+
+  Test _RST (Device Reset).                               1 skipped
+  Test _PRR (Power Resource for Reset).                              :  59.8% -
+  Test _PRR (Power Resource for Reset).                              :  59.8% \
+
+  Test _PRR (Power Resource for Reset).                   1 skipped
+  Test _S0_ (S0 System State).                                       :  59.8% |
+  Test _S0_ (S0 System State).                                       :  59.8% /
+
+  Test _S0_ (S0 System State).                            1 skipped
+  Test _S1_ (S1 System State).                                       :  59.8% -
+  Test _S1_ (S1 System State).                                       :  59.8% \
+
+  Test _S1_ (S1 System State).                            1 skipped
+  Test _S2_ (S2 System State).                                       :  59.8% |
+  Test _S2_ (S2 System State).                                       :  59.8% /
+
+  Test _S2_ (S2 System State).                            1 skipped
+  Test _S3_ (S3 System State).                                       :  59.8% -
+  Test _S3_ (S3 System State).                                       :  59.8% \
+
+  Test _S3_ (S3 System State).                            1 passed
+  Test _S4_ (S4 System State).                                       :  59.8% |
+  Test _S4_ (S4 System State).                                       :  59.8% /
+
+  Test _S4_ (S4 System State).                            1 passed
+  Test _S5_ (S5 System State).                                       :  59.8% -
+  Test _S5_ (S5 System State).                                       :  59.8% \
+
+  Test _S5_ (S5 System State).                            1 passed
+  Test _SWS (System Wake Source).                                    :  59.8% |
+  Test _SWS (System Wake Source).                                    :  59.8% /
+
+  Test _SWS (System Wake Source).                         1 skipped
+  Test _PSS (Performance Supported States).                          :  59.8% -
+  Test _PSS (Performance Supported States).                          :  59.8% \
+
+  Test _PSS (Performance Supported States).               1 skipped
+  Test _CPC (Continuous Performance Control).                        :  59.8% |
+  Test _CPC (Continuous Performance Control).                        :  59.9% /
+
+  Test _CPC (Continuous Performance Control).             1 skipped
+  Test _CSD (C State Dependencies).                                  :  59.9% -
+  Test _CSD (C State Dependencies).                                  :  59.9% \
+
+  Test _CSD (C State Dependencies).                       1 skipped
+  Test _CST (C States).                                              :  59.9% |
+  Test _CST (C States).                                              :  59.9% /
+
+  Test _CST (C States).                                   1 skipped
+  Test _PCT (Performance Control).                                   :  59.9% -
+  Test _PCT (Performance Control).                                   :  59.9% \
+
+  Test _PCT (Performance Control).                        1 skipped
+  Test _PDL (P-State Depth Limit).                                   :  59.9% |
+  Test _PDL (P-State Depth Limit).                                   :  59.9% /
+
+  Test _PDL (P-State Depth Limit).                        1 skipped
+  Test _PPC (Performance Present Capabilities).                      :  59.9% -
+  Test _PPC (Performance Present Capabilities).                      :  59.9% \
+
+  Test _PPC (Performance Present Capabilities).           1 skipped
+  Test _PPE (Polling for Platform Error).                            :  59.9% |
+  Test _PPE (Polling for Platform Error).                            :  59.9% /
+
+  Test _PPE (Polling for Platform Error).                 1 skipped
+  Test _PSD (Power State Dependencies).                              :  59.9% -
+  Test _PSD (Power State Dependencies).                              :  59.9% \
+
+  Test _PSD (Power State Dependencies).                   1 skipped
+  Test _PTC (Processor Throttling Control).                          :  59.9% |
+  Test _PTC (Processor Throttling Control).                          :  59.9% /
+
+  Test _PTC (Processor Throttling Control).               1 skipped
+  Test _TDL (T-State Depth Limit).                                   :  59.9% -
+  Test _TDL (T-State Depth Limit).                                   :  59.9% \
+
+  Test _TDL (T-State Depth Limit).                        1 skipped
+  Test _TPC (Throttling Present Capabilities).                       :  59.9% |
+  Test _TPC (Throttling Present Capabilities).                       :  59.9% /
+
+  Test _TPC (Throttling Present Capabilities).            1 skipped
+  Test _TSD (Throttling State Dependencies).                         :  59.9% -
+  Test _TSD (Throttling State Dependencies).                         :  59.9% \
+
+  Test _TSD (Throttling State Dependencies).              1 skipped
+  Test _TSS (Throttling Supported States).                           :  59.9% |
+  Test _TSS (Throttling Supported States).                           :  59.9% /
+
+  Test _TSS (Throttling Supported States).                1 skipped
+  Test _LPI (Low Power Idle States).                                 :  59.9% -
+  Test _LPI (Low Power Idle States).                                 :  59.9% \
+
+  Test _LPI (Low Power Idle States).                      1 skipped
+  Test _RDI (Resource Dependencies for Idle).                        :  59.9% |
+  Test _RDI (Resource Dependencies for Idle).                        :  59.9% /
+
+  Test _RDI (Resource Dependencies for Idle).             1 skipped
+  Test _PUR (Processor Utilization Request).                         :  59.9% -
+  Test _PUR (Processor Utilization Request).                         :  59.9% \
+
+  Test _PUR (Processor Utilization Request).              1 skipped
+  Test _MSG (Message).                                               :  59.9% |
+  Test _MSG (Message).                                               :  59.9% /
+
+  Test _MSG (Message).                                    1 skipped
+  Test _SST (System Status).                                         :  59.9% -
+  Test _SST (System Status).                                         :  59.9% \
+
+  Test _SST (System Status).                              1 skipped
+  Test _ALC (Ambient Light Colour Chromaticity).                     :  59.9% |
+  Test _ALC (Ambient Light Colour Chromaticity).                     :  59.9% /
+
+  Test _ALC (Ambient Light Colour Chromaticity).          1 skipped
+  Test _ALI (Ambient Light Illuminance).                             :  59.9% -
+  Test _ALI (Ambient Light Illuminance).                             :  59.9% \
+
+  Test _ALI (Ambient Light Illuminance).                  1 skipped
+  Test _ALT (Ambient Light Temperature).                             :  59.9% |
+  Test _ALT (Ambient Light Temperature).                             :  59.9% /
+
+  Test _ALT (Ambient Light Temperature).                  1 skipped
+  Test _ALP (Ambient Light Polling).                                 :  59.9% -
+  Test _ALP (Ambient Light Polling).                                 :  59.9% \
+
+  Test _ALP (Ambient Light Polling).                      1 skipped
+  Test _ALR (Ambient Light Response).                                :  59.9% |
+  Test _ALR (Ambient Light Response).                                :  59.9% /
+
+  Test _ALR (Ambient Light Response).                     1 skipped
+  Test _LID (Lid Status).                                            :  59.9% -
+  Test _LID (Lid Status).                                            :  59.9% \
+
+  Test _LID (Lid Status).                                 1 skipped
+  Test _GTF (Get Task File).                                         :  59.9% |
+  Test _GTF (Get Task File).                                         :  59.9% /
+
+  Test _GTF (Get Task File).                              1 skipped
+  Test _GTM (Get Timing Mode).                                       :  59.9% -
+  Test _GTM (Get Timing Mode).                                       :  60.0% \
+
+  Test _GTM (Get Timing Mode).                            1 skipped
+  Test _MBM (Memory Bandwidth Monitoring Data).                      :  60.0% |
+  Test _MBM (Memory Bandwidth Monitoring Data).                      :  60.0% /
+
+  Test _MBM (Memory Bandwidth Monitoring Data).           1 skipped
+  Test _UPC (USB Port Capabilities).                                 :  60.0% -
+  Test _UPC (USB Port Capabilities).                                 :  60.0% \
+
+  Test _UPC (USB Port Capabilities).                      1 skipped
+  Test _UPD (User Presence Detect).                                  :  60.0% |
+  Test _UPD (User Presence Detect).                                  :  60.0% /
+
+  Test _UPD (User Presence Detect).                       1 skipped
+  Test _UPP (User Presence Polling).                                 :  60.0% -
+  Test _UPP (User Presence Polling).                                 :  60.0% \
+
+  Test _UPP (User Presence Polling).                      1 skipped
+  Test _GCP (Get Capabilities).                                      :  60.0% |
+  Test _GCP (Get Capabilities).                                      :  60.0% /
+
+  Test _GCP (Get Capabilities).                           1 skipped
+  Test _GRT (Get Real Time).                                         :  60.0% -
+  Test _GRT (Get Real Time).                                         :  60.0% \
+
+  Test _GRT (Get Real Time).                              1 skipped
+  Test _GWS (Get Wake Status).                                       :  60.0% |
+  Test _GWS (Get Wake Status).                                       :  60.0% /
+
+  Test _GWS (Get Wake Status).                            1 skipped
+  Test _CWS (Clear Wake Status).                                     :  60.0% -
+  Test _CWS (Clear Wake Status).                                     :  60.0% \
+
+  Test _CWS (Clear Wake Status).                          1 skipped
+  Test _SRT (Set Real Time).                                         :  60.0% |
+  Test _SRT (Set Real Time).                                         :  60.0% /
+
+  Test _SRT (Set Real Time).                              1 skipped
+  Test _STP (Set Expired Timer Wake Policy).                         :  60.0% -
+  Test _STP (Set Expired Timer Wake Policy).                         :  60.0% \
+
+  Test _STP (Set Expired Timer Wake Policy).              1 skipped
+  Test _STV (Set Timer Value).                                       :  60.0% |
+  Test _STV (Set Timer Value).                                       :  60.0% /
+
+  Test _STV (Set Timer Value).                            1 skipped
+  Test _TIP (Expired Timer Wake Policy).                             :  60.0% -
+  Test _TIP (Expired Timer Wake Policy).                             :  60.0% \
+
+  Test _TIP (Expired Timer Wake Policy).                  1 skipped
+  Test _TIV (Timer Values).                                          :  60.0% |
+  Test _TIV (Timer Values).                                          :  60.0% /
+
+  Test _TIV (Timer Values).                               1 skipped
+  Test _NBS (NVDIMM Boot Status).                                    :  60.0% -
+  Test _NBS (NVDIMM Boot Status).                                    :  60.0% \
+
+  Test _NBS (NVDIMM Boot Status).                         1 skipped
+  Test _NCH (NVDIMM Current Health Information).                     :  60.0% |
+  Test _NCH (NVDIMM Current Health Information).                     :  60.0% /
+
+  Test _NCH (NVDIMM Current Health Information).          1 skipped
+  Test _NIC (NVDIMM Health Error Injection Capabilities).            :  60.0% -
+  Test _NIC (NVDIMM Health Error Injection Capabilities).            :  60.0% \
+
+  Test _NIC (NVDIMM Health Error Injection Capabilities)  1 skipped
+  Test _NIH (NVDIMM Inject/Clear Health Errors).                     :  60.0% |
+  Test _NIH (NVDIMM Inject/Clear Health Errors).                     :  60.0% /
+
+  Test _NIH (NVDIMM Inject/Clear Health Errors).          1 skipped
+  Test _NIG (NVDIMM Inject Health Error Status).                     :  60.0% -
+  Test _NIG (NVDIMM Inject Health Error Status).                     :  60.0% \
+
+  Test _NIG (NVDIMM Inject Health Error Status).          1 skipped
+  Test _SBS (Smart Battery Subsystem).                               :  60.0% |
+  Test _SBS (Smart Battery Subsystem).                               :  60.0% /
+
+  Test _SBS (Smart Battery Subsystem).                    1 skipped
+  Test _BCT (Battery Charge Time).                                   :  60.0% -
+  Test _BCT (Battery Charge Time).                                   :  60.0% \
+
+  Test _BCT (Battery Charge Time).                        1 skipped
+  Test _BIF (Battery Information).                                   :  60.0% |
+  Test _BIF (Battery Information).                                   :  60.0% /
+
+  Test _BIF (Battery Information).                        1 skipped
+  Test _BIX (Battery Information Extended).                          :  60.0% -
+  Test _BIX (Battery Information Extended).                          :  60.0% \
+
+  Test _BIX (Battery Information Extended).               1 skipped
+  Test _BMA (Battery Measurement Averaging).                         :  60.0% |
+  Test _BMA (Battery Measurement Averaging).                         :  60.0% /
+
+  Test _BMA (Battery Measurement Averaging).              1 skipped
+  Test _BMC (Battery Maintenance Control).                           :  60.0% -
+  Test _BMC (Battery Maintenance Control).                           :  60.0% \
+
+  Test _BMC (Battery Maintenance Control).                1 skipped
+  Test _BMD (Battery Maintenance Data).                              :  60.0% |
+  Test _BMD (Battery Maintenance Data).                              :  60.1% /
+
+  Test _BMD (Battery Maintenance Data).                   1 skipped
+  Test _BMS (Battery Measurement Sampling Time).                     :  60.1% -
+  Test _BMS (Battery Measurement Sampling Time).                     :  60.1% \
+
+  Test _BMS (Battery Measurement Sampling Time).          1 skipped
+  Test _BPC (Battery Power Characteristics).                         :  60.1% |
+  Test _BPC (Battery Power Characteristics).                         :  60.1% /
+
+  Test _BPC (Battery Power Characteristics).              1 skipped
+  Test _BPS (Battery Power State).                                   :  60.1% -
+  Test _BPS (Battery Power State).                                   :  60.1% \
+
+  Test _BPS (Battery Power State).                        1 skipped
+  Test _BPT (Battery Power Threshold).                               :  60.1% |
+  Test _BPT (Battery Power Threshold).                               :  60.1% /
+
+  Test _BPT (Battery Power Threshold).                    1 skipped
+  Test _BST (Battery Status).                                        :  60.1% -
+  Test _BST (Battery Status).                                        :  60.1% \
+
+  Test _BST (Battery Status).                             1 skipped
+  Test _BTP (Battery Trip Point).                                    :  60.1% |
+  Test _BTP (Battery Trip Point).                                    :  60.1% /
+
+  Test _BTP (Battery Trip Point).                         1 skipped
+  Test _BTH (Battery Throttle Limit).                                :  60.1% -
+  Test _BTH (Battery Throttle Limit).                                :  60.1% \
+
+  Test _BTH (Battery Throttle Limit).                     1 skipped
+  Test _BTM (Battery Time).                                          :  60.1% |
+  Test _BTM (Battery Time).                                          :  60.1% /
+
+  Test _BTM (Battery Time).                               1 skipped
+  Test _PCL (Power Consumer List).                                   :  60.1% -
+  Test _PCL (Power Consumer List).                                   :  60.1% \
+
+  Test _PCL (Power Consumer List).                        1 skipped
+  Test _PIF (Power Source Information).                              :  60.1% |
+  Test _PIF (Power Source Information).                              :  60.1% /
+
+  Test _PIF (Power Source Information).                   1 skipped
+  Test _PRL (Power Source Redundancy List).                          :  60.1% -
+  Test _PRL (Power Source Redundancy List).                          :  60.1% \
+
+  Test _PRL (Power Source Redundancy List).               1 skipped
+  Test _PSR (Power Source).                                          :  60.1% |
+  Test _PSR (Power Source).                                          :  60.1% /
+
+  Test _PSR (Power Source).                               1 skipped
+  Test _GAI (Get Averaging Level).                                   :  60.1% -
+  Test _GAI (Get Averaging Level).                                   :  60.1% \
+
+  Test _GAI (Get Averaging Level).                        1 skipped
+  Test _GHL (Get Hardware Limit).                                    :  60.1% |
+  Test _GHL (Get Hardware Limit).                                    :  60.1% /
+
+  Test _GHL (Get Hardware Limit).                         1 skipped
+  Test _PMC (Power Meter Capabilities).                              :  60.1% -
+  Test _PMC (Power Meter Capabilities).                              :  60.1% \
+
+  Test _PMC (Power Meter Capabilities).                   1 skipped
+  Test _PMD (Power Meter Devices).                                   :  60.1% |
+  Test _PMD (Power Meter Devices).                                   :  60.1% /
+
+  Test _PMD (Power Meter Devices).                        1 skipped
+  Test _PMM (Power Meter Measurement).                               :  60.1% -
+  Test _PMM (Power Meter Measurement).                               :  60.1% \
+
+  Test _PMM (Power Meter Measurement).                    1 skipped
+  Test _WPC (Wireless Power Calibration).                            :  60.1% |
+  Test _WPC (Wireless Power Calibration).                            :  60.1% /
+
+  Test _WPC (Wireless Power Calibration).                 1 skipped
+  Test _WPP (Wireless Power Polling).                                :  60.1% -
+  Test _WPP (Wireless Power Polling).                                :  60.1% \
+
+  Test _WPP (Wireless Power Polling).                     1 skipped
+  Test _FIF (Fan Information).                                       :  60.1% |
+  Test _FIF (Fan Information).                                       :  60.1% /
+
+  Test _FIF (Fan Information).                            1 skipped
+  Test _FPS (Fan Performance States).                                :  60.1% -
+  Test _FPS (Fan Performance States).                                :  60.1% \
+
+  Test _FPS (Fan Performance States).                     1 skipped
+  Test _FSL (Fan Set Level).                                         :  60.1% |
+  Test _FSL (Fan Set Level).                                         :  60.1% /
+
+  Test _FSL (Fan Set Level).                              1 skipped
+  Test _FST (Fan Status).                                            :  60.1% -
+  Test _FST (Fan Status).                                            :  60.1% \
+
+  Test _FST (Fan Status).                                 1 skipped
+  Test _ACx (Active Cooling).                                        :  60.1% |
+  Test _ACx (Active Cooling).                                        :  60.1% /
+
+  Test _ACx (Active Cooling).                             10 skipped
+  Test _ART (Active Cooling Relationship Table).                     :  60.1% -
+  Test _ART (Active Cooling Relationship Table).                     :  60.2% \
+
+  Test _ART (Active Cooling Relationship Table).          1 skipped
+  Test _ALx (Active List).                                           :  60.2% |
+  Test _ALx (Active List).                                           :  60.2% /
+
+  Test _ALx (Active List).                                10 skipped
+  Test _CRT (Critical Trip Point).                                   :  60.2% -
+  Test _CRT (Critical Trip Point).                                   :  60.2% \
+
+  Test _CRT (Critical Trip Point).                        1 skipped
+  Test _CR3 (Warm/Standby Temperature).                              :  60.2% |
+  Test _CR3 (Warm/Standby Temperature).                              :  60.2% /
+
+  Test _CR3 (Warm/Standby Temperature).                   1 skipped
+  Test _DTI (Device Temperature Indication).                         :  60.2% -
+  Test _DTI (Device Temperature Indication).                         :  60.2% \
+
+  Test _DTI (Device Temperature Indication).              1 skipped
+  Test _HOT (Hot Temperature).                                       :  60.2% |
+  Test _HOT (Hot Temperature).                                       :  60.2% /
+
+  Test _HOT (Hot Temperature).                            1 skipped
+  Test _MTL (Minimum Throttle Limit).                                :  60.2% -
+  Test _MTL (Minimum Throttle Limit).                                :  60.2% \
+
+  Test _MTL (Minimum Throttle Limit).                     1 skipped
+  Test _NTT (Notification Temp Threshold).                           :  60.2% |
+  Test _NTT (Notification Temp Threshold).                           :  60.2% /
+
+  Test _NTT (Notification Temp Threshold).                1 skipped
+  Test _PSL (Passive List).                                          :  60.2% -
+  Test _PSL (Passive List).                                          :  60.2% \
+
+  Test _PSL (Passive List).                               1 skipped
+  Test _PSV (Passive Temp).                                          :  60.2% |
+  Test _PSV (Passive Temp).                                          :  60.2% /
+
+  Test _PSV (Passive Temp).                               1 skipped
+  Test _RTV (Relative Temp Values).                                  :  60.2% -
+  Test _RTV (Relative Temp Values).                                  :  60.2% \
+
+  Test _RTV (Relative Temp Values).                       1 skipped
+  Test _SCP (Set Cooling Policy).                                    :  60.2% |
+  Test _SCP (Set Cooling Policy).                                    :  60.2% /
+
+  Test _SCP (Set Cooling Policy).                         1 skipped
+  Test _TC1 (Thermal Constant 1).                                    :  60.2% -
+  Test _TC1 (Thermal Constant 1).                                    :  60.2% \
+
+  Test _TC1 (Thermal Constant 1).                         1 skipped
+  Test _TC2 (Thermal Constant 2).                                    :  60.2% |
+  Test _TC2 (Thermal Constant 2).                                    :  60.2% /
+
+  Test _TC2 (Thermal Constant 2).                         1 skipped
+  Test _TFP (Thermal fast Sampling Period).                          :  60.2% -
+  Test _TFP (Thermal fast Sampling Period).                          :  60.2% \
+
+  Test _TFP (Thermal fast Sampling Period).               1 skipped
+  Test _TMP (Thermal Zone Current Temp).                             :  60.2% |
+  Test _TMP (Thermal Zone Current Temp).                             :  60.2% /
+
+  Test _TMP (Thermal Zone Current Temp).                  1 skipped
+  Test _TPT (Trip Point Temperature).                                :  60.2% -
+  Test _TPT (Trip Point Temperature).                                :  60.2% \
+
+  Test _TPT (Trip Point Temperature).                     1 skipped
+  Test _TRT (Thermal Relationship Table).                            :  60.2% |
+  Test _TRT (Thermal Relationship Table).                            :  60.2% /
+
+  Test _TRT (Thermal Relationship Table).                 1 skipped
+  Test _TSN (Thermal Sensor Device).                                 :  60.2% -
+  Test _TSN (Thermal Sensor Device).                                 :  60.2% \
+
+  Test _TSN (Thermal Sensor Device).                      1 skipped
+  Test _TSP (Thermal Sampling Period).                               :  60.2% |
+  Test _TSP (Thermal Sampling Period).                               :  60.2% /
+
+  Test _TSP (Thermal Sampling Period).                    1 skipped
+  Test _TST (Temperature Sensor Threshold).                          :  60.2% -
+  Test _TST (Temperature Sensor Threshold).                          :  60.2% \
+
+  Test _TST (Temperature Sensor Threshold).               1 skipped
+  Test _TZD (Thermal Zone Devices).                                  :  60.2% |
+  Test _TZD (Thermal Zone Devices).                                  :  60.2% /
+
+  Test _TZD (Thermal Zone Devices).                       1 skipped
+  Test _TZM (Thermal Zone member).                                   :  60.2% -
+  Test _TZM (Thermal Zone member).                                   :  60.2% \
+
+  Test _TZM (Thermal Zone member).                        1 skipped
+  Test _TZP (Thermal Zone Polling).                                  :  60.2% |
+  Test _TZP (Thermal Zone Polling).                                  :  60.2% /
+
+  Test _TZP (Thermal Zone Polling).                       1 skipped
+  Test _GPE (General Purpose Events).                                :  60.2% -
+  Test _GPE (General Purpose Events).                                :  60.2% \
+
+  Test _GPE (General Purpose Events).                     1 skipped
+  Test _EC_ (EC Offset Query).                                       :  60.2% |
+  Test _EC_ (EC Offset Query).                                       :  60.3% /
+
+  Test _EC_ (EC Offset Query).                            1 skipped
+  Test _PTS (Prepare to Sleep).                                      :  60.3% -
+  Test _PTS (Prepare to Sleep).                                      :  60.3% \
+
+  Test _PTS (Prepare to Sleep).                           3 skipped
+  Test _TTS (Transition to State).                                   :  60.3% |
+  Test _TTS (Transition to State).                                   :  60.3% /
+
+  Test _TTS (Transition to State).                        1 skipped
+  Test _WAK (System Wake).                                           :  60.3% -
+  Test _WAK (System Wake).                                           :  60.3% \
+
+  Test _WAK (System Wake).                                3 skipped
+  Test _ADR (Return Unique ID for Device).                           :  60.3% |
+  Test _ADR (Return Unique ID for Device).                           :  60.3% /
+
+  Test _ADR (Return Unique ID for Device).                12 passed
+  Test _BCL (Query List of Brightness Control Levels Supported).     :  60.3% -
+  Test _BCL (Query List of Brightness Control Levels Supported).     :  60.3% \
+
+  Test _BCL (Query List of Brightness Control Levels S..  1 skipped
+  Test _BCM (Set Brightness Level).                                  :  60.3% |
+  Test _BCM (Set Brightness Level).                                  :  60.3% /
+
+  Test _BCM (Set Brightness Level).                       1 skipped
+  Test _BQC (Brightness Query Current Level).                        :  60.3% -
+  Test _BQC (Brightness Query Current Level).                        :  60.3% \
+
+  Test _BQC (Brightness Query Current Level).             1 skipped
+  Test _DCS (Return the Status of Output Device).                    :  60.3% |
+  Test _DCS (Return the Status of Output Device).                    :  60.3% /
+
+  Test _DCS (Return the Status of Output Device).         1 skipped
+  Test _DDC (Return the EDID for this Device).                       :  60.3% -
+  Test _DDC (Return the EDID for this Device).                       :  60.3% \
+
+  Test _DDC (Return the EDID for this Device).            1 skipped
+  Test _DSS (Device Set State).                                      :  60.3% |
+  Test _DSS (Device Set State).                                      :  60.3% /
+
+  Test _DSS (Device Set State).                           1 skipped
+  Test _DGS (Query Graphics State).                                  :  60.3% -
+  Test _DGS (Query Graphics State).                                  :  60.3% \
+
+  Test _DGS (Query Graphics State).                       1 skipped
+  Test _DOD (Enumerate All Devices Attached to Display Adapter).     :  60.3% |
+  Test _DOD (Enumerate All Devices Attached to Display Adapter).     :  60.3% /
+
+  Test _DOD (Enumerate All Devices Attached to Display..  1 skipped
+  Test _DOS (Enable/Disable Output Switching).                       :  60.3% -
+  Test _DOS (Enable/Disable Output Switching).                       :  60.3% \
+
+  Test _DOS (Enable/Disable Output Switching).            1 skipped
+  Test _GPD (Get POST Device).                                       :  60.3% |
+  Test _GPD (Get POST Device).                                       :  60.3% /
+
+  Test _GPD (Get POST Device).                            1 skipped
+  Test _ROM (Get ROM Data).                                          :  60.3% -
+  Test _ROM (Get ROM Data).                                          :  60.3% \
+
+  Test _ROM (Get ROM Data).                               1 skipped
+  Test _SPD (Set POST Device).                                       :  60.3% |
+  Test _SPD (Set POST Device).                                       :  60.3% /
+
+  Test _SPD (Set POST Device).                            1 skipped
+  Test _VPO (Video POST Options).                                    :  60.3% -
+  Test _VPO (Video POST Options).                                    :  60.3% \
+
+  Test _VPO (Video POST Options).                         1 skipped
+  Test _CBA (Configuration Base Address).                            :  60.3% |
+  Test _CBA (Configuration Base Address).                            :  60.3% /
+
+  Test _CBA (Configuration Base Address).                 1 skipped
+  Test _IFT (IPMI Interface Type).                                   :  60.3% -
+  Test _IFT (IPMI Interface Type).                                   :  60.3% \
+
+  Test _IFT (IPMI Interface Type).                        1 skipped
+  Test _SRV (IPMI Interface Revision).                               :  60.3% |
+  Test _SRV (IPMI Interface Revision).                               :  60.3% /
+
+  Test _SRV (IPMI Interface Revision).                    1 skipped
+Test: MSDM Microsoft Data Management Table test.
+                                                                     :  60.3% -
+
+ Test skipped.
+Test: MSCT Maximum System Characteristics Table test.
+                                                                     :  61.2% \
+
+ Test skipped.
+Test: MPST Memory Power State Table test.
+                                                                     :  62.0% |
+
+ Test skipped.
+Test: MCHI Management Controller Host Interface Table test.
+                                                                     :  62.8% /
+
+ Test skipped.
+Test: MCFG PCI Express* memory mapped config space test.
+                                                                     :  63.6% -
+  Validate MCFG table.                                               :  63.6% \
+  Validate MCFG table.                                               :  64.0% |
+
+  Validate MCFG table.                                    1 passed
+  Validate MCFG PCI config space.                                    :  64.0% /
+  Validate MCFG PCI config space.                                    :  64.5% -
+
+  Validate MCFG PCI config space.                         1 passed
+Test: MADT Multiple APIC Description Table (spec compliant).
+                                                                     :  64.5% \
+
+ Test aborted.
+Test: LPIT Low Power Idle Table test.
+                                                                     :  65.3% |
+
+ Test skipped.
+Test: IORT IO Remapping Table test.
+                                                                     :  66.1% /
+
+ Test skipped.
+Test: HMAT Heterogeneous Memory Attribute Table test.
+                                                                     :  66.9% -
+
+ Test skipped.
+Test: HPET IA-PC High Precision Event Timer Table tests.
+                                                                     :  67.8% \
+  Test HPET base in kernel log.                                      :  67.8% |
+  Test HPET base in kernel log.                                      :  68.0% /
+
+  Test HPET base in kernel log.                           1 passed
+  Test HPET base in HPET table.                                      :  68.0% -
+  Test HPET base in HPET table.                                      :  68.2% \
+
+  Test HPET base in HPET table.                           1 passed
+  Test HPET base in DSDT and/or SSDT.                                :  68.2% |
+  Test HPET base in DSDT and/or SSDT.                                :  68.4% /
+
+  Test HPET base in DSDT and/or SSDT.                     1 passed
+  Test HPET configuration.                                           :  68.4% -
+  Test HPET configuration.                                           :  68.6% \
+
+  Test HPET configuration.                                2 passed
+Test: HEST Hardware Error Source Table test.
+                                                                     :  68.6% |
+
+ Test skipped.
+Test: GTDT Generic Timer Description Table test.
+                                                                     :  69.4% /
+
+ Test skipped.
+Test: FPDT Firmware Performance Data Table test.
+                                                                     :  70.2% -
+
+ Test skipped.
+Test: Simple fan tests.
+                                                                     :  71.1% \
+  Test fan status.                                                   :  71.1% |
+  Test fan status.                                                   :  71.5% /
+
+  Test fan status.                                        4 passed
+  Load system, check CPU fan status.                                 :  71.5% -
+  Load system, check CPU fan status.                                 :  71.5% \
+  Load system, check CPU fan status.                                 :  71.5% |
+  Load system, check CPU fan status.                                 :  71.5% /
+  Load system, check CPU fan status.                                 :  71.6% -
+  Load system, check CPU fan status.                                 :  71.6% \
+  Load system, check CPU fan status.                                 :  71.6% |
+  Load system, check CPU fan status.                                 :  71.6% /
+  Load system, check CPU fan status.                                 :  71.7% -
+  Load system, check CPU fan status.                                 :  71.7% \
+  Load system, check CPU fan status.                                 :  71.7% |
+  Load system, check CPU fan status.                                 :  71.7% /
+  Load system, check CPU fan status.                                 :  71.7% -
+  Load system, check CPU fan status.                                 :  71.8% \
+  Load system, check CPU fan status.                                 :  71.8% |
+  Load system, check CPU fan status.                                 :  71.8% /
+  Load system, check CPU fan status.                                 :  71.8% -
+  Load system, check CPU fan status.                                 :  71.8% \
+  Load system, check CPU fan status.                                 :  71.9% |
+  Load system, check CPU fan status.                                 :  71.9% /
+  Load system, check CPU fan status.                                 :  71.9% -
+  Load system, check CPU fan status.                                 :  71.9% \
+  Load system, check CPU fan status.                                 :  71.9% |
+
+  Load system, check CPU fan status.
+Test: FADT Fixed ACPI Description Table tests.
+                                                                     :  71.9% /
+  ACPI FADT Description Table flag info.                             :  71.9% -
+  ACPI FADT Description Table flag info.                             :  72.0% \
+
+  ACPI FADT Description Table flag info.                  1 info only
+  FADT checksum test.                                                :  72.0% |
+  FADT checksum test.                                                :  72.2% /
+
+  FADT checksum test.                                     1 passed
+  FADT revision test.                                                :  72.2% -
+  FADT revision test.                                                :  72.3% \
+
+  FADT revision test.                                     1 warning
+  ACPI FADT Description Table tests.                                 :  72.3% |
+  ACPI FADT Description Table tests.                                 :  72.5% /
+
+  ACPI FADT Description Table tests.                      25 passed, 1 failed, 3 skipped
+  Test FADT SCI_EN bit is enabled.                                   :  72.5% -
+  Test FADT SCI_EN bit is enabled.                                   :  72.6% \
+
+  Test FADT SCI_EN bit is enabled.                        1 passed
+  Test FADT reset register.                                          :  72.6% |
+  Test FADT reset register.                                          :  72.7% /
+
+  Test FADT reset register.                               2 passed
+Test: FACS Firmware ACPI Control Structure test.
+                                                                     :  72.7% -
+  FACS Firmware ACPI Control Structure test.                         :  72.7% \
+  FACS Firmware ACPI Control Structure test.                         :  73.6% |
+
+  FACS Firmware ACPI Control Structure test.              1 passed
+Test: ERST Error Record Serialization Table test.
+                                                                     :  73.6% /
+
+ Test skipped.
+Test: EINJ Error Injection Table test.
+                                                                     :  74.4% -
+
+ Test skipped.
+Test: ECDT Embedded Controller Boot Resources Table test.
+                                                                     :  75.2% \
+
+ Test skipped.
+Test: DRTM D-RTM Resources Table test.
+                                                                     :  76.0% |
+
+ Test skipped.
+Test: DPPT DMA Protection Policy Table test
+                                                                     :  76.9% /
+
+ Test skipped.
+Test: DMA Remapping (VT-d) test.
+                                                                     :  77.7% -
+  DMA Remapping test.                                                :  77.7% \
+  DMA Remapping test.                                                :  78.5% |
+
+  DMA Remapping test.                                     1 skipped
+Test: Wireless power calibration device test
+                                                                     :  78.5% /
+
+ Test skipped.
+Test: Time and alarm device test
+                                                                     :  79.3% -
+
+ Test skipped.
+Test: Ambient light sensor device test
+                                                                     :  80.2% \
+
+ Test skipped.
+Test: NVDIMM device test
+                                                                     :  81.0% |
+
+ Test skipped.
+Test: Lid device test
+                                                                     :  81.8% /
+
+ Test skipped.
+Test: Sleep button device test
+                                                                     :  82.6% -
+
+ Test skipped.
+Test: Power button device test
+                                                                     :  83.5% \
+
+ Test skipped.
+Test: ACPI embedded controller device test
+                                                                     :  84.3% |
+
+ Test skipped.
+Test: ACPI smart battery device test
+                                                                     :  85.1% /
+
+ Test skipped.
+Test: ACPI battery device test
+                                                                     :  86.0% -
+
+ Test skipped.
+Test: AC adapter device test
+                                                                     :  86.8% \
+
+ Test skipped.
+Test: DBG2 (Debug Port Table 2) test.
+                                                                     :  87.6% |
+
+ Test skipped.
+Test: DBGP (Debug Port) Table test.
+                                                                     :  88.4% /
+
+ Test skipped.
+Test: Processor C state support test.
+                                                                     :  89.3% -
+  Test all CPUs C-states.                                            :  89.3% \
+  Test all CPUs C-states. (CPU 1 of 4)                               :  89.3% |
+  Test all CPUs C-states. (CPU 2 of 4)                               :  89.5% /
+  Test all CPUs C-states. (CPU 3 of 4)                               :  89.7% -
+  Test all CPUs C-states. (CPU 4 of 4)                               :  89.9% \
+  Test all CPUs C-states.                                            :  90.1% |
+
+  Test all CPUs C-states.                                 7 passed
+Test: CSRT Core System Resource Table test.
+                                                                     :  90.1% /
+
+ Test skipped.
+Test: CPEP Corrected Platform Error Polling Table test.
+                                                                     :  90.9% -
+
+ Test skipped.
+Test: ACPI table checksum test.
+                                                                     :  91.7% \
+  ACPI table checksum test.                                          :  91.7% |
+  ACPI table checksum test.                                          :  92.6% /
+
+  ACPI table checksum test.                               10 passed
+Test: CEDT CXL Early Discovery Table test
+                                                                     :  92.6% -
+
+ Test skipped.
+Test: Automated LCD brightness test.
+                                                                     :  93.4% \
+
+ Test aborted.
+Test: BOOT Table test.
+                                                                     :  94.2% |
+
+ Test skipped.
+Test: BGRT Boot Graphics Resource Table test.
+                                                                     :  95.0% /
+
+ Test skipped.
+Test: BERT Boot Error Record Table test.
+                                                                     :  95.9% -
+
+ Test skipped.
+Test: ASPT Table test.
+                                                                     :  96.7% \
+
+ Test skipped.
+Test: ASF! Alert Standard Format Table test.
+                                                                     :  97.5% |
+
+ Test skipped.
+Test: Test for single instance of APIC/MADT table.
+                                                                     :  98.3% /
+  Test for single instance of APIC/MADT table.                       :  98.3% -
+  Test for single instance of APIC/MADT table.                       :  99.2% \
+
+  Test for single instance of APIC/MADT table.            1 passed
+Test: ACPI table headers sanity tests.
+                                                                     :  99.2% |
+  Test ACPI headers.                                                 :  99.2% /
+  Test ACPI headers.                                                 :  99.6% -
+
+  Test ACPI headers.                                      8 passed
+  Test ACPI spec versus table revisions.                             :  99.6% \
+  Test ACPI spec versus table revisions.                             : 100.0% |
+
+  Test ACPI spec versus table revisions.

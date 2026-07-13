@@ -20,6 +20,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 DEFAULT_LTP_RESULTS_DIR = Path("/var/tmp/ltp-results")  # noqa: S108
+TEST_SKIPPED_RETURN_CODE = "32"
 
 
 class Kirk(GenericUtil):
@@ -283,10 +284,12 @@ class Kirk(GenericUtil):
                 "duration": test.get("test", {}).get("duration", 0.0),
             }
             for test in results
+            if test.get("test", {}).get("retval", []) != [TEST_SKIPPED_RETURN_CODE]
         ]
         metrics = {str(i): metric for i, metric in enumerate(metrics)}
 
         summary = raw_metrics.get("stats", {})
+        test_type = {"type": "general"}
         time = {
             "duration_sec": round(summary.get("runtime", 0.0), 2),
         }
@@ -296,7 +299,7 @@ class Kirk(GenericUtil):
 
         return AdapterResult(
             tool="kirk",
-            test_type={},
+            test_type=test_type,
             time=time,
             metrics=metrics,
         )

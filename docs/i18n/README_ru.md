@@ -4,7 +4,12 @@
 
 Тестирование производительности и стабильности образов ОС.
 
-Структура репозитория:
+
+## Документация
+
+[Сборка образов, запуск тестов и просмотр результатов](../guides/testing-guide.md).
+
+### Структура репозитория
 
 | Папка                   | Описание                                 |
 |-------------------------|------------------------------------------|
@@ -15,6 +20,23 @@
 | [scripts](../../scripts)| Shell скрипты                            |
 | [src](../../src)        | Исходный код и основные файлы разработки |
 | [tests](../../tests)    | Юнит тесты и другие                      |
+
+### Методологии
+
+- [Chaos Engineering](../methodology/ChaosEngineering.md)
+- [Тестирование производительности](../methodology/performance-methodology.md)
+- [Сравнительная матрица](../methodology/matrix.md)
+- [Метод инструментов](../methodology/instrumental-method.md)
+- [Метод USE](../methodology/use-method.md)
+- [Метод определения характеристик потребления памяти](../methodology/memory-consumption-characteristics.md)
+- [Метод оценки размера рабочего набора](../methodology/working-set-size-estimation-method.md)
+- [Мониторинг производительности](../methodology/perfomance-monitoring.md)
+- [Метод выявления утечек](../methodology/leak-detection-method.md)
+- [Статическая настройка производительности](../methodology/static-performance-tuning.md)
+- [Управление ресурсами](../methodology/resource-management.md)
+- [Микробенчмаркинг](../methodology/microbenchmarking.md)
+- [Анализ тактов](../methodology/cycle-analysis.md)
+- [Эмуляция сбоев](../methodology/failure_emulation.md)
 
 ## Создание и тестирование образа Yocto и Suse с помощью Docker Compose
 
@@ -80,3 +102,7 @@ docker logs os-image-testing-imgtests-analyzer-1
 * Параметры виртуальных машин (пути Yocto и Suse, Yocto образ)
 * Параметры QEMU (размер RAM)
 * Сетевые параметры (IP адреса, порты, включая SSH порты для виртуальных машин)
+
+## Полная документация
+
+Вся документация по проекту доступна в [docs/index.md](../index.md).

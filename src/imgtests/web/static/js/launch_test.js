@@ -59,14 +59,14 @@ document.getElementById("runTestsBtn").addEventListener("click", function () {
     const btn = this;
     const outputContainer = document.getElementById("outputContainer");
 
-    const testing_mode = document.getElementById('configTestingMode').value;
+    const runner = document.getElementById('configRunner').value;
     const testRunsCountInput = document.getElementById("testRunsCount");
     const testRunsCount = testRunsCountInput
         ? parseInt(testRunsCountInput.value, 10)
         : 1;
 
     let config = null;
-    if (testing_mode === "profiled") {
+    if (runner === "profiled") {
         const conf_mode = document.querySelector('input[name="profiledConfigMode"]:checked').value;
         if (conf_mode === "custom") {
             const runMode = document.querySelector('input[name="profiledRunMode"]:checked').value;
@@ -88,7 +88,7 @@ document.getElementById("runTestsBtn").addEventListener("click", function () {
         },
         body: JSON.stringify({
             test_runs_count: testRunsCount,
-            testing_mode: testing_mode,
+            runner: runner,
             config: config,
         }),
     }).then((response) => response.json())
