@@ -50,6 +50,9 @@ from imgtests.exec.loaders.stress_ng import StressNg, StressNGMetrics, StressNGS
                 stress-ng: metrc: [999] syscall: open   9.0  1  10
                 stress-ng: metrc: [999] syscall: close  2.0  1  10
                 stress-ng: metrc: [999] syscall: read   7.0  1  10
+                stress-ng: metrc: [999] 5000000000 CPU Clock 0.500 B/sec
+                stress-ng: metrc: [999] 0 Page Faults Major 0.000 /sec
+                stress-ng: metrc: [999] 7712 Kmalloc 1.518 K/sec
                 """,
             ).strip(),
             [
@@ -63,6 +66,7 @@ from imgtests.exec.loaders.stress_ng import StressNg, StressNGMetrics, StressNGS
                     1.00,
                     50.00,
                     None,
+                    {"cpu_clock": 5000000000, "page_faults_major": 0, "kmalloc": 7712},
                     (
                         StressNGSyscallTiming("open", 9.0, 1, 10),
                         StressNGSyscallTiming("read", 7.0, 1, 10),
@@ -80,7 +84,7 @@ from imgtests.exec.loaders.stress_ng import StressNg, StressNGMetrics, StressNGS
         "Invalid bogo opts format.",
         "One stressor with new metrics format.",
         "Two stressors with new metrics format.",
-        "Syscall with syscall-top entries.",
+        "Syscall with syscall-top and perf entries.",
     ],
 )
 def test_parse_metrics(raw_metrics: str, expected: list[StressNGMetrics]) -> None:
