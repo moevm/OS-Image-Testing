@@ -38,6 +38,7 @@ class StressNGMetrics(NamedTuple):
     bogo_ops_s_usr_sys_time: float
     cpu_used_per_instance: float
     rss_max_kb: int | None = None
+    stats: dict[str, int] | None = None
     top10_slowest: tuple[StressNGSyscallTiming, ...] | None = None
 
 
@@ -68,6 +69,7 @@ METRICS_RE: Final = re.compile(
     r"([\d.]+)"  # CPU used per instance
     r"(?:\s+([\d]+))?$",  # RSS Max
 )
+STATS_RE: Final = re.compile(r"^(\d+)\s+(.+)\s+([\d.]+)\s+(\S+)$")
 
 
 class StressNg(PkgMgrMixin, GenericUtil):
@@ -406,6 +408,7 @@ class StressNg(PkgMgrMixin, GenericUtil):
             *create_opt("pipeherd", pipeherd),
             *create_opt("sigq", sigq),
             *add_flag("metrics"),
+            *add_flag("perf"),
         ]
         if syscall is not None:
             opts.extend(create_opt("syscall-top", 0))
@@ -472,6 +475,7 @@ class StressNg(PkgMgrMixin, GenericUtil):
                         "bogo_ops_s_usr_sys_time": 0.0,
                         "cpu_used_per_instance": 0.0,
                         "rss_max_kb": None,
+                        "stats": {},
                         "syscall_calls": [],
                     },
                 )
@@ -511,6 +515,7 @@ class StressNg(PkgMgrMixin, GenericUtil):
                         "bogo_ops_s_usr_sys_time": 0.0,
                         "cpu_used_per_instance": 0.0,
                         "rss_max_kb": None,
+                        "stats": {},
                         "syscall_calls": [],
                     },
                 )
@@ -540,6 +545,29 @@ class StressNg(PkgMgrMixin, GenericUtil):
             m_untrusty = StressNg.__parse_untrusty(clean_line)
             if m_untrusty:
                 summary_untrusty = m_untrusty
+                continue
+
+            stats = STATS_RE.match(clean_line)
+            if stats:
+                stat_counter = stats.group(1)
+                stat_name = stats.group(2).strip().replace(" ", "_").replace("-", "_").lower()
+                target = current_stressor or "stress-ng"
+                metrics_map.setdefault(
+                    target,
+                    {
+                        "bogo_ops": 0,
+                        "real_time_secs": 0.0,
+                        "usr_time_secs": 0.0,
+                        "sys_time_secs": 0.0,
+                        "bogo_ops_s_real_time": 0.0,
+                        "bogo_ops_s_usr_sys_time": 0.0,
+                        "cpu_used_per_instance": 0.0,
+                        "rss_max_kb": None,
+                        "stats": {},
+                        "syscall_calls": [],
+                    },
+                )
+                metrics_map[target]["stats"][stat_name] = int(stat_counter)
 
         metrics: list[StressNGMetrics] = []
         for stressor, info in metrics_map.items():
@@ -560,6 +588,7 @@ class StressNg(PkgMgrMixin, GenericUtil):
                     float(info.get("bogo_ops_s_usr_sys_time", -1)),
                     float(info.get("cpu_used_per_instance", -1)),
                     int(info["rss_max_kb"]) if info.get("rss_max_kb") is not None else None,
+                    info.get("stats") or None,
                     top10_slowest,
                 )
             except (ValueError, TypeError) as e:
@@ -617,6 +646,11 @@ class StressNg(PkgMgrMixin, GenericUtil):
 
         if metrics.rss_max_kb is not None:
             result["StressNGMetrics"]["rss_max_kb"] = {"value": metrics.rss_max_kb}
+
+        if metrics.stats:
+            result["StressNGMetrics"]["stats"] = {
+                stat_name: {"value": stat_value} for stat_name, stat_value in metrics.stats.items()
+            }
 
         if metrics.top10_slowest:
             result["top10_slowest"] = {}
