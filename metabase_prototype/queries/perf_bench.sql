@@ -1,3 +1,11 @@
+SELECT benchmark,
+	AVG(total_time) AS total_time_avg,
+	AVG(usecs_per_op) AS usecs_per_op_avg,
+	AVG(ops_per_sec) AS ops_per_sec_avg,
+	AVG(gb_per_sec_default) AS gb_per_sec_default_avg,
+	AVG(gb_per_sec_unrolled) AS gb_per_sec_unrolled_avg
+FROM (
+
 SELECT
 	-- Add here another metrics as columns if needed
     (item->>'benchmark') AS benchmark,
@@ -28,4 +36,7 @@ FROM (
       [[ AND l.command LIKE CONCAT('%', {{command}}, '%') ]]
 ) subquery
 JOIN experiment ON subquery.experiment_id = experiment.experiment_id
-ORDER BY benchmark;
+
+)
+
+GROUP BY benchmark;
