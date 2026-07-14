@@ -15,5 +15,8 @@ FROM (
 	JOIN experiment ON l.experiment_id = experiment.experiment_id
 	JOIN "configuration" ON experiment.config_id = "configuration".config_id
 	WHERE l.command LIKE '%systemd-analyze time%'
+		[[ AND os = {{os}} ]]
+	    [[ AND core_info = {{core_info}} ]]
+	    [[ AND experiment.started_at BETWEEN {{start}} AND {{end}} ]]
 )
 GROUP BY os

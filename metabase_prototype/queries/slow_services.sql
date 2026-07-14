@@ -11,7 +11,7 @@ FROM (
 	WHERE l.command LIKE '%systemd-analyze critical-chain%'
 		[[ AND os = {{os}} ]]
 	    [[ AND core_info = {{core_info}} ]]
-	    [[ AND started_at BETWEEN {{start}} AND {{end}} ]]
+	    [[ AND experiment.started_at BETWEEN {{start}} AND {{end}} ]]
 ) subquery
 WHERE item->>'service_name'IS NOT NULL
 GROUP BY service

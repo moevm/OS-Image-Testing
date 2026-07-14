@@ -9,7 +9,7 @@ FROM (
 SELECT
 	-- Add here another metrics as columns if needed
     (item->>'benchmark') AS benchmark,
-      (CASE
+    (CASE
       WHEN (item->>'duration_sec') IS NOT NULL THEN (item->>'duration_sec')::float
       ELSE (item->>'total_time')::float
     END) AS total_time,
@@ -54,7 +54,7 @@ FROM (
 SELECT
 	-- Add here another metrics as columns if needed
     (item->>'benchmark') AS benchmark,
-      (CASE
+    (CASE
       WHEN (item->>'duration_sec') IS NOT NULL THEN (item->>'duration_sec')::float
       ELSE (item->>'total_time')::float
     END) AS total_time,

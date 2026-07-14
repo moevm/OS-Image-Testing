@@ -1,27 +1,30 @@
 SELECT
-  sub.experiment_id,
-  "configuration".os,
-  "configuration".core_info,
-  experiment.type,
-  experiment.started_at,
-  sub.item ->> 'jobname' AS job_name,
+  experiment.experiment_id,
+  configuration.os,
+  configuration.core_info,
+  type,
+  job_name,
   (CASE
-    WHEN {{metric}} = 'min' THEN NULLIF((sub.item -> 'write' -> 'lat_ns' ->> 'min')::float, 0)
-    WHEN {{metric}} = 'max' THEN NULLIF((sub.item -> 'write' -> 'lat_ns' ->> 'max')::float, 0)
-    WHEN {{metric}} = 'stddev' THEN NULLIF((sub.item -> 'write' -> 'lat_ns' ->> 'stddev')::float, 0)
-    ELSE NULLIF((sub.item -> 'write' -> 'lat_ns' ->> 'mean')::float, 0)
-  END) / 1000000.0 AS write_latency_ms,
+    WHEN {{metric}} = 'min' THEN NULLIF((item ->> 'min')::float, 0)
+    WHEN {{metric}} = 'max' THEN NULLIF((item ->> 'max')::float, 0)
+    WHEN {{metric}} = 'stddev' THEN NULLIF((item ->> 'stddev')::float, 0)
+    ELSE NULLIF((item ->> 'mean')::float, 0) -- по умолчанию среднее
+  END) / 1000000.0 AS read_latency_ms,
   'Experiment 1' AS experiment_label
-FROM (
-  SELECT
-    l.experiment_id,
-    jsonb_array_elements(l.result::jsonb -> 'jobs') AS item
-  FROM util_run_result AS l
-  WHERE l.command LIKE '%fio%'
-) sub
-JOIN experiment ON sub.experiment_id = experiment.experiment_id
-JOIN "configuration" ON experiment.config_id = "configuration".config_id
-WHERE (sub.item ->> 'jobname') LIKE '%write%'
+FROM
+  (
+    SELECT
+      l.experiment_id,
+	  (l.result::jsonb -> 'test_type' ->> 'name') AS job_name,
+      (l.result::jsonb -> 'metrics' -> 'write' -> 'lat_ns') AS item
+    FROM
+      util_run_result AS l
+    WHERE
+      l.command LIKE '%fio%'
+  ) subquery
+  JOIN experiment ON subquery.experiment_id = experiment.experiment_id
+  JOIN "configuration" ON experiment.config_id = configuration.config_id
+WHERE job_name LIKE '%write%'
   [[ AND os = {{os1}} ]]
   [[ AND core_info = {{core_info1}} ]]
   [[ AND started_at BETWEEN {{start1}} AND {{end1}} ]]
@@ -30,29 +33,32 @@ WHERE (sub.item ->> 'jobname') LIKE '%write%'
 UNION ALL
 
 SELECT
-  sub.experiment_id,
-  "configuration".os,
-  "configuration".core_info,
-  experiment.type,
-  experiment.started_at,
-  sub.item ->> 'jobname' AS job_name,
+  experiment.experiment_id,
+  configuration.os,
+  configuration.core_info,
+  type,
+  job_name,
   (CASE
-    WHEN {{metric}} = 'min' THEN NULLIF((sub.item -> 'write' -> 'lat_ns' ->> 'min')::float, 0)
-    WHEN {{metric}} = 'max' THEN NULLIF((sub.item -> 'write' -> 'lat_ns' ->> 'max')::float, 0)
-    WHEN {{metric}} = 'stddev' THEN NULLIF((sub.item -> 'write' -> 'lat_ns' ->> 'stddev')::float, 0)
-    ELSE NULLIF((sub.item -> 'write' -> 'lat_ns' ->> 'mean')::float, 0)
-  END) / 1000000.0 AS write_latency_ms,
+    WHEN {{metric}} = 'min' THEN NULLIF((item ->> 'min')::float, 0)
+    WHEN {{metric}} = 'max' THEN NULLIF((item ->> 'max')::float, 0)
+    WHEN {{metric}} = 'stddev' THEN NULLIF((item ->> 'stddev')::float, 0)
+    ELSE NULLIF((item ->> 'mean')::float, 0) -- по умолчанию среднее
+  END) / 1000000.0 AS read_latency_ms,
   'Experiment 2' AS experiment_label
-FROM (
-  SELECT
-    l.experiment_id,
-    jsonb_array_elements(l.result::jsonb -> 'jobs') AS item
-  FROM util_run_result AS l
-  WHERE l.command LIKE '%fio%'
-) sub
-JOIN experiment ON sub.experiment_id = experiment.experiment_id
-JOIN "configuration" ON experiment.config_id = "configuration".config_id
-WHERE (sub.item ->> 'jobname') LIKE '%write%'
+FROM
+  (
+    SELECT
+      l.experiment_id,
+	  (l.result::jsonb -> 'test_type' ->> 'name') AS job_name,
+      (l.result::jsonb -> 'metrics' -> 'write' -> 'lat_ns') AS item
+    FROM
+      util_run_result AS l
+    WHERE
+      l.command LIKE '%fio%'
+  ) subquery
+  JOIN experiment ON subquery.experiment_id = experiment.experiment_id
+  JOIN "configuration" ON experiment.config_id = configuration.config_id
+WHERE job_name LIKE '%write%'
   [[ AND os = {{os2}} ]]
   [[ AND core_info = {{core_info2}} ]]
   [[ AND CASE WHEN {{start2}} IS NULL THEN started_at BETWEEN {{start1}} AND {{end1}} ELSE started_at BETWEEN {{start2}} AND {{end2}} END ]]

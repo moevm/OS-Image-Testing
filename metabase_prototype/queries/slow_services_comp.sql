@@ -12,7 +12,7 @@ SELECT 'OS 1' AS experiment_label, service, avg_time FROM (
 		WHERE l.command LIKE '%systemd-analyze critical-chain%'
 			[[ AND os = {{os1}} ]]
 		    [[ AND core_info = {{core_info}} ]]
-		    [[ AND started_at BETWEEN {{start1}} AND {{end1}} ]]
+		    [[ AND experiment.started_at BETWEEN {{start1}} AND {{end1}} ]]
 	) subquery
 	WHERE item->>'service_name'IS NOT NULL
 	GROUP BY service
@@ -35,7 +35,7 @@ SELECT 'OS 2' AS experiment_label, service, avg_time FROM (
 		WHERE l.command LIKE '%systemd-analyze critical-chain%'
 			[[ AND os = {{os2}} ]]
 			[[ AND core_info = {{core_info2}} ]]
-			[[ AND CASE WHEN {{start2}} IS NULL THEN started_at BETWEEN {{start1}} AND {{end1}} ELSE started_at BETWEEN {{start2}} AND {{end2}} END ]]
+			[[ AND CASE WHEN {{start2}} IS NULL THEN experiment.started_at BETWEEN {{start1}} AND {{end1}} ELSE experiment.started_at BETWEEN {{start2}} AND {{end2}} END ]]
 	) subquery
 	WHERE item->>'service_name'IS NOT NULL
 	GROUP BY service
