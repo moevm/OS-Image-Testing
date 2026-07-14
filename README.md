@@ -79,10 +79,6 @@ After initializing both Docker image and volumes, starts the following container
 
 - Postgres container (port:POSTGRES_PORT) contains the project database, which includes configurations, experiment results, information about system loaders and observers.
 
-- Bencher-API container (port:BENCHER_API_PORT) is used as a bencher server. It contains the separate database and processes all requests, that can be seen in the container logs.
-
-- Bencher-console container (port:BENCHER_CLI_PORT) shows active bencher web sessions used for viewing graphics and stats on tested systems, as well as the test results.
-
 - Victoria Metrics container (port:VMETRICS_PORT) collects metrics from the Yocto and Suse-156 container provided by node exporters.
 
 Results can be obtained from the Python container logs after all the tests are finished:
