@@ -18,7 +18,8 @@ RUN apt update && \
     vim \
     nano \
     iperf3 \
-    supervisor
+    supervisor \
+    gettext
 RUN apt-get clean
 RUN rm --recursive --force /tmp/* /var/tmp/*
 
@@ -37,6 +38,9 @@ COPY --chown=${USER}:${GROUP} pyproject.toml /home/${USER}/python
 RUN mkdir --parents /home/${USER}/${LIB_NAME}/conf && \
     chown ${USER}:${GROUP} --recursive /home/${USER}/${LIB_NAME}/
 COPY --chown=${USER}:${GROUP} conf/supervisord.conf /home/${USER}/${LIB_NAME}/conf/supervisord.conf
+RUN msgfmt --output-file \
+            /home/${USER}/python/imgtests/web/locale/ru/LC_MESSAGES/django.mo \
+            /home/${USER}/python/imgtests/web/locale/ru/LC_MESSAGES/django.po
 RUN cd /home/${USER}/python && python3 -m pip install .
 RUN rm -rf /home/${USER}/python
 
