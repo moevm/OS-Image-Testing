@@ -1,13 +1,14 @@
 {% extends 'tests_interface/base.html' %}
+{% load i18n %}
 
-{% block title %}{{distro.display_name}} Tests{% endblock %}
+{% block title %}{{distro.display_name}} {% translate "Tests" %}{% endblock %}
 
 {% block content %}
 <div class="card">
     <div class="header-with-back">
-        <a href="{% url 'index' %}" class="back-button">Back to Dashboard</a>
+        <a href="{% url 'index' %}" class="back-button">{% translate "Back to Dashboard" %}</a>
         <div class="page-title">
-            <h1>Tests page for {{ distro.display_name }}</h1>
+            <h1>{% translate "Tests page for" %} {{ distro.display_name }}</h1>
         </div>
     </div>
 
@@ -20,28 +21,15 @@
             border-radius: 5px;
         "
     >
-        <h3>Test Configuration</h3>
+        <h3>{% translate "Test Configuration" %}</h3>
         <div id="configStatus" style="color: green; margin-bottom: 10px"></div>
 
         <div class="config-controls">
-            <label>Select runner:
+            <label>{% translate "Select runner:" %}
                 <select name="RunnerSelect" id="configTestingMode">
-                    <option value="default">Basic</option>
-                    <option value="profiled">Profiled</option>
+                    <option value="default">{% translate "Basic" %}</option>
+                    <option value="profiled">{% translate "Profiled" %}</option>
                 </select>
-            </label>
-        </div>
-
-        <div style="margin-top: 15px; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
-            <label style="margin-right: 20px;">
-                Number of test runs:
-                <input type="number"
-                       id="testRunsCount"
-                        name="test_runs_count"
-                       min="1"
-                       max="100"
-                       value="1"
-                       style="width: 80px; padding: 5px; margin-left: 10px;">
             </label>
         </div>
 
@@ -49,35 +37,47 @@
             <div class="config-controls" style="margin-top: 10px">
                 <label style="margin-right: 20px">
                     <input type="radio" name="configMode" value="default" checked />
-                    Use Default Configuration
+                    {% translate "Use Default Configuration" %}
                 </label>
                 <label style="margin-right: 20px">
-                    <input type="radio" name="configMode" value="custom" /> Custom
-                    Configuration
+                    <input type="radio" name="configMode" value="custom" /> {% translate "Custom Configuration" %}
+                </label>
+            </div>
+
+            <div style="margin-top: 15px; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                <label style="margin-right: 20px;">
+                    {% translate "Number of test runs:" %}
+                    <input type="number"
+                           id="testRunsCount"
+                           name="test_runs_count"
+                           min="1"
+                           max="100"
+                           value="1"
+                           style="width: 80px; padding: 5px; margin-left: 10px;">
                 </label>
             </div>
 
             <div id="customConfigPanel" style="display: none; margin-top: 15px">
                 <div class="suites-selection">
-                    <h4>Select Test Suites and Configure Duration:</h4>
+                    <h4>{% translate "Select Test Suites and Configure Duration:" %}</h4>
                     <div id="suitesCheckboxes"></div>
                 </div>
 
                 <div class="tests-selection" style="margin-top: 15px">
-                    <h4>Individual Tests (optional):</h4>
+                    <h4>{% translate "Individual Tests (optional):" %}</h4>
                     <div id="testsSelection"></div>
                 </div>
 
                 <div style="margin-top: 15px">
                     <button id="saveConfigBtn" class="btn">
-                        Save Configuration
+                        {% translate "Save Configuration" %}
                     </button>
                     <button
                         id="resetConfigBtn"
                         class="btn"
                         style="margin-left: 10px"
                     >
-                        Reset to Default
+                        {% translate "Reset to Default" %}
                     </button>
                 </div>
             </div>
@@ -132,7 +132,7 @@
     </div>
 
     <div class="placeholder">
-        <button id="runTestsBtn" class="btn">Run tests</button>
+        <button id="runTestsBtn" class="btn">{% translate "Run tests" %}</button>
         <div
             id="outputContainer"
             style="
@@ -154,7 +154,7 @@
 <script>
     window.csrfToken = "{{ csrf_token }}";
     window.distroName = "{{ distro.name }}";
-    document.getElementById("configTestingMode").addEventListener("change", function() {
+    document.getElementById("configRunner").addEventListener("change", function() {
         const basicConfig = document.getElementById("basicTestConfig");
         basicConfig.style.display = this.value === "profiled" ? "none" : "block";
         const profiledConfig = document.getElementById("profiledTestConfig");

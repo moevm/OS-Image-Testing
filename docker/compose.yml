@@ -75,7 +75,6 @@ services:
     image: ${DOCKER_PYTHON_TAG}
     volumes:
       - ./tests/image:/home/${USER}/image
-      - ${HOST_SCRIPTS_PATH}/bencher/bencher-test.sh:/home/${USER}/bencher-test.sh
     environment:
       POSTGRES_USER: ${USER}
       POSTGRES_PASSWORD: ${PASSWORD}
@@ -142,29 +141,6 @@ services:
       retries: 5
     restart: unless-stopped
 
-  imgtests-bencher-api:
-    image: ghcr.io/bencherdev/bencher-api:v0.5.9
-    ports:
-      - ${BENCHER_API_PORT}:${BENCHER_API_PORT}
-    volumes:
-      - ${BENCHER_API_CONF_VOLUME}:/etc/bencher
-      - ${BENCHER_API_DB_VOLUME}:/var/lib/bencher
-      - ${BENCHER_API_LOGS_VOLUME}:/var/log/bencher
-    networks:
-      yocto-network:
-        ipv4_address: ${BENCHER_API_ADDRESS}
-
-  imgtests-bencher-console:
-    image: ghcr.io/bencherdev/bencher-console:v0.5.9
-    ports:
-      - ${BENCHER_CLI_PORT}:${BENCHER_CLI_PORT}
-    environment:
-      - INTERNAL_API_URL=${BENCHER_API_ADDRESS}:${BENCHER_API_PORT}
-    depends_on:
-      - imgtests-bencher-api
-    networks:
-      yocto-network:
-        ipv4_address: ${BENCHER_CLI_ADDRESS}
 
   imgtests-metabase-meta-db:
     image: postgres:17.7
@@ -210,12 +186,6 @@ volumes:
   imgtests-yocto-downloads:
     external: true
   imgtests-yocto-sstate:
-    external: true
-  imgtests-bencher-conf:
-    external: true
-  imgtests-bencher-database:
-    external: true
-  imgtests-bencher-logs:
     external: true
   imgtests-open-suse-files:
     external: true
