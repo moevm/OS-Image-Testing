@@ -82,9 +82,9 @@ After initializing both Docker image and volumes, starts the following container
 
 - Victoria Metrics container (port:VMETRICS_PORT) collects metrics from the Yocto and Suse-156 container provided by node exporters.
 
-- Metabase container: (port:METABASE_PORT) used to create queries and dashboards with collected metrics
+- Metabase container: (port:METABASE_PORT) used to create queries and dashboards with collected metrics.
 
-- Metabase meta data container: (port:METABASE_META_DB_PORT) needed by Metabase to save settings: queries, dashboards, connection information
+- Metabase metadata container: (port:METABASE_META_DB_PORT) needed by Metabase to save settings: queries, dashboards, connection information.
 
 Results can be obtained from the Python container logs after all the tests are finished:
 
