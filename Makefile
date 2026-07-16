@@ -12,12 +12,16 @@ DOCKER_SSTATE_VOLUME       := ${DOCKER_PREFIX}-yocto-sstate
 DOCKER_OPENSUSE_VOLUME     := ${DOCKER_PREFIX}-open-suse-files
 DOCKER_POSTGRES_VOLUME	   := ${DOCKER_PREFIX}-postgres-data
 VMETRICS_DATA_VOLUME	   := ${DOCKER_PREFIX}-vmetrics-data
+METABASE_META_VOLUME	   := ${DOCKER_PREFIX}-metabase-meta-data
+METABASE_APP_VOLUME		   := ${DOCKER_PREFIX}-metabase-app
 
 # Paths
 HOST_LAYERS_PATH           := ${CURDIR}/layers
 HOST_CONF_PATH             := ${CURDIR}/conf
 HOST_SCRIPTS_PATH          := ${CURDIR}/scripts
 TESTS_DIR                  := ${CURDIR}/tests
+METABASE_BACKUP_SCRIPT	   := ${CURDIR}/metabase_prototype/db/init/backup_init.sh
+METABASE_DEFAULT_DUMP	   := ${CURDIR}/metabase_prototype/metabase_backup.dump
 
 # Python
 define get_python_required_libs
@@ -64,7 +68,7 @@ docker-compose-down:
 
 .PHONY: ensure-volumes
 ensure-volumes: docker
-	@for volume in ${DOCKER_OPENSUSE_VOLUME} ${BENCHER_API_CONF_VOLUME} ${BENCHER_API_DB_VOLUME} \
+	@for volume in ${DOCKER_OPENSUSE_VOLUME} ${BENCHER_API_CONF_VOLUME} ${BENCHER_API_DB_VOLUME} ${METABASE_META_VOLUME} ${METABASE_APP_VOLUME} \
 	                ${BENCHER_API_LOGS_VOLUME} ${VMETRICS_DATA_VOLUME} ${DOCKER_POSTGRES_VOLUME}; do \
 		if ! docker volume inspect $$volume > /dev/null 2>&1; then \
 			docker volume create $$volume; \
