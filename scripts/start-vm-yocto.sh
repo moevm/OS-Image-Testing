@@ -2,6 +2,7 @@
 
 rm -rf /home/user/poky/meta-openjdk-temurin/recipes-java/helloworld-java
 
+# shellcheck disable=SC1091
 source "/home/user/poky/oe-init-build-env" "/home/user/poky/build"
 
 ROOTFS_IMAGE="${POKY_DIR}/build/tmp/deploy/images/qemux86-64/${OS_IMAGE}-qemux86-64.rootfs.ext4.qcow2"
