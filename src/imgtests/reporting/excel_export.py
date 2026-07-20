@@ -274,7 +274,6 @@ def build_distribution_records(
             distribution_description=DISTRIBUTION_DESCRIPTIONS[distribution_name],
         )
         for distribution_name in ids
-        if distribution_name in DISTRIBUTION_DESCRIPTIONS
     }
 
 
