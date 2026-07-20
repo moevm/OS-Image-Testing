@@ -11,15 +11,16 @@ Performance and Endurance Testing of OS images.
 
 ### Repository structure
 
-| Folder            | Description                              |
-|-------------------|------------------------------------------|
-| [conf](conf)      | Configuration files                      |
-| [docker](docker)  | Essential Docker-related files           |
-| [docs](docs)      | Markdown documentation of the repository |
-| [layers](layers)  | Layers content (for Poky)                |
-| [scripts](scripts)| Shell scripts                            |
-| [src](src)        | Source code and core development files   |
-| [tests](tests)    | Unit tests and other                     |
+| Folder                                      | Description                                |
+|---------------------------------------------|--------------------------------------------|
+| [conf](conf)                                | Configuration files                        |
+| [docker](docker)                            | Essential Docker-related files             |
+| [docs](docs)                                | Markdown documentation of the repository   |
+| [layers](layers)                            | Layers content (for Poky)                  |
+| [metabase_prototype](metabase_prototype)    | Metabase files: queries and synthetic data |
+| [scripts](scripts)                          | Shell scripts                              |
+| [src](src)                                  | Source code and core development files     |
+| [tests](tests)                              | Unit tests and other                       |
 
 ### Methodologies
 
@@ -79,11 +80,11 @@ After initializing both Docker image and volumes, starts the following container
 
 - Postgres container (port:POSTGRES_PORT) contains the project database, which includes configurations, experiment results, information about system loaders and observers.
 
-- Bencher-API container (port:BENCHER_API_PORT) is used as a bencher server. It contains the separate database and processes all requests, that can be seen in the container logs.
-
-- Bencher-console container (port:BENCHER_CLI_PORT) shows active bencher web sessions used for viewing graphics and stats on tested systems, as well as the test results.
-
 - Victoria Metrics container (port:VMETRICS_PORT) collects metrics from the Yocto and Suse-156 container provided by node exporters.
+
+- Metabase container: (port:METABASE_PORT) used to create queries and dashboards with collected metrics.
+
+- Metabase metadata container: (port:METABASE_META_DB_PORT) needed by Metabase to save settings: queries, dashboards, connection information.
 
 Results can be obtained from the Python container logs after all the tests are finished:
 
@@ -95,7 +96,7 @@ Note: To create an image with all the packages specified in [packages.conf](conf
 
 To add a new utility, you need to update the [packages.conf](conf/packages.conf), [local.conf](conf/local.conf) and write the appropriate [recipe](layers/meta-image-tests/).
 
-### 3. Enviroment configuration
+### 3. Environment configuration
 
 [.env.dist](.env.dist) is used to store env variables, which is included by Makefile. It describes the parameters:
 * Common variables (users, passwords)

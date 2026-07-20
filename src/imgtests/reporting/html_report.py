@@ -97,6 +97,7 @@ COMPILED_DIAGRAMS_CONFIG: dict[str, tuple[str, list[re.Pattern]]] = {
 TOOLS_TO_SUBSYSTEMS: dict[str, Subsystem] = {
     "iperf3": Subsystem.NETWORK,
     "fio": Subsystem.FILE,
+    "kirk": Subsystem.SYSTEM,
 }
 
 
@@ -324,6 +325,8 @@ class ReportGenerator:
                         fixed_prefix = [tool, test_type["identifier"]]
                     case "perf":
                         fixed_prefix = [tool, test_type["benchmark"]]
+                    case "kirk":
+                        fixed_prefix = [tool, test_type["type"]]
                     case _:
                         fixed_prefix = [tool]
 
