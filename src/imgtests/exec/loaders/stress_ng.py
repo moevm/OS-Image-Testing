@@ -630,40 +630,6 @@ class StressNg(PkgMgrMixin, GenericUtil):
         return tuple(methods.strip().split())
 
     @staticmethod
-    def metrics_to_bmf(metrics: StressNGMetrics) -> dict[str, dict[str, Any]]:
-        result: dict[str, dict[str, Any]] = {
-            "StressNGMetrics": {
-                "stressor": {"value": metrics.stressor},
-                "bogo_ops": {"value": metrics.bogo_ops},
-                "real_time_secs": {"value": metrics.real_time_secs},
-                "usr_time_secs": {"value": metrics.usr_time_secs},
-                "sys_time_secs": {"value": metrics.sys_time_secs},
-                "bogo_ops_s_real_time": {"value": metrics.bogo_ops_s_real_time},
-                "bogo_ops_s_usr_sys_time": {"value": metrics.bogo_ops_s_usr_sys_time},
-                "cpu_used_per_instance": {"value": metrics.cpu_used_per_instance},
-            },
-        }
-
-        if metrics.rss_max_kb is not None:
-            result["StressNGMetrics"]["rss_max_kb"] = {"value": metrics.rss_max_kb}
-
-        if metrics.stats:
-            result["StressNGMetrics"]["stats"] = {
-                stat_name: {"value": stat_value} for stat_name, stat_value in metrics.stats.items()
-            }
-
-        if metrics.top10_slowest:
-            result["top10_slowest"] = {}
-            for syscall in metrics.top10_slowest:
-                result["top10_slowest"][syscall.name] = {
-                    "value": syscall.avg_ns,
-                    "lower_value": syscall.min_ns,
-                    "upper_value": syscall.max_ns,
-                }
-
-        return result
-
-    @staticmethod
     def metrics_to_json(metrics: StressNGResult) -> AdapterResult:
         raw_metrics: dict[str, Any] = {
             "stress_ng_metrics": [metric._asdict() for metric in metrics.metrics],
