@@ -53,6 +53,8 @@ from imgtests.exec.loaders.stress_ng import StressNg, StressNGMetrics, StressNGS
                 stress-ng: metrc: [999] 5000000000 CPU Clock 0.500 B/sec
                 stress-ng: metrc: [999] 0 Page Faults Major 0.000 /sec
                 stress-ng: metrc: [999] 7712 Kmalloc 1.518 K/sec
+                stress-ng: metrc: [999] 262,244 RCU Utilization 3.809 K/sec
+                stress-ng: metrc: [999] 3,742,640,922 Cache Misses 54.365 M/sec ( 1.572%)
                 """,
             ).strip(),
             [
@@ -66,7 +68,13 @@ from imgtests.exec.loaders.stress_ng import StressNg, StressNGMetrics, StressNGS
                     1.00,
                     50.00,
                     None,
-                    {"cpu_clock": 5000000000, "page_faults_major": 0, "kmalloc": 7712},
+                    {
+                        "cpu_clock": 5000000000,
+                        "page_faults_major": 0,
+                        "kmalloc": 7712,
+                        "rcu_utilization": 262244,
+                        "cache_misses": 3742640922,
+                    },
                     (
                         StressNGSyscallTiming("open", 9.0, 1, 10),
                         StressNGSyscallTiming("read", 7.0, 1, 10),

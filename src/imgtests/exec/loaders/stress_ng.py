@@ -69,7 +69,7 @@ METRICS_RE: Final = re.compile(
     r"([\d.]+)"  # CPU used per instance
     r"(?:\s+([\d]+))?$",  # RSS Max
 )
-STATS_RE: Final = re.compile(r"^(\d+)\s+(.+)\s+([\d.]+)\s+(\S+)$")
+STATS_RE: Final = re.compile(r"^([\d,]+)\s+(.+)\s+([\d.]+)\s+(.+)$")
 
 
 class StressNg(PkgMgrMixin, GenericUtil):
@@ -549,7 +549,7 @@ class StressNg(PkgMgrMixin, GenericUtil):
 
             stats = STATS_RE.match(clean_line)
             if stats:
-                stat_counter = stats.group(1)
+                stat_counter = stats.group(1).replace(",", "")
                 stat_name = stats.group(2).strip().replace(" ", "_").replace("-", "_").lower()
                 target = current_stressor or "stress-ng"
                 metrics_map.setdefault(
