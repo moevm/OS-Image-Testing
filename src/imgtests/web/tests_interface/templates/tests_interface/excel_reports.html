@@ -12,7 +12,29 @@
         </div>
     </div>
 
-    <div class="controls" style="margin-bottom: 20px">
+    <div class="controls" style="margin-bottom: 20px; flex-wrap: wrap;">
+        <div style="width: 100%;">
+            <div style="margin-bottom: 8px">
+                <strong style="font-size: 0.9rem; color: #5d4037; margin-right: 12px;">Distributions:</strong>
+                {% for key, desc in distributions.items %}
+                <label style="margin-right: 16px; font-size: 0.9rem; color: #5d4037;">
+                    <input type="checkbox" class="distro-checkbox" value="{{ key }}" checked>
+                    {{ key }}
+                </label>
+                {% endfor %}
+            </div>
+            <div style="margin-bottom: 12px">
+                <strong style="font-size: 0.9rem; color: #5d4037; margin-right: 12px;">Tables:</strong>
+                <label style="margin-right: 16px; font-size: 0.9rem; color: #5d4037;">
+                    <input type="checkbox" class="table-checkbox" value="experiment" checked>
+                    experiment
+                </label>
+                <label style="font-size: 0.9rem; color: #5d4037;">
+                    <input type="checkbox" class="table-checkbox" value="util_run_result" checked>
+                    util_run_result
+                </label>
+            </div>
+        </div>
         <button id="exportBtn" class="btn btn-success">
             {% translate "Generate New Excel Report" %}
         </button>
