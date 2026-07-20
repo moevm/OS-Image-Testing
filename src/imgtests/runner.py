@@ -663,6 +663,9 @@ def run_tests(
     if mode == "profiled":
         tmp_config = build_profiled_settings(config=config)
         total_tests_amount = len(tmp_config.subsystems)
+        # default profile config consists of 3 stages
+        if config is None:
+            total_tests_amount *= 3
         if tmp_config.run_matrix:
             total_tests_amount *= len(tmp_config.matrix_profiles)
     logger.info("Total amount of tests per run: %d", total_tests_amount)

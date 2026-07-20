@@ -2,6 +2,7 @@ import json
 import logging
 import re
 import sys
+from enum import StrEnum
 from pathlib import Path
 from typing import Literal, Self, TextIO
 
@@ -10,6 +11,19 @@ from pythonjsonlogger.json import JsonFormatter
 from imgtests.constant import LIB_DATA_DIR
 
 LogLevel = Literal["debug", "info", "warning", "error", "critical"]
+
+
+class LoggingPatterns(StrEnum):
+    TASK_STARTED_STATUS = "RUNNING"
+    TASK_STATUS = r"Task id=([\w-]+) path=[\w|\.]+ state=(\w+)"
+    TESTS_COUNT = r"Total amount of tests per run: (\d+)"
+    RUNS_COUNT = r"Starting test run (\d+) of (\d+)"
+    DEFAULT_TEST_START = r"Starting '(.*\.)'.*"
+    DEFAULT_TEST_FINISH = r"'(.*\.)' test finished."
+    SUITE_START = r"Running suite (.*)\."
+    PROFILED_TEST_START = r"\[PLAN\] run stage=([\w-]+) tool=([\w-]+) subsystem=([\w-]+).*"
+    PROFILED_TEST_FINISH = r"\[PLAN\] done .*"
+    PROFILE_DONE = r"\[PROFILED\] DONE profile=(\w+) pattern=(\w+) .*"
 
 
 class StreamFormatter(logging.Formatter):
@@ -24,25 +38,15 @@ class StreamFormatter(logging.Formatter):
         return super().format(record)
 
 
-class ProgressHandle(logging.Handler):
-    task_state_started = "RUNNING"
-    task_started_pattern = r"Task id=([\w-]+) path=[\w|\.]+ state=(\w+)"
-    tests_count_pattern = r"Total amount of tests per run: (\d+)"
-    test_runs_pattern = r"Starting test run (\d+) of (\d+)"
-    default_test_start_pattern = r"Starting '(.*\.)'.*"
-    default_test_finish_pattern = r"'(.*\.)' test finished."
-    suite_start_pattern = r"Running suite (.*)\."
-    profiled_test_start_pattern = r"\[PLAN\] run stage=([\w-]+) tool=([\w-]+) subsystem=([\w-]+).*"
-    profiled_test_finish_pattern = r"\[PLAN\] done .*"
-    profile_done_pattern = r"\[PROFILED\] DONE profile=(\w+) pattern=(\w+) .*"
+class ProgressHandler(logging.Handler):
     progress_template = {  # noqa: RUF012
         "total_test_count": 0,
         "test_count": 0,
         "total_run_count": 0,
         "current_test_run": 0,
-        "current_suite": "Not starter yet",
+        "current_suite": "Not started yet",
         "last_profile_done": "Not done yet",
-        "current_test": "Not starter yet",
+        "current_test": "Not started yet",
     }
 
     def __init__(self, level: logging._Level = logging.DEBUG):
@@ -54,13 +58,13 @@ class ProgressHandle(logging.Handler):
         proc = str(record.process)
         msg = self.format(record)
 
-        # detect task starterd or finished
-        match = re.search(self.task_started_pattern, msg)
+        # detect task started or finished
+        match = re.search(LoggingPatterns.TASK_STATUS, msg)
         if match:
             task_id = match.group(1)
             status = match.group(2)
             # task started
-            if status == self.task_state_started:
+            if status == LoggingPatterns.TASK_STARTED_STATUS:
                 self.proc_to_task[proc] = task_id
             # task finished or broke
             else:
@@ -68,12 +72,12 @@ class ProgressHandle(logging.Handler):
             # flush progress_data for process
             self.progress_data[proc] = self.progress_template.copy()
 
-        match = re.search(self.tests_count_pattern, msg)
+        match = re.search(LoggingPatterns.TESTS_COUNT, msg)
         if match and self.progress_data[proc]:
             total = int(match.group(1))
             self.progress_data[proc]["total_test_count"] = total
 
-        match = re.search(self.test_runs_pattern, msg)
+        match = re.search(LoggingPatterns.RUNS_COUNT, msg)
         if match and self.progress_data[proc]:
             # set current run
             cur = int(match.group(1))
@@ -84,35 +88,35 @@ class ProgressHandle(logging.Handler):
             self.progress_data[proc]["test_count"] = 0
 
         # default runner matches
-        match = re.search(self.suite_start_pattern, msg)
+        match = re.search(LoggingPatterns.SUITE_START, msg)
         if match and self.progress_data[proc]:
             suite = match.group(1)
             self.progress_data[proc]["current_suite"] = suite
 
-        match = re.search(self.default_test_start_pattern, msg)
+        match = re.search(LoggingPatterns.DEFAULT_TEST_START, msg)
         if match and self.progress_data[proc]:
             test = match.group(1)
             self.progress_data[proc]["current_test"] = test
 
-        match = re.search(self.default_test_finish_pattern, msg)
+        match = re.search(LoggingPatterns.DEFAULT_TEST_FINISH, msg)
         if match and self.progress_data[proc]:
             self.progress_data[proc]["test_count"] += 1
             self.progress_data[proc]["current_test"] = "Not started yet"
 
         # profiled runner matches
-        match = re.search(self.profile_done_pattern, msg)
+        match = re.search(LoggingPatterns.PROFILE_DONE, msg)
         if match and self.progress_data[proc]:
             profile = "-".join([match.group(1), match.group(2)])
             self.progress_data[proc]["last_profile_done"] = profile
 
-        match = re.search(self.profiled_test_start_pattern, msg)
+        match = re.search(LoggingPatterns.PROFILED_TEST_START, msg)
         if match and self.progress_data[proc]:
             subsystem = match.group(3)
             profile = match.group(1)
             tool = match.group(2)
             self.progress_data[proc]["current_test"] = f"{subsystem}-{profile} via {tool}"
 
-        match = re.search(self.profiled_test_finish_pattern, msg)
+        match = re.search(LoggingPatterns.PROFILED_TEST_FINISH, msg)
         if match and self.progress_data[proc]:
             self.progress_data[proc]["test_count"] += 1
             self.progress_data[proc]["current_test"] = "Not started yet"
@@ -189,8 +193,8 @@ def __get_stdout_handler() -> logging.StreamHandler[TextIO]:
     return stdout_handler
 
 
-def __get_progress_handler() -> ProgressHandle:
-    progress_handle = ProgressHandle()
+def __get_progress_handler() -> ProgressHandler:
+    progress_handle = ProgressHandler()
     progress_handle.setLevel(logging.DEBUG)
     progress_handle.setFormatter(StreamFormatter())
     progress_handle.set_name("progress_handler")
