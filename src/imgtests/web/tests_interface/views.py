@@ -13,10 +13,12 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from pydantic_core._pydantic_core import ValidationError
-from sqlalchemy import Engine, create_engine, text
+from sqlalchemy import Engine, create_engine, select
+from sqlalchemy.orm import Session
 
 from imgtests.constant import CONFIG_DIR, DISTRIBUTION_DESCRIPTIONS, EXCEL_REPORTS_DIR, REPORTS_DIR
 from imgtests.database.database import ImgtestsDatabase, PostgresCreds
+from imgtests.database.models.configuration import ConfigurationBase
 from imgtests.reporting.cli import EXPORT_TABLES
 from imgtests.reporting.excel_export import distribution_name_from_os, export_database_to_excel
 from imgtests.reporting.html_report import ReportGenerator
@@ -430,10 +432,11 @@ def _resolve_configuration_ids(
     selected_distributions: list[str] | None = None,
 ) -> dict[str, int]:
 
-    with engine.connect() as conn:
-        result = conn.execute(text("SELECT config_id, os FROM configuration"))
-        configs = result.all()
+    with Session(engine) as session:
+        query = select(ConfigurationBase.config_id, ConfigurationBase.os)
+        configs = session.execute(query)
 
+    # TODO: if a single distro has multiple config ids the first one is selected
     all_distros: dict[str, int] = {}
     for config_id, os_name in configs:
         distro = distribution_name_from_os(os_name)
@@ -445,7 +448,7 @@ def _resolve_configuration_ids(
         if missing:
             msg = f"No configuration found for: {', '.join(missing)}."
             raise ValueError(msg)
-        return {d: all_distros[d] for d in selected_distributions if d in all_distros}
+        return {d: all_distros[d] for d in selected_distributions}
 
     return all_distros
 
