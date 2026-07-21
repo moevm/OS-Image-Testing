@@ -16,7 +16,13 @@ from pydantic_core._pydantic_core import ValidationError
 from sqlalchemy import Engine, create_engine, select
 from sqlalchemy.orm import Session
 
-from imgtests.constant import CONFIG_DIR, DISTRIBUTION_DESCRIPTIONS, EXCEL_REPORTS_DIR, REPORTS_DIR, LIB_DATA_DIR
+from imgtests.constant import (
+    CONFIG_DIR,
+    DISTRIBUTION_DESCRIPTIONS,
+    EXCEL_REPORTS_DIR,
+    LIB_DATA_DIR,
+    REPORTS_DIR,
+)
 from imgtests.database.database import ImgtestsDatabase, PostgresCreds
 from imgtests.database.models.configuration import ConfigurationBase
 from imgtests.reporting.cli import EXPORT_TABLES
