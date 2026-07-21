@@ -43,8 +43,8 @@ function renderDistributions(distributions) {
     htmlReportsLink.innerHTML = `
         <div class="link-content" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
             <div class="link-text">
-                <h2 style="color: white">View All .html Reports</h2>
-                <p style="color: rgba(255, 255, 255, 0.9)">Browse all generated .html test reports</p>
+                <h2 style="color: white">${gettext("View All .html Reports")}</h2>
+                <p style="color: rgba(255, 255, 255, 0.9)">${gettext("Browse all generated .html test reports")}</p>
             </div>
         </div>
     `;
@@ -55,8 +55,8 @@ function renderDistributions(distributions) {
     excelReportsLink.innerHTML = `
         <div class="link-content" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
             <div class="link-text">
-                <h2 style="color: white">View All .xls Reports</h2>
-                <p style="color: rgba(255, 255, 255, 0.9)">Browse all exported .xls test reports</p>
+                <h2 style="color: white">${gettext("View All .xls Reports")}</h2>
+                <p style="color: rgba(255, 255, 255, 0.9)">${gettext("Browse all exported .xls test reports")}</p>
             </div>
         </div>
     `;
@@ -66,13 +66,17 @@ function renderDistributions(distributions) {
 }
 
 function addDistro() {
-    const name = prompt("Enter distribution name (e.g., ubuntu):");
+    const name = prompt(gettext("Enter distribution name (e.g., ubuntu):"));
     if (!name) return;
-    const displayName = prompt("Enter display name (e.g., Ubuntu):");
+    const displayName = prompt(gettext("Enter display name (e.g., Ubuntu):"));
     if (!displayName) return;
     const description = prompt(
-        "Enter description (optional):",
-        `Run tests for ${displayName} platform`,
+        gettext("Enter description (optional):"),
+        interpolate(
+            gettext("Run tests for %(display_name)s platform"),
+            {display_name: displayName},
+            true
+        ),
     );
     fetch("/api/distros/add/", {
         method: "POST",
@@ -91,14 +95,18 @@ function addDistro() {
             if (data.success) {
                 loadDistributions();
             } else {
-                alert("Error: " + data.error);
+                alert(interpolate(
+                    gettext("Error: %(error)s"),
+                    {error: data.error},
+                    true
+                ));
             }
         })
         .catch((error) => console.error("Error:", error));
 }
 
 function removeDistro(distroId) {
-    if (!confirm("Are you sure you want to remove this distribution?")) return;
+    if (!confirm(gettext("Are you sure you want to remove this distribution?"))) return;
     fetch(`/api/distros/remove/${distroId}/`, {
         method: "POST",
         headers: {
@@ -110,7 +118,11 @@ function removeDistro(distroId) {
             if (data.success) {
                 loadDistributions();
             } else {
-                alert("Error: " + data.error);
+                alert(interpolate(
+                    gettext("Error: %(error)s"),
+                    {error: data.error},
+                    true
+                ));
             }
         })
         .catch((error) => console.error("Error:", error));
@@ -119,7 +131,7 @@ function removeDistro(distroId) {
 function resetDistributions() {
     if (
         !confirm(
-            "Reset to default distributions? This will remove all custom distributions.",
+            gettext("Reset to default distributions? This will remove all custom distributions."),
         )
     )
         return;
@@ -135,7 +147,11 @@ function resetDistributions() {
             if (data.success) {
                 loadDistributions();
             } else {
-                alert("Error: " + data.error);
+                alert(interpolate(
+                    gettext("Error: %(error)s"),
+                    {error: data.error},
+                    true
+                ));
             }
         })
         .catch((error) => console.error("Error:", error));

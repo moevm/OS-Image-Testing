@@ -152,7 +152,7 @@
             color: #8d6e63;
         "
     >
-        {% blocktranslate %}Total: {{ reports|length }} report(s){% endblocktranslate %}
+        {% blocktranslate with count=reports|length %}Total: {{ count }} report(s){% endblocktranslate %}
     </div>
     {% else %}
     <div

@@ -15,7 +15,7 @@
     <div class="controls" style="margin-bottom: 20px; flex-wrap: wrap;">
         <div style="width: 100%;">
             <div style="margin-bottom: 8px">
-                <strong style="font-size: 0.9rem; color: #5d4037; margin-right: 12px;">Distributions:</strong>
+                <strong style="font-size: 0.9rem; color: #5d4037; margin-right: 12px;">{% translate "Distributions" %}:</strong>
                 {% for key, desc in distributions.items %}
                 <label style="margin-right: 16px; font-size: 0.9rem; color: #5d4037;">
                     <input type="checkbox" class="distro-checkbox" value="{{ key }}" checked>
@@ -24,7 +24,7 @@
                 {% endfor %}
             </div>
             <div style="margin-bottom: 12px">
-                <strong style="font-size: 0.9rem; color: #5d4037; margin-right: 12px;">Tables:</strong>
+                <strong style="font-size: 0.9rem; color: #5d4037; margin-right: 12px;">{% translate "Tables" %}:</strong>
                 <label style="margin-right: 16px; font-size: 0.9rem; color: #5d4037;">
                     <input type="checkbox" class="table-checkbox" value="experiment" checked>
                     experiment
@@ -80,7 +80,7 @@
                                     margin-top: 5px;
                                 "
                             >
-                                {% blocktranslate %}Size: {{ report.size|filesizeformat }}{% endblocktranslate %}
+                                {% blocktranslate with size=report.size|filesizeformat %}Size: {{ size }}{% endblocktranslate %}
                             </div>
                         </div>
                         <div style="color: #ff9800; font-size: 1.2rem">
@@ -100,7 +100,7 @@
                 color: #8d6e63;
             "
         >
-            {% blocktranslate %}Total: {{ reports|length }} report(s){% endblocktranslate %}
+            {% blocktranslate with count=reports|length %}Total: {{ count }} report(s){% endblocktranslate %}
         </div>
         {% else %}
         <div
