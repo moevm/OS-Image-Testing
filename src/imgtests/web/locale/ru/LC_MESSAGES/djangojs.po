@@ -1,16 +1,15 @@
 # Translation file
-# This file is distributed under the same license as the PACKAGE package.
+# This file is distributed under the same license as the imgtests package.
 # Nikita Pivoev nikita.pivoev@yandex.ru, 2026.
 #
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: 0.0.1\n"
+"Project-Id-Version: imgtests 0.0.1\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-07-21 15:45+0300\n"
 "PO-Revision-Date: 2026-07-21 15:45+0300\n"
 "Last-Translator: Nikita Pivoev nikita.pivoev@yandex.ru\n"
-"Language-Team: ru\n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
