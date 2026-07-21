@@ -15,8 +15,26 @@ function getCookie(name) {
     return cookieValue;
 }
 
+function getCheckedValues(selector) {
+    return Array.from(document.querySelectorAll(selector))
+        .filter((cb) => cb.checked)
+        .map((cb) => cb.value);
+}
+
 document.getElementById("exportBtn").addEventListener("click", function () {
     const btn = this;
+    const tables = getCheckedValues(".table-checkbox");
+    const distributions = getCheckedValues(".distro-checkbox");
+
+    if (tables.length === 0) {
+        alert("Please select at least one table.");
+        return;
+    }
+    if (distributions.length === 0) {
+        alert("Please select at least one distribution.");
+        return;
+    }
+
     btn.disabled = true;
     btn.textContent = "Generating...";
 
@@ -26,6 +44,7 @@ document.getElementById("exportBtn").addEventListener("click", function () {
             "X-CSRFToken": getCookie("csrftoken"),
             "Content-Type": "application/json",
         },
+        body: JSON.stringify({ tables: tables, distributions: distributions }),
     })
         .then((response) => response.json())
         .then((data) => {
@@ -35,12 +54,12 @@ document.getElementById("exportBtn").addEventListener("click", function () {
             } else {
                 alert("Error: " + data.error);
                 btn.disabled = false;
-                btn.textContent = "Export to Excel";
+                btn.textContent = "Generate New Excel Report";
             }
         })
         .catch((error) => {
             alert("Error: " + error);
             btn.disabled = false;
-            btn.textContent = "Export to Excel";
+            btn.textContent = "Generate New Excel Report";
         });
 });

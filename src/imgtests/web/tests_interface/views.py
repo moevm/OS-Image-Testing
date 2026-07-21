@@ -2,7 +2,7 @@ import json
 import logging
 import re
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from django.core.management import call_command
 from django.http import FileResponse, Http404, HttpRequest, JsonResponse
@@ -13,11 +13,14 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from pydantic_core._pydantic_core import ValidationError
-from sqlalchemy import create_engine
+from sqlalchemy import Engine, create_engine, select
+from sqlalchemy.orm import Session
 
-from imgtests.constant import CONFIG_DIR, EXCEL_REPORTS_DIR, LIB_DATA_DIR, REPORTS_DIR
+from imgtests.constant import CONFIG_DIR, DISTRIBUTION_DESCRIPTIONS, EXCEL_REPORTS_DIR, REPORTS_DIR, LIB_DATA_DIR
 from imgtests.database.database import ImgtestsDatabase, PostgresCreds
-from imgtests.reporting.excel_export import export_database_to_excel
+from imgtests.database.models.configuration import ConfigurationBase
+from imgtests.reporting.cli import EXPORT_TABLES
+from imgtests.reporting.excel_export import distribution_name_from_os, export_database_to_excel
 from imgtests.reporting.html_report import ReportGenerator
 from imgtests.runner import get_test_name
 from imgtests.suites.map import ALL_SUITES
@@ -387,9 +390,21 @@ def __safe_relative_path(*parts: str) -> Path:
 
 @csrf_exempt
 @require_http_methods(["POST"])
-def api_export_excel(request: HttpRequest) -> JsonResponse:  # noqa: ARG001
+def api_export_excel(request: HttpRequest) -> JsonResponse:
+    try:
+        body = json.loads(request.body) if request.body else {}
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid request body"}, status=400)
+
+    tables = body.get("tables", list(EXPORT_TABLES))
+    selected_distributions = body.get("distributions")
+
+    if not tables:
+        return JsonResponse({"error": "At least one table must be selected"}, status=400)
+
     timestamp = timezone.now().strftime("%Y%m%d_%H%M%S")
     output_path = EXCEL_REPORTS_DIR / f"export_{timestamp}.xlsx"
+
     try:
         db_creds = PostgresCreds()
     except ValidationError:
@@ -403,10 +418,12 @@ def api_export_excel(request: HttpRequest) -> JsonResponse:  # noqa: ARG001
 
     try:
         engine = create_engine(db_url)
+        configuration_ids = _resolve_configuration_ids(engine, selected_distributions)
         export_database_to_excel(
             engine=engine,
             output_path=output_path,
-            configuration_ids={"poky": 1, "suse": 2},
+            configuration_ids=configuration_ids,
+            tables=tables,
         )
     except Exception as err:  # noqa: BLE001
         return JsonResponse({"error": f"Export failed: {err}"}, status=500)
@@ -422,10 +439,38 @@ def api_export_excel(request: HttpRequest) -> JsonResponse:  # noqa: ARG001
     )
 
 
+def _resolve_configuration_ids(
+    engine: Engine,
+    selected_distributions: list[str] | None = None,
+) -> dict[str, int]:
+
+    with Session(engine) as session:
+        query = select(ConfigurationBase.config_id, ConfigurationBase.os)
+        configs = session.execute(query)
+
+    # TODO: if a single distro has multiple config ids the first one is selected
+    all_distros: dict[str, int] = {}
+    for config_id, os_name in configs:
+        distro = distribution_name_from_os(os_name)
+        if distro and distro not in all_distros:
+            all_distros[distro] = config_id
+
+    if selected_distributions is not None:
+        missing = [d for d in selected_distributions if d not in all_distros]
+        if missing:
+            msg = f"No configuration found for: {', '.join(missing)}."
+            raise ValueError(msg)
+        return {d: all_distros[d] for d in selected_distributions}
+
+    return all_distros
+
+
 def excel_report_list(request: HttpRequest) -> HttpResponse:
+    context: dict[str, Any] = {"distributions": DISTRIBUTION_DESCRIPTIONS}
     reports: list[dict[str, str | float]] = []
     if not EXCEL_REPORTS_DIR.exists():
-        return render(request, "tests_interface/excel_reports.html", {"reports": reports})
+        context["reports"] = reports
+        return render(request, "tests_interface/excel_reports.html", context)
 
     for file_path in sorted(EXCEL_REPORTS_DIR.glob("*.xlsx"), reverse=True):
         stat = file_path.stat()
@@ -437,7 +482,8 @@ def excel_report_list(request: HttpRequest) -> HttpResponse:
             },
         )
 
-    return render(request, "tests_interface/excel_reports.html", {"reports": reports})
+    context["reports"] = reports
+    return render(request, "tests_interface/excel_reports.html", context)
 
 
 def download_excel_report(request: HttpRequest, filename: str) -> FileResponse:  # noqa: ARG001

@@ -1,19 +1,42 @@
 {% extends 'tests_interface/base.html' %}
+{% load i18n %}
 
-{% block title %}Excel Reports{%endblock %}
+{% block title %}{% translate "Excel Reports" %}{%endblock %}
 
 {% block content %}
 <div class="card">
     <div class="header-with-back">
-        <a href="{% url 'index' %}" class="back-button">← Back to Dashboard</a>
+        <a href="{% url 'index' %}" class="back-button">← {% translate "Back to Dashboard" %}</a>
         <div class="page-title">
-            <h1>Excel Reports</h1>
+            <h1>{% translate "Excel Reports" %}</h1>
         </div>
     </div>
 
-    <div class="controls" style="margin-bottom: 20px">
+    <div class="controls" style="margin-bottom: 20px; flex-wrap: wrap;">
+        <div style="width: 100%;">
+            <div style="margin-bottom: 8px">
+                <strong style="font-size: 0.9rem; color: #5d4037; margin-right: 12px;">Distributions:</strong>
+                {% for key, desc in distributions.items %}
+                <label style="margin-right: 16px; font-size: 0.9rem; color: #5d4037;">
+                    <input type="checkbox" class="distro-checkbox" value="{{ key }}" checked>
+                    {{ key }}
+                </label>
+                {% endfor %}
+            </div>
+            <div style="margin-bottom: 12px">
+                <strong style="font-size: 0.9rem; color: #5d4037; margin-right: 12px;">Tables:</strong>
+                <label style="margin-right: 16px; font-size: 0.9rem; color: #5d4037;">
+                    <input type="checkbox" class="table-checkbox" value="experiment" checked>
+                    experiment
+                </label>
+                <label style="font-size: 0.9rem; color: #5d4037;">
+                    <input type="checkbox" class="table-checkbox" value="util_run_result" checked>
+                    util_run_result
+                </label>
+            </div>
+        </div>
         <button id="exportBtn" class="btn btn-success">
-            Generate New Excel Report
+            {% translate "Generate New Excel Report" %}
         </button>
         <span id="exportStatus" style="margin-left: 15px"></span>
     </div>
@@ -57,11 +80,11 @@
                                     margin-top: 5px;
                                 "
                             >
-                                Size: {{ report.size|filesizeformat }}
+                                {% blocktranslate %}Size: {{ report.size|filesizeformat }}{% endblocktranslate %}
                             </div>
                         </div>
                         <div style="color: #ff9800; font-size: 1.2rem">
-                            Download
+                            {% translate "Download" %}
                         </div>
                     </div>
                 </a>
@@ -77,7 +100,7 @@
                 color: #8d6e63;
             "
         >
-            Total: {{ reports|length }} report(s)
+            {% blocktranslate %}Total: {{ reports|length }} report(s){% endblocktranslate %}
         </div>
         {% else %}
         <div
@@ -91,10 +114,10 @@
         >
             <div style="font-size: 4rem; margin-bottom: 20px">📊</div>
             <h3 style="color: #5d4037; margin-bottom: 10px">
-                No Excel Reports
+                {% translate "No Excel Reports" %}
             </h3>
             <p style="color: #8d6e63; margin-bottom: 20px">
-                Click "Generate New Excel Report" to create one.
+                {% translate 'Click "Generate New Excel Report" to create one.' %}
             </p>
         </div>
         {% endif %}
