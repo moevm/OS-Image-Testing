@@ -30,15 +30,13 @@ RUN groupadd -g 510 ${GROUP} && \
 USER ${USER}
 WORKDIR /home/${USER}
 
-RUN python3 -m pip install ${PYTHON_REQUIRED_LIBS} && \
-    mkdir /home/${USER}/.ssh
+RUN python3 -m pip install ${PYTHON_REQUIRED_LIBS}
+RUN mkdir /home/${USER}/.ssh
 
 COPY --chown=${USER}:${GROUP} src/ /home/${USER}/python
 COPY --chown=${USER}:${GROUP} pyproject.toml /home/${USER}/python
-
 RUN mkdir --parents /home/${USER}/${LIB_NAME}/conf && \
     chown ${USER}:${GROUP} --recursive /home/${USER}/${LIB_NAME}/
-
 COPY --chown=${USER}:${GROUP} conf/supervisord.conf /home/${USER}/${LIB_NAME}/conf/supervisord.conf
 
 RUN msgfmt --output-file \
@@ -51,7 +49,6 @@ RUN msgfmt --output-file \
 RUN cd /home/${USER}/python && python3 -m pip install . && rm -rf /home/${USER}/python
 
 COPY --chown=${USER}:${GROUP} scripts/entrypoint-analyzer.sh /home/${USER}/${LIB_NAME}/entrypoint-analyzer.sh
-
 RUN chmod +x /home/${USER}/${LIB_NAME}/entrypoint-analyzer.sh
 
 ENTRYPOINT ["/home/user/imgtests/entrypoint-analyzer.sh"]
