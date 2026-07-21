@@ -87,44 +87,44 @@
             <div class="config-controls" style="margin-top: 10px">
                 <label style="margin-right: 20px">
                     <input type="radio" name="profiledConfigMode" value="default" checked />
-                    Use Default Profiled Configuration
+                    {% translate "Use Default Profiled Configuration" %}
                 </label>
                 <label style="margin-right: 20px">
                     <input type="radio" name="profiledConfigMode" value="custom" />
-                    Custom Profiled Configuration
+                    {% translate "Custom Profiled Configuration" %}
                 </label>
             </div>
 
             <div id="profiledCustomPanel" style="display:none; margin-top:15px; padding:10px; border:1px solid #ddd; border-radius:5px;">
                 <label>
                 <input type="radio" name="profiledRunMode" value="single" checked>
-                Single run
+                {% translate "Single run" %}
                 </label>
                 <label style="margin-left:20px;">
                 <input type="radio" name="profiledRunMode" value="matrix">
-                Matrix run
+                {% translate "Matrix run" %}
                 </label>
 
                 <div id="singleRunPanel" style="margin-top:15px;">
-                    <h4>Duration</h4>
+                    <h4>{% translate "Duration" %}</h4>
                     <div id="singleDurationContainer" style="padding:15px;"></div>
 
-                    <h4>Profile</h4>
+                    <h4>{% translate "Profile" %}</h4>
                     <div id="singleProfileContainer" style="padding:15px;"></div>
                 </div>
 
                 <div id="matrixRunPanel" style="display:none; margin-top:15px;">
-                    <h4>Profiles and durations</h4>
+                    <h4>{% translate "Profiles and durations" %}</h4>
                     <div id="profilesCheckboxes" style="padding:15px;"></div>
                 </div>
 
                 <div style="margin-top:15px;">
-                    <h4>Pattern</h4>
+                    <h4>{% translate "Pattern" %}</h4>
                     <div id="patternContainer" style="padding:15px;"></div>
                 </div>
 
                 <div style="margin-top:15px;">
-                    <h4>Subsystems</h4>
+                    <h4>{% translate "Subsystems" %}</h4>
                     <div id="subsystemsCheckboxes" style="padding:15px;"></div>
                 </div>
             </div>

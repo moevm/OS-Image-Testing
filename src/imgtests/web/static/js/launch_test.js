@@ -75,8 +75,8 @@ document.getElementById("runTestsBtn").addEventListener("click", function () {
     }
 
     btn.disabled = true;
-    btn.textContent = "Running...";
-    outputContainer.textContent = "Tests Running...";
+    btn.textContent = gettext("Running...");
+    outputContainer.textContent = gettext("Tests Running...");
 
     fetch("/run-tests/", {
         method: "POST",
@@ -93,20 +93,30 @@ document.getElementById("runTestsBtn").addEventListener("click", function () {
         .then((response) => response.json())
         .then((data) => {
             if (data.success && data.task_id) {
-                outputContainer.textContent =
-                    "Tests running... (Task ID: " + data.task_id + ")";
+                outputContainer.textContent = interpolate(
+                    gettext("Tests running... (Task ID: %(task_id)s)"),
+                    {task_id: data.task_id},
+                    true
+                );
                 pollStatus(data.task_id);
             } else {
-                outputContainer.textContent =
-                    "Error: " + (data.error || "Failed to start tests");
+                outputContainer.textContent = interpolate(
+                    gettext("Error: %(error)s"),
+                    {error: data.error || gettext("Failed to start tests")},
+                    true
+                );
                 btn.disabled = false;
-                btn.textContent = "Run tests";
+                btn.textContent = gettext("Run tests");
             }
         })
         .catch((error) => {
-            outputContainer.textContent = "Error: " + error;
+            outputContainer.textContent = interpolate(
+                gettext("Error: %(error)s"),
+                {error: error},
+                true
+            );
             btn.disabled = false;
-            btn.textContent = "Run tests";
+            btn.textContent = gettext("Run tests");
         });
 });
 
@@ -120,15 +130,15 @@ function pollStatus(taskId) {
             .then((data) => {
                 if (data.status === "running") {
                     outputContainer.textContent =
-                        "Tests running... Please wait.";
+                        gettext("Tests running... Please wait.");
                     setTimeout(checkStatus, 2000);
                 } else if (data.status === "completed") {
                     outputContainer.textContent =
-                        data.output || "Tests completed successfully.";
+                        data.output || gettext("Tests completed successfully.");
                     btn.disabled = false;
-                    btn.textContent = "Run tests";
+                    btn.textContent = gettext("Run tests");
                 } else if (data.status === "failed") {
-                    let errorMsg = data.error || "Test failed";
+                    let errorMsg = data.error || gettext("Test failed");
                     if (data.stderr) {
                         errorMsg += "\n\nError output:\n" + data.stderr;
                     }
@@ -137,17 +147,21 @@ function pollStatus(taskId) {
                     }
                     outputContainer.textContent = errorMsg;
                     btn.disabled = false;
-                    btn.textContent = "Run tests";
+                    btn.textContent = gettext("Run tests");
                 } else {
-                    outputContainer.textContent = "Unknown status";
+                    outputContainer.textContent = gettext("Unknown status");
                     btn.disabled = false;
-                    btn.textContent = "Run tests";
+                    btn.textContent = gettext("Run tests");
                 }
             })
             .catch((error) => {
-                outputContainer.textContent = "Error checking status: " + error;
+                outputContainer.textContent = interpolate(
+                    gettext("Error checking status: %(error)s"),
+                    {error: error},
+                    true
+                );
                 btn.disabled = false;
-                btn.textContent = "Run tests";
+                btn.textContent = gettext("Run tests");
             });
     };
 

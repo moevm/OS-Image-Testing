@@ -27,16 +27,16 @@ document.getElementById("exportBtn").addEventListener("click", function () {
     const distributions = getCheckedValues(".distro-checkbox");
 
     if (tables.length === 0) {
-        alert("Please select at least one table.");
+        alert(gettext("Please select at least one table."));
         return;
     }
     if (distributions.length === 0) {
-        alert("Please select at least one distribution.");
+        alert(gettext("Please select at least one distribution."));
         return;
     }
 
     btn.disabled = true;
-    btn.textContent = "Generating...";
+    btn.textContent = gettext("Generating...");
 
     fetch("/api/export-excel/", {
         method: "POST",
@@ -52,14 +52,22 @@ document.getElementById("exportBtn").addEventListener("click", function () {
                 window.location.href = data.file_url;
                 location.reload();
             } else {
-                alert("Error: " + data.error);
+                alert(interpolate(
+                    gettext("Error: %(error)s"),
+                    {error: data.error},
+                    true
+                ));
                 btn.disabled = false;
-                btn.textContent = "Generate New Excel Report";
+                btn.textContent = gettext("Generate New Excel Report");
             }
         })
         .catch((error) => {
-            alert("Error: " + error);
+            alert(interpolate(
+                gettext("Error: %(error)s"),
+                {error: error},
+                true
+            ));
             btn.disabled = false;
-            btn.textContent = "Generate New Excel Report";
+            btn.textContent = gettext("Generate New Excel Report");
         });
 });
