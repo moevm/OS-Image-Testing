@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: imgtests 0.0.1\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-05-16 13:14+0000\n"
-"PO-Revision-Date: 2026-05-16 13:14+0000\n"
+"POT-Creation-Date: 2026-07-21 15:58+0300\n"
+"PO-Revision-Date: 2026-07-21 15:58+0300\n"
 "Last-Translator: Vadim Kazakov vadimdim308@gmail.com\n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
@@ -17,6 +17,7 @@ msgstr ""
 "Plural-Forms: nplurals=4; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
 "n%10<=4 && (n%100<12 || n%100>14) ? 1 : n%10==0 || (n%10>=5 && n%10<=9) || "
 "(n%100>=11 && n%100<=14)? 2 : 3);\n"
+
 #: tests_interface/templates/tests_interface/base.html:7
 #: tests_interface/templates/tests_interface/index.html:4
 msgid "Test Dashboard"
@@ -28,7 +29,7 @@ msgstr "Тесты"
 
 #: tests_interface/templates/tests_interface/distro_page.html:9
 #: tests_interface/templates/tests_interface/excel_reports.html:9
-#: tests_interface/templates/tests_interface/reports_list.html:9
+#: tests_interface/templates/tests_interface/reports_list.html:10
 msgid "Back to Dashboard"
 msgstr "На главную страницу"
 
@@ -42,7 +43,7 @@ msgstr "Конфигурация тестов"
 
 #: tests_interface/templates/tests_interface/distro_page.html:28
 msgid "Select runner:"
-msgstr "Выберите runner"
+msgstr "Выберите раннер:"
 
 #: tests_interface/templates/tests_interface/distro_page.html:30
 msgid "Basic"
@@ -54,7 +55,7 @@ msgstr "С профилированием"
 
 #: tests_interface/templates/tests_interface/distro_page.html:40
 msgid "Use Default Configuration"
-msgstr "Использовать стандартную конфигурацию"
+msgstr "Использовать конфигурацию по умолчанию"
 
 #: tests_interface/templates/tests_interface/distro_page.html:43
 msgid "Custom Configuration"
@@ -62,15 +63,15 @@ msgstr "Пользовательская конфигурация"
 
 #: tests_interface/templates/tests_interface/distro_page.html:49
 msgid "Number of test runs:"
-msgstr "Количество запусков тестов"
+msgstr "Количество запусков тестов:"
 
 #: tests_interface/templates/tests_interface/distro_page.html:62
 msgid "Select Test Suites and Configure Duration:"
-msgstr "Выберите наборы тестов и длительность"
+msgstr "Выберите сценарии тестов и их длительность:"
 
 #: tests_interface/templates/tests_interface/distro_page.html:67
 msgid "Individual Tests (optional):"
-msgstr "Отдельные тесты (опционально):"
+msgstr "Отдельные тесты (не обязательно):"
 
 #: tests_interface/templates/tests_interface/distro_page.html:73
 msgid "Save Configuration"
@@ -81,41 +82,85 @@ msgstr "Сохранить конфигурацию"
 msgid "Reset to Default"
 msgstr "Восстановить конфигурацию по умолчанию"
 
-#: tests_interface/templates/tests_interface/distro_page.html:88
+#: tests_interface/templates/tests_interface/distro_page.html:90
+msgid "Use Default Profiled Configuration"
+msgstr "Использовать конфигурацию по умолчанию"
+
+#: tests_interface/templates/tests_interface/distro_page.html:94
+msgid "Custom Profiled Configuration"
+msgstr "Пользовательская конфигурация"
+
+#: tests_interface/templates/tests_interface/distro_page.html:101
+msgid "Single run"
+msgstr "Одиночный запуск"
+
+#: tests_interface/templates/tests_interface/distro_page.html:105
+msgid "Matrix run"
+msgstr "Матричный запуск"
+
+#: tests_interface/templates/tests_interface/distro_page.html:109
+msgid "Duration"
+msgstr "Длительность"
+
+#: tests_interface/templates/tests_interface/distro_page.html:112
+msgid "Profile"
+msgstr "Профиль"
+
+#: tests_interface/templates/tests_interface/distro_page.html:117
+msgid "Profiles and durations"
+msgstr "Профили и длительность"
+
+#: tests_interface/templates/tests_interface/distro_page.html:122
+msgid "Pattern"
+msgstr "Шаблон"
+
+#: tests_interface/templates/tests_interface/distro_page.html:127
+msgid "Subsystems"
+msgstr "Подсистемы"
+
+#: tests_interface/templates/tests_interface/distro_page.html:135
 msgid "Run tests"
 msgstr "Запустить тесты"
 
 #: tests_interface/templates/tests_interface/excel_reports.html:4
 #: tests_interface/templates/tests_interface/excel_reports.html:11
 msgid "Excel Reports"
-msgstr "Отчеты Excel"
+msgstr "Excel-отчеты"
 
-#: tests_interface/templates/tests_interface/excel_reports.html:17
+#: tests_interface/templates/tests_interface/excel_reports.html:18
+msgid "Distributions"
+msgstr "Дистрибутивы"
+
+#: tests_interface/templates/tests_interface/excel_reports.html:27
+msgid "Tables"
+msgstr "Таблицы"
+
+#: tests_interface/templates/tests_interface/excel_reports.html:39
 msgid "Generate New Excel Report"
-msgstr "Сгенерировать новый Excel-отчет"
+msgstr "Создать новый Excel-отчет"
 
-#: tests_interface/templates/tests_interface/excel_reports.html:61
+#: tests_interface/templates/tests_interface/excel_reports.html:83
 #, python-format
-msgid "Size: %(report.size|filesizeformat)s"
-msgstr "Размер: %(report.size|filesizeformat)s"
+msgid "Size: %(size)s"
+msgstr "Размер: %(size)s"
 
-#: tests_interface/templates/tests_interface/excel_reports.html:65
+#: tests_interface/templates/tests_interface/excel_reports.html:87
 msgid "Download"
 msgstr "Скачать"
 
-#: tests_interface/templates/tests_interface/excel_reports.html:81
-#: tests_interface/templates/tests_interface/reports_list.html:153
+#: tests_interface/templates/tests_interface/excel_reports.html:103
+#: tests_interface/templates/tests_interface/reports_list.html:155
 #, python-format
-msgid "Total: %(reports|length)s report(s)"
-msgstr "Всего: %(reports|length)s report(s)"
+msgid "Total: %(count)s report(s)"
+msgstr "Всего: %(count)s отчет(а/ов)"
 
-#: tests_interface/templates/tests_interface/excel_reports.html:95
+#: tests_interface/templates/tests_interface/excel_reports.html:117
 msgid "No Excel Reports"
 msgstr "Нет Excel-отчетов"
 
-#: tests_interface/templates/tests_interface/excel_reports.html:98
+#: tests_interface/templates/tests_interface/excel_reports.html:120
 msgid "Click \"Generate New Excel Report\" to create one."
-msgstr "Нажмите \"Сгенерировать новый Excel-отчет\" чтобы создать его"
+msgstr "Нажмите \"Создать новый Excel-отчет\", чтобы создать его."
 
 #: tests_interface/templates/tests_interface/index.html:4
 msgid "Home"
@@ -137,40 +182,39 @@ msgstr "Добавить дистрибутив"
 msgid "All Reports"
 msgstr "Все отчеты"
 
-#: tests_interface/templates/tests_interface/reports_list.html:11
+#: tests_interface/templates/tests_interface/reports_list.html:13
 msgid "Test Reports"
 msgstr "Отчеты о тестировании"
 
-#: tests_interface/templates/tests_interface/reports_list.html:26
+#: tests_interface/templates/tests_interface/reports_list.html:28
 msgid "Generate Comparison Report"
 msgstr "Создать сравнительный отчет"
 
-#: tests_interface/templates/tests_interface/reports_list.html:44
+#: tests_interface/templates/tests_interface/reports_list.html:46
 msgid "Experiment 1"
 msgstr "Эксперимент 1"
 
-#: tests_interface/templates/tests_interface/reports_list.html:55
-#: tests_interface/templates/tests_interface/reports_list.html:77
+#: tests_interface/templates/tests_interface/reports_list.html:57
+#: tests_interface/templates/tests_interface/reports_list.html:79
 msgid "Select"
 msgstr "Выберите"
 
-#: tests_interface/templates/tests_interface/reports_list.html:66
+#: tests_interface/templates/tests_interface/reports_list.html:68
 msgid "Experiment 2"
 msgstr "Эксперимент 2"
 
-#: tests_interface/templates/tests_interface/reports_list.html:87
-#: tests_interface/templates/tests_interface/reports_list.html:258
+#: tests_interface/templates/tests_interface/reports_list.html:89
 msgid "Generate"
-msgstr "Сгенерировать"
+msgstr "Создать"
 
-#: tests_interface/templates/tests_interface/reports_list.html:166
+#: tests_interface/templates/tests_interface/reports_list.html:169
 msgid "No Reports Found"
 msgstr "Отчеты не найдены"
 
-#: tests_interface/templates/tests_interface/reports_list.html:168
+#: tests_interface/templates/tests_interface/reports_list.html:172
 msgid "No reports available yet. Run some tests to generate reports."
-msgstr "Отчетов еще нет. Запустите тесты для их создания"
+msgstr "Отчеты пока недоступны. Запустите тесты, чтобы создать отчеты."
 
-#: tests_interface/templates/tests_interface/reports_list.html:174
+#: tests_interface/templates/tests_interface/reports_list.html:178
 msgid "Run Tests"
 msgstr "Запустить тесты"

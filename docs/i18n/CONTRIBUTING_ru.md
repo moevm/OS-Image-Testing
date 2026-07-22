@@ -52,6 +52,7 @@ pip install uv
 ```bash
 cd src/imgtests/web
 django-admin makemessages -l ru
+django-admin makemessages -d djangojs -l ru
 ```
 
 Затем отредактируйте `.po` файл и заполните поля `msgstr`.

@@ -52,6 +52,7 @@ After adding or modifying `{% translate %}` tags, regenerate the `.po` files:
 ```bash
 cd src/imgtests/web
 django-admin makemessages -l ru
+django-admin makemessages -d djangojs -l ru
 ```
 
 Then edit the `.po` file and fill in the `msgstr` fields.
