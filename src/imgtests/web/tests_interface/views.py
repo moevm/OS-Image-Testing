@@ -244,11 +244,15 @@ def get_run_progress(request: HttpRequest, task_id: str) -> JsonResponse:  # noq
     data = {}
     progress_file = LIB_DATA_DIR / (task_id + "_progress.log")
     if progress_file.exists():
-        try:
-            with progress_file.open(encoding="utf-8") as file:
+        with progress_file.open(encoding="utf-8") as file:
+            try:
                 data = json.load(file)
-        except json.decoder.JSONDecodeError:
-            pass
+            except json.decoder.JSONDecodeError as err:
+                logger.error(  # noqa: TRY400
+                    "Error loading JSON from progress file '%s'. Error: %s.",
+                    progress_file,
+                    err,
+                )
     return JsonResponse(data)
 
 
