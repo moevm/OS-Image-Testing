@@ -131,6 +131,39 @@
         </div>
     </div>
 
+    <div id="progress-card" class="progress-card" style="display: none;">
+        <h2>Progress</h2>
+        <br>
+
+        <div class="progress-group">
+            <div class="progress-label">
+                <span>Test progress</span>
+                <span id="tests-text">0 / 0 (0%)</span>
+            </div>
+            <div class="progress-bg">
+                <div id="tests-bar" class="progress-bar"></div>
+            </div>
+        </div>
+
+        <div class="progress-group">
+            <div class="progress-label">
+                <span>Runs progress</span>
+                <span id="runs-text">0 / 0</span>
+            </div>
+            <div class="progress-bg">
+                <div id="runs-bar" class="progress-bar"></div>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <div class="info-item" id="current-suite-div"><strong>Current Suite:</strong> <span id="current-suite">-</span></div>
+            <div class="info-item" id="last-profile-div"><strong>Last Profile processed:</strong> <span id="last-profile">-</span></div>
+            <div class="info-item"><strong>Current Test:</strong> <span id="current-test">-</span></div>
+        </div>
+
+        <div id="error-msg" class="status-error">Progress data parsing error</div>
+    </div>
+
     <div class="placeholder">
         <button id="runTestsBtn" class="btn">{% translate "Run tests" %}</button>
         <div

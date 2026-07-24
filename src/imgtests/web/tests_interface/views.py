@@ -16,7 +16,13 @@ from pydantic_core._pydantic_core import ValidationError
 from sqlalchemy import Engine, create_engine, select
 from sqlalchemy.orm import Session
 
-from imgtests.constant import CONFIG_DIR, DISTRIBUTION_DESCRIPTIONS, EXCEL_REPORTS_DIR, REPORTS_DIR
+from imgtests.constant import (
+    CONFIG_DIR,
+    DISTRIBUTION_DESCRIPTIONS,
+    EXCEL_REPORTS_DIR,
+    LIB_DATA_DIR,
+    REPORTS_DIR,
+)
 from imgtests.database.database import ImgtestsDatabase, PostgresCreds
 from imgtests.database.models.configuration import ConfigurationBase
 from imgtests.reporting.cli import EXPORT_TABLES
@@ -232,6 +238,22 @@ def run_tests(request: HttpRequest) -> JsonResponse:
     }
 
     return JsonResponse({"success": True, "task_id": task_id, "status": "running"})
+
+
+def get_run_progress(request: HttpRequest, task_id: str) -> JsonResponse:  # noqa: ARG001
+    data = {}
+    progress_file = LIB_DATA_DIR / (task_id + "_progress.log")
+    if progress_file.exists():
+        with progress_file.open(encoding="utf-8") as file:
+            try:
+                data = json.load(file)
+            except json.decoder.JSONDecodeError as err:
+                logger.error(  # noqa: TRY400
+                    "Error loading JSON from progress file '%s'. Error: %s.",
+                    progress_file,
+                    err,
+                )
+    return JsonResponse(data)
 
 
 def get_test_status(request: HttpRequest, task_id: str) -> JsonResponse:  # noqa: ARG001
