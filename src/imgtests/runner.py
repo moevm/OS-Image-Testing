@@ -28,6 +28,11 @@ from imgtests.planning import (
     build_plan,
 )
 from imgtests.snapshot import SnapshotManager
+from imgtests.suites.map import (
+    ALL_SUBSYSTEMS_SUITE,
+    ALL_SUITES,
+    TestsRunnerConfig,
+)
 from imgtests.suites.system import (
     SystemLoadTimeTest,
     SystemSlowServicesTest,
@@ -35,9 +40,8 @@ from imgtests.suites.system import (
 from imgtests.types import Subsystem, TestsCounts, TestStatus
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Sequence
+    from collections.abc import Iterable
 
-    from imgtests.database.models.experiment import ExperimentType
     from imgtests.exec.base_util import BaseTestUtil
 
 
@@ -58,46 +62,6 @@ SUSE_156_CONF: Final = (
 )
 
 logger = logging.getLogger()
-
-
-# Subsystems, stages (plan, risk analysis, run, cleanup, results, etc), etc
-class TestsRunnerConfig:
-    __slots__ = (
-        "description",
-        "experiment_type",
-        "install_dependencies",
-        "test_duration",
-        "tests",
-        "total_duration",
-    )
-
-    def __init__(
-        self,
-        description: str,
-        tests: Sequence[AbstractRunnableManyTimesTest | type[AbstractRunnableTimeLimitedTest]],
-        experiment_type: ExperimentType,
-        duration: int,
-        install_dependencies: bool = False,
-    ) -> None:
-        self.description = description
-        self.tests = tests
-        self.experiment_type: ExperimentType = experiment_type
-        self.total_duration = duration
-        self.install_dependencies = install_dependencies
-        time_limited_tests_cnt = sum(
-            1 for test in self.tests if not isinstance(test, AbstractRunnableManyTimesTest)
-        )
-        if time_limited_tests_cnt > self.total_duration:
-            err_msg = (
-                f"Each test cannot be run for less 1 second. "
-                f"{self.total_duration} seconds available, {time_limited_tests_cnt} tests to run. "
-                "Available time is not enough."
-            )
-            raise ValueError(err_msg)
-        if time_limited_tests_cnt > 0:
-            self.test_duration = self.total_duration // time_limited_tests_cnt
-        else:
-            self.test_duration = 0
 
 
 class TestsRunner(BaseRunner):
@@ -550,11 +514,6 @@ def _get_clients(distro: str) -> tuple[SSHClient | None, SSHClient | None]:
 
 
 def _run_single(distro: Distro, mode: Runner, config: dict[str, Any]) -> None:  # noqa: PLR0912, C901
-    from imgtests.suites.map import (  # noqa: PLC0415
-        ALL_SUBSYSTEMS_SUITE,
-        ALL_SUITES,
-    )
-
     logger.info("Running tests for %s", distro)
     logger.info("Current testing mode is %s", mode)
 
