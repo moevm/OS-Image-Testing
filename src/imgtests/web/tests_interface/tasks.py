@@ -9,7 +9,7 @@ DEFAULT_TASK_TIMEOUT_SEC: Final = 3600
 
 @task()
 def run_test_task(
-    distro: Distro = "all",
+    distro: Distro,
     mode: Runner = "default",
     test_runs_count: int = 1,
     config: dict[str, Any] | None = None,

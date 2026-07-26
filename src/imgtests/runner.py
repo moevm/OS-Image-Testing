@@ -46,7 +46,7 @@ if TYPE_CHECKING:
 
 
 Runner = Literal["default", "profiled"]
-Distro = Literal["all", "yocto", "opensuse"]
+Distro = Literal["yocto", "opensuse"]
 
 YOCTO_CONF: Final = (
     "SSH_YOCTO_ADDR",
@@ -502,27 +502,8 @@ def build_profiled_settings(config: dict[str, Any] | None) -> ProfiledRunnerSett
     )
 
 
-def _get_clients(distro: str) -> tuple[SSHClient | None, SSHClient | None]:
-    suse_client = None
-    poky_client = None
-    if distro in ("yocto", "all"):
-        poky_client = wait_remote(*YOCTO_CONF) or sys.exit(1)
-    if distro in ("opensuse", "all"):
-        suse_client = wait_remote(*SUSE_156_CONF) or sys.exit(1)
-        Touch(suse_client, use_sudo=True)(["/etc/cloud/cloud-init.disabled"])
-    return suse_client, poky_client
-
-
-def _run_single(distro: Distro, mode: Runner, config: dict[str, Any]) -> None:  # noqa: PLR0912, C901
-    logger.info("Running tests for %s", distro)
+def _run_single(client: SSHClient, mode: Runner, config: dict[str, Any] | None) -> None:  # noqa: PLR0912
     logger.info("Current testing mode is %s", mode)
-
-    suse_client, poky_client = _get_clients(distro)
-    distros_to_test: list[SSHClient] = []
-    if suse_client:
-        distros_to_test.append(suse_client)
-    if poky_client:
-        distros_to_test.append(poky_client)
     database = ImgtestsDatabase()
 
     if mode == "default":
@@ -582,33 +563,42 @@ def _run_single(distro: Distro, mode: Runner, config: dict[str, Any]) -> None:  
             suites_to_run = [ALL_SUBSYSTEMS_SUITE]
         for suite in suites_to_run:
             logger.info("Running suite %s", suite.description)
-            for client in distros_to_test:
-                client.reconnect()
-                runner = TestsRunner(client, database, suite)
-                runner.run()
-                runner.close()
-    elif mode == "profiled":
-        for client in filter(None, [poky_client, suse_client]):
             client.reconnect()
-            ProfiledPlanRunner(
-                client=client,
-                database=database,
-            ).run(profiled_settings=build_profiled_settings(config=config))
-            client.close()
+            runner = TestsRunner(client, database, suite)
+            runner.run()
+            runner.close()
+    elif mode == "profiled":
+        client.reconnect()
+        ProfiledPlanRunner(
+            client=client,
+            database=database,
+        ).run(profiled_settings=build_profiled_settings(config=config))
+        client.close()
     database.session.close_all()
 
 
 def run_tests(
-    distro: Distro = "all",
+    distro: Distro,
     mode: Runner = "default",
     test_runs_count: int = 1,
     config: dict[str, Any] | None = None,
 ) -> None:
+    logger.info("Running tests for %s", distro)
     if mode == "default" and config is None:
         config = load_test_config(distro)
+    client = None
+    match distro:
+        case "yocto":
+            client = wait_remote(*YOCTO_CONF) or sys.exit(1)
+        case "opensuse":
+            client = wait_remote(*SUSE_156_CONF) or sys.exit(1)
+            Touch(client, use_sudo=True)(["/etc/cloud/cloud-init.disabled"])
+        case _:
+            logger.error("Unexpected distro '%s'.", distro)
+            sys.exit(1)
     for i in range(test_runs_count):
         logger.info("Starting test run %d of %d", i + 1, test_runs_count)
-        _run_single(distro, mode, config)
+        _run_single(client, mode, config)
         logger.info("Completed test run %d of %d", i + 1, test_runs_count)
 
 
