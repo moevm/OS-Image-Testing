@@ -58,6 +58,7 @@ SYSCALL_ENTRY_RE: Final = re.compile(r"^syscall:\s+(\S+)\s+([\d.]+)\s+(\d+)\s+(\
 SPF_RE: Final = re.compile(r"^(skipped|passed|failed):\s*(\d+)(?::\s*([^\s()]+))?", re.IGNORECASE)
 METRICS_UNTRUSTY_RE: Final = re.compile(r"metrics untrustworthy:\s*(\d+)", re.IGNORECASE)
 CLEAN_LINE_RE: Final = re.compile(r"stress-ng: (?:info|metrc):\s+\[\d+\]\s*")
+SUBSYSTEM_RE: Final = re.compile(r"^(\w+):\s*$")
 METRICS_RE: Final = re.compile(
     r"^(\S+)\s+"  # stressor name
     r"(\d+)\s+"  # bogo ops
@@ -442,6 +443,11 @@ class StressNg(PkgMgrMixin, GenericUtil):
         for line in raw_metrics.splitlines():
             clean_line = CLEAN_LINE_RE.sub("", line).strip()
             if not clean_line:
+                continue
+
+            m_subsystem = SUBSYSTEM_RE.match(clean_line)
+            if m_subsystem is not None:
+                current_stressor = m_subsystem.group(1)
                 continue
 
             m = METRICS_RE.match(clean_line)
