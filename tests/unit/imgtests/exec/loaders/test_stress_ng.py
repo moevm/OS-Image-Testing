@@ -139,7 +139,7 @@ from imgtests.exec.loaders.stress_ng import StressNg, StressNGMetrics, StressNGS
         "One stressor with new metrics format.",
         "Two stressors with new metrics format.",
         "Syscall with syscall-top and perf entries.",
-        "",
+        "Metrics for different subsystems.",
     ],
 )
 def test_parse_metrics(raw_metrics: str, expected: list[StressNGMetrics]) -> None:
