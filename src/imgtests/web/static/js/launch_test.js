@@ -16,8 +16,11 @@ function getCookie(name) {
 }
 
 function getSelectedSubsystems() {
-    return Array.from(document.querySelectorAll('#subsystemsCheckboxes input[type="checkbox"]:checked'))
-                .map(cb => cb.value);
+    return Array.from(
+        document.querySelectorAll(
+            '#subsystemsCheckboxes input[type="checkbox"]:checked',
+        ),
+    ).map((checkbox) => checkbox.value);
 }
 
 function collectSingleConfig() {
@@ -25,7 +28,7 @@ function collectSingleConfig() {
         durations: {
             duration_sec: DurationInput.toSeconds(
                 "profiled_single_duration",
-                "Profile duration",
+                gettext("Profile duration"),
             ),
         },
         profile: document.getElementById("profileSelect").value,
@@ -39,25 +42,32 @@ function collectMatrixConfig() {
     const durations = {};
     const matrixProfiles = [];
 
-    document.querySelectorAll('#profilesCheckboxes input[type="checkbox"]').forEach(cb => {
-        if (cb.checked) {
-            matrixProfiles.push(cb.value);
-            const durationPrefix =
-                cb.dataset.durationPrefix ||
-                `profiled_${cb.value}_duration`;
-            durations[`duration_${cb.value}`] = DurationInput.toSeconds(
-                durationPrefix,
-                `${cb.value} profile duration`,
-            );
-        }
-    });
+    document
+        .querySelectorAll('#profilesCheckboxes input[type="checkbox"]')
+        .forEach((checkbox) => {
+            if (checkbox.checked) {
+                matrixProfiles.push(checkbox.value);
+                const durationPrefix =
+                    checkbox.dataset.durationPrefix ||
+                    `profiled_${checkbox.value}_duration`;
+                durations[`duration_${checkbox.value}`] =
+                    DurationInput.toSeconds(
+                        durationPrefix,
+                        interpolate(
+                            gettext("%(profile)s profile duration"),
+                            {profile: checkbox.value},
+                            true,
+                        ),
+                    );
+            }
+        });
 
     return {
-        durations: durations,
+        durations,
         matrix_profiles: matrixProfiles,
         pattern: document.getElementById("profiledPatternSelect").value,
         subsystems: getSelectedSubsystems(),
-        run_matrix: true
+        run_matrix: true,
     };
 }
 
@@ -66,8 +76,7 @@ const csrfToken = getCookie("csrftoken");
 document.getElementById("runTestsBtn").addEventListener("click", function () {
     const btn = this;
     const outputContainer = document.getElementById("outputContainer");
-
-    const testing_mode = document.getElementById('configTestingMode').value;
+    const testingMode = document.getElementById("configTestingMode").value;
     const testRunsCountInput = document.getElementById("testRunsCount");
     const testRunsCount = testRunsCountInput
         ? parseInt(testRunsCountInput.value, 10)
@@ -75,11 +84,11 @@ document.getElementById("runTestsBtn").addEventListener("click", function () {
 
     let config = null;
     try {
-        if (testing_mode === "profiled") {
-            const conf_mode = document.querySelector(
+        if (testingMode === "profiled") {
+            const configMode = document.querySelector(
                 'input[name="profiledConfigMode"]:checked',
             ).value;
-            if (conf_mode === "custom") {
+            if (configMode === "custom") {
                 const runMode = document.querySelector(
                     'input[name="profiledRunMode"]:checked',
                 ).value;
@@ -90,13 +99,17 @@ document.getElementById("runTestsBtn").addEventListener("click", function () {
             }
         }
     } catch (error) {
-        outputContainer.textContent = "Error: " + error.message;
+        outputContainer.textContent = interpolate(
+            gettext("Error: %(message)s"),
+            {message: error.message},
+            true,
+        );
         return;
     }
 
     btn.disabled = true;
-    btn.textContent = "Running...";
-    outputContainer.textContent = "Tests Running...";
+    btn.textContent = gettext("Running...");
+    outputContainer.textContent = gettext("Tests running...");
 
     fetch("/run-tests/", {
         method: "POST",
@@ -106,27 +119,40 @@ document.getElementById("runTestsBtn").addEventListener("click", function () {
         },
         body: JSON.stringify({
             test_runs_count: testRunsCount,
-            testing_mode: testing_mode,
-            config: config,
+            testing_mode: testingMode,
+            config,
         }),
     })
         .then((response) => response.json())
         .then((data) => {
             if (data.success && data.task_id) {
-                outputContainer.textContent =
-                    "Tests running... (Task ID: " + data.task_id + ")";
+                outputContainer.textContent = interpolate(
+                    gettext("Tests running... (Task ID: %(task_id)s)"),
+                    {task_id: data.task_id},
+                    true,
+                );
                 pollStatus(data.task_id);
             } else {
-                outputContainer.textContent =
-                    "Error: " + (data.error || "Failed to start tests");
+                outputContainer.textContent = interpolate(
+                    gettext("Error: %(message)s"),
+                    {
+                        message:
+                            data.error || gettext("Failed to start tests"),
+                    },
+                    true,
+                );
                 btn.disabled = false;
-                btn.textContent = "Run tests";
+                btn.textContent = gettext("Run tests");
             }
         })
         .catch((error) => {
-            outputContainer.textContent = "Error: " + error;
+            outputContainer.textContent = interpolate(
+                gettext("Error: %(message)s"),
+                {message: error.message || String(error)},
+                true,
+            );
             btn.disabled = false;
-            btn.textContent = "Run tests";
+            btn.textContent = gettext("Run tests");
         });
 });
 
@@ -134,40 +160,52 @@ function pollStatus(taskId) {
     const btn = document.getElementById("runTestsBtn");
     const outputContainer = document.getElementById("outputContainer");
 
+    const resetButton = () => {
+        btn.disabled = false;
+        btn.textContent = gettext("Run tests");
+    };
+
     const checkStatus = () => {
-        fetch("/test-status/" + taskId + "/")
+        fetch(`/test-status/${taskId}/`)
             .then((response) => response.json())
             .then((data) => {
                 if (data.status === "running") {
-                    outputContainer.textContent =
-                        "Tests running... Please wait.";
+                    outputContainer.textContent = gettext(
+                        "Tests running... Please wait.",
+                    );
                     setTimeout(checkStatus, 2000);
                 } else if (data.status === "completed") {
                     outputContainer.textContent =
-                        data.output || "Tests completed successfully.";
-                    btn.disabled = false;
-                    btn.textContent = "Run tests";
+                        data.output ||
+                        gettext("Tests completed successfully.");
+                    resetButton();
                 } else if (data.status === "failed") {
-                    let errorMsg = data.error || "Test failed";
+                    let errorMessage = data.error || gettext("Test failed");
                     if (data.stderr) {
-                        errorMsg += "\n\nError output:\n" + data.stderr;
+                        errorMessage +=
+                            "\n\n" +
+                            gettext("Error output:") +
+                            "\n" +
+                            data.stderr;
                     }
                     if (data.output) {
-                        errorMsg += "\n\nOutput:\n" + data.output;
+                        errorMessage +=
+                            "\n\n" + gettext("Output:") + "\n" + data.output;
                     }
-                    outputContainer.textContent = errorMsg;
-                    btn.disabled = false;
-                    btn.textContent = "Run tests";
+                    outputContainer.textContent = errorMessage;
+                    resetButton();
                 } else {
-                    outputContainer.textContent = "Unknown status";
-                    btn.disabled = false;
-                    btn.textContent = "Run tests";
+                    outputContainer.textContent = gettext("Unknown status");
+                    resetButton();
                 }
             })
             .catch((error) => {
-                outputContainer.textContent = "Error checking status: " + error;
-                btn.disabled = false;
-                btn.textContent = "Run tests";
+                outputContainer.textContent = interpolate(
+                    gettext("Error checking status: %(message)s"),
+                    {message: error.message || String(error)},
+                    true,
+                );
+                resetButton();
             });
     };
 

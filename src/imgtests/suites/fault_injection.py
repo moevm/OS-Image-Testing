@@ -1,16 +1,19 @@
 import logging
 import random
+from concurrent.futures import TimeoutError as FuturesTimeoutError
 from datetime import UTC, datetime
 from time import sleep
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, NamedTuple
 
 from imgtests.exec.debugfs import change_fault_parameters
 from imgtests.exec.exec import ExecResult, SSHClient
 from imgtests.exec.loaders import Chaosblade, ChaosResponse, Kirk, Perf, StressNg
+from imgtests.exec.loaders.iperf3 import Iperf3, Iperf3Bundle
 from imgtests.exec.osinfo import get_os_release
 from imgtests.exec.user_commands import MkDir
 from imgtests.planning import AbstractRunnableTimeLimitedTest, calc_subtest_timeout
 from imgtests.suites.drive.fio import FIO_RESULTS_DIR, FioSuite, FioSuiteConfig, FioWorkload
+from imgtests.suites.network.iperf3 import Iperf3LocalContext
 from imgtests.types import Distro, Subsystem, TestResult, TestStatus
 
 if TYPE_CHECKING:
@@ -393,6 +396,106 @@ class FaultInjectionFioTest(FaultCleanupMixin, AbstractRunnableTimeLimitedTest):
 
                 fio = FioSuite(client, fio_config).run()
                 yield from fio
+
+
+class Iperf3Suite(NamedTuple):
+    name: str
+    is_udp: bool
+
+
+class FaultInjectionIperf3Test(FaultCleanupMixin, AbstractRunnableTimeLimitedTest):
+    def __init__(self, timeout: int) -> None:
+        super().__init__(
+            "Iperf3 test with fault injection.",
+            frozenset({Subsystem.NETWORK}),
+            timeout,
+        )
+
+    @property
+    def iperf3_suites(self) -> tuple[bool, ...]:
+        return (
+            Iperf3Suite(name="TCP", is_udp=False),
+            Iperf3Suite(name="UDP", is_udp=True),
+        )
+
+    @property
+    def fault_probs(self) -> tuple[int, ...]:
+        return (0, 50, 70, 90)
+
+    def _run(
+        self,
+        executor: ThreadPoolExecutor,
+        client: SSHClient | None,
+        timeout: int,
+    ) -> Iterable[TestResult]:
+        if not is_fault_injection_available(client):
+            self.logger.warning("Skipping test due to fault injection is supported on poky.")
+            return TestResult(status=TestStatus.SKIPPED)
+
+        timeout_suite = calc_subtest_timeout(
+            timeout,
+            len(self.protocols) * len(self.fault_probs),
+            60,
+        )
+        for fault_prob in self.fault_probs:
+            self.logger.info("Run with %d fault_prob and %d timeout", fault_prob, timeout_suite)
+            for iperf3_suite in self.iperf3_suites:
+                started_at = datetime.now(UTC)
+                result = change_fault_parameters(client, fault_prob, 5)
+                if result.returncode:
+                    yield TestResult(
+                        command=" ".join(result.cmd),
+                        started_at=started_at,
+                        status=TestStatus.FAILED,
+                    )
+                    return
+
+                context = Iperf3LocalContext(
+                    executor=executor,
+                    ssh_client=client,
+                    iperf3=Iperf3Bundle(server=client),
+                    timeout=timeout_suite,
+                )
+                server_future = context.iperf3.start_server(context.executor)
+
+                client_result = context.iperf3.client.run(
+                    client=context.ssh_client.hostname,
+                    time=context.timeout,
+                    udp=iperf3_suite.is_udp,
+                    version4=True,
+                )
+                if client_result.returncode:
+                    self.logger.error("Error occurred while launching iperf3 client.")
+                    context.iperf3.server.stop_server()
+                    yield TestResult(
+                        command=" ".join(client_result.cmd),
+                        metrics={"client_returncode": client_result.returncode},
+                        started_at=started_at,
+                        status=TestStatus.FAILED,
+                    )
+
+                try:
+                    server_result = context.iperf3.wait_server(
+                        server_future,
+                        Iperf3.IPERF3_LOCAL_SERVER_SHUTDOWN_TIMEOUT_SEC,
+                    )
+                except FuturesTimeoutError:
+                    self.logger.exception("Error occurred while waiting for iperf3 server.")
+                    yield TestResult(
+                        command=" ".join(client_result.cmd),
+                        metrics={"error": "iperf3 server timed out"},
+                        started_at=started_at,
+                        status=TestStatus.FAILED,
+                    )
+
+                yield TestResult(
+                    command=" ".join(client_result.cmd),
+                    metrics=Iperf3.split_result(
+                        raw_metrics=Iperf3.bundle_metrics_to_json(client_result, server_result),
+                    ),
+                    started_at=started_at,
+                    status=TestStatus.PASSED,
+                )
 
 
 def is_fault_injection_available(client: SSHClient | None) -> bool:

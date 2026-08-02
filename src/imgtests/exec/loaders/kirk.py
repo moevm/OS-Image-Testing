@@ -20,6 +20,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 DEFAULT_LTP_RESULTS_DIR = Path("/var/tmp/ltp-results")  # noqa: S108
+TEST_SKIPPED_RETURN_CODE = "32"
 
 
 class Kirk(GenericUtil):
@@ -221,41 +222,6 @@ class Kirk(GenericUtil):
         return res, local_json_path
 
     @staticmethod
-    def metrics_to_bmf(metrics: Any) -> dict[str, dict[str, dict[str, Any]]]:
-        result: dict[str, dict[str, dict[str, Any]]] = {}
-        for test in metrics["results"]:
-            test_name = test["test_fqn"]
-            test_info = test["test"]
-
-            if not test_name or not test_info:
-                continue
-
-            arguments = test_info["arguments"]
-            arguments_str = " ".join(arguments) if arguments else ""
-
-            retval = test_info["retval"]
-            retval_str = retval[0] if retval else ""
-
-            bmf_data: dict[str, dict[str, Any]] = {
-                "status": {"value": test["status"]},
-                "command": {"value": test_info["command"]},
-                "arguments": {"value": arguments_str},
-                "log": {"value": test_info["log"]},
-                "retval": {"value": retval_str},
-                "duration": {"value": test_info["duration"]},
-                "failed": {"value": test_info["failed"]},
-                "passed": {"value": test_info["passed"]},
-                "broken": {"value": test_info["broken"]},
-                "skipped": {"value": test_info["skipped"]},
-                "warnings": {"value": test_info["warnings"]},
-                "result": {"value": test_info["result"]},
-            }
-
-            result[test_name] = bmf_data
-
-        return result
-
-    @staticmethod
     def metrics_to_json(metrics: Path) -> AdapterResult:
         raw_metrics = json.loads(metrics.read_text())
         return Kirk.split_result(raw_metrics=raw_metrics)
@@ -283,10 +249,12 @@ class Kirk(GenericUtil):
                 "duration": test.get("test", {}).get("duration", 0.0),
             }
             for test in results
+            if test.get("test", {}).get("retval", []) != [TEST_SKIPPED_RETURN_CODE]
         ]
         metrics = {str(i): metric for i, metric in enumerate(metrics)}
 
         summary = raw_metrics.get("stats", {})
+        test_type = {"type": "general"}
         time = {
             "duration_sec": round(summary.get("runtime", 0.0), 2),
         }
@@ -296,7 +264,7 @@ class Kirk(GenericUtil):
 
         return AdapterResult(
             tool="kirk",
-            test_type={},
+            test_type=test_type,
             time=time,
             metrics=metrics,
         )

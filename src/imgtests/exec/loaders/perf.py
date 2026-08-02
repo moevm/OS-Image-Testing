@@ -177,18 +177,6 @@ class Perf(PkgMgrMixin, GenericUtil):
         return Perf.split_result(raw_metrics=processed_result)
 
     @staticmethod
-    def metrics_to_bmf(metrics: tuple[PerfBenchMetrics, ...]) -> dict[str, dict[str, Any]]:
-        result: dict[str, dict[str, Any]] = {}
-        for metric in metrics:
-            result[metric.benchmark] = {}
-            for key, value in metric._asdict().items():
-                if key == "benchmark" or value is None:
-                    continue
-                result[metric.benchmark][key] = {"value": value}
-
-        return result
-
-    @staticmethod
     def split_result(
         raw_metrics: list[dict[str, Any]],
         test_index: int = 0,

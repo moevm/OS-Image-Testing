@@ -18,7 +18,11 @@ class TestConfigManager {
         } catch (error) {
             console.error("Failed to initialize TestConfigManager:", error);
             this.showStatus(
-                "Failed to load configuration: " + error.message,
+                interpolate(
+                    gettext("Failed to load configuration: %(message)s"),
+                    {message: error.message},
+                    true,
+                ),
                 "error",
             );
         }
@@ -41,7 +45,11 @@ class TestConfigManager {
         } catch (error) {
             console.error("Failed to load available suites:", error);
             this.showStatus(
-                "Failed to load test suites: " + error.message,
+                interpolate(
+                    gettext("Failed to load test suites: %(message)s"),
+                    {message: error.message},
+                    true,
+                ),
                 "error",
             );
             throw error;
@@ -61,7 +69,11 @@ class TestConfigManager {
             } else {
                 console.warn("No existing config, using default");
                 this.showStatus(
-                    "Failed to load tests for " + window.distroName,
+                    interpolate(
+                        gettext("Failed to load tests for %(distro_name)s"),
+                        {distro_name: window.distroName},
+                        true,
+                    ),
                     "error",
                 );
             }
@@ -154,7 +166,11 @@ class TestConfigManager {
             const suitesDiv = document.getElementById("suitesCheckboxes");
             if (suitesDiv) {
                 suitesDiv.innerHTML =
-                    '<p style="color: red;">Failed to load test suites. Please refresh the page.</p>';
+                    '<p style="color: red;">' +
+                    gettext(
+                        "Failed to load test suites. Please refresh the page.",
+                    ) +
+                    "</p>";
             }
             return;
         }
@@ -176,7 +192,8 @@ class TestConfigManager {
         console.log("Rendering suites:", suiteNames);
 
         if (suiteNames.length === 0) {
-            suitesDiv.innerHTML = "<p>No test suites available</p>";
+            suitesDiv.innerHTML =
+                "<p>" + gettext("No test suites available") + "</p>";
             return;
         }
 
@@ -210,17 +227,17 @@ class TestConfigManager {
                         <div>
                             <strong style="font-size: 1.1em;">${suiteName}</strong>
                             <span style="color: #666; margin-left: 10px;">
-                                ${suiteInfo.description || "No description"}
+                                ${suiteInfo.description || gettext("No description")}
                             </span>
                         </div>
                         <div style="margin-top: 8px; color: #999; font-size: 0.9em;">
-                            Default duration:
+                            ${gettext("Default duration:")}
                             ${DurationInput.format(suiteInfo.default_duration)} |
-                            Tests: ${suiteInfo.test_count || 0}
+                            ${gettext("Tests:")} ${suiteInfo.test_count || 0}
                         </div>
                         <div class="suite-options"
                              style="margin-top: 10px; ${!isChecked ? "opacity: 0.5;" : ""}">
-                            <div style="font-size: 0.9em;">Custom duration:</div>
+                            <div style="font-size: 0.9em;">${gettext("Custom duration:")}</div>
                             ${DurationInput.render(
                                 durationPrefix,
                                 currentDuration,
@@ -230,12 +247,18 @@ class TestConfigManager {
                                     style="margin-top: 10px;"
                                     onclick="testConfigManager.showTestsForSuite('${suiteName}')"
                                     ${!isChecked ? "disabled" : ""}>
-                                Select Individual Tests
+                                ${gettext("Select Individual Tests")}
                             </button>
                             ${
                                 this.currentConfig.selected_tests?.[suiteName]
                                     ? `<span style="margin-left: 10px; font-size: 0.85em; color: #28a745;">
-                                    ✓ ${this.currentConfig.selected_tests[suiteName].length} test(s) selected
+                                    ✓ ${interpolate(
+                                        gettext("%(count)s test(s) selected"),
+                                        {
+                                            count: this.currentConfig.selected_tests[suiteName].length,
+                                        },
+                                        true,
+                                    )}
                                 </span>`
                                     : ""
                             }
@@ -310,8 +333,8 @@ class TestConfigManager {
 
             modal.innerHTML = `
                 <div style="background: white; padding: 20px; border-radius: 5px; max-width: 600px; max-height: 80%; overflow: auto;">
-                    <h3>Select tests for ${suiteName}</h3>
-                    <p><small>Leave all unchecked to run all tests</small></p>
+                    <h3>${gettext("Select tests for")} ${suiteName}</h3>
+                    <p><small>${gettext("Leave all unchecked to run all tests")}</small></p>
                     <div id="testsList_${suiteName}">
                         ${tests
                             .map(
@@ -328,8 +351,8 @@ class TestConfigManager {
                             .join("")}
                     </div>
                     <div style="margin-top: 20px;">
-                        <button id="saveTestsBtn_${suiteName}" class="btn">Save Selection</button>
-                        <button id="cancelTestsBtn" class="btn" style="margin-left: 10px;">Cancel</button>
+                        <button id="saveTestsBtn_${suiteName}" class="btn">${gettext("Save Selection")}</button>
+                        <button id="cancelTestsBtn" class="btn" style="margin-left: 10px;">${gettext("Cancel")}</button>
                     </div>
                 </div>
             `;
@@ -345,26 +368,44 @@ class TestConfigManager {
                         ),
                     ).map((cb) => cb.value);
 
-                    if (!this.currentConfig.selected_tests) {
-                        this.currentConfig.selected_tests = {};
-                    }
+                    const updatedSelectedTests = {
+                        ...(this.currentConfig.selected_tests || {}),
+                    };
 
                     if (selected.length > 0) {
-                        this.currentConfig.selected_tests[suiteName] = selected;
+                        updatedSelectedTests[suiteName] = selected;
                         this.showStatus(
-                            `Selected ${selected.length} tests for ${suiteName}`,
+                            interpolate(
+                                gettext(
+                                    "Selected %(count)s tests for %(suite_name)s",
+                                ),
+                                {
+                                    count: selected.length,
+                                    suite_name: suiteName,
+                                },
+                                true,
+                            ),
                             "success",
                         );
                     } else {
-                        delete this.currentConfig.selected_tests[suiteName];
+                        delete updatedSelectedTests[suiteName];
                         this.showStatus(
-                            `Will run all tests for ${suiteName}`,
+                            interpolate(
+                                gettext(
+                                    "Will run all tests for %(suite_name)s",
+                                ),
+                                {suite_name: suiteName},
+                                true,
+                            ),
                             "success",
                         );
                     }
 
+                    this.currentConfig = {
+                        ...this.currentConfig,
+                        selected_tests: updatedSelectedTests,
+                    };
                     modal.remove();
-                    this.renderConfigUI();
                 });
 
             document
@@ -374,7 +415,14 @@ class TestConfigManager {
                 });
         } catch (error) {
             console.error("Failed to load tests:", error);
-            this.showStatus("Failed to load tests for " + suiteName, "error");
+            this.showStatus(
+                interpolate(
+                    gettext("Failed to load tests for %(suite_name)s"),
+                    {suite_name: suiteName},
+                    true,
+                ),
+                "error",
+            );
         }
     }
 
@@ -429,8 +477,12 @@ class TestConfigManager {
 
             if (response.ok) {
                 this.currentConfig = config;
-                this.showStatus("Configuration saved successfully!", "success");
+                this.showStatus(
+                    gettext("Configuration saved successfully!"),
+                    "success",
+                );
                 console.log("Configuration saved");
+                this.renderConfigUI();
             } else {
                 const error = await response.text();
                 throw new Error(`HTTP ${response.status}: ${error}`);
@@ -438,7 +490,11 @@ class TestConfigManager {
         } catch (error) {
             console.error("Save failed:", error);
             this.showStatus(
-                "Error saving configuration: " + error.message,
+                interpolate(
+                    gettext("Error saving configuration: %(message)s"),
+                    {message: error.message},
+                    true,
+                ),
                 "error",
             );
         }
@@ -482,11 +538,17 @@ class TestConfigManager {
                     runsInput.value = 1;
                 }
                 this.renderConfigUI();
-                this.showStatus("Configuration reset to default", "success");
+                this.showStatus(
+                    gettext("Configuration reset to default"),
+                    "success",
+                );
             }
         } catch (error) {
             console.error("Reset failed:", error);
-            this.showStatus("Failed to reset configuration", "error");
+            this.showStatus(
+                gettext("Failed to reset configuration"),
+                "error",
+            );
         }
     }
 
@@ -591,6 +653,14 @@ class TestConfigManager {
     }
 
     renderSubsystemsUI() {
+        const subsystemLabels = {
+            file: gettext("File"),
+            IPC: gettext("IPC"),
+            memory: gettext("Memory"),
+            network: gettext("Network"),
+            syscalls: gettext("Syscalls"),
+            system: gettext("System"),
+        };
         const subsystems = ["file","IPC","memory","network","syscalls","system"];
         const container = document.getElementById("subsystemsCheckboxes");
         container.innerHTML = "";
@@ -600,7 +670,7 @@ class TestConfigManager {
             div.innerHTML = `
                 <label>
                     <input type="checkbox" name="subsystems" value="${subsystem}" checked>
-                    ${subsystem}
+                    ${subsystemLabels[subsystem] || subsystem}
                 </label>
             `;
             container.appendChild(div);

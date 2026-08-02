@@ -51,7 +51,8 @@ tests = [
 "imgtests.web" = [
     "**/*.css",
     "**/*.js",
-    "**/*.html"
+    "**/*.html",
+    "**/*.mo",
 ]
 
 [tool.ruff]

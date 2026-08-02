@@ -1000,7 +1000,9 @@ def test_pts_parse_metrics(raw_metrics: dict[str, Any], expected: dict[str, Any]
             },
             {
                 "tool": "kirk",
-                "test_type": {},
+                "test_type": {
+                    "type": "general",
+                },
                 "time": {
                     "duration_sec": 2.30,
                 },

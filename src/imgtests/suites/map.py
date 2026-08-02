@@ -1,6 +1,9 @@
-from typing import Final
+from typing import TYPE_CHECKING, Final
 
-from imgtests.runner import TestsRunnerConfig
+from imgtests.planning import (
+    AbstractRunnableManyTimesTest,
+    AbstractRunnableTimeLimitedTest,
+)
 from imgtests.suites.drive.fio_file import (
     FioDisksDMDelay,
     FioDisksDMDust,
@@ -14,6 +17,7 @@ from imgtests.suites.fault_injection import (
     FaultInjectionChaosbladeTest,
     FaultInjectionEnduranceTest,
     FaultInjectionFioTest,
+    FaultInjectionIperf3Test,
     FaultInjectionPerfTest,
     FaultInjectionStressNgTest,
 )
@@ -51,6 +55,52 @@ from imgtests.suites.system import (
 )
 from imgtests.types import Subsystem
 
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+    from imgtests.database.models.experiment import ExperimentType
+
+
+# Subsystems, stages (plan, risk analysis, run, cleanup, results, etc), etc
+class TestsRunnerConfig:
+    __slots__ = (
+        "description",
+        "experiment_type",
+        "install_dependencies",
+        "test_duration",
+        "tests",
+        "total_duration",
+    )
+
+    def __init__(
+        self,
+        description: str,
+        tests: Sequence[AbstractRunnableManyTimesTest | type[AbstractRunnableTimeLimitedTest]],
+        experiment_type: ExperimentType,
+        duration: int,
+        install_dependencies: bool = False,
+    ) -> None:
+        self.description = description
+        self.tests = tests
+        self.experiment_type: ExperimentType = experiment_type
+        self.total_duration = duration
+        self.install_dependencies = install_dependencies
+        time_limited_tests_cnt = sum(
+            1 for test in self.tests if not isinstance(test, AbstractRunnableManyTimesTest)
+        )
+        if time_limited_tests_cnt > self.total_duration:
+            err_msg = (
+                f"Each test cannot be run for less 1 second. "
+                f"{self.total_duration} seconds available, {time_limited_tests_cnt} tests to run. "
+                "Available time is not enough."
+            )
+            raise ValueError(err_msg)
+        if time_limited_tests_cnt > 0:
+            self.test_duration = self.total_duration // time_limited_tests_cnt
+        else:
+            self.test_duration = 0
+
+
 ALL_SUBSYSTEMS_SUITE: Final = TestsRunnerConfig(
     description="Test suite for all subsystems.",
     tests=(
@@ -84,6 +134,7 @@ ALL_SUBSYSTEMS_SUITE: Final = TestsRunnerConfig(
         FaultInjectionStressNgTest,
         FaultInjectionPerfTest,
         FaultInjectionFioTest,
+        FaultInjectionIperf3Test,
     ),
     experiment_type="performance",
     duration=1200,

@@ -1,0 +1,53 @@
+services:
+  imgtests-postgres:
+    image: postgres:17.7
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      MVP_RESULTS_DB: ${MVP_RESULTS_DB}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - ${POSTGRES_DATA_VOLUME:-postgres_data}:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  imgtests-metabase-meta-db:
+    image: postgres:17.7
+    environment:
+      POSTGRES_DB: ${METABASE_META_DB_NAME}
+      POSTGRES_USER: ${METABASE_META_USER}
+      POSTGRES_PASSWORD: ${METABASE_META_PASS}
+      PGPORT: ${METABASE_META_DB_PORT}
+    volumes:
+      - ${METABASE_META_VOLUME}:/var/lib/postgresql/data
+    command: -p ${METABASE_META_DB_PORT}
+    restart: unless-stopped
+
+  imgtests-metabase:
+    image: metabase/metabase:v0.61.2.6
+    depends_on:
+      - imgtests-metabase-meta-db
+      - imgtests-postgres
+    environment:
+      MB_DB_TYPE: postgres
+      MB_DB_DBNAME: ${METABASE_META_DB_NAME}
+      MB_DB_PORT: ${METABASE_META_DB_PORT}
+      MB_DB_USER: ${METABASE_META_USER}
+      MB_DB_PASS: ${METABASE_META_PASS}
+      MB_DB_HOST: imgtests-metabase-meta-db
+    ports:
+      - "${METABASE_PORT}:3000"
+    volumes:
+      - ${METABASE_APP_VOLUME}:/metabase-data
+
+volumes:
+  postgres_data:
+  metabase_app:
+  metabase_meta_data:
