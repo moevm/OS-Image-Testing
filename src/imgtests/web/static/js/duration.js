@@ -2,10 +2,30 @@
     "use strict";
 
     const units = [
-        { key: "days", label: "Days", max: 9999, multiplier: 86400 },
-        { key: "hours", label: "Hours", max: 23, multiplier: 3600 },
-        { key: "minutes", label: "Minutes", max: 59, multiplier: 60 },
-        { key: "seconds", label: "Seconds", max: 59, multiplier: 1 },
+        {
+            key: "days",
+            getLabel: () => gettext("Days"),
+            max: 9999,
+            multiplier: 86400,
+        },
+        {
+            key: "hours",
+            getLabel: () => gettext("Hours"),
+            max: 23,
+            multiplier: 3600,
+        },
+        {
+            key: "minutes",
+            getLabel: () => gettext("Minutes"),
+            max: 59,
+            multiplier: 60,
+        },
+        {
+            key: "seconds",
+            getLabel: () => gettext("Seconds"),
+            max: 59,
+            multiplier: 1,
+        },
     ];
 
     const maxTotalSeconds = units.reduce(
@@ -48,7 +68,7 @@
             .map(
                 (unit) => `
                     <label class="duration-input-field" for="${prefix}_${unit.key}">
-                        <span>${unit.label}</span>
+                        <span>${unit.getLabel()}</span>
                         <input
                             class="duration-component"
                             type="number"
@@ -58,7 +78,11 @@
                             max="${unit.max}"
                             step="1"
                             inputmode="numeric"
-                            title="Allowed range: 0-${unit.max}"
+                            title="${interpolate(
+                                gettext("Allowed range: 0-%(max)s"),
+                                {max: unit.max},
+                                true,
+                            )}"
                             ${disabledAttribute}
                         >
                     </label>
@@ -76,7 +100,13 @@
     function getComponent(prefix, unit) {
         const input = document.getElementById(`${prefix}_${unit.key}`);
         if (!input) {
-            throw new Error(`Duration field ${unit.label.toLowerCase()} was not found.`);
+            throw new Error(
+                interpolate(
+                    gettext("Duration field %(field)s was not found."),
+                    {field: unit.getLabel().toLowerCase()},
+                    true,
+                ),
+            );
         }
 
         const rawValue = input.value.trim();
@@ -86,14 +116,21 @@
         input.classList.toggle("duration-input-error", !isValid);
         if (!isValid) {
             input.focus();
-            throw new Error(`${unit.label} must be an integer from 0 to ${unit.max}.`);
+            throw new Error(
+                interpolate(
+                    gettext("%(field)s must be an integer from 0 to %(max)s."),
+                    {field: unit.getLabel(), max: unit.max},
+                    true,
+                ),
+            );
         }
 
         return value;
     }
 
-    function toSeconds(prefix, fieldLabel = "Duration") {
+    function toSeconds(prefix, fieldLabel) {
         validatePrefix(prefix);
+        const label = fieldLabel || gettext("Duration");
         const total = units.reduce(
             (sum, unit) => sum + getComponent(prefix, unit) * unit.multiplier,
             0,
@@ -101,7 +138,13 @@
 
         if (total === 0) {
             document.getElementById(`${prefix}_seconds`)?.focus();
-            throw new Error(`${fieldLabel} must be greater than zero.`);
+            throw new Error(
+                interpolate(
+                    gettext("%(field)s must be greater than zero."),
+                    {field: label},
+                    true,
+                ),
+            );
         }
 
         return total;
@@ -121,10 +164,14 @@
         const values = split(totalSeconds);
         const parts = [];
 
-        if (values.days > 0) parts.push(`${values.days}d`);
-        if (values.hours > 0) parts.push(`${values.hours}h`);
-        if (values.minutes > 0) parts.push(`${values.minutes}m`);
-        if (values.seconds > 0 || parts.length === 0) parts.push(`${values.seconds}s`);
+        if (values.days > 0)
+            parts.push(values.days + pgettext("duration unit", "d"));
+        if (values.hours > 0)
+            parts.push(values.hours + pgettext("duration unit", "h"));
+        if (values.minutes > 0)
+            parts.push(values.minutes + pgettext("duration unit", "m"));
+        if (values.seconds > 0 || parts.length === 0)
+            parts.push(values.seconds + pgettext("duration unit", "s"));
 
         return parts.join(" ");
     }

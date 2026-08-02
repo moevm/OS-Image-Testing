@@ -445,7 +445,11 @@ class TestConfigManager {
                             `basic_${suiteName}_duration`;
                         suiteDurations[suiteName] = DurationInput.toSeconds(
                             durationPrefix,
-                            `${suiteName} duration`,
+                            interpolate(
+                                gettext("%(suite)s duration"),
+                                {suite: suiteName},
+                                true,
+                            ),
                         );
                     }
                 });
