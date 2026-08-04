@@ -104,7 +104,7 @@ To add a new utility, you need to update the [packages.conf](conf/packages.conf)
 * QEMU parameters (RAM size)
 * Network parameters (IP addresses, ports, including SSH ports for VMs)
 
-[metabase_backup.dump](./metabase_prototype/metabase_backup.dump) stores metabase dashboards and graphs. More details: [Metabase Readme](./metabase_prototype/README.md)
+[metabase_backup.dump](./metabase_prototype/metabase_backup.dump) stores metabase dashboards and graphs. More details: [Metabase](./metabase_prototype/README.md)
 
 ## Complete documentation
 
