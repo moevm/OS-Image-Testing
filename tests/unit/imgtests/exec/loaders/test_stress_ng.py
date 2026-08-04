@@ -50,6 +50,11 @@ from imgtests.exec.loaders.stress_ng import StressNg, StressNGMetrics, StressNGS
                 stress-ng: metrc: [999] syscall: open   9.0  1  10
                 stress-ng: metrc: [999] syscall: close  2.0  1  10
                 stress-ng: metrc: [999] syscall: read   7.0  1  10
+                stress-ng: info: [999] 5000000000 CPU Clock 0.500 B/sec
+                stress-ng: info: [999] 0 Page Faults Major 0.000 /sec
+                stress-ng: info: [999] 7712 Kmalloc 1.518 K/sec
+                stress-ng: info: [999] 262,244 RCU Utilization 3.809 K/sec
+                stress-ng: info: [999] 3,742,640,922 Cache Misses 54.365 M/sec ( 1.572%)
                 """,
             ).strip(),
             [
@@ -63,11 +68,64 @@ from imgtests.exec.loaders.stress_ng import StressNg, StressNGMetrics, StressNGS
                     1.00,
                     50.00,
                     None,
+                    {
+                        "cpu_clock": 5000000000,
+                        "page_faults_major": 0,
+                        "kmalloc": 7712,
+                        "rcu_utilization": 262244,
+                        "cache_misses": 3742640922,
+                    },
                     (
                         StressNGSyscallTiming("open", 9.0, 1, 10),
                         StressNGSyscallTiming("read", 7.0, 1, 10),
                         StressNGSyscallTiming("close", 2.0, 1, 10),
                     ),
+                ),
+            ],
+        ),
+        (
+            dedent(
+                """\
+                stress-ng: info:  [999] syscall:
+                stress-ng: info:  [999]              4,658,202,225 CPU Cycles 67.665 M/sec
+                stress-ng: info:  [999]              4,330,169,695 Instructions 62.900 M/sec
+                stress-ng: info:  [999] hdd:
+                stress-ng: info:  [999]             21,900,101,550 CPU Cycles 0.318 B/sec
+                stress-ng: info:  [999]             34,961,558,984 Instructions 0.508 B/sec
+                """,
+            ).strip(),
+            [
+                StressNGMetrics(
+                    "syscall",
+                    0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    None,
+                    {
+                        "cpu_cycles": 4658202225,
+                        "instructions": 4330169695,
+                    },
+                    None,
+                ),
+                StressNGMetrics(
+                    "hdd",
+                    0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    None,
+                    {
+                        "cpu_cycles": 21900101550,
+                        "instructions": 34961558984,
+                    },
+                    None,
                 ),
             ],
         ),
@@ -80,7 +138,8 @@ from imgtests.exec.loaders.stress_ng import StressNg, StressNGMetrics, StressNGS
         "Invalid bogo opts format.",
         "One stressor with new metrics format.",
         "Two stressors with new metrics format.",
-        "Syscall with syscall-top entries.",
+        "Syscall with syscall-top and perf entries.",
+        "Metrics for different subsystems.",
     ],
 )
 def test_parse_metrics(raw_metrics: str, expected: list[StressNGMetrics]) -> None:
