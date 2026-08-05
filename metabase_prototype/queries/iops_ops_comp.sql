@@ -7,7 +7,7 @@ FROM (
   SELECT
     CONCAT('OS 1') AS label,
     block_size,
-    CASE 
+    CASE
       WHEN job_name LIKE '%rand_write%' THEN (item -> 'write' ->> 'iops_mean')::float
       WHEN job_name LIKE '%rand_read%' THEN (item -> 'read' ->> 'iops_mean')::float
       WHEN job_name LIKE '%seq_write%' THEN (item -> 'write' ->> 'iops_mean')::float
@@ -29,16 +29,16 @@ FROM (
     ) subquery
     JOIN experiment ON subquery.experiment_id = experiment.experiment_id
     JOIN "configuration" ON experiment.config_id = configuration.config_id
-  WHERE 
+  WHERE
     os = {{os1}}
     [[ AND started_at BETWEEN {{start1}} AND {{end1}} ]]
-  
+
   UNION ALL
-  
+
   SELECT
     CONCAT('OS 2') AS label,
     block_size,
-    CASE 
+    CASE
       WHEN job_name LIKE '%rand_write%' THEN (item -> 'write' ->> 'iops_mean')::float
       WHEN job_name LIKE '%rand_read%' THEN (item -> 'read' ->> 'iops_mean')::float
       WHEN job_name LIKE '%seq_write%' THEN (item -> 'write' ->> 'iops_mean')::float
@@ -60,7 +60,7 @@ FROM (
     ) subquery
     JOIN experiment ON subquery.experiment_id = experiment.experiment_id
     JOIN "configuration" ON experiment.config_id = configuration.config_id
-  WHERE 
+  WHERE
     os = {{os2}}
 	[[ AND started_at BETWEEN {{start2}} AND {{end2}} ]]
 ) AS combined_results
