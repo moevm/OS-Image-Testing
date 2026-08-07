@@ -76,7 +76,7 @@ const csrfToken = getCookie("csrftoken");
 document.getElementById("runTestsBtn").addEventListener("click", function () {
     const btn = this;
     const outputContainer = document.getElementById("outputContainer");
-    const testingMode = document.getElementById("configTestingMode").value;
+    const runner = document.getElementById("configRunner").value;
     const testRunsCountInput = document.getElementById("testRunsCount");
     const testRunsCount = testRunsCountInput
         ? parseInt(testRunsCountInput.value, 10)
@@ -84,7 +84,7 @@ document.getElementById("runTestsBtn").addEventListener("click", function () {
 
     let config = null;
     try {
-        if (testingMode === "profiled") {
+        if (runner === "profiled") {
             const configMode = document.querySelector(
                 'input[name="profiledConfigMode"]:checked',
             ).value;
@@ -119,7 +119,7 @@ document.getElementById("runTestsBtn").addEventListener("click", function () {
         },
         body: JSON.stringify({
             test_runs_count: testRunsCount,
-            testing_mode: testingMode,
+            runner,
             config,
         }),
     })
