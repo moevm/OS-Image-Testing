@@ -63,7 +63,7 @@ function collectMatrixConfig() {
         });
 
     return {
-        durations,
+        durations: durations,
         matrix_profiles: matrixProfiles,
         pattern: document.getElementById("profiledPatternSelect").value,
         subsystems: getSelectedSubsystems(),
@@ -119,8 +119,8 @@ document.getElementById("runTestsBtn").addEventListener("click", function () {
         },
         body: JSON.stringify({
             test_runs_count: testRunsCount,
-            runner,
-            config,
+            runner: runner,
+            config: config,
         }),
     })
         .then((response) => response.json())
