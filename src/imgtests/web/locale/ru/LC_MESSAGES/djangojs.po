@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: imgtests 0.0.1\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-21 15:45+0300\n"
+"POT-Creation-Date: 2026-08-02 18:38+0500\n"
 "PO-Revision-Date: 2026-07-21 15:45+0300\n"
 "Last-Translator: Nikita Pivoev nikita.pivoev@yandex.ru\n"
 "Language: ru\n"
@@ -50,27 +50,81 @@ msgstr "Введите описание (необязательно):"
 msgid "Run tests for %(display_name)s platform"
 msgstr "Запустить тесты для платформы %(display_name)s"
 
-#: src/imgtests/web/static/js/dashboard.js:98
-#: src/imgtests/web/static/js/dashboard.js:117
-#: src/imgtests/web/static/js/dashboard.js:142
-#: src/imgtests/web/static/js/excel_reports.js:55
-#: src/imgtests/web/static/js/excel_reports.js:61
-#: src/imgtests/web/static/js/html_reports.js:63
-#: src/imgtests/web/static/js/launch_test.js:103
-#: src/imgtests/web/static/js/launch_test.js:111
+#: src/imgtests/web/static/js/dashboard.js:99
+#: src/imgtests/web/static/js/dashboard.js:122
+#: src/imgtests/web/static/js/dashboard.js:151
+#: src/imgtests/web/static/js/excel_reports.js:56
+#: src/imgtests/web/static/js/excel_reports.js:66
+#: src/imgtests/web/static/js/html_reports.js:64
 msgid "Error: %(error)s"
 msgstr "Ошибка: %(error)s"
 
-#: src/imgtests/web/static/js/dashboard.js:105
+#: src/imgtests/web/static/js/dashboard.js:109
 msgid "Are you sure you want to remove this distribution?"
 msgstr "Вы уверены, что хотите удалить данный дистрибутив?"
 
-#: src/imgtests/web/static/js/dashboard.js:126
+#: src/imgtests/web/static/js/dashboard.js:134
 msgid ""
 "Reset to default distributions? This will remove all custom distributions."
 msgstr ""
 "Восстановить изначальные дистрибутивы? Это удалит все пользовательские "
 "дистрибутивы."
+
+#: src/imgtests/web/static/js/duration.js:7
+msgid "Days"
+msgstr "Дни"
+
+#: src/imgtests/web/static/js/duration.js:13
+msgid "Hours"
+msgstr "Часы"
+
+#: src/imgtests/web/static/js/duration.js:19
+msgid "Minutes"
+msgstr "Минуты"
+
+#: src/imgtests/web/static/js/duration.js:25
+msgid "Seconds"
+msgstr "Секунды"
+
+#: src/imgtests/web/static/js/duration.js:82
+msgid "Allowed range: 0-%(max)s"
+msgstr "Допустимый диапазон: 0-%(max)s"
+
+#: src/imgtests/web/static/js/duration.js:105
+msgid "Duration field %(field)s was not found."
+msgstr "Поле длительности «%(field)s» не найдено."
+
+#: src/imgtests/web/static/js/duration.js:121
+msgid "%(field)s must be an integer from 0 to %(max)s."
+msgstr "Значение «%(field)s» должно быть целым числом от 0 до %(max)s."
+
+#: src/imgtests/web/static/js/duration.js:133
+msgid "Duration"
+msgstr "Длительность"
+
+#: src/imgtests/web/static/js/duration.js:143
+msgid "%(field)s must be greater than zero."
+msgstr "Значение «%(field)s» должно быть больше нуля."
+
+#: src/imgtests/web/static/js/duration.js:168
+msgctxt "duration unit"
+msgid "d"
+msgstr "д"
+
+#: src/imgtests/web/static/js/duration.js:170
+msgctxt "duration unit"
+msgid "h"
+msgstr "ч"
+
+#: src/imgtests/web/static/js/duration.js:172
+msgctxt "duration unit"
+msgid "m"
+msgstr "м"
+
+#: src/imgtests/web/static/js/duration.js:174
+msgctxt "duration unit"
+msgid "s"
+msgstr "с"
 
 #: src/imgtests/web/static/js/excel_reports.js:30
 msgid "Please select at least one table."
@@ -85,8 +139,8 @@ msgstr "Пожалуйста, выберите хотя бы один дистр
 msgid "Generating..."
 msgstr "Создание..."
 
-#: src/imgtests/web/static/js/excel_reports.js:57
-#: src/imgtests/web/static/js/excel_reports.js:63
+#: src/imgtests/web/static/js/excel_reports.js:61
+#: src/imgtests/web/static/js/excel_reports.js:71
 msgid "Generate New Excel Report"
 msgstr "Создать новый Excel-отчет"
 
@@ -98,175 +152,194 @@ msgstr "(нет описания)"
 msgid "Report generated! Reload page to see it"
 msgstr "Отчет создан! Перезагрузите страницу, чтобы увидеть его"
 
-#: src/imgtests/web/static/js/html_reports.js:63
+#: src/imgtests/web/static/js/html_reports.js:65
 msgid "unknown"
 msgstr "неизвестно"
 
-#: src/imgtests/web/static/js/html_reports.js:71
+#: src/imgtests/web/static/js/html_reports.js:76
 msgid "Request failed: %(message)s"
 msgstr "Запрос не удался: %(message)s"
 
-#: src/imgtests/web/static/js/html_reports.js:77
+#: src/imgtests/web/static/js/html_reports.js:85
 msgid "Generate"
 msgstr "Создать"
 
-#: src/imgtests/web/static/js/launch_test.js:78
+#: src/imgtests/web/static/js/launch_test.js:31
+msgid "Profile duration"
+msgstr "Длительность профиля"
+
+#: src/imgtests/web/static/js/launch_test.js:57
+msgid "%(profile)s profile duration"
+msgstr "Длительность профиля %(profile)s"
+
+#: src/imgtests/web/static/js/launch_test.js:103
+#: src/imgtests/web/static/js/launch_test.js:137
+#: src/imgtests/web/static/js/launch_test.js:150
+msgid "Error: %(message)s"
+msgstr "Ошибка: %(message)s"
+
+#: src/imgtests/web/static/js/launch_test.js:111
 msgid "Running..."
 msgstr "Выполнение..."
 
-#: src/imgtests/web/static/js/launch_test.js:79
-msgid "Tests Running..."
+#: src/imgtests/web/static/js/launch_test.js:112
+msgid "Tests running..."
 msgstr "Тесты выполняются..."
 
-#: src/imgtests/web/static/js/launch_test.js:97
+#: src/imgtests/web/static/js/launch_test.js:130
 msgid "Tests running... (Task ID: %(task_id)s)"
 msgstr "Тесты выполняются... (ID задачи: %(task_id)s)"
 
-#: src/imgtests/web/static/js/launch_test.js:104
+#: src/imgtests/web/static/js/launch_test.js:140
 msgid "Failed to start tests"
 msgstr "Не удалось запустить тесты"
 
-#: src/imgtests/web/static/js/launch_test.js:107
-#: src/imgtests/web/static/js/launch_test.js:113
-#: src/imgtests/web/static/js/launch_test.js:133
-#: src/imgtests/web/static/js/launch_test.js:144
-#: src/imgtests/web/static/js/launch_test.js:148
-#: src/imgtests/web/static/js/launch_test.js:157
+#: src/imgtests/web/static/js/launch_test.js:145
+#: src/imgtests/web/static/js/launch_test.js:155
+#: src/imgtests/web/static/js/launch_test.js:165
 msgid "Run tests"
 msgstr "Запустить тесты"
 
-#: src/imgtests/web/static/js/launch_test.js:127
+#: src/imgtests/web/static/js/launch_test.js:174
 msgid "Tests running... Please wait."
 msgstr "Тесты выполняются... Пожалуйста, подождите."
 
-#: src/imgtests/web/static/js/launch_test.js:131
+#: src/imgtests/web/static/js/launch_test.js:180
 msgid "Tests completed successfully."
 msgstr "Тесты завершены успешно."
 
-#: src/imgtests/web/static/js/launch_test.js:135
+#: src/imgtests/web/static/js/launch_test.js:183
 msgid "Test failed"
 msgstr "Тест не пройден"
 
-#: src/imgtests/web/static/js/launch_test.js:146
+#: src/imgtests/web/static/js/launch_test.js:187
+msgid "Error output:"
+msgstr "Вывод ошибок:"
+
+#: src/imgtests/web/static/js/launch_test.js:193
+msgid "Output:"
+msgstr "Вывод:"
+
+#: src/imgtests/web/static/js/launch_test.js:198
 msgid "Unknown status"
 msgstr "Неизвестный статус"
 
-#: src/imgtests/web/static/js/launch_test.js:153
-msgid "Error checking status: %(error)s"
-msgstr "Ошибка проверки статуса: %(error)s"
+#: src/imgtests/web/static/js/launch_test.js:204
+msgid "Error checking status: %(message)s"
+msgstr "Ошибка проверки статуса: %(message)s"
 
-#: src/imgtests/web/static/js/test_config.js:21
+#: src/imgtests/web/static/js/test_config.js:22
 msgid "Failed to load configuration: %(message)s"
 msgstr "Не удалось загрузить конфигурацию: %(message)s"
 
-#: src/imgtests/web/static/js/test_config.js:44
+#: src/imgtests/web/static/js/test_config.js:49
 msgid "Failed to load test suites: %(message)s"
 msgstr "Не удалось загрузить тестовые сценарии: %(message)s"
 
-#: src/imgtests/web/static/js/test_config.js:64
+#: src/imgtests/web/static/js/test_config.js:73
 msgid "Failed to load tests for %(distro_name)s"
 msgstr "Не удалось загрузить тесты для %(distro_name)s"
 
-#: src/imgtests/web/static/js/test_config.js:150
+#: src/imgtests/web/static/js/test_config.js:171
 msgid "Failed to load test suites. Please refresh the page."
 msgstr "Не удалось загрузить тестовые сценарии. Пожалуйста, обновите страницу."
 
-#: src/imgtests/web/static/js/test_config.js:173
+#: src/imgtests/web/static/js/test_config.js:196
 msgid "No test suites available"
 msgstr "Нет доступных тестовых сценариев"
 
-#: src/imgtests/web/static/js/test_config.js:204
+#: src/imgtests/web/static/js/test_config.js:230
 msgid "No description"
 msgstr "(нет описания)"
 
-#: src/imgtests/web/static/js/test_config.js:208
+#: src/imgtests/web/static/js/test_config.js:234
 msgid "Default duration:"
 msgstr "Продолжительность по умолчанию:"
 
-#: src/imgtests/web/static/js/test_config.js:209
+#: src/imgtests/web/static/js/test_config.js:236
 msgid "Tests:"
 msgstr "Тесты:"
 
-#: src/imgtests/web/static/js/test_config.js:213
-msgid "Custom duration (seconds):"
-msgstr "Продолжительность (секунды):"
+#: src/imgtests/web/static/js/test_config.js:240
+msgid "Custom duration:"
+msgstr "Пользовательская длительность:"
 
-#: src/imgtests/web/static/js/test_config.js:226
+#: src/imgtests/web/static/js/test_config.js:250
 msgid "Select Individual Tests"
 msgstr "Выбрать отдельные тесты"
 
-#: src/imgtests/web/static/js/test_config.js:231
-msgid "test(s) selected"
-msgstr "тест(ов) выбрано"
+#: src/imgtests/web/static/js/test_config.js:256
+msgid "%(count)s test(s) selected"
+msgstr "Выбрано тестов: %(count)s"
 
-#: src/imgtests/web/static/js/test_config.js:303
+#: src/imgtests/web/static/js/test_config.js:336
 msgid "Select tests for"
 msgstr "Выберите тесты для"
 
-#: src/imgtests/web/static/js/test_config.js:304
+#: src/imgtests/web/static/js/test_config.js:337
 msgid "Leave all unchecked to run all tests"
 msgstr "Оставьте все неотмеченными, чтобы запустить все тесты"
 
-#: src/imgtests/web/static/js/test_config.js:321
+#: src/imgtests/web/static/js/test_config.js:354
 msgid "Save Selection"
 msgstr "Сохранить выбор"
 
-#: src/imgtests/web/static/js/test_config.js:322
+#: src/imgtests/web/static/js/test_config.js:355
 msgid "Cancel"
 msgstr "Отмена"
 
-#: src/imgtests/web/static/js/test_config.js:345
+#: src/imgtests/web/static/js/test_config.js:380
 msgid "Selected %(count)s tests for %(suite_name)s"
 msgstr "Выбрано %(count)s тестов для %(suite_name)s"
 
-#: src/imgtests/web/static/js/test_config.js:354
+#: src/imgtests/web/static/js/test_config.js:395
 msgid "Will run all tests for %(suite_name)s"
 msgstr "Будут запущены все тесты для %(suite_name)s"
 
-#: src/imgtests/web/static/js/test_config.js:375
+#: src/imgtests/web/static/js/test_config.js:420
 msgid "Failed to load tests for %(suite_name)s"
 msgstr "Не удалось загрузить тесты для %(suite_name)s"
 
-#: src/imgtests/web/static/js/test_config.js:433
+#: src/imgtests/web/static/js/test_config.js:449
+msgid "%(suite)s duration"
+msgstr "Длительность набора %(suite)s"
+
+#: src/imgtests/web/static/js/test_config.js:485
 msgid "Configuration saved successfully!"
 msgstr "Конфигурация успешно сохранена!"
 
-#: src/imgtests/web/static/js/test_config.js:443
+#: src/imgtests/web/static/js/test_config.js:498
 msgid "Error saving configuration: %(message)s"
 msgstr "Ошибка сохранения конфигурации: %(message)s"
 
-#: src/imgtests/web/static/js/test_config.js:487
+#: src/imgtests/web/static/js/test_config.js:546
 msgid "Configuration reset to default"
 msgstr "Конфигурация сброшена до значений по умолчанию"
 
-#: src/imgtests/web/static/js/test_config.js:491
+#: src/imgtests/web/static/js/test_config.js:553
 msgid "Failed to reset configuration"
 msgstr "Не удалось сбросить конфигурацию"
 
-#: src/imgtests/web/static/js/test_config.js:548
-msgid "Duration (sec)"
-msgstr "Длительность (сек)"
-
-#: src/imgtests/web/static/js/test_config.js:575
+#: src/imgtests/web/static/js/test_config.js:661
 msgid "File"
 msgstr "Файловая"
 
-#: src/imgtests/web/static/js/test_config.js:576
+#: src/imgtests/web/static/js/test_config.js:662
 msgid "IPC"
 msgstr "IPC"
 
-#: src/imgtests/web/static/js/test_config.js:577
+#: src/imgtests/web/static/js/test_config.js:663
 msgid "Memory"
 msgstr "Память"
 
-#: src/imgtests/web/static/js/test_config.js:578
+#: src/imgtests/web/static/js/test_config.js:664
 msgid "Network"
 msgstr "Сетевая"
 
-#: src/imgtests/web/static/js/test_config.js:579
+#: src/imgtests/web/static/js/test_config.js:665
 msgid "Syscalls"
 msgstr "Системные вызовы"
 
-#: src/imgtests/web/static/js/test_config.js:580
+#: src/imgtests/web/static/js/test_config.js:666
 msgid "System"
 msgstr "Система"
