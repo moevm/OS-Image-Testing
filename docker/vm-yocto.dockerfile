@@ -19,25 +19,20 @@ RUN apt-get update && \
         openssh-server && \
     rm -rf /var/lib/apt/lists/* && \
     locale-gen en_US.UTF-8
-RUN apt-get update && apt-get install -y \
-    vim \
-    nano \
-    less
 
 RUN groupadd -g 510 ${GROUP} && \
-    useradd -rm -d /home/${USER} -s /bin/bash -g ${GROUP} -u 1010 -G sudo ${USER} && \
+    groupadd -g 993 kvm && \
+    useradd -rm -d /home/${USER} -s /bin/bash -g ${GROUP} -u 1010 -G sudo,kvm ${USER} && \
     echo "${USER} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/${USER} && \
     echo "${USER}:${PASSWORD}" | chpasswd
 
 USER ${USER}
 
-RUN mkdir --parents ${POKY_DIR} && \
-    git clone --depth 1 -b walnascar --recurse-submodules https://git.yoctoproject.org/poky ${POKY_DIR}
+RUN git clone --depth 1 -b walnascar --recurse-submodules https://git.yoctoproject.org/poky ${POKY_DIR}
 
 WORKDIR ${POKY_DIR}
 
 COPY --chown=${USER}:${GROUP} layers ${POKY_DIR}
-COPY --chown=${USER}:${GROUP} scripts/entrypoint.sh ${POKY_DIR}
-COPY --chown=${USER}:${GROUP} scripts/cmd_yocto.sh ${POKY_DIR}
+COPY --chown=${USER}:${GROUP} scripts/start-vm-yocto.sh ${POKY_DIR}
 
-ENTRYPOINT ["/home/user/poky/entrypoint.sh"]
+ENTRYPOINT ["/home/user/poky/start-vm-yocto.sh"]

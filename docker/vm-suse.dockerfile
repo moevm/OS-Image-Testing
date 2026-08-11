@@ -7,13 +7,13 @@ ENV DEBIAN_FRONTEND=noninteractive \
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    cloud-init \
-    cloud-image-utils \
-    wget \
-    python3-pip
-
-RUN pip3 install requests~=2.32.5 beautifulsoup4~=4.14.3 --break-system-packages
+    qemu-system \
+    qemu-utils \
+    qemu-user-static
 
 WORKDIR ${SUSE_DIR}
 
-CMD ["/bin/bash"]
+COPY scripts/opensuse/start-vm.sh /start-vm.sh
+RUN chmod +x /start-vm.sh
+
+ENTRYPOINT ["/start-vm.sh"]
