@@ -10,6 +10,7 @@ from django.http.response import HttpResponse
 from django.shortcuts import get_object_or_404, render
 from django.tasks import TaskResultStatus
 from django.utils import timezone
+from django.utils.translation import gettext as _
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from pydantic_core._pydantic_core import ValidationError
@@ -346,6 +347,8 @@ def api_get_distros(request: HttpRequest) -> JsonResponse:  # noqa: ARG001
             "description",
         ),
     )
+    for distro in distributions:
+        distro["description"] = _(distro["description"])
     return JsonResponse({"distributions": distributions})
 
 
