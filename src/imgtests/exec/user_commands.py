@@ -1,7 +1,8 @@
-from typing import TYPE_CHECKING, NamedTuple
+from typing import TYPE_CHECKING, Literal, NamedTuple
 
 from imgtests.exec.exec import ExecResult
 from imgtests.exec.pkgmgrs.mixin import PkgMgrMixin
+from imgtests.exec.utils import add_flag, create_opt
 
 if TYPE_CHECKING:
     from imgtests.exec.exec import SSHClient
@@ -75,3 +76,52 @@ class Time(PkgMgrMixin, GenericUtil):
                 returncode=0,
             )
         return self._install_packages(["time"])
+
+
+SshKeyType = Literal["dsa", "ecdsa", "ecdsa-sk", "ed25519", "ed25519-sk", "rsa"]
+FingerprintHash = Literal["md5", "sha256"]
+
+
+class SshKeygen(GenericUtil):
+    def __init__(self, ssh_client: SSHClient | None = None) -> None:
+        super().__init__("ssh-keygen", ssh_client)
+
+    def run(  # noqa: PLR0913
+        self,
+        filename: str | None = None,
+        hostname: str | None = None,
+        key_type: str | None = None,
+        bits: int | None = None,
+        fingerprint_hash: FingerprintHash | None = None,
+        show_fingerprint: bool = False,
+        passphrase: str | None = None,
+    ) -> ExecResult:
+        """Runs the ssh-keygen util.
+
+        Args:
+            filename (str | None, optional): The filename of the key file. Defaults to None.
+            hostname (str | None, optional): Hostname for searching in a known_hosts file.
+              Defaults to None.
+            key_type (str | None, optional): The type of key to create. Defaults to None.
+            bits (int | None, optional): The number of bits in the key to create. Defaults to None.
+            fingerprint_hash (FingerprintHash | None, optional): The hash algorithm.
+              Defaults to None.
+            show_fingerprint (bool, optional): Show fingerprint of specified public key file.
+              Defaults to False.
+            passphrase (str | None, optional): The new passphrase. Defaults to None.
+
+        Returns:
+            ExecResult: Result of ssh-keygen work.
+        """
+        opts = [
+            *create_opt("f", filename, use_one_dash=True),
+            *create_opt("t", key_type, use_one_dash=True),
+            *create_opt("b", bits, use_one_dash=True),
+            *create_opt("E", fingerprint_hash, use_one_dash=True),
+            *create_opt("F", hostname, use_one_dash=True),
+            # TODO: use more secure way to pass passphrase
+            *create_opt("N", passphrase, use_one_dash=True),
+        ]
+        if show_fingerprint:
+            opts.extend(add_flag("l", use_one_dash=True))
+        return self(opts)

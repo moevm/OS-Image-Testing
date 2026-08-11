@@ -28,6 +28,11 @@ from imgtests.planning import (
     build_plan,
 )
 from imgtests.snapshot import SnapshotManager
+from imgtests.suites.map import (
+    ALL_SUBSYSTEMS_SUITE,
+    ALL_SUITES,
+    TestsRunnerConfig,
+)
 from imgtests.suites.system import (
     SystemLoadTimeTest,
     SystemSlowServicesTest,
@@ -35,14 +40,13 @@ from imgtests.suites.system import (
 from imgtests.types import Subsystem, TestsCounts, TestStatus
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Sequence
+    from collections.abc import Iterable
 
-    from imgtests.database.models.experiment import ExperimentType
     from imgtests.exec.base_util import BaseTestUtil
 
 
 Runner = Literal["default", "profiled"]
-Distro = Literal["all", "yocto", "opensuse"]
+Distro = Literal["yocto", "opensuse"]
 
 YOCTO_CONF: Final = (
     "SSH_YOCTO_ADDR",
@@ -58,46 +62,6 @@ SUSE_156_CONF: Final = (
 )
 
 logger = logging.getLogger()
-
-
-# Subsystems, stages (plan, risk analysis, run, cleanup, results, etc), etc
-class TestsRunnerConfig:
-    __slots__ = (
-        "description",
-        "experiment_type",
-        "install_dependencies",
-        "test_duration",
-        "tests",
-        "total_duration",
-    )
-
-    def __init__(
-        self,
-        description: str,
-        tests: Sequence[AbstractRunnableManyTimesTest | type[AbstractRunnableTimeLimitedTest]],
-        experiment_type: ExperimentType,
-        duration: int,
-        install_dependencies: bool = False,
-    ) -> None:
-        self.description = description
-        self.tests = tests
-        self.experiment_type: ExperimentType = experiment_type
-        self.total_duration = duration
-        self.install_dependencies = install_dependencies
-        time_limited_tests_cnt = sum(
-            1 for test in self.tests if not isinstance(test, AbstractRunnableManyTimesTest)
-        )
-        if time_limited_tests_cnt > self.total_duration:
-            err_msg = (
-                f"Each test cannot be run for less 1 second. "
-                f"{self.total_duration} seconds available, {time_limited_tests_cnt} tests to run. "
-                "Available time is not enough."
-            )
-            raise ValueError(err_msg)
-        if time_limited_tests_cnt > 0:
-            self.test_duration = self.total_duration // time_limited_tests_cnt
-        else:
-            self.test_duration = 0
 
 
 class TestsRunner(BaseRunner):
@@ -538,32 +502,8 @@ def build_profiled_settings(config: dict[str, Any] | None) -> ProfiledRunnerSett
     )
 
 
-def _get_clients(distro: str) -> tuple[SSHClient | None, SSHClient | None]:
-    suse_client = None
-    poky_client = None
-    if distro in ("yocto", "all"):
-        poky_client = wait_remote(*YOCTO_CONF) or sys.exit(1)
-    if distro in ("opensuse", "all"):
-        suse_client = wait_remote(*SUSE_156_CONF) or sys.exit(1)
-        Touch(suse_client, use_sudo=True)(["/etc/cloud/cloud-init.disabled"])
-    return suse_client, poky_client
-
-
-def _run_single(distro: Distro, mode: Runner, config: dict[str, Any]) -> None:  # noqa: PLR0912, C901
-    from imgtests.suites.map import (  # noqa: PLC0415
-        ALL_SUBSYSTEMS_SUITE,
-        ALL_SUITES,
-    )
-
-    logger.info("Running tests for %s", distro)
+def _run_single(client: SSHClient, mode: Runner, config: dict[str, Any] | None) -> None:  # noqa: PLR0912
     logger.info("Current testing mode is %s", mode)
-
-    suse_client, poky_client = _get_clients(distro)
-    distros_to_test: list[SSHClient] = []
-    if suse_client:
-        distros_to_test.append(suse_client)
-    if poky_client:
-        distros_to_test.append(poky_client)
     database = ImgtestsDatabase()
 
     if mode == "default":
@@ -623,28 +563,27 @@ def _run_single(distro: Distro, mode: Runner, config: dict[str, Any]) -> None:  
             suites_to_run = [ALL_SUBSYSTEMS_SUITE]
         for suite in suites_to_run:
             logger.info("Running suite %s", suite.description)
-            for client in distros_to_test:
-                client.reconnect()
-                runner = TestsRunner(client, database, suite)
-                runner.run()
-                runner.close()
-    elif mode == "profiled":
-        for client in filter(None, [poky_client, suse_client]):
             client.reconnect()
-            ProfiledPlanRunner(
-                client=client,
-                database=database,
-            ).run(profiled_settings=build_profiled_settings(config=config))
-            client.close()
+            runner = TestsRunner(client, database, suite)
+            runner.run()
+            runner.close()
+    elif mode == "profiled":
+        client.reconnect()
+        ProfiledPlanRunner(
+            client=client,
+            database=database,
+        ).run(profiled_settings=build_profiled_settings(config=config))
+        client.close()
     database.session.close_all()
 
 
 def run_tests(
-    distro: Distro = "all",
+    distro: Distro,
     mode: Runner = "default",
     test_runs_count: int = 1,
     config: dict[str, Any] | None = None,
 ) -> None:
+    logger.info("Running tests for %s", distro)
     if mode == "default" and config is None:
         config = load_test_config(distro)
 
@@ -652,9 +591,19 @@ def run_tests(
     logger.info("Total amount of tests per run: %d", total_tests_amount)
 
     # start test runs
+    client = None
+    match distro:
+        case "yocto":
+            client = wait_remote(*YOCTO_CONF) or sys.exit(1)
+        case "opensuse":
+            client = wait_remote(*SUSE_156_CONF) or sys.exit(1)
+            Touch(client, use_sudo=True)(["/etc/cloud/cloud-init.disabled"])
+        case _:
+            logger.error("Unexpected distro '%s'.", distro)
+            sys.exit(1)
     for i in range(test_runs_count):
         logger.info("Starting test run %d of %d", i + 1, test_runs_count)
-        _run_single(distro, mode, config)
+        _run_single(client, mode, config)
         logger.info("Completed test run %d of %d", i + 1, test_runs_count)
 
 

@@ -104,6 +104,8 @@ docker logs os-image-testing-imgtests-analyzer-1
 * Параметры QEMU (размер RAM)
 * Сетевые параметры (IP адреса, порты, включая SSH порты для виртуальных машин)
 
+[metabase_backup.dump](../../metabase_prototype/metabase_backup.dump) хранит панели мониторинга и графики для metabase. Подробнее: [Metabase Readme](../../metabase_prototype/README.md)
+
 ## Полная документация
 
 Вся документация по проекту доступна в [docs/index.md](../index.md).

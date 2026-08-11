@@ -457,30 +457,31 @@ h1 i {
     background-size: 1rem 1rem;
 }
 
-.info-section {
-    margin-top: 25px;
-    border-top: 1px solid #ecf0f1;
-    padding-top: 15px;
+.duration-input-group {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 8px;
+    margin-top: 6px;
 }
 
-.info-item {
-    margin-bottom: 10px;
-    font-size: 14px;
+.duration-input-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    color: #666;
+    font-size: 0.85em;
 }
 
-.info-item strong {
-    color: #34495e;
+.duration-input-field input {
+    width: 78px;
+    padding: 4px;
 }
 
-.info-item span {
-    color: #16a085;
-    font-weight: 500;
+.duration-input-field:first-child input {
+    width: 92px;
 }
 
-.status-error {
-    color: #e74c3c;
-    text-align: center;
-    font-size: 12px;
-    margin-top: 10px;
-    display: none;
+.duration-input-error {
+    border: 2px solid #c62828;
 }

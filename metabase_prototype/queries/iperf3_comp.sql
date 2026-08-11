@@ -34,7 +34,7 @@ UNION ALL
 SELECT
 	(interval_item->'sum'->>'start')::float AS interval_start,
 	(interval_item->'sum'->>'bits_per_second')::float AS bits_per_second,
-	'Experiment 1' as experiment_label,
+	'Experiment 2' as experiment_label,
 	os,
 	core_info,
 	type,
