@@ -184,12 +184,10 @@ function pollStatus(taskId) {
     checkStatus();
 }
 
-const PRGORESS_POLLING_INTERVAL = 3000;
-
 function updateDashboard(taskId) {
     fetch("/current-progress/" + taskId + "/", { cache: "no-store" })
         .then(response => {
-            if (!response.ok) throw new Error('Data load error');
+            if (!response.ok) throw new Error(gettext("Data load error"));
             return response.json();
         })
         .then(data => {
@@ -214,7 +212,11 @@ function updateDashboard(taskId) {
 
             if (currentRun > 0 && currentRun <= totalRuns) {
                 runsBar.classList.add('pulse');
-                runsText.textContent = `Run ${currentRun} out of ${totalRuns} is in progress (${runsPercent}%)`;
+                runsText.textContent = interpolate(
+                    gettext("Run %(currentRun)s out of %(totalRuns)s is in progress (%(runsPercent)s%)"),
+                    {currentRun: currentRun, totalRuns: totalRuns, runsPercent: runsPercent},
+                    true
+                );
                 runsText.style.color = '#3498db';
             } else {
                 runsBar.classList.remove('pulse');
@@ -227,7 +229,7 @@ function updateDashboard(taskId) {
             document.getElementById('last-profile').textContent = data.last_profile_done;
         })
         .catch(error => {
-            console.error('JSON processing error:', error);
+            console.error(gettext("JSON processing error:"), error);
             document.getElementById('error-msg').style.display = 'block';
         });
 }
