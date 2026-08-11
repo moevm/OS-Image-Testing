@@ -218,3 +218,9 @@ msgstr "Отчеты пока недоступны. Запустите тест�
 #: tests_interface/templates/tests_interface/reports_list.html:178
 msgid "Run Tests"
 msgstr "Запустить тесты"
+
+msgid "Run tests for Yocto platform"
+msgstr "Запустить тесты для платформы Yocto"
+
+msgid "Run tests for OpenSUSE platform"
+msgstr "Запустить тесты для платформы OpenSUSE"
