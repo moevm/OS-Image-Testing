@@ -119,6 +119,34 @@ msgid "Subsystems"
 msgstr "Подсистемы"
 
 #: tests_interface/templates/tests_interface/distro_page.html:135
+msgid "Progress"
+msgstr "Прогресс"
+
+#: tests_interface/templates/tests_interface/distro_page.html:140
+msgid "Test progress"
+msgstr "Прогресс по тестам"
+
+#: tests_interface/templates/tests_interface/distro_page.html:150
+msgid "Runs progress"
+msgstr "Прогресс по запускам:"
+
+#: tests_interface/templates/tests_interface/distro_page.html:159
+msgid "Current Suite:"
+msgstr "Текущий сценарий:"
+
+#: tests_interface/templates/tests_interface/distro_page.html:160
+msgid "Last Profile processed:"
+msgstr "Последный обработанный профиль:"
+
+#: tests_interface/templates/tests_interface/distro_page.html:161
+msgid "Current Test:"
+msgstr "Текущий тест:"
+
+#: tests_interface/templates/tests_interface/distro_page.html:164
+msgid "Progress data parsing error"
+msgstr "Ошибка парсинга данных прогресса"
+
+#: tests_interface/templates/tests_interface/distro_page.html:168
 msgid "Run tests"
 msgstr "Запустить тесты"
 

@@ -132,12 +132,12 @@
     </div>
 
     <div id="progress-card" class="progress-card" style="display: none;">
-        <h2>Progress</h2>
+        <h2>{% translate "Progress" %}</h2>
         <br>
 
         <div class="progress-group">
             <div class="progress-label">
-                <span>Test progress</span>
+                <span>{% translate "Test progress" %}</span>
                 <span id="tests-text">0 / 0 (0%)</span>
             </div>
             <div class="progress-bg">
@@ -147,7 +147,7 @@
 
         <div class="progress-group">
             <div class="progress-label">
-                <span>Runs progress</span>
+                <span>{% translate "Runs progress" %}</span>
                 <span id="runs-text">0 / 0</span>
             </div>
             <div class="progress-bg">
@@ -156,12 +156,12 @@
         </div>
 
         <div class="info-section">
-            <div class="info-item" id="current-suite-div"><strong>Current Suite:</strong> <span id="current-suite">-</span></div>
-            <div class="info-item" id="last-profile-div"><strong>Last Profile processed:</strong> <span id="last-profile">-</span></div>
-            <div class="info-item"><strong>Current Test:</strong> <span id="current-test">-</span></div>
+            <div class="info-item" id="current-suite-div"><strong>{% translate "Current Suite:" %}</strong> <span id="current-suite">-</span></div>
+            <div class="info-item" id="last-profile-div"><strong>{% translate "Last Profile processed:" %}</strong> <span id="last-profile">-</span></div>
+            <div class="info-item"><strong>{% translate "Current Test:" %}</strong> <span id="current-test">-</span></div>
         </div>
 
-        <div id="error-msg" class="status-error">Progress data parsing error</div>
+        <div id="error-msg" class="status-error">{% translate "Progress data parsing error" %}</div>
     </div>
 
     <div class="placeholder">
