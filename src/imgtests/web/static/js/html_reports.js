@@ -7,7 +7,7 @@ function fillSelect(select, data) {
     data.forEach((exp) => {
         const opt = document.createElement("option");
         opt.value = exp.id;
-        opt.textContent = `#${exp.id} | ${exp.os} | ${exp.description || "(no description)"} | ${exp.started_at || "?"}`;
+        opt.textContent = `#${exp.id} | ${exp.os} | ${exp.description || gettext("(no description)")} | ${exp.started_at || "?"}`;
         select.appendChild(opt);
     });
 }
@@ -35,7 +35,7 @@ genBtn.addEventListener("click", function () {
     const id1 = parseInt(select1.value, 10);
     const id2 = parseInt(select2.value, 10);
     genBtn.disabled = true;
-    genBtn.textContent = "Generating...";
+    genBtn.textContent = gettext("Generating...");
     resultDiv.style.display = "none";
 
     fetch("/api/generate-compare-report/", {
@@ -55,25 +55,33 @@ genBtn.addEventListener("click", function () {
                 const reportUrl =
                     "/reports/view/" + data.report_url.replace(/\\/g, "/");
                 resultDiv.innerHTML =
-                    '<span style="color: #2e7d32;">Report generated! Reload page to see it';
+                    `<span style="color: #2e7d32;">${gettext("Report generated! Reload page to see it")}</span>`;
                 resultDiv.style.display = "block";
             } else {
                 resultDiv.innerHTML =
-                    '<span style="color: #c62828;">Error: ' +
-                    (data.error || "unknown") +
+                    '<span style="color: #c62828;">' +
+                    interpolate(
+                        gettext("Error: %(error)s"),
+                        {error: data.error || gettext("unknown")},
+                        true
+                    ) +
                     "</span>";
                 resultDiv.style.display = "block";
             }
         })
         .catch((err) => {
             resultDiv.innerHTML =
-                '<span style="color: #c62828;">Request failed: ' +
-                err.message +
+                '<span style="color: #c62828;">' +
+                interpolate(
+                    gettext("Request failed: %(message)s"),
+                    {message: err.message},
+                    true
+                ) +
                 "</span>";
             resultDiv.style.display = "block";
         })
         .finally(() => {
             genBtn.disabled = false;
-            genBtn.textContent = "Generate";
+            genBtn.textContent = gettext("Generate");
         });
 });

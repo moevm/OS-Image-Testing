@@ -238,7 +238,7 @@ def configuration_id_from_os(
 ) -> int | str:
     distribution_name = distribution_name_from_os(os_name)
 
-    if not distribution_name:
+    if not distribution_name or distribution_name not in distributions:
         return ""
 
     return int(distributions[distribution_name]["configuration_id"])
@@ -268,23 +268,12 @@ def build_distribution_records(
         msg = f"Unsupported distributions: {joined_distributions}. Available: {valid_names}."
         raise ValueError(msg)
 
-    missing_distributions = [
-        distribution_name
-        for distribution_name in DISTRIBUTION_DESCRIPTIONS
-        if distribution_name not in ids
-    ]
-
-    if missing_distributions:
-        joined_distributions = ", ".join(missing_distributions)
-        msg = f"Missing configuration ids for distributions: {joined_distributions}."
-        raise ValueError(msg)
-
     return {
         distribution_name: DistributionRecord(
             configuration_id=ids[distribution_name],
-            distribution_description=distribution_description,
+            distribution_description=DISTRIBUTION_DESCRIPTIONS[distribution_name],
         )
-        for distribution_name, distribution_description in DISTRIBUTION_DESCRIPTIONS.items()
+        for distribution_name in ids
     }
 
 

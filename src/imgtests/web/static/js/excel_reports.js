@@ -15,10 +15,28 @@ function getCookie(name) {
     return cookieValue;
 }
 
+function getCheckedValues(selector) {
+    return Array.from(document.querySelectorAll(selector))
+        .filter((cb) => cb.checked)
+        .map((cb) => cb.value);
+}
+
 document.getElementById("exportBtn").addEventListener("click", function () {
     const btn = this;
+    const tables = getCheckedValues(".table-checkbox");
+    const distributions = getCheckedValues(".distro-checkbox");
+
+    if (tables.length === 0) {
+        alert(gettext("Please select at least one table."));
+        return;
+    }
+    if (distributions.length === 0) {
+        alert(gettext("Please select at least one distribution."));
+        return;
+    }
+
     btn.disabled = true;
-    btn.textContent = "Generating...";
+    btn.textContent = gettext("Generating...");
 
     fetch("/api/export-excel/", {
         method: "POST",
@@ -26,6 +44,7 @@ document.getElementById("exportBtn").addEventListener("click", function () {
             "X-CSRFToken": getCookie("csrftoken"),
             "Content-Type": "application/json",
         },
+        body: JSON.stringify({ tables: tables, distributions: distributions }),
     })
         .then((response) => response.json())
         .then((data) => {
@@ -33,14 +52,22 @@ document.getElementById("exportBtn").addEventListener("click", function () {
                 window.location.href = data.file_url;
                 location.reload();
             } else {
-                alert("Error: " + data.error);
+                alert(interpolate(
+                    gettext("Error: %(error)s"),
+                    {error: data.error},
+                    true
+                ));
                 btn.disabled = false;
-                btn.textContent = "Export to Excel";
+                btn.textContent = gettext("Generate New Excel Report");
             }
         })
         .catch((error) => {
-            alert("Error: " + error);
+            alert(interpolate(
+                gettext("Error: %(error)s"),
+                {error: error},
+                true
+            ));
             btn.disabled = false;
-            btn.textContent = "Export to Excel";
+            btn.textContent = gettext("Generate New Excel Report");
         });
 });

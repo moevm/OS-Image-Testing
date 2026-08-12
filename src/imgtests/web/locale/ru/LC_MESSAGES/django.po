@@ -1,0 +1,226 @@
+# Translation file
+# This file is distributed under the same license as the imgtests package.
+# Vadim Kazakov vadimdim308@gmail.com, 2026.
+#
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: imgtests 0.0.1\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-07-21 15:58+0300\n"
+"PO-Revision-Date: 2026-07-21 15:58+0300\n"
+"Last-Translator: Vadim Kazakov vadimdim308@gmail.com\n"
+"Language: ru\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=4; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<12 || n%100>14) ? 1 : n%10==0 || (n%10>=5 && n%10<=9) || "
+"(n%100>=11 && n%100<=14)? 2 : 3);\n"
+
+#: tests_interface/templates/tests_interface/base.html:7
+#: tests_interface/templates/tests_interface/index.html:4
+msgid "Test Dashboard"
+msgstr "Панель тестирования"
+
+#: tests_interface/templates/tests_interface/distro_page.html:4
+msgid "Tests"
+msgstr "Тесты"
+
+#: tests_interface/templates/tests_interface/distro_page.html:9
+#: tests_interface/templates/tests_interface/excel_reports.html:9
+#: tests_interface/templates/tests_interface/reports_list.html:10
+msgid "Back to Dashboard"
+msgstr "На главную страницу"
+
+#: tests_interface/templates/tests_interface/distro_page.html:11
+msgid "Tests page for"
+msgstr "Страница тестов для"
+
+#: tests_interface/templates/tests_interface/distro_page.html:24
+msgid "Test Configuration"
+msgstr "Конфигурация тестов"
+
+#: tests_interface/templates/tests_interface/distro_page.html:28
+msgid "Select runner:"
+msgstr "Выберите раннер:"
+
+#: tests_interface/templates/tests_interface/distro_page.html:30
+msgid "Basic"
+msgstr "Обычный"
+
+#: tests_interface/templates/tests_interface/distro_page.html:31
+msgid "Profiled"
+msgstr "С профилированием"
+
+#: tests_interface/templates/tests_interface/distro_page.html:40
+msgid "Use Default Configuration"
+msgstr "Использовать конфигурацию по умолчанию"
+
+#: tests_interface/templates/tests_interface/distro_page.html:43
+msgid "Custom Configuration"
+msgstr "Пользовательская конфигурация"
+
+#: tests_interface/templates/tests_interface/distro_page.html:49
+msgid "Number of test runs:"
+msgstr "Количество запусков тестов:"
+
+#: tests_interface/templates/tests_interface/distro_page.html:62
+msgid "Select Test Suites and Configure Duration:"
+msgstr "Выберите сценарии тестов и их длительность:"
+
+#: tests_interface/templates/tests_interface/distro_page.html:67
+msgid "Individual Tests (optional):"
+msgstr "Отдельные тесты (не обязательно):"
+
+#: tests_interface/templates/tests_interface/distro_page.html:73
+msgid "Save Configuration"
+msgstr "Сохранить конфигурацию"
+
+#: tests_interface/templates/tests_interface/distro_page.html:80
+#: tests_interface/templates/tests_interface/index.html:20
+msgid "Reset to Default"
+msgstr "Восстановить конфигурацию по умолчанию"
+
+#: tests_interface/templates/tests_interface/distro_page.html:90
+msgid "Use Default Profiled Configuration"
+msgstr "Использовать конфигурацию по умолчанию"
+
+#: tests_interface/templates/tests_interface/distro_page.html:94
+msgid "Custom Profiled Configuration"
+msgstr "Пользовательская конфигурация"
+
+#: tests_interface/templates/tests_interface/distro_page.html:101
+msgid "Single run"
+msgstr "Одиночный запуск"
+
+#: tests_interface/templates/tests_interface/distro_page.html:105
+msgid "Matrix run"
+msgstr "Матричный запуск"
+
+#: tests_interface/templates/tests_interface/distro_page.html:109
+msgid "Duration"
+msgstr "Длительность"
+
+#: tests_interface/templates/tests_interface/distro_page.html:112
+msgid "Profile"
+msgstr "Профиль"
+
+#: tests_interface/templates/tests_interface/distro_page.html:117
+msgid "Profiles and durations"
+msgstr "Профили и длительность"
+
+#: tests_interface/templates/tests_interface/distro_page.html:122
+msgid "Pattern"
+msgstr "Шаблон"
+
+#: tests_interface/templates/tests_interface/distro_page.html:127
+msgid "Subsystems"
+msgstr "Подсистемы"
+
+#: tests_interface/templates/tests_interface/distro_page.html:135
+msgid "Run tests"
+msgstr "Запустить тесты"
+
+#: tests_interface/templates/tests_interface/excel_reports.html:4
+#: tests_interface/templates/tests_interface/excel_reports.html:11
+msgid "Excel Reports"
+msgstr "Excel-отчеты"
+
+#: tests_interface/templates/tests_interface/excel_reports.html:18
+msgid "Distributions"
+msgstr "Дистрибутивы"
+
+#: tests_interface/templates/tests_interface/excel_reports.html:27
+msgid "Tables"
+msgstr "Таблицы"
+
+#: tests_interface/templates/tests_interface/excel_reports.html:39
+msgid "Generate New Excel Report"
+msgstr "Создать новый Excel-отчет"
+
+#: tests_interface/templates/tests_interface/excel_reports.html:83
+#, python-format
+msgid "Size: %(size)s"
+msgstr "Размер: %(size)s"
+
+#: tests_interface/templates/tests_interface/excel_reports.html:87
+msgid "Download"
+msgstr "Скачать"
+
+#: tests_interface/templates/tests_interface/excel_reports.html:103
+#: tests_interface/templates/tests_interface/reports_list.html:155
+#, python-format
+msgid "Total: %(count)s report(s)"
+msgstr "Всего: %(count)s отчет(а/ов)"
+
+#: tests_interface/templates/tests_interface/excel_reports.html:117
+msgid "No Excel Reports"
+msgstr "Нет Excel-отчетов"
+
+#: tests_interface/templates/tests_interface/excel_reports.html:120
+msgid "Click \"Generate New Excel Report\" to create one."
+msgstr "Нажмите \"Создать новый Excel-отчет\", чтобы создать его."
+
+#: tests_interface/templates/tests_interface/index.html:4
+msgid "Home"
+msgstr "Главная страница"
+
+#: tests_interface/templates/tests_interface/index.html:9
+msgid "Test Platform Dashboard"
+msgstr "Панель управления тестами"
+
+#: tests_interface/templates/tests_interface/index.html:11
+msgid "Select a platform to view test results and reports"
+msgstr "Выберите платформу для просмотров результатов тестов и отчетов"
+
+#: tests_interface/templates/tests_interface/index.html:17
+msgid "Add Distribution"
+msgstr "Добавить дистрибутив"
+
+#: tests_interface/templates/tests_interface/reports_list.html:4
+msgid "All Reports"
+msgstr "Все отчеты"
+
+#: tests_interface/templates/tests_interface/reports_list.html:13
+msgid "Test Reports"
+msgstr "Отчеты о тестировании"
+
+#: tests_interface/templates/tests_interface/reports_list.html:28
+msgid "Generate Comparison Report"
+msgstr "Создать сравнительный отчет"
+
+#: tests_interface/templates/tests_interface/reports_list.html:46
+msgid "Experiment 1"
+msgstr "Эксперимент 1"
+
+#: tests_interface/templates/tests_interface/reports_list.html:57
+#: tests_interface/templates/tests_interface/reports_list.html:79
+msgid "Select"
+msgstr "Выберите"
+
+#: tests_interface/templates/tests_interface/reports_list.html:68
+msgid "Experiment 2"
+msgstr "Эксперимент 2"
+
+#: tests_interface/templates/tests_interface/reports_list.html:89
+msgid "Generate"
+msgstr "Создать"
+
+#: tests_interface/templates/tests_interface/reports_list.html:169
+msgid "No Reports Found"
+msgstr "Отчеты не найдены"
+
+#: tests_interface/templates/tests_interface/reports_list.html:172
+msgid "No reports available yet. Run some tests to generate reports."
+msgstr "Отчеты пока недоступны. Запустите тесты, чтобы создать отчеты."
+
+#: tests_interface/templates/tests_interface/reports_list.html:178
+msgid "Run Tests"
+msgstr "Запустить тесты"
+
+msgid "Run tests for Yocto platform"
+msgstr "Запустить тесты для платформы Yocto"
+
+msgid "Run tests for OpenSUSE platform"
+msgstr "Запустить тесты для платформы OpenSUSE"

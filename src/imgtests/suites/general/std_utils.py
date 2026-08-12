@@ -334,31 +334,3 @@ def time_cmd_many(
         array.std(axis=0),
         array.var(axis=0),
     )
-
-
-def tooltimes_to_bmf(tooltimes: ToolTimes) -> dict[str, dict[str, dict[str, float]]]:
-    """Converts a ToolTimes object into a structured metrics dictionary for Bencher.
-
-    The function takes an object with tool execution time metrics and transforms it
-    into a hierarchical dictionary where data is organized by statistics types
-    and time metrics.
-
-    Args:
-        tooltimes (ToolTimes): An object containing statistical data about tool
-            execution times.
-    """
-    metrics = ["real", "user", "sys"]
-    result: dict[str, dict[str, dict[str, float]]] = {}
-
-    for name, array in [
-        ("mean", tooltimes.mean),
-        ("median", tooltimes.median),
-        ("std", tooltimes.std),
-        ("var", tooltimes.var),
-    ]:
-        d = {}
-        for i, metric in enumerate(metrics):
-            d[metric] = {"value": float(array[i])}
-        result[name] = d
-
-    return result

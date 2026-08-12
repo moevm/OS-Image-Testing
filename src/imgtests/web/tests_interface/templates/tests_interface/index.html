@@ -1,22 +1,23 @@
 {% extends 'tests_interface/base.html' %}
+{% load i18n %}
 
-{% block title %}Home - Test Dashboard{% endblock %}
+{% block title %}{% translate "Home" %} - {% translate "Test Dashboard" %}{% endblock %}
 
 {% block content %}
 <div class="card">
     <div class="title-container">
-        <h1>Test Platform Dashboard</h1>
+        <h1>{% translate "Test Platform Dashboard" %}</h1>
         <p class="subtitle">
-            Select a platform to view test results and reports
+            {% translate "Select a platform to view test results and reports" %}
         </p>
     </div>
 
     <div class="controls">
         <button id="addDistroBtn" class="btn btn-success">
-            + Add Distribution
+            + {% translate "Add Distribution" %}
         </button>
         <button id="resetDistrosBtn" class="btn btn-warning">
-            Reset to Default
+            {% translate "Reset to Default" %}
         </button>
     </div>
 

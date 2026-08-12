@@ -18,7 +18,11 @@ class TestConfigManager {
         } catch (error) {
             console.error("Failed to initialize TestConfigManager:", error);
             this.showStatus(
-                "Failed to load configuration: " + error.message,
+                interpolate(
+                    gettext("Failed to load configuration: %(message)s"),
+                    {message: error.message},
+                    true,
+                ),
                 "error",
             );
         }
@@ -41,7 +45,11 @@ class TestConfigManager {
         } catch (error) {
             console.error("Failed to load available suites:", error);
             this.showStatus(
-                "Failed to load test suites: " + error.message,
+                interpolate(
+                    gettext("Failed to load test suites: %(message)s"),
+                    {message: error.message},
+                    true,
+                ),
                 "error",
             );
             throw error;
@@ -61,7 +69,11 @@ class TestConfigManager {
             } else {
                 console.warn("No existing config, using default");
                 this.showStatus(
-                    "Failed to load tests for " + window.distroName,
+                    interpolate(
+                        gettext("Failed to load tests for %(distro_name)s"),
+                        {distro_name: window.distroName},
+                        true,
+                    ),
                     "error",
                 );
             }
@@ -80,46 +92,54 @@ class TestConfigManager {
         console.log("Found radio buttons:", radioButtons.length);
 
         radioButtons.forEach((radio) => {
-            radio.addEventListener("change", (e) => {
-                console.log("Config mode changed to:", e.target.value);
+            radio.addEventListener("change", (event) => {
+                console.log("Config mode changed to:", event.target.value);
                 const panel = document.getElementById("customConfigPanel");
                 if (panel) {
                     panel.style.display =
-                        e.target.value === "custom" ? "block" : "none";
-                    if (e.target.value === "custom" && this.availableSuites) {
+                        event.target.value === "custom" ? "block" : "none";
+                    if (
+                        event.target.value === "custom" &&
+                        this.availableSuites
+                    ) {
                         this.renderConfigUI();
                     }
                 }
             });
-        document.querySelectorAll('input[name="profiledConfigMode"]').forEach(radio => {
-            radio.addEventListener("change", e => {
-                const panel = document.getElementById("profiledCustomPanel");
-                if (e.target.value === "custom") {
-                    panel.style.display = "block";
-                    this.renderProfilesAndDurationsUI();
-                    this.renderPatternUI();
-                    this.renderSubsystemsUI();
-                } else {
-                    panel.style.display = "none";
-                }
-            });
         });
-        document.querySelectorAll('input[name="profiledRunMode"]').forEach(radio => {
-            radio.addEventListener("change", e => {
-                const singlePanel = document.getElementById("singleRunPanel");
-                const matrixPanel = document.getElementById("matrixRunPanel");
-                if (e.target.value === "single") {
-                    singlePanel.style.display = "block";
-                    matrixPanel.style.display = "none";
-                } else {
-                    singlePanel.style.display = "none";
-                    matrixPanel.style.display = "block";
-                }
-                this.renderProfilesAndDurationsUI();
-            });
-        });
-    });
 
+        document
+            .querySelectorAll('input[name="profiledConfigMode"]')
+            .forEach((radio) => {
+                radio.addEventListener("change", (event) => {
+                    const panel =
+                        document.getElementById("profiledCustomPanel");
+                    if (event.target.value === "custom") {
+                        panel.style.display = "block";
+                        this.renderProfilesAndDurationsUI();
+                        this.renderPatternUI();
+                        this.renderSubsystemsUI();
+                    } else {
+                        panel.style.display = "none";
+                    }
+                });
+            });
+
+        document
+            .querySelectorAll('input[name="profiledRunMode"]')
+            .forEach((radio) => {
+                radio.addEventListener("change", (event) => {
+                    const singlePanel =
+                        document.getElementById("singleRunPanel");
+                    const matrixPanel =
+                        document.getElementById("matrixRunPanel");
+                    const isSingle = event.target.value === "single";
+
+                    singlePanel.style.display = isSingle ? "block" : "none";
+                    matrixPanel.style.display = isSingle ? "none" : "block";
+                    this.renderProfilesAndDurationsUI();
+                });
+            });
 
         const saveBtn = document.getElementById("saveConfigBtn");
         if (saveBtn) {
@@ -146,7 +166,11 @@ class TestConfigManager {
             const suitesDiv = document.getElementById("suitesCheckboxes");
             if (suitesDiv) {
                 suitesDiv.innerHTML =
-                    '<p style="color: red;">Failed to load test suites. Please refresh the page.</p>';
+                    '<p style="color: red;">' +
+                    gettext(
+                        "Failed to load test suites. Please refresh the page.",
+                    ) +
+                    "</p>";
             }
             return;
         }
@@ -168,7 +192,8 @@ class TestConfigManager {
         console.log("Rendering suites:", suiteNames);
 
         if (suiteNames.length === 0) {
-            suitesDiv.innerHTML = "<p>No test suites available</p>";
+            suitesDiv.innerHTML =
+                "<p>" + gettext("No test suites available") + "</p>";
             return;
         }
 
@@ -180,8 +205,10 @@ class TestConfigManager {
                 this.currentConfig.suite_durations?.[suiteName] ||
                 suiteInfo.default_duration ||
                 300;
+            const durationPrefix = `basic_${suiteName}_duration`;
 
             const div = document.createElement("div");
+            div.className = "suite-config-card";
             div.style.margin = "15px 0";
             div.style.padding = "10px";
             div.style.border = "1px solid #e0e0e0";
@@ -193,40 +220,45 @@ class TestConfigManager {
                     <input type="checkbox"
                            value="${suiteName}"
                            data-suite="${suiteName}"
+                           data-duration-prefix="${durationPrefix}"
                            ${isChecked ? "checked" : ""}
                            style="margin-top: 3px;">
                     <div style="flex: 1;">
                         <div>
                             <strong style="font-size: 1.1em;">${suiteName}</strong>
                             <span style="color: #666; margin-left: 10px;">
-                                ${suiteInfo.description || "No description"}
+                                ${suiteInfo.description || gettext("No description")}
                             </span>
                         </div>
                         <div style="margin-top: 8px; color: #999; font-size: 0.9em;">
-                            Default duration: ${suiteInfo.default_duration}s |
-                            Tests: ${suiteInfo.test_count || 0}
+                            ${gettext("Default duration:")}
+                            ${DurationInput.format(suiteInfo.default_duration)} |
+                            ${gettext("Tests:")} ${suiteInfo.test_count || 0}
                         </div>
-                        <div style="margin-top: 10px; ${!isChecked ? "opacity: 0.5;" : ""}">
-                            <label style="font-size: 0.9em;">
-                                Custom duration (seconds):
-                                <input type="number"
-                                       id="duration_${suiteName}"
-                                       value="${currentDuration}"
-                                       min="10"
-                                       step="10"
-                                       style="width: 100px; margin-left: 10px; padding: 4px;"
-                                       ${!isChecked ? "disabled" : ""}>
-                            </label>
+                        <div class="suite-options"
+                             style="margin-top: 10px; ${!isChecked ? "opacity: 0.5;" : ""}">
+                            <div style="font-size: 0.9em;">${gettext("Custom duration:")}</div>
+                            ${DurationInput.render(
+                                durationPrefix,
+                                currentDuration,
+                                !isChecked,
+                            )}
                             <button class="btn-small"
-                                    style="margin-left: 10px;"
+                                    style="margin-top: 10px;"
                                     onclick="testConfigManager.showTestsForSuite('${suiteName}')"
                                     ${!isChecked ? "disabled" : ""}>
-                                Select Individual Tests
+                                ${gettext("Select Individual Tests")}
                             </button>
                             ${
                                 this.currentConfig.selected_tests?.[suiteName]
                                     ? `<span style="margin-left: 10px; font-size: 0.85em; color: #28a745;">
-                                    ✓ ${this.currentConfig.selected_tests[suiteName].length} test(s) selected
+                                    ✓ ${interpolate(
+                                        gettext("%(count)s test(s) selected"),
+                                        {
+                                            count: this.currentConfig.selected_tests[suiteName].length,
+                                        },
+                                        true,
+                                    )}
                                 </span>`
                                     : ""
                             }
@@ -240,26 +272,29 @@ class TestConfigManager {
 
         document
             .querySelectorAll('#suitesCheckboxes input[type="checkbox"]')
-            .forEach((cb) => {
-                cb.addEventListener("change", (e) => {
-                    const suiteDiv = e.target.closest("div");
-                    const optionsDiv = suiteDiv.querySelector("div:last-child");
-                    const durationInput = suiteDiv.querySelector(
-                        `input[id^="duration_"]`,
+            .forEach((checkbox) => {
+                checkbox.addEventListener("change", (event) => {
+                    const suiteCard = event.target.closest(
+                        ".suite-config-card",
                     );
-                    const selectBtn = suiteDiv.querySelector(".btn-small");
+                    const optionsDiv =
+                        suiteCard.querySelector(".suite-options");
+                    const selectBtn = suiteCard.querySelector(".btn-small");
+                    const disabled = !event.target.checked;
 
-                    if (e.target.checked) {
-                        suiteDiv.style.backgroundColor = "#f9f9f9";
-                        if (optionsDiv) optionsDiv.style.opacity = "1";
-                        if (durationInput) durationInput.disabled = false;
-                        if (selectBtn) selectBtn.disabled = false;
-                    } else {
-                        suiteDiv.style.backgroundColor = "#fff";
-                        if (optionsDiv) optionsDiv.style.opacity = "0.5";
-                        if (durationInput) durationInput.disabled = true;
-                        if (selectBtn) selectBtn.disabled = true;
+                    suiteCard.style.backgroundColor = disabled
+                        ? "#fff"
+                        : "#f9f9f9";
+                    if (optionsDiv) {
+                        optionsDiv.style.opacity = disabled ? "0.5" : "1";
                     }
+                    if (selectBtn) {
+                        selectBtn.disabled = disabled;
+                    }
+                    DurationInput.setDisabled(
+                        event.target.dataset.durationPrefix,
+                        disabled,
+                    );
                 });
             });
 
@@ -298,8 +333,8 @@ class TestConfigManager {
 
             modal.innerHTML = `
                 <div style="background: white; padding: 20px; border-radius: 5px; max-width: 600px; max-height: 80%; overflow: auto;">
-                    <h3>Select tests for ${suiteName}</h3>
-                    <p><small>Leave all unchecked to run all tests</small></p>
+                    <h3>${gettext("Select tests for")} ${suiteName}</h3>
+                    <p><small>${gettext("Leave all unchecked to run all tests")}</small></p>
                     <div id="testsList_${suiteName}">
                         ${tests
                             .map(
@@ -316,8 +351,8 @@ class TestConfigManager {
                             .join("")}
                     </div>
                     <div style="margin-top: 20px;">
-                        <button id="saveTestsBtn_${suiteName}" class="btn">Save Selection</button>
-                        <button id="cancelTestsBtn" class="btn" style="margin-left: 10px;">Cancel</button>
+                        <button id="saveTestsBtn_${suiteName}" class="btn">${gettext("Save Selection")}</button>
+                        <button id="cancelTestsBtn" class="btn" style="margin-left: 10px;">${gettext("Cancel")}</button>
                     </div>
                 </div>
             `;
@@ -333,29 +368,43 @@ class TestConfigManager {
                         ),
                     ).map((cb) => cb.value);
 
-                    const selectedTests = {
-                        ...(this.currentConfig.selected_tests ?? {}),
+                    const updatedSelectedTests = {
+                        ...(this.currentConfig.selected_tests || {}),
                     };
 
                     if (selected.length > 0) {
-                        selectedTests[suiteName] = selected;
+                        updatedSelectedTests[suiteName] = selected;
                         this.showStatus(
-                            `Selected ${selected.length} tests for ${suiteName}`,
+                            interpolate(
+                                gettext(
+                                    "Selected %(count)s tests for %(suite_name)s",
+                                ),
+                                {
+                                    count: selected.length,
+                                    suite_name: suiteName,
+                                },
+                                true,
+                            ),
                             "success",
                         );
                     } else {
-                        delete selectedTests[suiteName];
+                        delete updatedSelectedTests[suiteName];
                         this.showStatus(
-                            `Will run all tests for ${suiteName}`,
+                            interpolate(
+                                gettext(
+                                    "Will run all tests for %(suite_name)s",
+                                ),
+                                {suite_name: suiteName},
+                                true,
+                            ),
                             "success",
                         );
                     }
 
                     this.currentConfig = {
                         ...this.currentConfig,
-                        selected_tests: selectedTests,
+                        selected_tests: updatedSelectedTests,
                     };
-
                     modal.remove();
                 });
 
@@ -366,7 +415,14 @@ class TestConfigManager {
                 });
         } catch (error) {
             console.error("Failed to load tests:", error);
-            this.showStatus("Failed to load tests for " + suiteName, "error");
+            this.showStatus(
+                interpolate(
+                    gettext("Failed to load tests for %(suite_name)s"),
+                    {suite_name: suiteName},
+                    true,
+                ),
+                "error",
+            );
         }
     }
 
@@ -384,14 +440,17 @@ class TestConfigManager {
                         const suiteName = cb.value;
                         selectedSuites.push(suiteName);
 
-                        const durationInput = document.getElementById(
-                            `duration_${suiteName}`,
+                        const durationPrefix =
+                            cb.dataset.durationPrefix ||
+                            `basic_${suiteName}_duration`;
+                        suiteDurations[suiteName] = DurationInput.toSeconds(
+                            durationPrefix,
+                            interpolate(
+                                gettext("%(suite)s duration"),
+                                {suite: suiteName},
+                                true,
+                            ),
                         );
-                        if (durationInput) {
-                            suiteDurations[suiteName] = parseInt(
-                                durationInput.value,
-                            );
-                        }
                     }
                 });
             const testRunsCount = parseInt(
@@ -422,17 +481,24 @@ class TestConfigManager {
 
             if (response.ok) {
                 this.currentConfig = config;
-                this.showStatus("Configuration saved successfully!", "success");
+                this.showStatus(
+                    gettext("Configuration saved successfully!"),
+                    "success",
+                );
                 console.log("Configuration saved");
+                this.renderConfigUI();
             } else {
                 const error = await response.text();
                 throw new Error(`HTTP ${response.status}: ${error}`);
             }
-            this.renderConfigUI();
         } catch (error) {
             console.error("Save failed:", error);
             this.showStatus(
-                "Error saving configuration: " + error.message,
+                interpolate(
+                    gettext("Error saving configuration: %(message)s"),
+                    {message: error.message},
+                    true,
+                ),
                 "error",
             );
         }
@@ -476,11 +542,17 @@ class TestConfigManager {
                     runsInput.value = 1;
                 }
                 this.renderConfigUI();
-                this.showStatus("Configuration reset to default", "success");
+                this.showStatus(
+                    gettext("Configuration reset to default"),
+                    "success",
+                );
             }
         } catch (error) {
             console.error("Reset failed:", error);
-            this.showStatus("Failed to reset configuration", "error");
+            this.showStatus(
+                gettext("Failed to reset configuration"),
+                "error",
+            );
         }
     }
 
@@ -499,34 +571,46 @@ class TestConfigManager {
     }
 
     renderProfilesAndDurationsUI() {
-        const profiles = ["load","stress","stability","scalability","volume","isolated","spike","diagnostic"];
+        const profiles = [
+            "load",
+            "stress",
+            "stability",
+            "scalability",
+            "volume",
+            "isolated",
+            "spike",
+            "diagnostic",
+        ];
 
-        // Single run render
-        const singleProfileContainer = document.getElementById("singleProfileContainer");
-        const singleDurationContainer = document.getElementById("singleDurationContainer");
+        const singleProfileContainer = document.getElementById(
+            "singleProfileContainer",
+        );
+        const singleDurationContainer = document.getElementById(
+            "singleDurationContainer",
+        );
         singleProfileContainer.innerHTML = "";
         singleDurationContainer.innerHTML = "";
+
         const select = document.createElement("select");
         select.id = "profileSelect";
-        profiles.forEach(p => {
-            const opt = document.createElement("option");
-            opt.value = p;
-            opt.textContent = p.charAt(0).toUpperCase() + p.slice(1);
-            select.appendChild(opt);
+        profiles.forEach((profile) => {
+            const option = document.createElement("option");
+            option.value = profile;
+            option.textContent =
+                profile.charAt(0).toUpperCase() + profile.slice(1);
+            select.appendChild(option);
         });
         singleProfileContainer.appendChild(select);
-        const input = document.createElement("input");
-        input.type = "number";
-        input.id = "duration_sec";
-        input.value = 120;
-        input.min = 10;
-        input.step = 10;
-        singleDurationContainer.appendChild(input);
+        singleDurationContainer.innerHTML = DurationInput.render(
+            "profiled_single_duration",
+            120,
+        );
 
-        // Matrix run render
-        const matrixContainer = document.getElementById("profilesCheckboxes");
+        const matrixContainer =
+            document.getElementById("profilesCheckboxes");
         matrixContainer.innerHTML = "";
-        profiles.forEach(profile => {
+        profiles.forEach((profile) => {
+            const durationPrefix = `profiled_${profile}_duration`;
             const div = document.createElement("div");
             div.style.margin = "10px 0";
             div.style.padding = "8px";
@@ -534,15 +618,25 @@ class TestConfigManager {
             div.style.borderRadius = "5px";
             div.innerHTML = `
                 <label>
-                    <input type="checkbox" name="profiles" value="${profile}">
+                    <input
+                        type="checkbox"
+                        name="profiles"
+                        value="${profile}"
+                        data-duration-prefix="${durationPrefix}"
+                    >
                     <strong>${profile}</strong>
                 </label>
-                <input type="number" id="duration_${profile}" placeholder="Duration (sec)" min="10" step="10" style="margin-left:10px; width:100px;" disabled>
+                ${DurationInput.render(durationPrefix, 120, true)}
             `;
-            const checkbox = div.querySelector('input[type="checkbox"]');
-            const durationInput = div.querySelector('input[type="number"]');
-            checkbox.addEventListener("change", e => {
-                durationInput.disabled = !e.target.checked;
+
+            const checkbox = div.querySelector(
+                'input[type="checkbox"]',
+            );
+            checkbox.addEventListener("change", (event) => {
+                DurationInput.setDisabled(
+                    event.target.dataset.durationPrefix,
+                    !event.target.checked,
+                );
             });
             matrixContainer.appendChild(div);
         });
@@ -563,6 +657,14 @@ class TestConfigManager {
     }
 
     renderSubsystemsUI() {
+        const subsystemLabels = {
+            file: gettext("File"),
+            IPC: gettext("IPC"),
+            memory: gettext("Memory"),
+            network: gettext("Network"),
+            syscalls: gettext("Syscalls"),
+            system: gettext("System"),
+        };
         const subsystems = ["file","IPC","memory","network","syscalls","system"];
         const container = document.getElementById("subsystemsCheckboxes");
         container.innerHTML = "";
@@ -572,7 +674,7 @@ class TestConfigManager {
             div.innerHTML = `
                 <label>
                     <input type="checkbox" name="subsystems" value="${subsystem}" checked>
-                    ${subsystem}
+                    ${subsystemLabels[subsystem] || subsystem}
                 </label>
             `;
             container.appendChild(div);
