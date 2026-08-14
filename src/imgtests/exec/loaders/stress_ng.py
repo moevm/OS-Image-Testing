@@ -54,7 +54,7 @@ class StressNGResult(NamedTuple):
     summary: StressNGSummary | None
 
 
-SYSCALL_ENTRY_RE: Final = re.compile(r"^syscall:\s+(\S+)\s+([\d.]+)\s+(\d+)\s+(\d+)$")
+SYSCALL_ENTRY_RE: Final = re.compile(r"^syscall:\s+(\S+)\s+([\d.]+)\s+(\d+)(?:\s+(\d+))?$")
 SPF_RE: Final = re.compile(r"^(skipped|passed|failed):\s*(\d+)(?::\s*([^\s()]+))?", re.IGNORECASE)
 METRICS_UNTRUSTY_RE: Final = re.compile(r"metrics untrustworthy:\s*(\d+)", re.IGNORECASE)
 CLEAN_LINE_RE: Final = re.compile(r"stress-ng: (?:info|metrc):\s+\[\d+\]\s*")
@@ -506,7 +506,7 @@ class StressNg(PkgMgrMixin, GenericUtil):
                 try:
                     avg = float(m_syscall.group(2))
                     mn = int(m_syscall.group(3))
-                    mx = int(m_syscall.group(4))
+                    mx = int(m_syscall.group(4)) if m_syscall.group(4) is not None else -1
                 except ValueError:
                     continue
                 target = current_stressor or "syscall"
