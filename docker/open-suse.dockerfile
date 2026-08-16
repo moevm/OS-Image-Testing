@@ -7,6 +7,9 @@ ENV DEBIAN_FRONTEND=noninteractive \
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
+    qemu-system \
+    qemu-utils \
+    qemu-user-static \
     cloud-init \
     cloud-image-utils \
     wget \

@@ -30,14 +30,12 @@ RUN groupadd -g 510 ${GROUP} && \
     echo "${USER}:${PASSWORD}" | chpasswd
 
 USER ${USER}
-
 RUN mkdir --parents ${POKY_DIR} && \
     git clone --depth 1 -b walnascar --recurse-submodules https://git.yoctoproject.org/poky ${POKY_DIR}
-
 WORKDIR ${POKY_DIR}
 
 COPY --chown=${USER}:${GROUP} layers ${POKY_DIR}
-COPY --chown=${USER}:${GROUP} scripts/entrypoint.sh ${POKY_DIR}
-COPY --chown=${USER}:${GROUP} scripts/cmd_yocto.sh ${POKY_DIR}
+COPY --chown=${USER}:${GROUP} scripts/entrypoint.sh ${POKY_DIR}/
+COPY --chown=${USER}:${GROUP} scripts/cmd_yocto.sh ${POKY_DIR}/
 
 ENTRYPOINT ["/home/user/poky/entrypoint.sh"]
