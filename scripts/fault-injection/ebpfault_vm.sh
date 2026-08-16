@@ -46,7 +46,7 @@ run_exp() {
     set +e
     touch /tmp/ebpfault_marker
     chmod 0644 /tmp/ebpfault_marker
-    "$DIR/bin/ebpfault" --config "$DIR/config.json" --exec $ARGS
+    "$DIR/bin/ebpfault" --config "$DIR/config.json" --exec "$ARGS"
     echo "exit_code=$?"
     set -e
 }

@@ -41,6 +41,7 @@ build_krf() {
     fi
     headers="/lib/modules/$(uname -r)/build"
     if [[ ! -d "$headers" ]]; then
+        # shellcheck disable=SC2012
         headers=$(ls -d /lib/modules/*/build 2>/dev/null | head -1)
     fi
     if [[ -z "$headers" || ! -d "$headers" ]]; then
@@ -89,7 +90,7 @@ configure_krf() {
 run_target() {
     echo "[INFO]  Running '${TARGET_CMD}' through krfexec..."
     set +e
-    "$KRF_DIR/src/krfexec/krfexec" $TARGET_CMD
+    "$KRF_DIR/src/krfexec/krfexec" "$TARGET_CMD"
     echo "exit_code=$?"
     set -e
 }
