@@ -288,4 +288,4 @@ blade status --type create --flag-filter "timeout=10"
 blade create network delay --time 100 --interface eth0 --timeout 30
 ```
 
-Задержку можно комбинировать с другими параметрами: `--offset` (jitter в мс), `--destination-ip`, `--exclude-ip`. Получение статуса и завершение эксперимента выполняются командами `blade status <experiment-id>` и `blade destroy <experiment-id>`. Реализация примера есть в скриптах `scripts/fault-injection/chaosblade.sh` и `scripts/fault-injection/chaosblade_vm.sh`.
+Задержку можно комбинировать с другими параметрами: `--offset` (jitter в мс), `--destination-ip`, `--exclude-ip`. Получение статуса и завершение эксперимента выполняются командами `blade status <experiment-id>` и `blade destroy <experiment-id>`. Реализация примера есть в скрипте `scripts/fault-injection/chaosblade_vm.sh`.
