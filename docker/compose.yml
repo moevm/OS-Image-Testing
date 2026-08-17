@@ -23,7 +23,34 @@ services:
       BUILD_DIR: ${BUILD_DIR}
       POKY_DIR: ${POKY_DIR}
       OS_IMAGE: ${OS_IMAGE}
-      VM_RAM: ${QEMU_VM_RAM}
+      USER: ${USER}
+      GROUP: ${GROUP}
+
+  imgtests-yocto-vm:
+    build:
+      dockerfile: docker/vm-yocto.dockerfile
+      args:
+        USER: ${USER}
+        GROUP: ${GROUP}
+        PASSWORD: ${PASSWORD}
+        POKY_DIR: ${POKY_DIR}
+    image: ${DOCKER_YOCTO_VM_TAG}
+    privileged: true
+    devices:
+      - /dev/kvm
+    volumes:
+      - ${DOCKER_BUILD_VOLUME}:${BUILD_DIR}
+      - ${DOCKER_DOWNLOADS_VOLUME}:${POKY_DIR}/downloads
+      - ${DOCKER_SSTATE_VOLUME}:${POKY_DIR}/sstate-cache
+      - ${HOST_CONF_PATH}/local.conf:${BUILD_DIR}/conf/local.conf
+      - ${HOST_CONF_PATH}/packages.conf:${BUILD_DIR}/conf/packages.conf
+      - ${HOST_CONF_PATH}/added_packages.conf:${BUILD_DIR}/conf/added_packages.conf
+      - ${HOST_LAYERS_PATH}/meta-image-tests:${POKY_DIR}/meta-image-tests
+      - ${HOST_SCRIPTS_PATH}/add-layers.sh:${POKY_DIR}/add-layers.sh
+    environment:
+      BUILD_DIR: ${BUILD_DIR}
+      POKY_DIR: ${POKY_DIR}
+      OS_IMAGE: ${OS_IMAGE}
       CPUS: ${CPUS}
       USER: ${USER}
       GROUP: ${GROUP}
@@ -37,6 +64,9 @@ services:
     networks:
       yocto-network:
         ipv4_address: ${YOCTO_ADDRESS}
+    depends_on:
+      imgtests-yocto:
+        condition: service_completed_successfully
 
   imgtests-suse-156:
     build:
@@ -51,13 +81,28 @@ services:
     environment:
       S_USER: ${S_USER}
       PASSWORD: ${PASSWORD}
-      VM_RAM: ${QEMU_VM_RAM}
-      CPUS: ${CPUS}
+    networks:
+      - yocto-network
+
+  imgtests-suse-vm:
+    build:
+      dockerfile: docker/vm-suse.dockerfile
+      args:
+        USER: ${USER}
+    image: ${DOCKER_SUSE_VM_TAG}
+    privileged: true
+    devices:
+      - /dev/kvm
+    volumes:
+      - ${DOCKER_OPENSUSE_VOLUME}:${SUSE_DIR}
+    environment:
       SSH_QEMU_PORT: ${SSH_TO_QEMU_PORT}
       SSH_SUSE_PORT: ${SSH_SUSE_PORT_156}
       SUSE_NE_PORT: ${SUSE_156_NE_PORT}
       DEFAULT_NE_PORT: ${DEFAULT_NE_PORT}
       IPERF3_PORT: ${IPERF3_PORT}
+      VM_RAM: ${QEMU_VM_RAM}
+      CPUS: ${CPUS}
     ports:
       - ${SSH_SUSE_PORT_156}:${SSH_SUSE_PORT_156}
     networks:
