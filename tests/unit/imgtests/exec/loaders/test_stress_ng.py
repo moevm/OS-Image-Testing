@@ -129,6 +129,82 @@ from imgtests.exec.loaders.stress_ng import StressNg, StressNGMetrics, StressNGS
                 ),
             ],
         ),
+        (
+            dedent(
+                """\
+            stress-ng: info:  [14018] syscall: Top 268 fastest system calls (timings in nanosecs):
+            stress-ng: info:  [14018] syscall:               System Call   Avg (ns)   Min (ns)
+            stress-ng: info:  [14018] syscall:                      time     2430.0       2430
+            stress-ng: info:  [14018] syscall:                    getpid     2805.0       2720
+            stress-ng: info:  [14018] syscall:           restart_syscall     3305.0       3270
+            stress-ng: info:  [14018] syscall:    sched_get_priority_min     3365.0       3090
+            stress-ng: info:  [14018] syscall:             clock_gettime     3400.0       3080
+            stress-ng: info:  [14018] syscall:           set_robust_list     3825.0       3050
+            stress-ng: info:  [14018] syscall:              timer_delete     4200.0       4150
+            stress-ng: info:  [14018] syscall:    sched_get_priority_max     4495.0       3900
+                """,
+            ).strip(),
+            [
+                StressNGMetrics(
+                    "syscall",
+                    0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    None,
+                    None,
+                    (
+                        StressNGSyscallTiming("sched_get_priority_max", 4495.0, 3900, -1),
+                        StressNGSyscallTiming("timer_delete", 4200.0, 4150, -1),
+                        StressNGSyscallTiming("set_robust_list", 3825.0, 3050, -1),
+                        StressNGSyscallTiming("clock_gettime", 3400.0, 3080, -1),
+                        StressNGSyscallTiming("sched_get_priority_min", 3365.0, 3090, -1),
+                        StressNGSyscallTiming("restart_syscall", 3305.0, 3270, -1),
+                        StressNGSyscallTiming("getpid", 2805.0, 2720, -1),
+                        StressNGSyscallTiming("time", 2430.0, 2430, -1),
+                    ),
+                ),
+            ],
+        ),
+        (
+            dedent(
+                """\
+        stress-ng: info:  [667] syscall: Top 263 fastest system calls (timings in nanosecs):
+        stress-ng: info:  [667] syscall:               System Call   Avg (ns)   Min (ns)   Max (ns)
+        stress-ng: info:  [667] syscall:                      time     8717.5       1914      15521
+        stress-ng: info:  [667] syscall:              gettimeofday    12214.0       2055      22373
+        stress-ng: info:  [667] syscall:                 setresgid    19381.5      18801      19962
+        stress-ng: info:  [667] syscall:                 setresuid    20068.0      18851      21285
+        stress-ng: info:  [667] syscall:                     fcntl    20908.0      19998      21818
+        stress-ng: info:  [667] syscall:                    getsid    23327.5      22468      24187
+                """,
+            ).strip(),
+            [
+                StressNGMetrics(
+                    "syscall",
+                    0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    None,
+                    None,
+                    (
+                        StressNGSyscallTiming("getsid", 23327.5, 22468, 24187),
+                        StressNGSyscallTiming("fcntl", 20908.0, 19998, 21818),
+                        StressNGSyscallTiming("setresuid", 20068.0, 18851, 21285),
+                        StressNGSyscallTiming("setresgid", 19381.5, 18801, 19962),
+                        StressNGSyscallTiming("gettimeofday", 12214.0, 2055, 22373),
+                        StressNGSyscallTiming("time", 8717.5, 1914, 15521),
+                    ),
+                ),
+            ],
+        ),
     ],
     ids=[
         "One stressor with old metrics format.",
@@ -140,6 +216,8 @@ from imgtests.exec.loaders.stress_ng import StressNg, StressNGMetrics, StressNGS
         "Two stressors with new metrics format.",
         "Syscall with syscall-top and perf entries.",
         "Metrics for different subsystems.",
+        "OpenSUSE slowest syscall parse: no max value os suse.",
+        "Poky slowest syscall parse.",
     ],
 )
 def test_parse_metrics(raw_metrics: str, expected: list[StressNGMetrics]) -> None:
