@@ -618,8 +618,6 @@ def get_test_name(
 
 
 def __calc_total_tests_amount(config: dict[str, Any] | None, mode: Runner) -> int:
-    from imgtests.suites.map import ALL_SUITES  # noqa: PLC0415
-
     total_tests_amount = 0
     if mode == "default" and config:
         for suite in config["suites"]:
