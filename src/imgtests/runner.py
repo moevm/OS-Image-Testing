@@ -587,7 +587,18 @@ def run_tests(
     if mode == "default" and config is None:
         config = load_test_config(distro)
 
-    total_tests_amount = __calc_total_tests_amount(config, mode)
+    match mode:
+        case "default":
+            total_tests_amount = __calc_total_tests_amount_default(config)
+        case "profiled":
+            profiled_runner_settings = build_profiled_settings(config=config)
+            total_tests_amount = __calc_total_tests_amount_profiled(
+                config,
+                profiled_runner_settings,
+            )
+        case _:
+            err_msg = f"Unknown test mode: {mode}"
+            raise ValueError(err_msg)
     logger.info("Total amount of tests per run: %d", total_tests_amount)
 
     # start test runs
@@ -617,9 +628,9 @@ def get_test_name(
     return str(test)
 
 
-def __calc_total_tests_amount(config: dict[str, Any] | None, mode: Runner) -> int:
+def __calc_total_tests_amount_default(config: dict[str, Any] | None) -> int:
     total_tests_amount = 0
-    if mode == "default" and config:
+    if config:
         for suite in config["suites"]:
             if suite in config["selected_tests"]:
                 total_tests_amount += len(config["selected_tests"][suite])
@@ -627,12 +638,17 @@ def __calc_total_tests_amount(config: dict[str, Any] | None, mode: Runner) -> in
                 total_tests_amount += len(ALL_SUITES[suite].tests)
             # default runner runs 2 system tests for each suite (load time and slow services)
             total_tests_amount += 2
-    if mode == "profiled":
-        tmp_config = build_profiled_settings(config=config)
-        total_tests_amount = len(tmp_config.subsystems)
-        # default profile config consists of 3 stages
-        if config is None:
-            total_tests_amount *= 3
-        if tmp_config.run_matrix:
-            total_tests_amount *= len(tmp_config.matrix_profiles)
+    return total_tests_amount
+
+
+def __calc_total_tests_amount_profiled(
+    config: dict[str, Any] | None,
+    profiled_runner_settings: ProfiledRunnerSettings,
+) -> int:
+    total_tests_amount = len(profiled_runner_settings.subsystems)
+    # default profile config consists of 3 stages
+    if config is None:
+        total_tests_amount *= 3
+    if profiled_runner_settings.run_matrix:
+        total_tests_amount *= len(profiled_runner_settings.matrix_profiles)
     return total_tests_amount
