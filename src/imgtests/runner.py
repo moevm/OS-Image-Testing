@@ -625,7 +625,7 @@ def __calc_total_tests_amount(config: dict[str, Any] | None, mode: Runner) -> in
                 total_tests_amount += len(config["selected_tests"][suite])
             else:
                 total_tests_amount += len(ALL_SUITES[suite].tests)
-            # default runner runs 2 system tests for each suite (runner.py: 616 -> 621 -> 149)
+            # default runner runs 2 system tests for each suite (load time and slow services)
             total_tests_amount += 2
     if mode == "profiled":
         tmp_config = build_profiled_settings(config=config)
