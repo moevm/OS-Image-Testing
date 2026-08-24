@@ -502,11 +502,19 @@ def build_profiled_settings(config: dict[str, Any] | None) -> ProfiledRunnerSett
     )
 
 
-def _run_single(client: SSHClient, mode: Runner, config: dict[str, Any] | None) -> None:  # noqa: PLR0912
+def _run_single(  # noqa: C901, PLR0912
+    client: SSHClient,
+    mode: Runner,
+    config: dict[str, Any] | None,
+    profiled_runner_settings: ProfiledRunnerSettings | None,
+) -> None:
     logger.info("Current testing mode is %s", mode)
     database = ImgtestsDatabase()
 
     if mode == "default":
+        if config is None:
+            err_msg = "Config must be provided for default runner."
+            raise ValueError(err_msg)
         logger.info("Using suites: %s", config.get("suites", []))
         suites_to_run = []
         for suite_name in config.get("suites", []):
@@ -568,11 +576,14 @@ def _run_single(client: SSHClient, mode: Runner, config: dict[str, Any] | None) 
             runner.run()
             runner.close()
     elif mode == "profiled":
+        if profiled_runner_settings is None:
+            err_msg = "Profiled runner settings are not provided."
+            raise ValueError(err_msg)
         client.reconnect()
         ProfiledPlanRunner(
             client=client,
             database=database,
-        ).run(profiled_settings=build_profiled_settings(config=config))
+        ).run(profiled_settings=profiled_runner_settings)
         client.close()
     database.session.close_all()
 
@@ -584,11 +595,12 @@ def run_tests(
     config: dict[str, Any] | None = None,
 ) -> None:
     logger.info("Running tests for %s", distro)
-    if mode == "default" and config is None:
-        config = load_test_config(distro)
 
+    profiled_runner_settings = None
     match mode:
         case "default":
+            if config is None:
+                config = load_test_config(distro)
             total_tests_amount = __calc_total_tests_amount_default(config)
         case "profiled":
             profiled_runner_settings = build_profiled_settings(config=config)
@@ -614,7 +626,7 @@ def run_tests(
             sys.exit(1)
     for i in range(test_runs_count):
         logger.info("Starting test run %d of %d", i + 1, test_runs_count)
-        _run_single(client, mode, config)
+        _run_single(client, mode, config, profiled_runner_settings)
         logger.info("Completed test run %d of %d", i + 1, test_runs_count)
 
 
@@ -628,16 +640,15 @@ def get_test_name(
     return str(test)
 
 
-def __calc_total_tests_amount_default(config: dict[str, Any] | None) -> int:
+def __calc_total_tests_amount_default(config: dict[str, Any]) -> int:
     total_tests_amount = 0
-    if config:
-        for suite in config["suites"]:
-            if suite in config["selected_tests"]:
-                total_tests_amount += len(config["selected_tests"][suite])
-            else:
-                total_tests_amount += len(ALL_SUITES[suite].tests)
-            # default runner runs 2 system tests for each suite (load time and slow services)
-            total_tests_amount += 2
+    for suite in config["suites"]:
+        if suite in config["selected_tests"]:
+            total_tests_amount += len(config["selected_tests"][suite])
+        else:
+            total_tests_amount += len(ALL_SUITES[suite].tests)
+        # default runner runs 2 system tests for each suite (load time and slow services)
+        total_tests_amount += 2
     return total_tests_amount
 
 
