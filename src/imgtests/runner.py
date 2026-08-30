@@ -649,6 +649,9 @@ def __calc_total_tests_amount_default(config: dict[str, Any]) -> int:
             total_tests_amount += len(ALL_SUITES[suite].tests)
         # default runner runs 2 system tests for each suite (load time and slow services)
         total_tests_amount += 2
+    # no suites selected case, ALL_SUBSYSTEMS_SUITE would be used
+    if config["suites"] == []:
+        total_tests_amount = len(ALL_SUBSYSTEMS_SUITE.tests) + 2
     return total_tests_amount
 
 
