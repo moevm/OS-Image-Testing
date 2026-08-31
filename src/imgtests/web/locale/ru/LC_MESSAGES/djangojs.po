@@ -173,8 +173,8 @@ msgid "%(profile)s profile duration"
 msgstr "Длительность профиля %(profile)s"
 
 #: src/imgtests/web/static/js/launch_test.js:103
-#: src/imgtests/web/static/js/launch_test.js:137
-#: src/imgtests/web/static/js/launch_test.js:150
+#: src/imgtests/web/static/js/launch_test.js:146
+#: src/imgtests/web/static/js/launch_test.js:160
 msgid "Error: %(message)s"
 msgstr "Ошибка: %(message)s"
 
@@ -186,47 +186,59 @@ msgstr "Выполнение..."
 msgid "Tests running..."
 msgstr "Тесты выполняются..."
 
-#: src/imgtests/web/static/js/launch_test.js:130
+#: src/imgtests/web/static/js/launch_test.js:129
 msgid "Tests running... (Task ID: %(task_id)s)"
 msgstr "Тесты выполняются... (ID задачи: %(task_id)s)"
 
-#: src/imgtests/web/static/js/launch_test.js:140
+#: src/imgtests/web/static/js/launch_test.js:149
 msgid "Failed to start tests"
 msgstr "Не удалось запустить тесты"
 
-#: src/imgtests/web/static/js/launch_test.js:145
-#: src/imgtests/web/static/js/launch_test.js:155
+#: src/imgtests/web/static/js/launch_test.js:154
 #: src/imgtests/web/static/js/launch_test.js:165
+#: src/imgtests/web/static/js/launch_test.js:176
 msgid "Run tests"
 msgstr "Запустить тесты"
 
-#: src/imgtests/web/static/js/launch_test.js:174
+#: src/imgtests/web/static/js/launch_test.js:186
 msgid "Tests running... Please wait."
 msgstr "Тесты выполняются... Пожалуйста, подождите."
 
-#: src/imgtests/web/static/js/launch_test.js:180
+#: src/imgtests/web/static/js/launch_test.js:193
 msgid "Tests completed successfully."
 msgstr "Тесты завершены успешно."
 
-#: src/imgtests/web/static/js/launch_test.js:183
+#: src/imgtests/web/static/js/launch_test.js:196
 msgid "Test failed"
 msgstr "Тест не пройден"
 
-#: src/imgtests/web/static/js/launch_test.js:187
+#: src/imgtests/web/static/js/launch_test.js:200
 msgid "Error output:"
 msgstr "Вывод ошибок:"
 
-#: src/imgtests/web/static/js/launch_test.js:193
+#: src/imgtests/web/static/js/launch_test.js:206
 msgid "Output:"
 msgstr "Вывод:"
 
-#: src/imgtests/web/static/js/launch_test.js:198
+#: src/imgtests/web/static/js/launch_test.js:211
 msgid "Unknown status"
 msgstr "Неизвестный статус"
 
-#: src/imgtests/web/static/js/launch_test.js:204
+#: src/imgtests/web/static/js/launch_test.js:217
 msgid "Error checking status: %(message)s"
 msgstr "Ошибка проверки статуса: %(message)s"
+
+#: src/imgtests/web/static/js/launch_test.js:231
+msgid "Data load error"
+msgstr "Ошибка загрузки данных"
+
+#: src/imgtests/web/static/js/launch_test.js:257
+msgid "Run %(currentRun)s out of %(totalRuns)s is in progress (%(runsPercent)s%)"
+msgstr "Запуск %(currentRun)s из %(totalRuns)s в процессе (%(runsPercent)s%)"
+
+#: src/imgtests/web/static/js/launch_test.js:273
+msgid "JSON processing error:"
+msgstr "Ошибка обработки JSON"
 
 #: src/imgtests/web/static/js/test_config.js:22
 msgid "Failed to load configuration: %(message)s"

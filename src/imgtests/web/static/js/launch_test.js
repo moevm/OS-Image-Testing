@@ -122,8 +122,7 @@ document.getElementById("runTestsBtn").addEventListener("click", function () {
             runner: runner,
             config: config,
         }),
-    })
-        .then((response) => response.json())
+    }).then((response) => response.json())
         .then((data) => {
             if (data.success && data.task_id) {
                 outputContainer.textContent = interpolate(
@@ -132,6 +131,16 @@ document.getElementById("runTestsBtn").addEventListener("click", function () {
                     true,
                 );
                 pollStatus(data.task_id);
+                // add progress display
+                document.getElementById("progress-card").style.display = "block";
+                // hide suite | profile depending on selected mode
+                if (runner === "profiled") {
+                    document.getElementById("current-suite-div").style.display = "none";
+                    document.getElementById("last-profile-div").style.display = "inline";
+                } else {
+                    document.getElementById("current-suite-div").style.display = "inline";
+                    document.getElementById("last-profile-div").style.display = "none";
+                }
             } else {
                 outputContainer.textContent = interpolate(
                     gettext("Error: %(message)s"),
@@ -143,6 +152,7 @@ document.getElementById("runTestsBtn").addEventListener("click", function () {
                 );
                 btn.disabled = false;
                 btn.textContent = gettext("Run tests");
+                document.getElementById("progress-card").style.display = "none";
             }
         })
         .catch((error) => {
@@ -153,6 +163,7 @@ document.getElementById("runTestsBtn").addEventListener("click", function () {
             );
             btn.disabled = false;
             btn.textContent = gettext("Run tests");
+            document.getElementById("progress-card").style.display = "none";
         });
 });
 
@@ -163,6 +174,7 @@ function pollStatus(taskId) {
     const resetButton = () => {
         btn.disabled = false;
         btn.textContent = gettext("Run tests");
+        document.getElementById("progress-card").style.display = "none";
     };
 
     const checkStatus = () => {
@@ -174,6 +186,7 @@ function pollStatus(taskId) {
                         "Tests running... Please wait.",
                     );
                     setTimeout(checkStatus, 2000);
+                    updateDashboard(taskId);
                 } else if (data.status === "completed") {
                     outputContainer.textContent =
                         data.output ||
@@ -210,4 +223,54 @@ function pollStatus(taskId) {
     };
 
     checkStatus();
+}
+
+function updateDashboard(taskId) {
+    fetch("/current-progress/" + taskId + "/", { cache: "no-store" })
+        .then(response => {
+            if (!response.ok) throw new Error(gettext("Data load error"));
+            return response.json();
+        })
+        .then(data => {
+            document.getElementById('error-msg').style.display = 'none';
+
+            const totalTests = data.total_test_count || 0;
+            const currentTests = data.test_count || 0;
+            const testsPercent = totalTests > 0 ? Math.min(Math.round((currentTests / totalTests) * 100), 100) : 0;
+
+            document.getElementById('tests-text').textContent = `${currentTests} / ${totalTests} (${testsPercent}%)`;
+            document.getElementById('tests-bar').style.width = `${testsPercent}%`;
+
+
+            const totalRuns = data.total_run_count || 0;
+            const currentRun = data.current_test_run || 0;
+            const runsPercent = totalRuns > 0 ? Math.min(Math.round((currentRun / totalRuns) * 100), 100) : 0;
+
+            const runsBar = document.getElementById('runs-bar');
+            const runsText = document.getElementById('runs-text');
+
+            runsBar.style.width = `${runsPercent}%`;
+
+            if (currentRun > 0 && currentRun <= totalRuns) {
+                runsBar.classList.add('pulse');
+                runsText.textContent = interpolate(
+                    gettext("Run %(currentRun)s out of %(totalRuns)s is in progress (%(runsPercent)s%)"),
+                    {currentRun: currentRun, totalRuns: totalRuns, runsPercent: runsPercent},
+                    true
+                );
+                runsText.style.color = '#3498db';
+            } else {
+                runsBar.classList.remove('pulse');
+                runsText.textContent = `${currentRun} / ${totalRuns} (${runsPercent}%)`;
+                runsText.style.color = '#7f8c8d';
+            }
+
+            document.getElementById('current-suite').textContent = data.current_suite;
+            document.getElementById('current-test').textContent = data.current_test;
+            document.getElementById('last-profile').textContent = data.last_profile_done;
+        })
+        .catch(error => {
+            console.error(gettext("JSON processing error:"), error);
+            document.getElementById('error-msg').style.display = 'block';
+        });
 }

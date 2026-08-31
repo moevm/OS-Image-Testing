@@ -6,6 +6,7 @@ from . import views
 urlpatterns = [
     path("", views.index, name="index"),
     path("run-tests/", views.run_tests, name="run_tests"),
+    path("current-progress/<str:task_id>/", views.get_run_progress, name="current_progress"),
     path("test-status/<str:task_id>/", views.get_test_status, name="test_status"),
     path("reports/", views.report_list, name="report_list"),
     re_path(
