@@ -4,7 +4,7 @@ import re
 import sys
 from enum import StrEnum
 from pathlib import Path
-from typing import Literal, Self, TextIO
+from typing import Literal, Self, TextIO, TypedDict
 
 from pythonjsonlogger.json import JsonFormatter
 
@@ -38,8 +38,20 @@ class StreamFormatter(logging.Formatter):
         return super().format(record)
 
 
+class ProgressTemplate(TypedDict):
+    total_test_count: int
+    test_count: int
+    total_run_count: int
+    current_test_run: int
+    current_suite: str
+    last_profile_done: str
+    current_test: str
+
+
+# TODO: Rework this for correct free memory after tests and removes test files
+# after tests
 class ProgressHandler(logging.Handler):
-    progress_template = {  # noqa: RUF012
+    progress_template: ProgressTemplate = {  # noqa: RUF012
         "total_test_count": 0,
         "test_count": 0,
         "total_run_count": 0,
@@ -51,8 +63,8 @@ class ProgressHandler(logging.Handler):
 
     def __init__(self, level: logging._Level = logging.DEBUG):
         super().__init__(level)
-        self.progress_data = {}
-        self.proc_to_task = {}
+        self.progress_data: dict[str, ProgressTemplate] = {}
+        self.proc_to_task: dict[str, str | None] = {}
 
     def emit(self, record: logging.LogRecord):  # noqa: PLR0915
         proc = str(record.process)
