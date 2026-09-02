@@ -68,8 +68,8 @@ docker-compose-down:
 
 .PHONY: ensure-volumes
 ensure-volumes: docker
-	@for volume in ${DOCKER_OPENSUSE_VOLUME} ${BENCHER_API_CONF_VOLUME} ${BENCHER_API_DB_VOLUME} ${METABASE_META_VOLUME} ${METABASE_APP_VOLUME} \
-	                ${BENCHER_API_LOGS_VOLUME} ${VMETRICS_DATA_VOLUME} ${DOCKER_POSTGRES_VOLUME}; do \
+	@for volume in ${DOCKER_OPENSUSE_VOLUME} ${METABASE_META_VOLUME} ${METABASE_APP_VOLUME} \
+	                ${VMETRICS_DATA_VOLUME} ${DOCKER_POSTGRES_VOLUME}; do \
 		if ! docker volume inspect $$volume > /dev/null 2>&1; then \
 			docker volume create $$volume; \
 		fi \
