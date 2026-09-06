@@ -111,22 +111,35 @@ def run_command(
 
 
 class SSHClient:
-    __slots__ = ("hostname", "password", "port", "ssh_session", "username")
+    __slots__ = ("hostname", "password", "pkey", "port", "ssh_session", "username")
 
     def __init__(
         self,
         hostname: str,
         username: str = "root",
-        password: str | None = None,
         port: int = 22,
+        password: str | None = None,
+        pkey_path: str | Path | None = None,
     ) -> None:
+        if password and pkey_path:
+            err_message = "Either password or pkey_path must be provided."
+            raise ValueError(err_message)
+
         self.hostname = hostname
         self.username = username
         self.password = password
+        if pkey_path:
+            try:
+                self.pkey = paramiko.Ed25519Key.from_private_key_file(pkey_path)
+            except paramiko.ssh_exception.SSHException as err:
+                err_msg = f"Invalid private key file '{pkey_path}'. Only supports Ed25519 keys."
+                raise ValueError(err_msg) from err
+        else:
+            self.pkey = None
         self.port = port
         self.ssh_session = paramiko.Transport((self.hostname, self.port))
         logger.info("Connecting to the host '%s'.", self.hostname)
-        self.ssh_session.connect(username=self.username, password=self.password)
+        self.ssh_session.connect(username=self.username, password=self.password, pkey=self.pkey)
 
     @staticmethod
     def _read_available(
@@ -228,8 +241,8 @@ class SSHClient:
         return SSHClient(
             env_var_to_type(address_env, str),
             env_var_to_type(user_env, str),
-            env_var_to_type(password_env, str),
             env_var_to_type(port_env, int),
+            env_var_to_type(password_env, str),
         )
 
     def close(self) -> None:
