@@ -66,7 +66,9 @@ class ProgressHandler(logging.Handler):
         self.progress_data: dict[str, ProgressTemplate] = {}
         self.proc_to_task: dict[str, str | None] = {}
 
-    def emit(self, record: logging.LogRecord):  # noqa: PLR0915
+    def emit(self, record: logging.LogRecord) -> None:  # noqa: PLR0915, C901, PLR0912
+        if record.process is None:
+            return
         proc = str(record.process)
         msg = self.format(record)
 
@@ -84,13 +86,16 @@ class ProgressHandler(logging.Handler):
             # flush progress_data for process
             self.progress_data[proc] = self.progress_template.copy()
 
+        if self.progress_data.get(proc) is None:
+            return
+
         match = re.search(LoggingPatterns.TESTS_COUNT, msg)
-        if match and self.progress_data[proc]:
+        if match:
             total = int(match.group(1))
             self.progress_data[proc]["total_test_count"] = total
 
         match = re.search(LoggingPatterns.RUNS_COUNT, msg)
-        if match and self.progress_data[proc]:
+        if match:
             # set current run
             cur = int(match.group(1))
             total = int(match.group(2))
@@ -101,35 +106,35 @@ class ProgressHandler(logging.Handler):
 
         # default runner matches
         match = re.search(LoggingPatterns.SUITE_START, msg)
-        if match and self.progress_data[proc]:
+        if match:
             suite = match.group(1)
             self.progress_data[proc]["current_suite"] = suite
 
         match = re.search(LoggingPatterns.DEFAULT_TEST_START, msg)
-        if match and self.progress_data[proc]:
+        if match:
             test = match.group(1)
             self.progress_data[proc]["current_test"] = test
 
         match = re.search(LoggingPatterns.DEFAULT_TEST_FINISH, msg)
-        if match and self.progress_data[proc]:
+        if match:
             self.progress_data[proc]["test_count"] += 1
             self.progress_data[proc]["current_test"] = "Not started yet"
 
         # profiled runner matches
         match = re.search(LoggingPatterns.PROFILE_DONE, msg)
-        if match and self.progress_data[proc]:
+        if match:
             profile = "-".join([match.group(1), match.group(2)])
             self.progress_data[proc]["last_profile_done"] = profile
 
         match = re.search(LoggingPatterns.PROFILED_TEST_START, msg)
-        if match and self.progress_data[proc]:
+        if match:
             subsystem = match.group(3)
             profile = match.group(1)
             tool = match.group(2)
             self.progress_data[proc]["current_test"] = f"{subsystem}-{profile} via {tool}"
 
         match = re.search(LoggingPatterns.PROFILED_TEST_FINISH, msg)
-        if match and self.progress_data[proc]:
+        if match:
             self.progress_data[proc]["test_count"] += 1
             self.progress_data[proc]["current_test"] = "Not started yet"
 
