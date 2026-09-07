@@ -252,7 +252,7 @@ class SSHClient:
         self.close()
         self.ssh_session = paramiko.Transport((self.hostname, self.port))
         logger.info("Connecting to the host '%s'.", self.hostname)
-        self.ssh_session.connect(username=self.username, password=self.password)
+        self.ssh_session.connect(username=self.username, password=self.password, pkey=self.pkey)
 
     def upload(self, localpath: Path, remotepath: Path) -> ExecResult:
         sftp = paramiko.SFTPClient.from_transport(self.ssh_session)
