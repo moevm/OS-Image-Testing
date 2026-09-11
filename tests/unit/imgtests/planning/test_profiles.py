@@ -165,14 +165,14 @@ class TestBuildStageTasks:
         subsystems = frozenset({Subsystem.MEMORY, Subsystem.NETWORK, Subsystem.SYSTEM})
         tasks = build_stage_tasks(ProfilesTestKind.LOAD, subsystems, LoadPattern.BALANCED, 120)
 
-        assert len(tasks) == 3  # noqa: PLR2004
+        assert len(tasks) == 3
         # Tasks should be sorted by subsystem name
         assert tasks[0].subsystem == Subsystem.MEMORY
         assert tasks[1].subsystem == Subsystem.NETWORK
         assert tasks[2].subsystem == Subsystem.SYSTEM
 
         for task in tasks:
-            assert task.args["timeout_sec"] == 120  # noqa: PLR2004
+            assert task.args["timeout_sec"] == 120
 
     def test_build_stage_tasks_single_subsystem(self) -> None:
         """Test building stage tasks for a single subsystem."""
@@ -192,7 +192,7 @@ class TestBuildStageTasks:
         subsystems = frozenset({Subsystem.SYSCALLS, Subsystem.MEMORY, Subsystem.SYSTEM})
         tasks = build_stage_tasks(ProfilesTestKind.STABILITY, subsystems, LoadPattern.BALANCED, 60)
 
-        assert len(tasks) == 3  # noqa: PLR2004
+        assert len(tasks) == 3
         assert tasks[0].subsystem == Subsystem.MEMORY
         assert tasks[1].subsystem == Subsystem.SYSCALLS
         assert tasks[2].subsystem == Subsystem.SYSTEM

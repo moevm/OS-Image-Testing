@@ -47,7 +47,7 @@ class TestBuildPlan:
         plan = build_plan(request)
 
         assert plan.duration_sec == duration_sec
-        assert len(plan.stages) == 2  # noqa: PLR2004
+        assert len(plan.stages) == 2
         # Subsystems should be sorted by name
         assert plan.stages[0].name == "isolated_memory"
         assert plan.stages[1].name == "isolated_network"
@@ -79,7 +79,7 @@ class TestBuildPlan:
         plan = build_plan(request)
 
         assert plan.duration_sec == duration_sec
-        assert len(plan.stages) == 2  # noqa: PLR2004
+        assert len(plan.stages) == 2
         assert plan.stages[0].name == "isolated_memory"
         assert plan.stages[0].duration_sec == duration_sec / 2
         assert plan.stages[0].pattern == LoadPattern.BALANCED
@@ -97,7 +97,7 @@ class TestBuildPlan:
         plan = build_plan(request)
 
         assert plan.duration_sec == duration_sec
-        assert len(plan.stages) == 3  # noqa: PLR2004
+        assert len(plan.stages) == 3
         assert plan.stages[0].name == "warmup"
         assert plan.stages[1].name == "main"
         assert plan.stages[2].name == "cooldown"
@@ -112,7 +112,7 @@ class TestBuildPlan:
         plan = build_plan(request)
 
         assert plan.duration_sec == duration_sec
-        assert len(plan.stages) == 3  # noqa: PLR2004
+        assert len(plan.stages) == 3
         assert plan.stages[0].name == "ramp"
         assert plan.stages[1].name == "peak"
         assert plan.stages[2].name == "cooldown"
@@ -141,7 +141,7 @@ class TestBuildPlan:
         plan = build_plan(request)
 
         assert plan.duration_sec == duration_sec
-        assert len(plan.stages) == 4  # noqa: PLR2004
+        assert len(plan.stages) == 4
         assert plan.stages[0].name == "step_soft"
         assert plan.stages[1].name == "step_balanced"
         assert plan.stages[2].name == "step_intense"
@@ -157,7 +157,7 @@ class TestBuildPlan:
         plan = build_plan(request)
 
         assert plan.duration_sec == duration_sec
-        assert len(plan.stages) == 2  # noqa: PLR2004
+        assert len(plan.stages) == 2
         assert plan.stages[0].name == "prefill"
         assert plan.stages[1].name == "bulk"
 
@@ -171,7 +171,7 @@ class TestBuildPlan:
         plan = build_plan(request)
 
         assert plan.duration_sec == duration_sec
-        assert len(plan.stages) == 3  # noqa: PLR2004
+        assert len(plan.stages) == 3
         assert plan.stages[0].name == "baseline_1"
         assert plan.stages[1].name == "spike"
         assert plan.stages[2].name == "baseline_2"
@@ -223,9 +223,9 @@ class TestBuildPlan:
         )
         plan = build_plan(request)
 
-        assert plan.stages[0].duration_sec == 20  # noqa: PLR2004
-        assert plan.stages[1].duration_sec == 60  # noqa: PLR2004
-        assert plan.stages[2].duration_sec == 20  # noqa: PLR2004
+        assert plan.stages[0].duration_sec == 20
+        assert plan.stages[1].duration_sec == 60
+        assert plan.stages[2].duration_sec == 20
 
     def test_build_plan_durations_allocation_with_remainder(self) -> None:
         """Test duration allocation with remainder distribution."""
@@ -251,10 +251,10 @@ class TestBuildPlan:
         plan = build_plan(request)
 
         # 3 subsystems, 90 seconds total -> 30 each
-        assert len(plan.stages) == 3  # noqa: PLR2004
-        assert plan.stages[0].duration_sec == 30  # noqa: PLR2004
-        assert plan.stages[1].duration_sec == 30  # noqa: PLR2004
-        assert plan.stages[2].duration_sec == 30  # noqa: PLR2004
+        assert len(plan.stages) == 3
+        assert plan.stages[0].duration_sec == 30
+        assert plan.stages[1].duration_sec == 30
+        assert plan.stages[2].duration_sec == 30
 
 
 class TestBuildIsolatedStages:
@@ -275,7 +275,7 @@ class TestBuildIsolatedStages:
         duration_sec = 90
         stages = _build_isolated_stages(duration_sec, [Subsystem.MEMORY, Subsystem.NETWORK])
 
-        assert len(stages) == 2  # noqa: PLR2004
+        assert len(stages) == 2
         assert stages[0].name == "isolated_memory"
         assert stages[1].name == "isolated_network"
         assert stages[0].duration_sec == duration_sec / 2

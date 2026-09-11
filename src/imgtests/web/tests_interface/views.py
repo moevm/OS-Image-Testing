@@ -29,7 +29,7 @@ from imgtests.database.models.configuration import ConfigurationBase
 from imgtests.reporting.cli import EXPORT_TABLES
 from imgtests.reporting.excel_export import distribution_name_from_os, export_database_to_excel
 from imgtests.reporting.html_report import ReportGenerator
-from imgtests.runner import get_test_name
+from imgtests.runner import DefaultConfig, Runner, get_test_name
 from imgtests.suites.map import ALL_SUITES
 
 from .models import Distribution
@@ -48,7 +48,7 @@ def api_get_available_suites(request: HttpRequest) -> JsonResponse:  # noqa: ARG
         suite_name: {
             "description": suite.description,
             "default_duration": suite.total_duration,
-            "test_count": len(suite.tests),
+            "test_count": len(suite.get_tests()),
         }
         for suite_name, suite in ALL_SUITES.items()
     }
@@ -60,7 +60,8 @@ def api_get_suite_tests(request: HttpRequest, suite_name: str) -> JsonResponse: 
     if suite_name not in ALL_SUITES:
         return JsonResponse({"error": f"Suite {suite_name} not found"}, status=404)
     tests_list = [
-        {"name": get_test_name(test), "type": "class"} for test in ALL_SUITES[suite_name].tests
+        {"name": get_test_name(test), "type": "class"}
+        for test in ALL_SUITES[suite_name].get_tests()
     ]
     return JsonResponse(tests_list, safe=False)
 
@@ -97,7 +98,7 @@ def api_get_test_config(request: HttpRequest, distro_name: str) -> JsonResponse:
             return JsonResponse({"error": str(e)}, status=500)
         return JsonResponse(config)
 
-    default_config = {
+    default_config: DefaultConfig = {
         "suites": ["FILE_SUITE", "MEMORY_SUITE", "SYSCALLS_SUITE", "IPC_SUITE", "NETWORK_SUITE"],
         "suite_durations": {
             "FILE_SUITE": ALL_SUITES["FILE_SUITE"].total_duration,
@@ -107,8 +108,8 @@ def api_get_test_config(request: HttpRequest, distro_name: str) -> JsonResponse:
             "NETWORK_SUITE": ALL_SUITES["NETWORK_SUITE"].total_duration,
         },
         "selected_tests": {},
-        "test_runs_count": 1,
     }
+    default_config["test_runs_count"] = 1
 
     return JsonResponse(default_config)
 
@@ -220,7 +221,7 @@ def run_tests(request: HttpRequest) -> JsonResponse:
         return JsonResponse({"error": "Invalid referer"}, status=400)
 
     try:
-        runner = body.get("runner", "default")
+        runner: Runner = body.get("runner", "default")
     except AttributeError:
         return JsonResponse({"error": "Invalid JSON"}, status=400)
 

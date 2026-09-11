@@ -1,8 +1,8 @@
-from typing import Any, Final
+from typing import Final
 
 from django.tasks import task
 
-from imgtests.runner import Distro, Runner, run_tests
+from imgtests.runner import DefaultConfig, Distro, ProfiledConfig, Runner, run_tests
 
 DEFAULT_TASK_TIMEOUT_SEC: Final = 3600
 
@@ -12,7 +12,7 @@ def run_test_task(
     distro: Distro,
     mode: Runner = "default",
     test_runs_count: int = 1,
-    config: dict[str, Any] | None = None,
+    config: DefaultConfig | ProfiledConfig | None = None,
 ) -> dict[str, str | int]:
     try:
         run_tests(

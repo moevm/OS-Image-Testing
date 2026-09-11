@@ -456,7 +456,7 @@ class TestMetricWorksheetContext:
         assert result.config_index == 0
         assert result.experiment_index == 1
         assert result.metric_indexes == [3, 4]
-        assert result.test_name_index == 2  # noqa: PLR2004
+        assert result.test_name_index == 2
         assert result.tool_name_index is None
         assert result.distribution_index is None
 
@@ -746,7 +746,7 @@ class TestCollectMetricBucketsFromRow:
             options,
         )
 
-        assert len(buckets) == 3  # noqa: PLR2004
+        assert len(buckets) == 3
         assert ("test_name", "test", "metric1") in buckets
         assert ("test_name", "test", "metric2") in buckets
         assert ("test_name", "test", "metric3") in buckets
@@ -1072,7 +1072,7 @@ class TestNormalizeHeader:
 class TestColumnIndex:
     def test_existing_column(self) -> None:
         headers = ["a", "b", "c", "d"]
-        assert column_index(headers, "c") == 2  # noqa: PLR2004
+        assert column_index(headers, "c") == 2
 
     def test_missing_column(self) -> None:
         headers = ["a", "b", "c"]
@@ -1085,7 +1085,7 @@ class TestColumnIndex:
 class TestCellValue:
     def test_valid_index(self) -> None:
         row = (1, 2, 3, 4)
-        assert cell_value(row, 2) == 3  # noqa: PLR2004
+        assert cell_value(row, 2) == 3
 
     def test_index_out_of_bounds(self) -> None:
         row = (1, 2, 3)

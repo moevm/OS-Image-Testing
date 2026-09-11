@@ -64,12 +64,12 @@ if TYPE_CHECKING:
 # Subsystems, stages (plan, risk analysis, run, cleanup, results, etc), etc
 class TestsRunnerConfig:
     __slots__ = (
+        "__tests",
+        "__total_duration",
         "description",
         "experiment_type",
         "install_dependencies",
         "test_duration",
-        "tests",
-        "total_duration",
     )
 
     def __init__(
@@ -81,24 +81,46 @@ class TestsRunnerConfig:
         install_dependencies: bool = False,
     ) -> None:
         self.description = description
-        self.tests = tests
+        self.__tests = tests
         self.experiment_type: ExperimentType = experiment_type
         self.total_duration = duration
         self.install_dependencies = install_dependencies
+
+    def get_tests(
+        self,
+    ) -> Sequence[AbstractRunnableManyTimesTest | type[AbstractRunnableTimeLimitedTest]]:
+        return self.__tests
+
+    def set_tests(
+        self,
+        value: Sequence[AbstractRunnableManyTimesTest | type[AbstractRunnableTimeLimitedTest]],
+    ) -> None:
+        self.__tests = value
+        # reinitialize test_duration
+        self.total_duration = self.total_duration
+
+    @property
+    def total_duration(self) -> int:
+        return self.__total_duration
+
+    @total_duration.setter
+    def total_duration(self, value: int) -> None:
         time_limited_tests_cnt = sum(
-            1 for test in self.tests if not isinstance(test, AbstractRunnableManyTimesTest)
+            1 for test in self.__tests if not isinstance(test, AbstractRunnableManyTimesTest)
         )
-        if time_limited_tests_cnt > self.total_duration:
+        if time_limited_tests_cnt > value:
             err_msg = (
                 f"Each test cannot be run for less 1 second. "
-                f"{self.total_duration} seconds available, {time_limited_tests_cnt} tests to run. "
+                f"{value} seconds available, {time_limited_tests_cnt} tests to run. "
                 "Available time is not enough."
             )
             raise ValueError(err_msg)
         if time_limited_tests_cnt > 0:
-            self.test_duration = self.total_duration // time_limited_tests_cnt
+            self.test_duration = value // time_limited_tests_cnt
+            self.__total_duration = value
         else:
             self.test_duration = 0
+            self.__total_duration = 0
 
 
 ALL_SUBSYSTEMS_SUITE: Final = TestsRunnerConfig(

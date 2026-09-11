@@ -279,5 +279,5 @@ class TestParseArgs:
 
         assert args.command == DISTRO_COMPARISON_STATUS_COMMAND
         assert args.input == Path("report.xlsx")
-        assert args.epsilon_percent == 100  # noqa: PLR2004
+        assert args.epsilon_percent == 100
         assert args.experiment_ids == ["10", "20"]

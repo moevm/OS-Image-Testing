@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from threading import Event, Thread
-from typing import TYPE_CHECKING, Any, Final, Literal
+from typing import TYPE_CHECKING, Final, Literal, TypedDict, cast
 
 import paramiko
 import paramiko.ssh_exception
@@ -43,6 +43,42 @@ if TYPE_CHECKING:
     from collections.abc import Iterable
 
     from imgtests.exec.base_util import BaseTestUtil
+
+
+class DurationConfig(TypedDict, total=False):
+    """Duration settings for the profiled runner."""
+
+    duration_sec: int
+    duration_load: int | None
+    duration_stress: int | None
+    duration_stability: int | None
+    duration_scalability: int | None
+    duration_volume: int | None
+    duration_isolated: int | None
+    duration_spike: int | None
+    duration_diagnostic: int | None
+
+
+class DefaultConfig(TypedDict):
+    """Configuration for the default runner mode."""
+
+    suites: list[str]
+    suite_durations: dict[str, int]
+    selected_tests: dict[str, list[str]]
+
+
+class ProfiledConfig(TypedDict):
+    """Configuration for the profiled runner mode."""
+
+    durations: DurationConfig
+    subsystems: list[str]
+    pattern: str
+    run_matrix: bool
+    profile: str
+    matrix_profiles: list[str]
+
+
+TestConfig = DefaultConfig | ProfiledConfig
 
 
 Runner = Literal["default", "profiled"]
@@ -114,7 +150,7 @@ class TestsRunner(BaseRunner):
             (SystemLoadTimeTest(), SystemSlowServicesTest()),
             experiment.experiment_id,
         )
-        self.handle_tests(self.__test_config.tests, experiment.experiment_id)
+        self.handle_tests(self.__test_config.get_tests(), experiment.experiment_id)
         self._logger.info("All tests completed successfully.")
         if self._client is not None:
             self._client.close()
@@ -292,7 +328,7 @@ class ProfiledRunnerSettings:
         results_dir: Path = REPORTS_DIR / "profiled",
         pattern: LoadPattern | None = None,
         run_matrix: bool = False,
-        profile: TestKind = TestKind.LOAD,
+        profile: TestKind | None = TestKind.LOAD,
         matrix_profiles: tuple[TestKind, ...] | None = None,
         durations: Durations | None = None,
     ) -> None:
@@ -309,7 +345,7 @@ class ProfiledRunnerSettings:
         self.results_dir = results_dir
         self.pattern = pattern
         self.run_matrix = run_matrix
-        self.profile = profile
+        self.profile = TestKind.LOAD if profile is None else profile
 
 
 class ProfiledPlanRunner(BaseRunner):
@@ -421,7 +457,7 @@ class ProfiledPlanRunner(BaseRunner):
         return run_name
 
 
-def load_test_config(distro: str) -> dict[str, Any]:
+def load_test_config(distro: str) -> DefaultConfig:
     config_file = CONFIG_DIR / f"{distro}_config.json"
     if config_file.exists():
         try:
@@ -451,9 +487,9 @@ def filter_tests_by_names(
     selected_test_names: list[str],
 ) -> Iterable[AbstractRunnableManyTimesTest | type[AbstractRunnableTimeLimitedTest]]:
     if not selected_test_names:
-        return suite.tests
+        return suite.get_tests()
 
-    original_tests = suite.tests
+    original_tests = suite.get_tests()
     filtered_tests: list[AbstractRunnableManyTimesTest | type[AbstractRunnableTimeLimitedTest]] = []
 
     for test in original_tests:
@@ -471,7 +507,7 @@ def filter_tests_by_names(
     return filtered_tests
 
 
-def build_profiled_settings(config: dict[str, Any] | None) -> ProfiledRunnerSettings:
+def build_profiled_settings(config: ProfiledConfig | None) -> ProfiledRunnerSettings:
     if not config:
         return ProfiledRunnerSettings()
 
@@ -488,10 +524,7 @@ def build_profiled_settings(config: dict[str, Any] | None) -> ProfiledRunnerSett
     )
 
     return ProfiledRunnerSettings(
-        subsystems=frozenset(
-            Subsystem(s) if isinstance(s, str) else s for s in config.get("subsystems", [])
-        )
-        or None,
+        subsystems=frozenset(Subsystem(s) for s in config.get("subsystems", [])) or None,
         pattern=LoadPattern(config["pattern"]) if config.get("pattern") else None,
         run_matrix=config.get("run_matrix"),
         profile=TestKind(config["profile"]) if config.get("profile") else None,
@@ -505,7 +538,7 @@ def build_profiled_settings(config: dict[str, Any] | None) -> ProfiledRunnerSett
 def _run_single(  # noqa: C901, PLR0912
     client: SSHClient,
     mode: Runner,
-    config: dict[str, Any] | None,
+    config: DefaultConfig | None,
     profiled_runner_settings: ProfiledRunnerSettings | None,
 ) -> None:
     logger.info("Current testing mode is %s", mode)
@@ -516,7 +549,7 @@ def _run_single(  # noqa: C901, PLR0912
             err_msg = "Config must be provided for default runner."
             raise ValueError(err_msg)
         logger.info("Using suites: %s", config.get("suites", []))
-        suites_to_run = []
+        suites_to_run: list[TestsRunnerConfig] = []
         for suite_name in config.get("suites", []):
             if suite_name in ALL_SUITES:
                 suite = ALL_SUITES[suite_name]
@@ -536,20 +569,17 @@ def _run_single(  # noqa: C901, PLR0912
 
                 selected_tests = config.get("selected_tests", {}).get(suite_name)
                 if selected_tests and len(selected_tests) > 0:
-                    original_tests = suite.tests
-                    filtered_tests = []
+                    original_tests = suite.get_tests()
+                    filtered_tests: list[
+                        AbstractRunnableManyTimesTest | type[AbstractRunnableTimeLimitedTest]
+                    ] = []
                     for test in original_tests:
                         test_name = get_test_name(test)
                         if test_name in selected_tests:
                             filtered_tests.append(test)
 
                     if filtered_tests:
-                        suite.tests = tuple(filtered_tests)
-                        suite.test_duration = (
-                            suite.total_duration // len(filtered_tests)
-                            if len(filtered_tests) > 0
-                            else suite.test_duration
-                        )
+                        suite.set_tests(tuple(filtered_tests))
                         logger.info(
                             "Filtered %s: %d -> %d tests",
                             suite_name,
@@ -592,7 +622,7 @@ def run_tests(
     distro: Distro,
     mode: Runner = "default",
     test_runs_count: int = 1,
-    config: dict[str, Any] | None = None,
+    config: DefaultConfig | ProfiledConfig | None = None,
 ) -> None:
     logger.info("Running tests for %s", distro)
 
@@ -601,11 +631,11 @@ def run_tests(
         case "default":
             if config is None:
                 config = load_test_config(distro)
-            total_tests_amount = __calc_total_tests_amount_default(config)
+            total_tests_amount = __calc_total_tests_amount_default(cast("DefaultConfig", config))
         case "profiled":
-            profiled_runner_settings = build_profiled_settings(config=config)
+            profiled_runner_settings = build_profiled_settings(cast("ProfiledConfig", config))
             total_tests_amount = __calc_total_tests_amount_profiled(
-                config,
+                cast("ProfiledConfig", config),
                 profiled_runner_settings,
             )
         case _:
@@ -626,7 +656,7 @@ def run_tests(
             sys.exit(1)
     for i in range(test_runs_count):
         logger.info("Starting test run %d of %d", i + 1, test_runs_count)
-        _run_single(client, mode, config, profiled_runner_settings)
+        _run_single(client, mode, cast("DefaultConfig", config), profiled_runner_settings)
         logger.info("Completed test run %d of %d", i + 1, test_runs_count)
 
 
@@ -640,23 +670,23 @@ def get_test_name(
     return str(test)
 
 
-def __calc_total_tests_amount_default(config: dict[str, Any]) -> int:
+def __calc_total_tests_amount_default(config: DefaultConfig) -> int:
     total_tests_amount = 0
     for suite in config["suites"]:
         if suite in config["selected_tests"]:
             total_tests_amount += len(config["selected_tests"][suite])
         else:
-            total_tests_amount += len(ALL_SUITES[suite].tests)
+            total_tests_amount += len(ALL_SUITES[suite].get_tests())
         # default runner runs 2 system tests for each suite (load time and slow services)
         total_tests_amount += 2
     # no suites selected case, ALL_SUBSYSTEMS_SUITE would be used
     if config["suites"] == []:
-        total_tests_amount = len(ALL_SUBSYSTEMS_SUITE.tests) + 2
+        total_tests_amount = len(ALL_SUBSYSTEMS_SUITE.get_tests()) + 2
     return total_tests_amount
 
 
 def __calc_total_tests_amount_profiled(
-    config: dict[str, Any] | None,
+    config: ProfiledConfig | None,
     profiled_runner_settings: ProfiledRunnerSettings,
 ) -> int:
     total_tests_amount = len(profiled_runner_settings.subsystems)
