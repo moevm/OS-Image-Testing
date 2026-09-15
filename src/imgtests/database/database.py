@@ -10,6 +10,7 @@ from sqlalchemy.orm import selectinload, sessionmaker
 
 from imgtests.database.models.base import Base
 from imgtests.database.models.configuration import ConfigurationBase
+from imgtests.database.models.distribution_connection import DistributionConnection
 from imgtests.database.models.experiment import ExperimentBase, ExperimentType
 from imgtests.database.models.util_run_result import UtilRunResult, UtilType
 
@@ -20,7 +21,7 @@ if TYPE_CHECKING:
     from imgtests.types import TestsCounts
 
 logger = logging.getLogger(__name__)
-Table = Literal["configurations", "experiments", "util_run_result"]
+Table = Literal["configurations", "experiments", "util_run_result", "distribution_connections"]
 
 
 class PostgresCreds(BaseSettings):
@@ -208,11 +209,12 @@ class ImgtestsDatabase:
         with self.session() as session:
             models: dict[
                 Table,
-                type[ConfigurationBase | ExperimentBase | UtilRunResult],
+                type[ConfigurationBase | ExperimentBase | UtilRunResult | DistributionConnection],
             ] = {
                 "configurations": ConfigurationBase,
                 "experiments": ExperimentBase,
                 "util_run_result": UtilRunResult,
+                "distribution_connections": DistributionConnection,
             }
             if table_name not in models:
                 logger.error("Table '%s' doesn't exist.", table_name)
@@ -249,6 +251,76 @@ class ImgtestsDatabase:
                 .filter(ExperimentBase.experiment_id == experiment_id)
                 .one()
             )
+
+    def get_connection(self, name: str) -> DistributionConnection | None:
+        if not name:
+            return None
+
+        self._check_session()
+        with self.session() as session:
+            return (
+                session.query(DistributionConnection)
+                .filter(
+                    DistributionConnection.name == name,
+                    DistributionConnection.is_active.is_(True),
+                )
+                .one_or_none()
+            )
+
+    def list_connections(self) -> list[DistributionConnection]:
+        self._check_session()
+        with self.session() as session:
+            return session.query(DistributionConnection).order_by(DistributionConnection.name).all()
+
+    def upsert_connection(  # noqa: PLR0913
+        self,
+        name: str,
+        host: str,
+        user: str,
+        password: str,
+        port: int,
+        is_active: bool = True,
+    ) -> DistributionConnection:
+        self._check_session()
+        with self.session() as session:
+            connection = (
+                session.query(DistributionConnection)
+                .filter(DistributionConnection.name == name)
+                .one_or_none()
+            )
+            if connection is None:
+                connection = DistributionConnection(
+                    name=name,
+                    host=host,
+                    user=user,
+                    password=password,
+                    port=port,
+                    is_active=is_active,
+                )
+                session.add(connection)
+            else:
+                connection.host = host
+                connection.user = user
+                connection.password = password
+                connection.port = port
+                connection.is_active = is_active
+            session.commit()
+            session.refresh(connection)
+            return connection
+
+    def delete_connection(self, name: str) -> bool:
+        self._check_session()
+        with self.session() as session:
+            connection = (
+                session.query(DistributionConnection)
+                .filter(DistributionConnection.name == name)
+                .one_or_none()
+            )
+            if connection is None:
+                return False
+            session.delete(connection)
+            session.commit()
+            return True
 
     def _check_session(self) -> None:
         if not hasattr(self, "session") or self.session is None:

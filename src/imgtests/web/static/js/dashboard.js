@@ -78,6 +78,16 @@ function addDistro() {
             true
         ),
     );
+    const host = prompt(gettext("Enter SSH host (IP address):"));
+    if (!host) return;
+    const port = prompt(gettext("Enter SSH port (e.g., 22):"), "22");
+    if (!port || isNaN(port) || Number(port) < 1 || Number(port) > 65535) {
+        alert(gettext("Invalid SSH port value"));
+        return;
+    }
+    const user = prompt(gettext("Enter SSH user:"));
+    if (!user) return;
+    const password = prompt(gettext("Enter SSH password (optional):"), "");
     fetch("/api/distros/add/", {
         method: "POST",
         headers: {
@@ -88,6 +98,10 @@ function addDistro() {
             name: name,
             display_name: displayName,
             description: description,
+            host: host,
+            port: port,
+            user: user,
+            password: password,
         }),
     })
         .then((response) => response.json())

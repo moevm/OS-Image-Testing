@@ -284,7 +284,7 @@ def get_test_status(request: HttpRequest, task_id: str) -> JsonResponse:  # noqa
 
 @csrf_exempt
 @require_http_methods(["POST"])
-def api_add_distro(request: HttpRequest) -> JsonResponse:
+def api_add_distro(request: HttpRequest) -> JsonResponse:  # noqa: PLR0911
     try:
         data = json.loads(request.body)
     except json.JSONDecodeError:
@@ -292,6 +292,17 @@ def api_add_distro(request: HttpRequest) -> JsonResponse:
     name = data.get("name", "").strip()
     display_name = data.get("display_name", "").strip()
     description = data.get("description", "").strip()
+    host = (data.get("host") or "").strip()
+    user = (data.get("user") or "").strip()
+    password = data.get("password") or ""
+    port = int(data.get("port") or 0)
+
+    if not name:
+        return JsonResponse({"error": "name is required"}, status=400)
+    if not (0 < port <= 65535):  # noqa: PLR2004
+        return JsonResponse({"error": "Invalid port value"}, status=400)
+    if not host or not user:
+        return JsonResponse({"error": "host and user are required"}, status=400)
 
     if Distribution.objects.filter(name=name).exists():
         return JsonResponse(
@@ -304,6 +315,20 @@ def api_add_distro(request: HttpRequest) -> JsonResponse:
         display_name=display_name,
         description=description or f"Run tests for {display_name} platform",
     )
+
+    try:
+        database = ImgtestsDatabase()
+        database.upsert_connection(
+            name=name,
+            host=host,
+            user=user,
+            password=password,
+            port=port,
+            is_active=True,
+        )
+        database.session.close_all()
+    except Exception as e:  # noqa: BLE001
+        return JsonResponse({"error": str(e)}, status=500)
 
     return JsonResponse(
         {
@@ -349,6 +374,8 @@ def api_get_distros(request: HttpRequest) -> JsonResponse:  # noqa: ARG001
     return JsonResponse({"distributions": distributions})
 
 
+@csrf_exempt
+@require_http_methods(["GET"])
 def __find_reports(reports_path: Path) -> list[dict[str, str | float]]:
     if not reports_path.is_dir():
         return []

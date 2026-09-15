@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from threading import Event, Thread
-from typing import TYPE_CHECKING, Any, Final, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 import paramiko
 import paramiko.ssh_exception
@@ -42,24 +42,11 @@ from imgtests.types import Subsystem, TestsCounts, TestStatus
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
+    from imgtests.database.models.distribution_connection import DistributionConnection
     from imgtests.exec.base_util import BaseTestUtil
 
 
 Runner = Literal["default", "profiled"]
-Distro = Literal["yocto", "opensuse"]
-
-YOCTO_CONF: Final = (
-    "SSH_YOCTO_ADDR",
-    "SSH_YOCTO_USER",
-    "SSH_YOCTO_PASS",
-    "SSH_YOCTO_PORT",
-)
-SUSE_156_CONF: Final = (
-    "SSH_SUSE_ADDR_156",
-    "SSH_SUSE_USER",
-    "SSH_SUSE_PASS",
-    "SSH_SUSE_PORT_156",
-)
 
 logger = logging.getLogger()
 
@@ -578,24 +565,22 @@ def _run_single(client: SSHClient, mode: Runner, config: dict[str, Any] | None) 
 
 
 def run_tests(
-    distro: Distro,
+    distribution: DistributionConnection,
     mode: Runner = "default",
     test_runs_count: int = 1,
     config: dict[str, Any] | None = None,
 ) -> None:
-    logger.info("Running tests for %s", distro)
+    logger.info("Running tests for %s", distribution.name)
     if mode == "default" and config is None:
-        config = load_test_config(distro)
-    client = None
-    match distro:
-        case "yocto":
-            client = wait_remote(*YOCTO_CONF) or sys.exit(1)
-        case "opensuse":
-            client = wait_remote(*SUSE_156_CONF) or sys.exit(1)
-            Touch(client, use_sudo=True)(["/etc/cloud/cloud-init.disabled"])
-        case _:
-            logger.error("Unexpected distro '%s'.", distro)
-            sys.exit(1)
+        config = load_test_config(distribution.name)
+    client = wait_remote(
+        hostname=distribution.host,
+        username=distribution.user,
+        password=distribution.password,
+        port=distribution.port,
+    ) or sys.exit(1)
+    if distribution.name == "opensuse":
+        Touch(client, use_sudo=True)(["/etc/cloud/cloud-init.disabled"])
     for i in range(test_runs_count):
         logger.info("Starting test run %d of %d", i + 1, test_runs_count)
         _run_single(client, mode, config)
