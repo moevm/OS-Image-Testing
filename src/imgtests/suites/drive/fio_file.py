@@ -244,10 +244,11 @@ class FioDisksVariationTest(AbstractRunnableTimeLimitedTest):
         )
         size = _calculate_fio_ram_percent(50, client)
 
+        case_timeout = timeout // len(offset_cases)
         for offset, offset_incr in offset_cases:
             cfg = FioSuiteConfig(
                 suite=f"variation-offset-{offset}-{offset_incr or 'none'}",
-                duration_sec=timeout,
+                duration_sec=case_timeout,
                 results_dir=FIO_RESULTS_DIR,
                 workloads=workloads,
                 offset=offset,
