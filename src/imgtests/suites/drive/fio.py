@@ -15,7 +15,14 @@ from imgtests.constant import LIB_DATA_DIR
 from imgtests.exec.exec import common_run_command
 from imgtests.exec.loaders.fio import Direct, Fio, FioPlot, IOEngine, IOPattern
 from imgtests.exec.user_commands import MkDir, Rm
-from imgtests.suites.duration import EIGHT_HOURS_SEC, HOUR_SEC, TEN_MIN_SEC, TWO_MIN_SEC
+from imgtests.suites.duration import (
+    EIGHT_HOURS_SEC,
+    FIVE_DAYS_SEC,
+    FOUR_HOURS_SEC,
+    HOUR_SEC,
+    ONE_DAY_SEC,
+    TEN_DAYS_SEC,
+)
 from imgtests.types import TestResult, TestStatus
 
 if TYPE_CHECKING:
@@ -206,16 +213,20 @@ class FioSuite:
                 _run_fio_plot(fio_plot, bs_dir, rw=rw, title=title)
 
 
-def _timing(duration_sec: int) -> FioTiming:
-    if duration_sec <= TWO_MIN_SEC:
-        return FioTiming(FioGrid((1,), (1,)), 5, 1000, 0)
-    if duration_sec <= TEN_MIN_SEC:
-        return FioTiming(FioGrid((1, 4, 16), (1, 2)), 10, 1000, 0)
+def _timing(duration_sec: int) -> FioTiming:  # noqa: PLR0911
     if duration_sec <= HOUR_SEC:
-        return FioTiming(FioGrid((1, 2, 4, 8, 16, 32), (1, 2, 4)), 20, 2000, 5)
+        return FioTiming(FioGrid((1,), (1,)), 10, 1000, 1)
+    if duration_sec <= FOUR_HOURS_SEC:
+        return FioTiming(FioGrid((1, 4), (1,)), 30, 1000, 5)
     if duration_sec <= EIGHT_HOURS_SEC:
-        return FioTiming(FioGrid((1, 2, 4, 8, 16, 32), (1, 2, 4, 8)), 45, 5000, 10)
-    return FioTiming(FioGrid((1, 2, 4, 8, 16, 32), (1, 2, 4, 8)), 60, 5000, 15)
+        return FioTiming(FioGrid((1, 4), (1, 2)), 45, 2000, 10)
+    if duration_sec <= ONE_DAY_SEC:
+        return FioTiming(FioGrid((1, 4, 8), (1, 2)), 60, 3000, 15)
+    if duration_sec <= FIVE_DAYS_SEC:
+        return FioTiming(FioGrid((1, 2, 4, 8), (1, 2, 4)), 80, 4000, 30)
+    if duration_sec <= TEN_DAYS_SEC:
+        return FioTiming(FioGrid((1, 2, 4, 8, 16), (1, 2, 4, 8)), 100, 5000, 60)
+    return FioTiming(FioGrid((1, 2, 4, 8, 16, 32), (1, 2, 4, 8)), 120, 5000, 60)
 
 
 def _shrink_grid(duration_sec: int, workloads_count: int, min_runtime_sec: int) -> FioGrid:

@@ -1,7 +1,9 @@
 from typing import Final
 
 ONE_MIN_SEC: Final = 60
-TWO_MIN_SEC: Final = 120
-TEN_MIN_SEC: Final = 600
 HOUR_SEC: Final = 3600
-EIGHT_HOURS_SEC: Final = 8 * HOUR_SEC
+FOUR_HOURS_SEC: Final = 14_400
+EIGHT_HOURS_SEC: Final = 28_800
+ONE_DAY_SEC: Final = 86_400
+FIVE_DAYS_SEC: Final = 432_000
+TEN_DAYS_SEC: Final = 864_000
